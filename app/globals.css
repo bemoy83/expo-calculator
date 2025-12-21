@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light theme - Professional with REAL visible hierarchy */
+  --background: 240 244 248;          /* Cool gray background - NOT white */
+  --foreground: 15 23 42;             /* Deep slate text */
+  --card: 255 255 255;                /* Pure white cards - elevated on gray */
+  --card-foreground: 15 23 42;        /* Deep slate on cards */
+  --muted: 248 250 252;               /* Very light gray - subtle surfaces */
+  --muted-foreground: 100 116 139;    /* Medium slate text */
+  --border: 226 232 240;              /* Soft visible borders */
+  --accent: 37 99 235;                /* Vibrant professional blue */
+  --accent-foreground: 255 255 255;   /* White on accent */
+  --destructive: 220 38 38;           /* Clear red */
+  --destructive-foreground: 255 255 255;
+  --success: 22 163 74;               /* Green for success */
+  --success-foreground: 255 255 255;
+}
+
+.dark {
+  /* Dark theme - Deep charcoal with CLEAR layered surfaces */
+  --background: 10 15 25;             /* Very dark navy-slate */
+  --foreground: 241 245 249;          /* Bright text */
+  --card: 30 41 59;                   /* Lighter slate - CLEARLY elevated */
+  --card-foreground: 241 245 249;     /* Bright readable text */
+  --muted: 20 28 41;                  /* Between background and card */
+  --muted-foreground: 148 163 184;    /* Muted text */
+  --border: 30 41 59;                 /* Match card color - subtle on dark */
+  --accent: 59 130 246;               /* Bright vibrant blue */
+  --accent-foreground: 255 255 255;   /* White text on accent */
+  --destructive: 239 68 68;           /* Bright red */
+  --destructive-foreground: 255 255 255;
+  --success: 34 197 94;               /* Vibrant green */
+  --success-foreground: 255 255 255;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Smooth transitions for interactive elements */
+  .transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Custom shadow utilities for depth hierarchy */
+  /* Light mode shadows - crisp and clean */
+  .shadow-soft {
+    box-shadow: 
+      0 1px 2px 0 rgb(0 0 0 / 0.05),
+      0 1px 3px 0 rgb(0 0 0 / 0.04);
+  }
+  
+  .shadow-elevated {
+    box-shadow: 
+      0 4px 6px -1px rgb(0 0 0 / 0.08),
+      0 2px 4px -2px rgb(0 0 0 / 0.06);
+  }
+  
+  .shadow-floating {
+    box-shadow: 
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.08);
+  }
+  
+  /* Dark mode shadows - deeper and more pronounced for layering */
+  .dark .shadow-soft {
+    box-shadow: 
+      0 2px 4px 0 rgb(0 0 0 / 0.5),
+      0 1px 2px -1px rgb(0 0 0 / 0.4);
+  }
+  
+  .dark .shadow-elevated {
+    box-shadow: 
+      0 6px 10px -1px rgb(0 0 0 / 0.6),
+      0 2px 6px -2px rgb(0 0 0 / 0.5);
+  }
+  
+  .dark .shadow-floating {
+    box-shadow: 
+      0 12px 20px -3px rgb(0 0 0 / 0.7),
+      0 6px 10px -4px rgb(0 0 0 / 0.6);
+  }
+  
+  /* Subtle inner glow for depth on dark surfaces */
+  .dark .shadow-inset {
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.05);
+  }
+}
+
