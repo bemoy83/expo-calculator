@@ -201,7 +201,7 @@ export default function MaterialsPage() {
                     placeholder="Search materials..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-full rounded-xl"
+                    className="pl-10 w-full"
                   />
                 </div>
                 {/* Category Dropdown - Fixed width, no flex-grow */}
@@ -226,7 +226,7 @@ export default function MaterialsPage() {
             {/* Materials List */}
             {filteredMaterials.length === 0 ? (
               <div className="text-center py-24">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted shadow-elevated mb-6">
+                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted shadow-lg mb-6">
                   <Package className="h-12 w-12 text-muted-foreground" />
                 </div>
                 <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
@@ -249,7 +249,7 @@ export default function MaterialsPage() {
                 {filteredMaterials.map((material) => (
                   <div
                     key={material.id}
-                    className="bg-card border border-border rounded-2xl p-6 shadow-elevated hover:shadow-floating hover:border-accent/30 transition-smooth group"
+                    className="bg-card border border-border rounded-xl p-6 shadow-lg transition-smooth group"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -283,7 +283,7 @@ export default function MaterialsPage() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">Variable:</span>
-                            <code className="px-2.5 py-1 bg-muted border border-accent/30 rounded-lg text-sm text-accent font-mono">
+                            <code className="px-2.5 py-1 bg-muted border border-accent/30 rounded-md text-sm text-accent font-mono">
                               {material.variableName}
                             </code>
                           </div>
@@ -295,10 +295,10 @@ export default function MaterialsPage() {
                       <div className="flex items-start gap-1 shrink-0">
                         <button
                           onClick={() => openEditor(material)}
-                          className="p-2 text-muted-foreground hover:text-accent hover:bg-muted rounded-xl transition-colors"
-                          aria-label="Edit material"
+                          className="p-2 text-muted-foreground hover:text-accent hover:bg-muted rounded-lg transition-colors"
+                          aria-label={`Edit material: ${material.name}`}
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <Edit2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                         <button
                           onClick={() => {
@@ -309,10 +309,10 @@ export default function MaterialsPage() {
                               }
                             }
                           }}
-                          className="p-2 text-muted-foreground hover:text-destructive hover:bg-muted rounded-xl transition-colors"
-                          aria-label="Delete material"
+                          className="p-2 text-muted-foreground hover:text-destructive hover:bg-muted rounded-lg transition-colors"
+                          aria-label={`Delete material: ${material.name}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </div>
                     </div>

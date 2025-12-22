@@ -56,9 +56,14 @@ export default function QuotesPage() {
     setShowAddModule(false);
   };
 
+  // Helper to format label with unit
+  const formatLabel = (label: string, unit?: string) => {
+    return unit ? `${label} (${unit})` : label;
+  };
+
   const renderFieldInput = (
     instance: QuoteModuleInstance,
-    field: { id: string; label: string; type: FieldType; variableName: string; options?: string[]; required?: boolean; materialCategory?: string }
+    field: { id: string; label: string; type: FieldType; variableName: string; options?: string[]; required?: boolean; materialCategory?: string; unit?: string }
   ) => {
     const value = instance.fieldValues[field.variableName];
     const module = modules.find((m) => m.id === instance.moduleId);
@@ -67,7 +72,7 @@ export default function QuotesPage() {
       case 'number':
         return (
           <Input
-            label={field.label}
+            label={formatLabel(field.label, field.unit)}
             type="number"
             value={value?.toString() || ''}
             onChange={(e) =>
@@ -79,7 +84,7 @@ export default function QuotesPage() {
       case 'boolean':
         return (
           <Checkbox
-            label={field.label}
+            label={formatLabel(field.label, field.unit)}
             checked={Boolean(value)}
             onChange={(e) =>
               updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.checked)
@@ -89,7 +94,7 @@ export default function QuotesPage() {
       case 'dropdown':
         return (
           <Select
-            label={field.label}
+            label={formatLabel(field.label, field.unit)}
             value={value?.toString() || ''}
             onChange={(e) =>
               updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value)
@@ -118,7 +123,7 @@ export default function QuotesPage() {
         return (
           <div>
             <Select
-              label={field.label}
+              label={formatLabel(field.label, field.unit)}
               value={value?.toString() || ''}
               onChange={(e) =>
                 updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value)
@@ -141,7 +146,7 @@ export default function QuotesPage() {
       case 'text':
         return (
           <Input
-            label={field.label}
+            label={formatLabel(field.label, field.unit)}
             value={value?.toString() || ''}
             onChange={(e) =>
               updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value)
@@ -305,26 +310,25 @@ export default function QuotesPage() {
             <Save className="h-4 w-4 mr-2" />
             Save Quote
           </Button>
-          <Button variant="ghost" onClick={handleExport} className="rounded-full">
+          <Button variant="secondary" onClick={handleExport} className="rounded-full">
             <Download className="h-4 w-4 mr-2" />
             Export JSON
           </Button>
-          <Button variant="ghost" onClick={handleExportPDF} className="rounded-full">
+          <Button variant="secondary" onClick={handleExportPDF} className="rounded-full">
             <Download className="h-4 w-4 mr-2" />
             Print/PDF
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
         <div className="lg:col-span-2 space-y-5">
-          <Card className="rounded-2xl shadow-elevated">
+          <Card className="shadow-lg">
             <div className="space-y-5">
               <Input
                 label="Quote Name"
                 value={quoteName}
                 onChange={(e) => handleQuoteNameChange(e.target.value)}
-                className="rounded-xl"
               />
               
               <div className="flex items-start sm:items-center justify-between gap-4 pt-5 border-t border-border">
@@ -343,9 +347,9 @@ export default function QuotesPage() {
               </div>
 
               {showAddModule && (
-                <div className="mt-4 p-5 bg-muted/30 rounded-2xl border border-border">
+                <div className="mt-4 p-5 rounded-lg">
                   <div className="mb-4">
-                    <label className="block text-sm font-semibold text-foreground mb-3">
+                    <label className="block text-sm font-semibold text-label-foreground mb-3">
                       Select Module to Add
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -353,7 +357,7 @@ export default function QuotesPage() {
                         <button
                           key={module.id}
                           onClick={() => handleAddModule(module.id)}
-                          className="flex items-center px-4 py-3 bg-card hover:bg-accent hover:text-accent-foreground text-card-foreground rounded-xl border border-border transition-all text-sm font-medium text-left"
+                          className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover:shadow-md hover-overlay px-4 py-2 text-base w-full"
                         >
                           <Plus className="h-4 w-4 mr-2 shrink-0" />
                           <span className="truncate">{module.name}</span>
@@ -376,7 +380,7 @@ export default function QuotesPage() {
 
               {currentQuote.workspaceModules.length === 0 ? (
                 <div className="text-center py-20">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted shadow-soft mb-5">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted shadow-sm mb-5">
                     <Package className="h-10 w-10 text-muted-foreground" />
                   </div>
                   <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">No modules in workspace</h4>
@@ -391,7 +395,7 @@ export default function QuotesPage() {
                     if (!module) return null;
 
                     return (
-                      <div key={instance.id} className="bg-card border border-border rounded-2xl p-6 shadow-elevated hover:shadow-floating hover:border-accent/30 transition-smooth group">
+                      <div key={instance.id} className="bg-card border border-border rounded-xl p-6 shadow-lg transition-smooth group overlay-white">
                         <div className="mb-5">
                           <h4 className="text-base font-semibold text-card-foreground mb-1.5">{module.name}</h4>
                           {module.description && (
@@ -431,7 +435,7 @@ export default function QuotesPage() {
                             {addedItems.has(instance.id) ? 'Added!' : 'Add to Quote'}
                           </Button>
                           <Button
-                            variant="ghost"
+                            variant="danger"
                             size="sm"
                             onClick={() => removeWorkspaceModule(instance.id)}
                             className="rounded-full"
@@ -450,7 +454,7 @@ export default function QuotesPage() {
         </div>
 
         <div className="lg:col-span-1">
-          <Card className="sticky top-24 rounded-2xl shadow-floating border-accent/20">
+          <Card className="sticky top-16 z-40 shadow-xl">
             <h3 className="text-lg font-bold text-card-foreground mb-5 tracking-tight">Quote Summary</h3>
             
             <div className="space-y-5">
@@ -458,7 +462,7 @@ export default function QuotesPage() {
               <div className="space-y-3">
                 {/* Subtotal Row */}
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-muted-foreground shrink-0">Subtotal</label>
+                  <label className="text-sm text-label-foreground shrink-0">Subtotal</label>
                   <div className="w-20 shrink-0 text-right">
                     <span className="font-semibold text-card-foreground tabular-nums text-sm">
                       ${currentQuote.subtotal.toFixed(2)}
@@ -468,7 +472,7 @@ export default function QuotesPage() {
 
                 {/* Markup % Input */}
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-muted-foreground shrink-0">Markup (%)</label>
+                  <label className="text-sm text-label-foreground shrink-0">Markup (%)</label>
                   <div className="w-20 shrink-0">
                     <Input
                       type="number"
@@ -479,7 +483,7 @@ export default function QuotesPage() {
                         const percent = Math.round(Number(e.target.value) || 0);
                         setMarkupPercent(Math.max(0, percent));
                       }}
-                      className="w-full text-right rounded-xl"
+                      className="w-full text-right"
                     />
                   </div>
                 </div>
@@ -487,7 +491,7 @@ export default function QuotesPage() {
                 {/* Markup Amount Display (only if markup > 0) */}
                 {(currentQuote.markupPercent ?? 0) > 0 && (
                   <div className="flex items-center justify-between gap-3">
-                    <label className="text-sm text-muted-foreground shrink-0">Markup</label>
+                    <label className="text-sm text-label-foreground shrink-0">Markup</label>
                     <div className="w-20 shrink-0 text-right">
                       <span className="font-semibold text-card-foreground tabular-nums text-sm">
                         ${(currentQuote.markupAmount ?? 0).toFixed(2)}
@@ -498,7 +502,7 @@ export default function QuotesPage() {
 
                 {/* Tax Rate % Input */}
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-muted-foreground shrink-0">Tax Rate (%)</label>
+                  <label className="text-sm text-label-foreground shrink-0">Tax Rate (%)</label>
                   <div className="w-20 shrink-0">
                     <Input
                       type="number"
@@ -510,14 +514,14 @@ export default function QuotesPage() {
                         const rate = Math.round(Number(e.target.value) || 0) / 100;
                         setTaxRate(Math.max(0, Math.min(1, rate)));
                       }}
-                      className="w-full text-right rounded-xl"
+                      className="w-full text-right"
                     />
                   </div>
                 </div>
 
                 {/* Tax Amount Display */}
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-muted-foreground shrink-0">Tax</label>
+                  <label className="text-sm text-label-foreground shrink-0">Tax</label>
                   <div className="w-20 shrink-0 text-right">
                     <span className="font-semibold text-card-foreground tabular-nums text-sm">
                       ${currentQuote.taxAmount.toFixed(2)}
@@ -543,7 +547,7 @@ export default function QuotesPage() {
                   {currentQuote.lineItems.map((item) => (
                     <div
                       key={item.id}
-                      className="group flex items-start justify-between gap-3 p-3 bg-muted/30 hover:bg-muted/50 rounded-xl transition-smooth hover:shadow-soft"
+                      className="group flex items-start justify-between gap-3 p-3 bg-muted/30 hover:bg-muted/50 rounded-lg transition-smooth hover:shadow-sm"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-card-foreground text-sm mb-0.5 truncate">
@@ -559,11 +563,11 @@ export default function QuotesPage() {
                         </span>
                         <button
                           onClick={() => removeLineItem(item.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/10 rounded-lg text-destructive"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/10 rounded-md text-destructive"
                           title="Remove item"
-                          aria-label="Remove line item"
+                          aria-label={`Remove line item: ${item.moduleName}`}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
                       </div>
                     </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -7,23 +7,32 @@ interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Checkbox: React.FC<CheckboxProps> = ({
   label,
+  id,
   className,
   ...props
 }) => {
+  const generatedId = useId();
+  const checkboxId = id || generatedId;
+
   return (
-    <div className="flex items-center">
+    <div className={cn('flex items-center', props.disabled && 'opacity-60')}>
       <input
         type="checkbox"
+        id={checkboxId}
         className={cn(
           'w-4 h-4 bg-card border-border rounded',
           'text-accent focus:ring-accent focus:ring-2',
-          'cursor-pointer',
+          'cursor-pointer disabled:cursor-not-allowed',
+          'disabled:opacity-[0.38]',
           className
         )}
         {...props}
       />
       {label && (
-        <label className="ml-2 text-sm text-foreground cursor-pointer">
+        <label htmlFor={checkboxId} className={cn(
+          'ml-2 text-sm text-label-foreground cursor-pointer',
+          props.disabled && 'cursor-not-allowed opacity-[0.38]'
+        )}>
           {label}
         </label>
       )}

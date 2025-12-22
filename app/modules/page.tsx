@@ -119,7 +119,7 @@ function SortableFieldItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-card border border-border rounded-2xl overflow-hidden shadow-elevated hover:shadow-floating hover:border-accent/20 transition-smooth"
+      className="bg-card border border-border rounded-xl overflow-hidden shadow-lg transition-smooth overlay-white"
     >
       {/* Field Header */}
       <div className="flex items-center">
@@ -136,8 +136,18 @@ function SortableFieldItem({
 
         {/* Field Content */}
         <div
-          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover:bg-muted/30 transition-smooth"
+          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-lg"
           onClick={() => onToggleExpanded(field.id)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onToggleExpanded(field.id);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-expanded={isExpanded}
+          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} field ${field.label || 'Unnamed Field'}`}
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -171,7 +181,7 @@ function SortableFieldItem({
                 e.stopPropagation();
                 onToggleExpanded(field.id);
               }}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-smooth active:scale-95"
+              className="p-2 text-muted-foreground hover:text-foreground hover-overlay rounded-lg transition-smooth active:scale-95 relative"
               aria-label={isExpanded ? 'Collapse field' : 'Expand field'}
             >
               {isExpanded ? (
@@ -188,7 +198,7 @@ function SortableFieldItem({
                   onRemoveField(field.id);
                 }
               }}
-              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-smooth active:scale-95"
+              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-smooth active:scale-95"
               aria-label="Remove field"
             >
               <Trash2 className="h-4 w-4" />
@@ -272,7 +282,7 @@ function SortableFieldItem({
           )}
           {field.type === 'material' && (
             <>
-              <div className="p-3 bg-accent/10 border border-accent/30 rounded-xl mb-4">
+              <div className="p-3 mb-4">
                 <p className="text-xs text-accent mb-2">
                   <strong>Material Field:</strong> Users will select from the Materials Catalog. 
                   The selected material's price will be used automatically in formulas when you reference this field's variable name.
@@ -847,9 +857,9 @@ export default function ModulesPage() {
                     {allFields.length > 0 && (
                       <>
                         {shouldShowReminder ? (
-                          <div className="mb-3 p-2">
+                          <div className="mb-3 p-2" role="status" aria-live="polite">
                             <div className="flex items-start gap-2">
-                              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
                               <div className="flex-1">
                                 <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
                                   Reminder: Add remaining fields to formula
@@ -868,7 +878,7 @@ export default function ModulesPage() {
                             </div>
                           </div>
                         ) : missingFields.length > 0 ? (
-                          <div className="mb-3 p-2 bg-muted/50 border border-border rounded-lg">
+                          <div className="mb-3 p-2 bg-muted/50 border border-border rounded-md">
                             <p className="text-xs text-muted-foreground">
                               <strong>Tip:</strong> Add field variables to your formula by clicking them above.
                             </p>
@@ -886,17 +896,18 @@ export default function ModulesPage() {
                             key={varInfo.name}
                             type="button"
                             onClick={() => insertVariableAtCursor(varInfo.name)}
+                            aria-label={`Insert variable ${varInfo.name} (${varInfo.label}, ${varInfo.type})${showCheckmark ? ' - already in formula' : ''}`}
                             title={`${varInfo.label} (${varInfo.type})`}
                             className={cn(
-                              "px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-soft hover:shadow-elevated flex items-center gap-1.5",
+                              "px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover:shadow-md flex items-center gap-1.5",
                               showCheckmark 
-                                ? "border-success bg-[#4CAF50] dark:bg-[#66BB6A] hover:bg-[#43A047] dark:hover:bg-[#81C784] text-white dark:text-slate-900" 
+                                ? "border-success bg-success hover:bg-success/90 text-success-foreground" 
                                 : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
                             )}
                           >
                             <span>{varInfo.name}</span>
                             {showCheckmark && (
-                              <CheckCircle2 className="h-3 w-3 text-white dark:text-slate-900 shrink-0" />
+                              <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
                             )}
                           </button>
                         );
@@ -914,8 +925,9 @@ export default function ModulesPage() {
                           key={mat.name}
                           type="button"
                           onClick={() => insertVariableAtCursor(mat.name)}
+                          aria-label={`Insert material variable ${mat.name} (${mat.label} - $${mat.price.toFixed(2)} per ${mat.unit})`}
                           title={`${mat.label} - $${mat.price.toFixed(2)}/${mat.unit}`}
-                          className="px-3 py-1.5 bg-accent text-accent-foreground hover:bg-muted hover:text-accent border border-accent hover:border-border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-soft hover:shadow-elevated"
+                          className="px-3 py-1.5 bg-accent text-accent-foreground hover:bg-muted hover:text-accent border border-accent hover:border-border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover:shadow-md"
                         >
                           {mat.name}
                         </button>
@@ -933,17 +945,17 @@ export default function ModulesPage() {
                 {/* Formula Editor */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-semibold text-card-foreground">Formula</label>
+                    <label htmlFor="formula-input" className="text-sm font-semibold text-card-foreground">Formula</label>
                     {formData.formula && (
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center space-x-1" role="status" aria-live="polite">
                         {formulaValidation.valid ? (
                           <>
-                            <CheckCircle2 className="h-4 w-4 text-accent" />
+                            <CheckCircle2 className="h-4 w-4 text-accent" aria-hidden="true" />
                             <span className="text-xs text-accent font-medium">Valid</span>
                           </>
                         ) : (
                           <>
-                            <XCircle className="h-4 w-4 text-destructive" />
+                            <XCircle className="h-4 w-4 text-destructive" aria-hidden="true" />
                             <span className="text-xs text-destructive font-medium">Invalid</span>
                           </>
                         )}
@@ -952,6 +964,7 @@ export default function ModulesPage() {
                   </div>
                   <Textarea
                     ref={formulaTextareaRef}
+                    id="formula-input"
                     value={formData.formula}
                     onChange={(e) => {
                       setFormData({ ...formData, formula: e.target.value });
@@ -968,12 +981,14 @@ export default function ModulesPage() {
                     }`}
                   />
                   {formulaValidation.error && (
-                    <p className="mt-1 text-xs text-destructive">{formulaValidation.error}</p>
+                    <p className="mt-1 text-xs text-destructive" role="alert" aria-live="polite">
+                      {formulaValidation.error}
+                    </p>
                   )}
                   {formulaValidation.valid && formulaValidation.preview !== undefined && (
-                    <div className="mt-2 p-3">
+                    <div className="mt-2 p-3" role="status" aria-live="polite">
                       <div className="flex items-center space-x-2">
-                        <Calculator className="h-4 w-4 text-accent" />
+                        <Calculator className="h-4 w-4 text-accent" aria-hidden="true" />
                         <span className="text-xs text-muted-foreground">Preview (with defaults):</span>
                         <span className="text-sm font-bold text-success">
                           ${formulaValidation.preview.toFixed(2)}
@@ -1027,7 +1042,7 @@ export default function ModulesPage() {
         </div>
 
         {/* BOTTOM ACTION BAR */}
-        <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-floating px-4 py-4 z-40">
+        <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3">
             <Button variant="ghost" onClick={cancelEditing} className="rounded-full">
               Cancel
@@ -1056,9 +1071,9 @@ export default function ModulesPage() {
       </div>
 
       {modules.length === 0 ? (
-        <Card className="rounded-2xl">
+        <Card>
           <div className="text-center py-24">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted shadow-elevated mb-6">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted shadow-lg mb-6" aria-hidden="true">
               <Calculator className="h-12 w-12 text-muted-foreground" />
             </div>
             <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">No Modules Yet</h3>
@@ -1072,7 +1087,7 @@ export default function ModulesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {modules.map((module) => (
-            <Card key={module.id} className="rounded-2xl shadow-elevated hover:shadow-floating hover:border-accent/30 transition-smooth cursor-pointer group">
+            <Card key={module.id} className="shadow-lg hover:shadow-xl hover:border-accent/30 transition-smooth cursor-pointer group">
               <h3 className="text-lg font-bold text-card-foreground mb-3 group-hover:text-accent transition-smooth tracking-tight">{module.name}</h3>
               {module.category && (
                 <div className="mb-3">
@@ -1105,12 +1120,10 @@ export default function ModulesPage() {
               </div>
               <div className="flex space-x-2">
                 <Button
-                  variant="secondary"
-                  size="sm"
                   onClick={() => startEditing(module)}
                   className="flex-1"
                 >
-                  <Edit2 className="h-3 w-3 mr-1" />
+                  <Edit2 className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
                 <Button

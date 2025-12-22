@@ -20,6 +20,12 @@ const config: Config = {
           DEFAULT: "rgb(var(--muted) / <alpha-value>)",
           foreground: "rgb(var(--muted-foreground) / <alpha-value>)",
         },
+        label: {
+          foreground: "rgb(var(--label-foreground) / <alpha-value>)",
+        },
+        input: {
+          bg: "rgb(var(--input-bg) / <alpha-value>)",
+        },
         accent: {
           DEFAULT: "rgb(var(--accent) / <alpha-value>)",
           foreground: "rgb(var(--accent-foreground) / <alpha-value>)",
@@ -36,6 +42,15 @@ const config: Config = {
       },
       borderColor: {
         DEFAULT: "rgb(var(--border) / <alpha-value>)",
+      },
+      borderRadius: {
+        'xs': 'var(--radius-xs)',
+        'sm': 'var(--radius-sm)',
+        'md': 'var(--radius-md)',
+        'lg': 'var(--radius-lg)',
+        'xl': 'var(--radius-xl)',
+        '2xl': 'var(--radius-2xl)',
+        'full': 'var(--radius-full)',
       },
     },
   },

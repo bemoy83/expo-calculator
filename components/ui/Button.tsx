@@ -13,13 +13,13 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   ...props
 }) => {
-  const baseStyles = 'font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98]';
+  const baseStyles = 'font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:[&_*]:opacity-[0.38]';
   
   const variants = {
-    primary: 'bg-accent hover:bg-accent/90 text-accent-foreground focus:ring-accent shadow-soft hover:shadow-elevated',
-    secondary: 'bg-muted hover:bg-muted/80 text-foreground focus:ring-muted-foreground border border-border shadow-soft',
-    danger: 'bg-destructive hover:bg-destructive/90 text-destructive-foreground focus:ring-destructive shadow-soft hover:shadow-elevated',
-    ghost: 'bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground focus:ring-accent',
+    primary: 'bg-accent text-accent-foreground focus:ring-accent shadow-sm hover:shadow-md hover-overlay',
+    secondary: 'bg-muted text-foreground focus:ring-muted-foreground border border-border shadow-sm hover-overlay',
+    danger: 'bg-destructive text-destructive-foreground focus:ring-destructive shadow-sm hover:shadow-md hover-overlay',
+    ghost: 'bg-transparent text-muted-foreground hover:text-foreground focus:ring-accent hover-overlay',
   };
   
   const sizes = {

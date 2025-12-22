@@ -29,11 +29,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="bg-card border-b border-border shadow-elevated sticky top-0 z-50 backdrop-blur-md bg-card/98">
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-accent-foreground focus:rounded focus:ring-2 focus:ring-accent focus:ring-offset-2"
+      >
+        Skip to main content
+      </a>
+      <nav className="bg-card border-b border-border shadow-lg sticky top-0 z-50 backdrop-blur-md bg-card/98" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-accent/10" aria-hidden="true">
                 <FileText className="h-5 w-5 text-accent" />
               </div>
               <h1 className="text-xl font-bold text-foreground">
@@ -49,14 +55,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <Link
                       key={item.name}
                       href={item.href}
+                      aria-current={isActive ? 'page' : undefined}
                       className={cn(
-                        'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-smooth',
+                        'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-smooth relative',
                         isActive
-                          ? 'bg-accent text-accent-foreground shadow-soft'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          ? 'bg-accent text-accent-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground hover-overlay'
                       )}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4" aria-hidden="true" />
                       {item.name}
                     </Link>
                   );
@@ -68,7 +75,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </div>
       </nav>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
     </div>

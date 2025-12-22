@@ -10,19 +10,37 @@
   --card-foreground: 15 23 42;        /* Deep slate on cards */
   --muted: 248 250 252;               /* Very light gray - subtle surfaces */
   --muted-foreground: 100 116 139;    /* Medium slate text */
+  --label-foreground: 15 23 42;       /* Same as foreground in light mode */
+  --input-bg: 242 244 246;            /* More noticeably darker than card (~5% contrast) */
   --border: 226 232 240;              /* Soft visible borders */
   --accent: 37 99 235;                /* Vibrant professional blue */
   --accent-foreground: 255 255 255;   /* White on accent */
   --destructive: 220 38 38;           /* Clear red */
   --destructive-foreground: 255 255 255;
   --success: 22 163 74;               /* Green for success */
-  --success-foreground: 15 23 42;      /* Dark text on light green background */
+  --success-foreground: 255 255 255;   /* Light text on green background (light mode) */
+  
+  /* Corner Radius Tokens - Concentricity System */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+  
+  /* Slab Shadow Tokens - Physical, grounded appearance */
+  /* Two-part shadows: tight edge + soft base */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.08);
+  --shadow-md: 0 2px 4px rgba(0,0,0,.14), 0 6px 12px rgba(0,0,0,.12);
+  --shadow-lg: 0 4px 6px rgba(0,0,0,.16), 0 12px 24px rgba(0,0,0,.12);
+  --shadow-xl: 0 8px 10px rgba(0,0,0,.18), 0 20px 40px rgba(0,0,0,.18);
 }
 
 .dark {
   /* Material Design 3 Dark Theme */
   /* Background: Material Design's standard dark background */
-  --background: 18 18 18;             /* #121212 - Material dark background */
+  --background: 12 12 12;             /* #121212 - Material dark background */
   
   /* Foreground: High contrast primary text (87% opacity white) */
   --foreground: 255 255 255;           /* Pure white for maximum contrast */
@@ -33,7 +51,13 @@
   
   /* Muted: Intermediate surface between background and card */
   --muted: 23 23 23;                  /* #171717 - Between background and card */
-  --muted-foreground: 170 170 170;    /* ~67% opacity white - Secondary text */
+  --muted-foreground: 140 140 140;    /* ~55% opacity white - Help text (dimmest) */
+  
+  /* Label: Dimmer than foreground, brighter than muted-foreground */
+  --label-foreground: 200 200 200;    /* ~78% opacity white - Labels (dimmer than input text) */
+  
+  /* Input background: More noticeably darker than card (~20% contrast) */
+  --input-bg: 24 24 24;                /* #181818 - More noticeably darker than card #1E1E1E */
   
   /* Border: Subtle borders with low opacity (will be applied at 12% opacity) */
   --border: 255 255 255;              /* White borders - opacity handled via CSS */
@@ -48,12 +72,28 @@
   
   /* Success: Material Design success color */
   --success: 76 175 80;                /* #4CAF50 - Material success green */
-  --success-foreground: 255 255 255;   /* White text on success (dark mode) */
+  --success-foreground: 18 18 18;       /* Dark text on success (dark mode) */
+  
+  /* Slab Shadow Tokens - Dark theme with subtle light bloom */
+  /* Prevents "void collapse" in dark mode */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.5), 0 0 2px rgba(255,255,255,.04);
+  --shadow-md: 0 2px 6px rgba(0,0,0,.55), 0 0 4px rgba(255,255,255,.06);
+  --shadow-lg: 0 6px 12px rgba(0,0,0,.6), 0 0 8px rgba(255,255,255,.08);
+  --shadow-xl: 0 10px 24px rgba(0,0,0,.65), 0 0 16px rgba(255,255,255,.1);
 }
 
 @layer base {
+  html, body {
+    height: 100%;
+  }
+
+  html {
+    overflow-x: hidden; /* optional */
+  }
+
   body {
     @apply bg-background text-foreground;
+    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
       sans-serif;
@@ -65,12 +105,55 @@
     text-wrap: balance;
   }
   
+  /* Screen reader only - visually hidden but accessible to assistive technologies */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  
+  .sr-only:focus,
+  .sr-only:active {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+  
   /* Smooth transitions for interactive elements */
   .transition-smooth {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  /* Custom shadow utilities for depth hierarchy */
+  /* Slab Shadow Utilities - Primary shadow system */
+  /* Uses CSS tokens for consistent physical, grounded appearance */
+  .shadow-sm {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .shadow-md {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .shadow-lg {
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .shadow-xl {
+    box-shadow: var(--shadow-xl);
+  }
+  
+  /* Legacy shadow utilities - kept for backward compatibility */
   /* Light mode shadows - crisp and clean */
   .shadow-soft {
     box-shadow: 
@@ -124,7 +207,268 @@
   /* Material Design dark theme border opacity */
   /* Override border color to use 12% opacity white in dark mode */
   .dark .border-border {
-    border-color: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.02);
+  }
+  
+  /* Subtle input borders - hairline 1px with appropriate opacity */
+  .border-input {
+    border-width: 1px;
+    border-color: rgb(var(--border) / 0.25);
+  }
+  
+  .dark .border-input {
+    border-color: rgb(255 255 255 / 0.15);
+  }
+  
+  /* Material Design elevation overlays for dark theme */
+  /* Elevated surfaces should be lighter via white overlays, not just shadows */
+  /* Elevation 1dp: ~5% overlay */
+  .dark .shadow-soft {
+    position: relative;
+  }
+  
+ /* .dark .shadow-soft::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.05);
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 4dp: ~8% overlay */
+  .dark .shadow-elevated {
+    position: relative;
+  }
+  
+  /*.dark .shadow-elevated::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.07) 0%,
+      rgba(255, 255, 255, 0.08) 100%
+    );
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 8dp: ~12% overlay */
+  .dark .shadow-floating {
+    position: relative;
+  }
+  
+  /*.dark .shadow-floating::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.10) 0%,
+      rgba(255, 255, 255, 0.12) 100%
+    );
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Ensure content is above overlay */
+  .dark .shadow-soft > *,
+  .dark .shadow-elevated > *,
+  .dark .shadow-floating > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Preserve explicit positioning utilities when combined with shadow utilities */
+  /* This fixes sticky nav in dark mode - shadow utilities need position: relative for ::before overlays,
+     but we must not override explicit positioning like sticky or fixed */
+  .dark .sticky.shadow-sm,
+  .dark .sticky.shadow-md,
+  .dark .sticky.shadow-lg,
+  .dark .sticky.shadow-xl,
+  .dark .sticky.shadow-soft,
+  .dark .sticky.shadow-elevated,
+  .dark .sticky.shadow-floating {
+    position: sticky;
+  }
+  
+  .dark .fixed.shadow-sm,
+  .dark .fixed.shadow-md,
+  .dark .fixed.shadow-lg,
+  .dark .fixed.shadow-xl,
+  .dark .fixed.shadow-soft,
+  .dark .fixed.shadow-elevated,
+  .dark .fixed.shadow-floating {
+    position: fixed;
+  }
+  
+  .dark .absolute.shadow-sm,
+  .dark .absolute.shadow-md,
+  .dark .absolute.shadow-lg,
+  .dark .absolute.shadow-xl,
+  .dark .absolute.shadow-soft,
+  .dark .absolute.shadow-elevated,
+  .dark .absolute.shadow-floating {
+    position: absolute;
+  }
+  
+  /* White overlay utility - subtle elevation effect */
+  .overlay-white {
+    position: relative;
+  }
+  
+  .overlay-white::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.01);
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Ensure content is above overlay */
+  .overlay-white > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Material Design hover overlay system */
+  /* Dark theme: 8% white overlay, Light theme: 4% black overlay */
+  .hover-overlay {
+    position: relative;
+  }
+  
+  /* Dark theme hover overlay */
+  .dark .hover-overlay:hover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 1;
+  }
+  
+  /* Light theme hover overlay */
+  .hover-overlay:hover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.04);
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 1;
+  }
+  
+  /* Ensure content is above hover overlay */
+  .hover-overlay > * {
+    position: relative;
+    z-index: 2;
+  }
+  
+  /* Pressed state overlay (12% opacity) */
+  .dark .hover-overlay:active::after {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  
+  .hover-overlay:active::after {
+    background: rgba(0, 0, 0, 0.08);
+  }
+  
+  /* Neumorphism - Soft UI effects for tactile, raised/pressed appearance */
+  /* Raised: Element appears to protrude from the surface */
+  .neu-raised {
+    box-shadow:
+      2px 2px 4px rgba(0, 0, 0, 0.08),
+      -2px -2px 4px rgba(255, 255, 255, 0.95);
+  }
+  
+  .dark .neu-raised {
+    box-shadow:
+      2px 2px 4px rgba(0, 0, 0, 0.3),
+      -2px -2px 4px rgba(255, 255, 255, 0.03);
+  }
+  
+  /* Pressed: Element appears to be pressed into the surface */
+  .neu-pressed {
+    box-shadow:
+      inset 2px 2px 4px rgba(0, 0, 0, 0.08),
+      inset -2px -2px 4px rgba(255, 255, 255, 0.95);
+  }
+  
+  .dark .neu-pressed {
+    box-shadow:
+      inset 2px 2px 4px rgba(0, 0, 0, 0.3),
+      inset -2px -2px 4px rgba(255, 255, 255, 0.03);
+  }
+  
+  /* Embossed: Inward shadow with content appearing raised */
+  .neu-embossed {
+    box-shadow:
+      inset 4px 4px 8px rgba(0, 0, 0, 0.1),
+      inset -4px -4px 8px rgba(255, 255, 255, 0.9);
+  }
+  
+  .dark .neu-embossed {
+    box-shadow:
+      inset 4px 4px 8px rgba(0, 0, 0, 0.4),
+      inset -4px -4px 8px rgba(255, 255, 255, 0.05);
+  }
+  
+  /* Soft raised: Subtle neumorphic effect */
+  .neu-soft {
+    box-shadow:
+      4px 4px 8px rgba(0, 0, 0, 0.08),
+      -4px -4px 8px rgba(255, 255, 255, 0.95);
+  }
+  
+  .dark .neu-soft {
+    box-shadow:
+      4px 4px 8px rgba(0, 0, 0, 0.3),
+      -4px -4px 8px rgba(255, 255, 255, 0.03);
+  }
+  
+  /* Flat neumorphic: Minimal shadow for subtle depth */
+  .neu-flat {
+    box-shadow:
+      2px 2px 4px rgba(0, 0, 0, 0.06),
+      -2px -2px 4px rgba(255, 255, 255, 0.98);
+  }
+  
+  .dark .neu-flat {
+    box-shadow:
+      2px 2px 4px rgba(0, 0, 0, 0.25),
+      -2px -2px 4px rgba(255, 255, 255, 0.02);
+  }
+  
+  /* Neumorphic hover states */
+  .neu-raised:hover {
+    box-shadow:
+      3px 3px 6px rgba(0, 0, 0, 0.1),
+      -3px -3px 6px rgba(255, 255, 255, 0.9);
+  }
+  
+  .dark .neu-raised:hover {
+    box-shadow:
+      3px 3px 6px rgba(0, 0, 0, 0.35),
+      -3px -3px 6px rgba(255, 255, 255, 0.04);
+  }
+  
+  .neu-pressed:active {
+    box-shadow:
+      inset 1px 1px 2px rgba(0, 0, 0, 0.12),
+      inset -1px -1px 2px rgba(255, 255, 255, 0.9);
+  }
+  
+  .dark .neu-pressed:active {
+    box-shadow:
+      inset 1px 1px 2px rgba(0, 0, 0, 0.4),
+      inset -1px -1px 2px rgba(255, 255, 255, 0.02);
   }
 }
 
