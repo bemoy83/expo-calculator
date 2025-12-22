@@ -323,134 +323,146 @@ export default function QuotesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
         <div className="lg:col-span-2 space-y-5">
+          {/* Quote Name Card */}
           <Card className="shadow-lg">
-            <div className="space-y-5">
-              <Input
-                label="Quote Name"
-                value={quoteName}
-                onChange={(e) => handleQuoteNameChange(e.target.value)}
-              />
-              
-              <div className="flex items-start sm:items-center justify-between gap-4 pt-5 border-t border-border">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-card-foreground mb-1">Module Workspace</h3>
-                  <p className="text-sm text-muted-foreground">Configure modules and add them to your quote</p>
+            <Input
+              label="Quote Name"
+              value={quoteName}
+              onChange={(e) => handleQuoteNameChange(e.target.value)}
+            />
+          </Card>
+
+          {/* Add Module Card */}
+          {showAddModule && (
+            <Card 
+              title="Select Module to Add"
+              actions={
+                <Button variant="ghost" size="sm" onClick={() => setShowAddModule(false)} className="rounded-full">
+                  Cancel
+                </Button>
+              }
+              className="shadow-lg"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {modules.map((module) => (
+                  <button
+                    key={module.id}
+                    onClick={() => handleAddModule(module.id)}
+                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover:shadow-md hover-overlay px-4 py-2 text-base w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2 shrink-0" />
+                    <span className="truncate">{module.name}</span>
+                  </button>
+                ))}
+              </div>
+              {modules.length === 0 && (
+                <div className="text-center py-8">
+                  <LayoutDashboard className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-sm text-muted-foreground">No modules available.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Create modules first to add them to quotes.</p>
                 </div>
+              )}
+            </Card>
+          )}
+
+          {/* Empty State Card */}
+          {!showAddModule && currentQuote.workspaceModules.length === 0 && (
+            <Card className="shadow-lg">
+              <div className="text-center py-20">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted shadow-sm mb-5">
+                  <Package className="h-10 w-10 text-muted-foreground" />
+                </div>
+                <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">No modules in workspace</h4>
+                <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed mb-5">
+                  Click "Add Module" to get started, then configure and add them to your quote.
+                </p>
                 <Button 
-                  size="sm" 
-                  onClick={() => setShowAddModule(!showAddModule)}
-                  className="rounded-full shrink-0"
+                  onClick={() => setShowAddModule(true)}
+                  className="rounded-full"
                 >
-                  <Plus className="h-4 w-4 mr-1.5" />
+                  <Plus className="h-4 w-4 mr-2" />
                   Add Module
                 </Button>
               </div>
+            </Card>
+          )}
 
-              {showAddModule && (
-                <div className="mt-4 p-5 rounded-lg">
-                  <div className="mb-4">
-                    <label className="block text-sm font-semibold text-label-foreground mb-3">
-                      Select Module to Add
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {modules.map((module) => (
-                        <button
-                          key={module.id}
-                          onClick={() => handleAddModule(module.id)}
-                          className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover:shadow-md hover-overlay px-4 py-2 text-base w-full"
-                        >
-                          <Plus className="h-4 w-4 mr-2 shrink-0" />
-                          <span className="truncate">{module.name}</span>
-                        </button>
+          {/* Add Module Button Card */}
+          {!showAddModule && currentQuote.workspaceModules.length > 0 && (
+            <Card className="shadow-lg">
+              <Button 
+                onClick={() => setShowAddModule(true)}
+                className="rounded-full w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Module
+              </Button>
+            </Card>
+          )}
+
+          {/* Module Cards */}
+          {currentQuote.workspaceModules.length > 0 && (
+            <>
+              {currentQuote.workspaceModules.map((instance) => {
+                const module = modules.find((m) => m.id === instance.moduleId);
+                if (!module) return null;
+
+                return (
+                  <Card 
+                    key={instance.id} 
+                    title={module.name}
+                    className="shadow-lg overlay-white"
+                  >
+                    {module.description && (
+                      <p className="text-sm text-muted-foreground mb-5">{module.description}</p>
+                    )}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                      {module.fields.map((field) => (
+                        <div key={field.id}>
+                          {renderFieldInput(instance, field)}
+                        </div>
                       ))}
                     </div>
-                    {modules.length === 0 && (
-                      <div className="text-center py-8">
-                        <LayoutDashboard className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
-                        <p className="text-sm text-muted-foreground">No modules available.</p>
-                        <p className="text-xs text-muted-foreground mt-1">Create modules first to add them to quotes.</p>
-                      </div>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => setShowAddModule(false)} className="rounded-full">
-                    Cancel
-                  </Button>
-                </div>
-              )}
 
-              {currentQuote.workspaceModules.length === 0 ? (
-                <div className="text-center py-20">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted shadow-sm mb-5">
-                    <Package className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                  <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">No modules in workspace</h4>
-                  <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
-                    Click "Add Module" to get started, then configure and add them to your quote.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4 mt-5">
-                  {currentQuote.workspaceModules.map((instance) => {
-                    const module = modules.find((m) => m.id === instance.moduleId);
-                    if (!module) return null;
+                    <div className="flex items-center justify-between pt-5 border-t border-border">
+                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Module Cost</span>
+                      <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
+                        ${instance.calculatedCost.toFixed(2)}
+                      </span>
+                    </div>
 
-                    return (
-                      <div key={instance.id} className="bg-card border border-border rounded-xl p-6 shadow-lg transition-smooth group overlay-white">
-                        <div className="mb-5">
-                          <h4 className="text-base font-semibold text-card-foreground mb-1.5">{module.name}</h4>
-                          {module.description && (
-                            <p className="text-sm text-muted-foreground">{module.description}</p>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                          {module.fields.map((field) => (
-                            <div key={field.id}>
-                              {renderFieldInput(instance, field)}
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="flex items-center justify-between pt-5 border-t border-border">
-                          <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Module Cost</span>
-                          <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
-                            ${instance.calculatedCost.toFixed(2)}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 mt-5 pt-5 border-t border-border">
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => {
-                              addLineItem(instance.id);
-                              setAddedItems(new Set([...addedItems, instance.id]));
-                              setTimeout(() => {
-                                setAddedItems(new Set());
-                              }, 2000);
-                            }}
-                            className="rounded-full flex-1 sm:flex-initial"
-                          >
-                            <Plus className="h-4 w-4 mr-1.5" />
-                            {addedItems.has(instance.id) ? 'Added!' : 'Add to Quote'}
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => removeWorkspaceModule(instance.id)}
-                            className="rounded-full"
-                          >
-                            <Trash2 className="h-4 w-4 mr-1.5" />
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </Card>
+                    <div className="flex flex-wrap items-center gap-2 mt-5 pt-5 border-t border-border">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          addLineItem(instance.id);
+                          setAddedItems(new Set([...addedItems, instance.id]));
+                          setTimeout(() => {
+                            setAddedItems(new Set());
+                          }, 2000);
+                        }}
+                        className="rounded-full flex-1 sm:flex-initial"
+                      >
+                        <Plus className="h-4 w-4 mr-1.5" />
+                        {addedItems.has(instance.id) ? 'Added!' : 'Add to Quote'}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => removeWorkspaceModule(instance.id)}
+                        className="rounded-full"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1.5" />
+                        Remove
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </>
+          )}
         </div>
 
         <div className="lg:col-span-1">
@@ -463,7 +475,7 @@ export default function QuotesPage() {
                 {/* Subtotal Row */}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-label-foreground shrink-0">Subtotal</label>
-                  <div className="w-20 shrink-0 text-right">
+                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                     <span className="font-semibold text-card-foreground tabular-nums text-sm">
                       ${currentQuote.subtotal.toFixed(2)}
                     </span>
@@ -492,7 +504,7 @@ export default function QuotesPage() {
                 {(currentQuote.markupPercent ?? 0) > 0 && (
                   <div className="flex items-center justify-between gap-3">
                     <label className="text-sm text-label-foreground shrink-0">Markup</label>
-                    <div className="w-20 shrink-0 text-right">
+                    <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                       <span className="font-semibold text-card-foreground tabular-nums text-sm">
                         ${(currentQuote.markupAmount ?? 0).toFixed(2)}
                       </span>
@@ -522,7 +534,7 @@ export default function QuotesPage() {
                 {/* Tax Amount Display */}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-label-foreground shrink-0">Tax</label>
-                  <div className="w-20 shrink-0 text-right">
+                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                     <span className="font-semibold text-card-foreground tabular-nums text-sm">
                       ${currentQuote.taxAmount.toFixed(2)}
                     </span>
