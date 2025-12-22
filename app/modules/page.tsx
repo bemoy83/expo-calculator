@@ -119,7 +119,7 @@ function SortableFieldItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-card border border-border rounded-xl overflow-hidden shadow-lg transition-smooth overlay-white"
+      className="bg-card border border-border rounded-xl overflow-hidden transition-smooth overlay-white"
     >
       {/* Field Header */}
       <div className="flex items-center">
@@ -1087,7 +1087,7 @@ export default function ModulesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {modules.map((module) => (
-            <Card key={module.id} className="shadow-lg hover:shadow-xl hover:border-accent/30 transition-smooth cursor-pointer group">
+            <Card key={module.id} className="hover:border-accent/30 transition-smooth cursor-pointer group">
               <h3 className="text-lg font-bold text-card-foreground mb-3 group-hover:text-accent transition-smooth tracking-tight">{module.name}</h3>
               {module.category && (
                 <div className="mb-3">

@@ -18,8 +18,8 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div className={cn(
-      'bg-card border border-border rounded-xl p-6 shadow-lg transition-all relative',
-      interactive && 'hover:shadow-xl hover-overlay',
+      'bg-card border border-border rounded-xl p-6 transition-all relative',
+      interactive && 'hover-overlay',
       className
     )}>
       {(title || actions) && (

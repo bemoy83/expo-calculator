@@ -4,7 +4,7 @@
 
 :root {
   /* Light theme - Professional with REAL visible hierarchy */
-  --background: 240 244 248;          /* Cool gray background - NOT white */
+  --background: 243 244 246;          /* Cool gray background - NOT white */
   --foreground: 15 23 42;             /* Deep slate text */
   --card: 255 255 255;                /* Pure white cards - elevated on gray */
   --card-foreground: 15 23 42;        /* Deep slate on cards */

@@ -249,7 +249,7 @@ export default function MaterialsPage() {
                 {filteredMaterials.map((material) => (
                   <div
                     key={material.id}
-                    className="bg-card border border-border rounded-xl p-6 shadow-lg transition-smooth group"
+                    className="bg-card border border-border rounded-xl p-6 transition-smooth group"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">

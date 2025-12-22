@@ -324,7 +324,7 @@ export default function QuotesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
         <div className="lg:col-span-2 space-y-5">
           {/* Quote Name Card */}
-          <Card className="shadow-lg">
+          <Card>
             <Input
               label="Quote Name"
               value={quoteName}
@@ -341,7 +341,7 @@ export default function QuotesPage() {
                   Cancel
                 </Button>
               }
-              className="shadow-lg"
+              className=""
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {modules.map((module) => (
@@ -367,7 +367,7 @@ export default function QuotesPage() {
 
           {/* Empty State Card */}
           {!showAddModule && currentQuote.workspaceModules.length === 0 && (
-            <Card className="shadow-lg">
+            <Card>
               <div className="text-center py-20">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted shadow-sm mb-5">
                   <Package className="h-10 w-10 text-muted-foreground" />
@@ -389,7 +389,7 @@ export default function QuotesPage() {
 
           {/* Add Module Button Card */}
           {!showAddModule && currentQuote.workspaceModules.length > 0 && (
-            <Card className="shadow-lg">
+            <Card>
               <Button 
                 onClick={() => setShowAddModule(true)}
                 className="rounded-full w-full"
@@ -411,7 +411,7 @@ export default function QuotesPage() {
                   <Card 
                     key={instance.id} 
                     title={module.name}
-                    className="shadow-lg overlay-white"
+                    className="overlay-white"
                   >
                     {module.description && (
                       <p className="text-sm text-muted-foreground mb-5">{module.description}</p>
@@ -466,7 +466,7 @@ export default function QuotesPage() {
         </div>
 
         <div className="lg:col-span-1">
-          <Card className="sticky top-16 z-40 shadow-xl">
+          <Card className="sticky top-16 z-40">
             <h3 className="text-lg font-bold text-card-foreground mb-5 tracking-tight">Quote Summary</h3>
             
             <div className="space-y-5">
@@ -485,7 +485,7 @@ export default function QuotesPage() {
                 {/* Markup % Input */}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-label-foreground shrink-0">Markup (%)</label>
-                  <div className="w-20 shrink-0">
+                  <div className="w-20 shrink-0 flex items-center justify-end min-h-[44px]">
                     <Input
                       type="number"
                       step="1"
@@ -495,6 +495,7 @@ export default function QuotesPage() {
                         const percent = Math.round(Number(e.target.value) || 0);
                         setMarkupPercent(Math.max(0, percent));
                       }}
+                      variant="underline"
                       className="w-full text-right"
                     />
                   </div>
@@ -515,7 +516,7 @@ export default function QuotesPage() {
                 {/* Tax Rate % Input */}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-label-foreground shrink-0">Tax Rate (%)</label>
-                  <div className="w-20 shrink-0">
+                  <div className="w-20 shrink-0 flex items-center justify-end min-h-[44px]">
                     <Input
                       type="number"
                       step="1"
@@ -526,6 +527,7 @@ export default function QuotesPage() {
                         const rate = Math.round(Number(e.target.value) || 0) / 100;
                         setTaxRate(Math.max(0, Math.min(1, rate)));
                       }}
+                      variant="underline"
                       className="w-full text-right"
                     />
                   </div>
@@ -559,7 +561,7 @@ export default function QuotesPage() {
                   {currentQuote.lineItems.map((item) => (
                     <div
                       key={item.id}
-                      className="group flex items-start justify-between gap-3 p-3 bg-muted/30 hover:bg-muted/50 rounded-lg transition-smooth hover:shadow-sm"
+                      className="group flex items-start justify-between gap-3 p-3 rounded-lg transition-smooth"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-card-foreground text-sm mb-0.5 truncate">
