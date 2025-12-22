@@ -16,24 +16,39 @@
   --destructive: 220 38 38;           /* Clear red */
   --destructive-foreground: 255 255 255;
   --success: 22 163 74;               /* Green for success */
-  --success-foreground: 255 255 255;
+  --success-foreground: 15 23 42;      /* Dark text on light green background */
 }
 
 .dark {
-  /* Dark theme - Deep charcoal with CLEAR layered surfaces */
-  --background: 10 15 25;             /* Very dark navy-slate */
-  --foreground: 241 245 249;          /* Bright text */
-  --card: 30 41 59;                   /* Lighter slate - CLEARLY elevated */
-  --card-foreground: 241 245 249;     /* Bright readable text */
-  --muted: 20 28 41;                  /* Between background and card */
-  --muted-foreground: 148 163 184;    /* Muted text */
-  --border: 30 41 59;                 /* Match card color - subtle on dark */
-  --accent: 59 130 246;               /* Bright vibrant blue */
-  --accent-foreground: 255 255 255;   /* White text on accent */
-  --destructive: 239 68 68;           /* Bright red */
-  --destructive-foreground: 255 255 255;
-  --success: 34 197 94;               /* Vibrant green */
-  --success-foreground: 255 255 255;
+  /* Material Design 3 Dark Theme */
+  /* Background: Material Design's standard dark background */
+  --background: 18 18 18;             /* #121212 - Material dark background */
+  
+  /* Foreground: High contrast primary text (87% opacity white) */
+  --foreground: 255 255 255;           /* Pure white for maximum contrast */
+  
+  /* Card/Surface: Elevated surface (slightly lighter than background) */
+  --card: 30 30 30;                   /* #1E1E1E - Material surface color */
+  --card-foreground: 255 255 255;      /* White text on surfaces */
+  
+  /* Muted: Intermediate surface between background and card */
+  --muted: 23 23 23;                  /* #171717 - Between background and card */
+  --muted-foreground: 170 170 170;    /* ~67% opacity white - Secondary text */
+  
+  /* Border: Subtle borders with low opacity (will be applied at 12% opacity) */
+  --border: 255 255 255;              /* White borders - opacity handled via CSS */
+  
+  /* Accent: Material Design primary color (desaturated blue for dark theme) */
+  --accent: 103 178 255;              /* #67B2FF - Desaturated blue, Material primary */
+  --accent-foreground: 18 18 18;       /* Dark text on accent for contrast */
+  
+  /* Destructive: Material Design error color */
+  --destructive: 207 102 121;          /* #CF6679 - Material error (desaturated red) */
+  --destructive-foreground: 18 18 18;  /* Dark text on error (dark mode) */
+  
+  /* Success: Material Design success color */
+  --success: 76 175 80;                /* #4CAF50 - Material success green */
+  --success-foreground: 255 255 255;   /* White text on success (dark mode) */
 }
 
 @layer base {
@@ -75,28 +90,41 @@
       0 4px 6px -4px rgb(0 0 0 / 0.08);
   }
   
-  /* Dark mode shadows - deeper and more pronounced for layering */
+  /* Material Design dark mode shadows - elevation-based */
+  /* Material Design uses elevation shadows with black at various opacities */
   .dark .shadow-soft {
+    /* Elevation 1dp */
     box-shadow: 
-      0 2px 4px 0 rgb(0 0 0 / 0.5),
-      0 1px 2px -1px rgb(0 0 0 / 0.4);
+      0 1px 1px 0 rgb(0 0 0 / 0.14),
+      0 2px 1px -1px rgb(0 0 0 / 0.12),
+      0 1px 3px 0 rgb(0 0 0 / 0.20);
   }
   
   .dark .shadow-elevated {
+    /* Elevation 4dp */
     box-shadow: 
-      0 6px 10px -1px rgb(0 0 0 / 0.6),
-      0 2px 6px -2px rgb(0 0 0 / 0.5);
+      0 2px 4px -1px rgb(0 0 0 / 0.20),
+      0 4px 5px 0 rgb(0 0 0 / 0.14),
+      0 1px 10px 0 rgb(0 0 0 / 0.12);
   }
   
   .dark .shadow-floating {
+    /* Elevation 8dp */
     box-shadow: 
-      0 12px 20px -3px rgb(0 0 0 / 0.7),
-      0 6px 10px -4px rgb(0 0 0 / 0.6);
+      0 5px 5px -3px rgb(0 0 0 / 0.20),
+      0 8px 10px 1px rgb(0 0 0 / 0.14),
+      0 3px 14px 2px rgb(0 0 0 / 0.12);
   }
   
   /* Subtle inner glow for depth on dark surfaces */
   .dark .shadow-inset {
     box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.05);
+  }
+  
+  /* Material Design dark theme border opacity */
+  /* Override border color to use 12% opacity white in dark mode */
+  .dark .border-border {
+    border-color: rgb(255 255 255 / 0.12);
   }
 }
 

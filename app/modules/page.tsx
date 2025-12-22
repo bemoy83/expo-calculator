@@ -12,7 +12,7 @@ import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { CalculationModule, Field, FieldType } from '@/lib/types';
 import { validateFormula, evaluateFormula } from '@/lib/formula-evaluator';
-import { labelToVariableName } from '@/lib/utils';
+import { labelToVariableName, cn } from '@/lib/utils';
 import {
   DndContext,
   closestCenter,
@@ -40,7 +40,8 @@ import {
   GripVertical,
   CheckCircle2,
   XCircle,
-  Calculator
+  Calculator,
+  AlertCircle
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -144,15 +145,15 @@ function SortableFieldItem({
                 {field.label || 'Unnamed Field'}
               </span>
               {field.variableName && (
-                <code className="px-2.5 py-0.5 bg-muted border border-accent/30 rounded-full text-xs text-accent font-mono">
+                <code className="px-2.5 py-0.5 bg-accent text-accent-foreground rounded-full text-xs font-mono">
                   {field.variableName}
                 </code>
               )}
-              <span className="px-2.5 py-0.5 bg-muted rounded-full text-xs text-muted-foreground capitalize">
+              <span className="px-2.5 py-0.5 bg-muted border border-border rounded-full text-xs text-muted-foreground capitalize">
                 {field.type}
               </span>
               {field.required && (
-                <span className="px-2.5 py-0.5 bg-destructive/10 rounded-full text-xs text-destructive font-medium">
+                <span className="px-2.5 py-0.5 bg-destructive text-destructive-foreground rounded-full text-xs font-medium">
                   Required
                 </span>
               )}
@@ -470,6 +471,19 @@ export default function ModulesPage() {
     }
   };
 
+  // Helper function to escape regex special characters
+  const escapeRegex = (str: string): string => {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+
+  // Helper function to check if a variable is present in the formula using word boundaries
+  const isVariableInFormula = (variableName: string, formula: string): boolean => {
+    if (!formula || !variableName) return false;
+    // Use word boundaries to avoid partial matches (e.g., "width" in "widths")
+    const regex = new RegExp(`\\b${escapeRegex(variableName)}\\b`);
+    return regex.test(formula);
+  };
+
   const insertVariableAtCursor = (variableName: string) => {
     const textarea = formulaTextareaRef.current;
     if (!textarea) return;
@@ -647,10 +661,53 @@ export default function ModulesPage() {
         name: varName,
         label: field?.label || varName,
         type: field?.type || 'unknown',
+        required: field?.required || false,
       };
     });
+  
+  // Calculate which fields are missing from the formula
+  // Note: In formula builder, ALL fields are required (must be in formula)
+  // The 'required' flag means "requires user input when using the module"
+  const allFields = availableFieldVariables;
+  const missingFields = allFields.filter(
+    (v) => !isVariableInFormula(v.name, formData.formula)
+  );
+  
+  // Calculate used fields for progress counter
+  const usedFields = allFields.length - missingFields.length;
+  
+  // Calculate percentage of unused fields
+  const unusedPercentage = allFields.length > 0 
+    ? (missingFields.length / allFields.length) * 100 
+    : 0;
+  
+  // Determine if we should show the reminder
+  // Show if: less than 30% unused (70%+ used), OR edge case (2 of 3, 3 of 4, etc. - close to threshold)
+  const shouldShowReminder = allFields.length > 0 && missingFields.length > 0 && (
+    unusedPercentage < 30 || 
+    // Edge case: if only 1 missing and at least 2 used (covers 2/3, 3/4, 4/5, etc.)
+    (missingFields.length === 1 && usedFields >= 2)
+  );
+  
+  // Keep track of required fields separately for visual indicators (green checkmarks, red borders)
+  // These indicate fields that require user input when using the module
+  const requiredFields = availableFieldVariables.filter((v) => v.required);
 
-  const availableMaterialVariables = materials.map((m) => ({
+  // Filter material variables based on material field category filters
+  // If any material fields have category filters, only show materials from those categories
+  // If no category filters are set, show all materials
+  const materialFields = fields.filter((f) => f.type === 'material');
+  const materialCategories = materialFields
+    .map((f) => f.materialCategory)
+    .filter((cat): cat is string => Boolean(cat && cat.trim()));
+  
+  let filteredMaterials = materials;
+  if (materialCategories.length > 0) {
+    // Show materials from any of the selected categories (union)
+    filteredMaterials = materials.filter((m) => materialCategories.includes(m.category));
+  }
+
+  const availableMaterialVariables = filteredMaterials.map((m) => ({
     name: m.variableName,
     label: m.name,
     price: m.price,
@@ -779,19 +836,71 @@ export default function ModulesPage() {
                 {/* Available Variables */}
                 {availableFieldVariables.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-semibold text-card-foreground mb-3">Field Variables</h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-card-foreground">Field Variables</h4>
+                      {allFields.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {usedFields}/{allFields.length} fields
+                        </span>
+                      )}
+                    </div>
+                    {allFields.length > 0 && (
+                      <>
+                        {shouldShowReminder ? (
+                          <div className="mb-3 p-2">
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
+                                  Reminder: Add remaining fields to formula
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {missingFields.map((field) => (
+                                    <span
+                                      key={field.name}
+                                      className="text-xs font-mono px-2 py-0.5 text-amber-600 dark:text-amber-400 rounded"
+                                    >
+                                      {field.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : missingFields.length > 0 ? (
+                          <div className="mb-3 p-2 bg-muted/50 border border-border rounded-lg">
+                            <p className="text-xs text-muted-foreground">
+                              <strong>Tip:</strong> Add field variables to your formula by clicking them above.
+                            </p>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
                     <div className="flex flex-wrap gap-2">
-                      {availableFieldVariables.map((varInfo) => (
-                        <button
-                          key={varInfo.name}
-                          type="button"
-                          onClick={() => insertVariableAtCursor(varInfo.name)}
-                          title={`${varInfo.label} (${varInfo.type})`}
-                          className="px-3 py-1.5 bg-muted hover:bg-accent hover:text-accent-foreground border border-border hover:border-accent rounded-full text-xs font-mono text-accent transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-soft hover:shadow-elevated"
-                        >
-                          {varInfo.name}
-                        </button>
-                      ))}
+                      {availableFieldVariables.map((varInfo) => {
+                        const isInFormula = isVariableInFormula(varInfo.name, formData.formula);
+                        const showCheckmark = isInFormula;
+                        
+                        return (
+                          <button
+                            key={varInfo.name}
+                            type="button"
+                            onClick={() => insertVariableAtCursor(varInfo.name)}
+                            title={`${varInfo.label} (${varInfo.type})`}
+                            className={cn(
+                              "px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-soft hover:shadow-elevated flex items-center gap-1.5",
+                              showCheckmark 
+                                ? "border-success bg-[#4CAF50] dark:bg-[#66BB6A] hover:bg-[#43A047] dark:hover:bg-[#81C784] text-white dark:text-slate-900" 
+                                : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                            )}
+                          >
+                            <span>{varInfo.name}</span>
+                            {showCheckmark && (
+                              <CheckCircle2 className="h-3 w-3 text-white dark:text-slate-900 shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -806,7 +915,7 @@ export default function ModulesPage() {
                           type="button"
                           onClick={() => insertVariableAtCursor(mat.name)}
                           title={`${mat.label} - $${mat.price.toFixed(2)}/${mat.unit}`}
-                          className="px-3 py-1.5 bg-muted hover:bg-accent hover:text-accent-foreground border border-border hover:border-accent rounded-full text-xs font-mono text-accent transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-soft hover:shadow-elevated"
+                          className="px-3 py-1.5 bg-accent text-accent-foreground hover:bg-muted hover:text-accent border border-accent hover:border-border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-soft hover:shadow-elevated"
                         >
                           {mat.name}
                         </button>
@@ -862,7 +971,7 @@ export default function ModulesPage() {
                     <p className="mt-1 text-xs text-destructive">{formulaValidation.error}</p>
                   )}
                   {formulaValidation.valid && formulaValidation.preview !== undefined && (
-                    <div className="mt-2 p-3 bg-accent/10 border border-accent/30 rounded-xl">
+                    <div className="mt-2 p-3">
                       <div className="flex items-center space-x-2">
                         <Calculator className="h-4 w-4 text-accent" />
                         <span className="text-xs text-muted-foreground">Preview (with defaults):</span>
@@ -879,36 +988,36 @@ export default function ModulesPage() {
                   <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
                     Supported Operators
                   </h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="px-2 py-1 bg-muted rounded">
-                      <code className="text-accent">+</code> <span className="text-muted-foreground">Add</span>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono">+</code> <span className="text-muted-foreground ml-1">Add</span>
                     </div>
-                    <div className="px-2 py-1 bg-muted rounded-lg">
-                      <code className="text-accent font-semibold">-</code> <span className="text-muted-foreground">Subtract</span>
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono font-semibold">-</code> <span className="text-muted-foreground ml-1">Subtract</span>
                     </div>
-                    <div className="px-2 py-1 bg-muted rounded-lg">
-                      <code className="text-accent font-semibold">*</code> <span className="text-muted-foreground">Multiply</span>
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono font-semibold">*</code> <span className="text-muted-foreground ml-1">Multiply</span>
                     </div>
-                    <div className="px-2 py-1 bg-muted rounded-lg">
-                      <code className="text-accent font-semibold">/</code> <span className="text-muted-foreground">Divide</span>
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono font-semibold">/</code> <span className="text-muted-foreground ml-1">Divide</span>
                     </div>
-                    <div className="px-2 py-1 bg-muted rounded-lg">
-                      <code className="text-accent font-semibold">()</code> <span className="text-muted-foreground">Grouping</span>
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono font-semibold">()</code> <span className="text-muted-foreground ml-1">Grouping</span>
                     </div>
-                    <div className="px-2 py-1 bg-muted rounded-lg">
-                      <code className="text-accent font-semibold">sqrt()</code> <span className="text-muted-foreground">Square root</span>
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono font-semibold">sqrt()</code> <span className="text-muted-foreground ml-1">Square root</span>
                     </div>
-                    <div className="px-2 py-1 bg-muted rounded-lg">
-                      <code className="text-accent font-semibold">round(x)</code> <span className="text-muted-foreground">Round to nearest integer</span>
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono font-semibold">round(x)</code> <span className="text-muted-foreground ml-1">Round to nearest integer</span>
                     </div>
-                    <div className="px-2 py-1 bg-muted rounded-lg">
-                      <code className="text-accent font-semibold">round(x, decimals)</code> <span className="text-muted-foreground">Round to fixed decimals</span>
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono font-semibold">round(x, decimals)</code> <span className="text-muted-foreground ml-1">Round to fixed decimals</span>
                     </div>
-                    <div className="px-2 py-1 bg-muted rounded-lg">
-                      <code className="text-accent font-semibold">ceil(x)</code> <span className="text-muted-foreground">Round up to next integer</span>
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono font-semibold">ceil(x)</code> <span className="text-muted-foreground ml-1">Round up to next integer</span>
                     </div>
-                    <div className="px-2 py-1 bg-muted rounded-lg">
-                      <code className="text-accent font-semibold">floor(x)</code> <span className="text-muted-foreground">Round down to previous integer</span>
+                    <div className="px-2 py-0.5">
+                      <code className="text-accent font-mono font-semibold">floor(x)</code> <span className="text-muted-foreground ml-1">Round down to previous integer</span>
                     </div>
                   </div>
                 </div>

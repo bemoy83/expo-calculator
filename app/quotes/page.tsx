@@ -528,7 +528,7 @@ export default function QuotesPage() {
 
               {/* Total */}
               <div className="pt-4 border-t border-border">
-                <div className="flex justify-between items-baseline p-4 bg-accent/5 rounded-xl -mx-2">
+                <div className="flex justify-between items-baseline p-4 -mx-2">
                   <span className="text-base font-bold text-card-foreground">Total</span>
                   <span className="text-3xl font-bold text-accent tabular-nums tracking-tight">
                     ${currentQuote.total.toFixed(2)}
