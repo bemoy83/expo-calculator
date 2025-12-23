@@ -42,8 +42,7 @@ import {
   GripVertical,
   CheckCircle2,
   XCircle,
-  Calculator,
-  AlertCircle
+  Calculator
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -419,6 +418,8 @@ export default function ModulesPage() {
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [expandedMaterial, setExpandedMaterial] = useState<string | null>(null);
   const [expandedField, setExpandedField] = useState<string | null>(null);
+  const [fieldVariablesExpanded, setFieldVariablesExpanded] = useState(true);
+  const [materialVariablesExpanded, setMaterialVariablesExpanded] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -712,11 +713,8 @@ export default function ModulesPage() {
           const bottomActionBar = document.querySelector('[data-bottom-action-bar]') as HTMLElement;
           const bottomActionBarHeight = bottomActionBar?.offsetHeight || 72; // Default ~72px (py-4 = 16px top + 16px bottom + button height ~40px)
           
-          // Sticky "Add Field" button height (sticky at bottom-6, so 24px from bottom)
-          const stickyButtonHeight = 80; // Approximate height of sticky button + padding
-          
-          // Total space needed at bottom: action bar + sticky button + padding
-          const desiredBottomSpace = bottomActionBarHeight + stickyButtonHeight + 24; // Extra padding
+          // Total space needed at bottom: action bar + padding
+          const desiredBottomSpace = bottomActionBarHeight + 24; // Extra padding
           
           // Calculate how much we need to scroll
           const currentScrollY = window.scrollY;
@@ -854,29 +852,13 @@ export default function ModulesPage() {
     return Array.from(propertyMap.values());
   };
   
-  // Calculate which fields are missing from the formula
-  // Note: In formula builder, ALL fields are required (must be in formula)
+  // Calculate used fields for progress counter
+  // Note: In formula builder, ALL fields are available (must be in formula)
   // The 'required' flag means "requires user input when using the module"
   const allFields = availableFieldVariables;
-  const missingFields = allFields.filter(
-    (v) => !isVariableInFormula(v.name, formData.formula)
-  );
-  
-  // Calculate used fields for progress counter
-  const usedFields = allFields.length - missingFields.length;
-  
-  // Calculate percentage of unused fields
-  const unusedPercentage = allFields.length > 0 
-    ? (missingFields.length / allFields.length) * 100 
-    : 0;
-  
-  // Determine if we should show the reminder
-  // Show if: less than 30% unused (70%+ used), OR edge case (2 of 3, 3 of 4, etc. - close to threshold)
-  const shouldShowReminder = allFields.length > 0 && missingFields.length > 0 && (
-    unusedPercentage < 30 || 
-    // Edge case: if only 1 missing and at least 2 used (covers 2/3, 3/4, 4/5, etc.)
-    (missingFields.length === 1 && usedFields >= 2)
-  );
+  const usedFields = allFields.filter(
+    (v) => isVariableInFormula(v.name, formData.formula)
+  ).length;
   
   // Keep track of required fields separately for visual indicators (green checkmarks, red borders)
   // These indicate fields that require user input when using the module
@@ -1009,13 +991,6 @@ export default function ModulesPage() {
                     </SortableContext>
                   </DndContext>
                   
-                  {/* Sticky Add Field Button */}
-                  <div className="sticky bottom-6 pt-4 pb-2 bg-background/95 backdrop-blur-sm border-t border-border mt-6 rounded-t-xl shadow-sm">
-                    <Button onClick={addField} className="w-full rounded-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Field
-                    </Button>
-                  </div>
                 </>
               )}
             </div>
@@ -1023,58 +998,39 @@ export default function ModulesPage() {
 
           {/* RIGHT COLUMN - FORMULA BUILDER */}
           <div className="lg:col-span-1">
-            <Card title="Formula Builder" className="sticky top-8">
+            <Card title="Formula Builder" className="sticky top-[88px]">
               <div className="space-y-6">
                 {/* Available Variables */}
                 {availableFieldVariables.length > 0 && (
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-semibold text-card-foreground">Field Variables</h4>
-                      {allFields.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          {usedFields}/{allFields.length} fields
-                        </span>
-                      )}
-                    </div>
-                    {allFields.length > 0 && (
-                      <>
-                        {shouldShowReminder ? (
-                          <div className="mb-3 p-2" role="status" aria-live="polite">
-                            <div className="flex items-start gap-2">
-                              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
-                              <div className="flex-1">
-                                <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
-                                  Reminder: Add remaining fields to formula
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {missingFields.map((field) => (
-                                    <span
-                                      key={field.name}
-                                      className="text-xs font-mono px-2 py-0.5 text-amber-600 dark:text-amber-400 rounded"
-                                    >
-                                      {field.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ) : missingFields.length > 0 ? (
-                          <div className="mb-3 p-2 bg-muted/50 border border-border rounded-md">
-                            <p className="text-xs text-muted-foreground">
-                              <strong>Tip:</strong> Add field variables to your formula by clicking them above.
-                            </p>
-                          </div>
-                        ) : null}
-                      </>
-                    )}
-                    <div 
-                      className="grid gap-3"
-                      style={{
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))'
-                      }}
+                    <button
+                      type="button"
+                      onClick={() => setFieldVariablesExpanded(!fieldVariablesExpanded)}
+                      className="flex items-center justify-between w-full mb-3 group"
+                      aria-expanded={fieldVariablesExpanded}
                     >
-                      {availableFieldVariables.map((varInfo) => {
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-card-foreground">Field Variables</h4>
+                        {allFields.length > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {usedFields}/{allFields.length} fields
+                          </span>
+                        )}
+                      </div>
+                      {fieldVariablesExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      )}
+                    </button>
+                    {fieldVariablesExpanded && (
+                      <div 
+                        className="grid gap-3"
+                        style={{
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))'
+                        }}
+                      >
+                        {availableFieldVariables.map((varInfo) => {
                         const isInFormula = isVariableInFormula(varInfo.name, formData.formula);
                         const showCheckmark = isInFormula;
                         const isMaterialField = varInfo.type === 'material';
@@ -1170,20 +1126,44 @@ export default function ModulesPage() {
                             )}
                           </div>
                         );
-                      })}
-                    </div>
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {availableMaterialVariables.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-semibold text-card-foreground mb-3">Material Variables</h4>
-                    <div 
-                      className="grid gap-3"
-                      style={{
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))'
-                      }}
+                    <button
+                      type="button"
+                      onClick={() => setMaterialVariablesExpanded(!materialVariablesExpanded)}
+                      className="flex items-center justify-between w-full mb-3 group"
+                      aria-expanded={materialVariablesExpanded}
                     >
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-card-foreground">Material Variables</h4>
+                        <span className="text-xs text-muted-foreground">
+                          {availableMaterialVariables.length} {availableMaterialVariables.length === 1 ? 'material' : 'materials'}
+                        </span>
+                      </div>
+                      {materialVariablesExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      )}
+                    </button>
+                    {!materialVariablesExpanded && (
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Click to expand and access material variables for your formula.
+                      </p>
+                    )}
+                    {materialVariablesExpanded && (
+                      <div 
+                        className="grid gap-3"
+                        style={{
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))'
+                        }}
+                      >
                       {availableMaterialVariables.map((mat) => {
                         const isMaterialInFormula = isVariableInFormula(mat.name, formData.formula);
                         const hasProperties = mat.properties && mat.properties.length > 0;
@@ -1275,7 +1255,8 @@ export default function ModulesPage() {
                           </div>
                         );
                       })}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1323,11 +1304,6 @@ export default function ModulesPage() {
                         : ''
                     }`}
                   />
-                  {formulaValidation.error && (
-                    <p className="mt-1 text-xs text-destructive" role="alert" aria-live="polite">
-                      {formulaValidation.error}
-                    </p>
-                  )}
                   {formulaValidation.valid && formulaValidation.preview !== undefined && (
                     <div className="mt-2 p-3" role="status" aria-live="polite">
                       <div className="flex items-center space-x-2">
@@ -1546,13 +1522,19 @@ export default function ModulesPage() {
 
         {/* BOTTOM ACTION BAR */}
         <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3">
-            <Button variant="ghost" onClick={cancelEditing} className="rounded-full">
-              Cancel
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
+            <Button onClick={addField} className="rounded-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Field
             </Button>
-            <Button onClick={handleSubmit} className="rounded-full">
-              {editingModuleId === 'new' ? 'Create' : 'Update'} Module
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" onClick={cancelEditing} className="rounded-full">
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} className="rounded-full">
+                {editingModuleId === 'new' ? 'Create' : 'Update'} Module
+              </Button>
+            </div>
           </div>
         </div>
       </Layout>

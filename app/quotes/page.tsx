@@ -12,7 +12,7 @@ import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { QuoteModuleInstance, FieldType } from '@/lib/types';
 import { normalizeToBase, convertFromBase } from '@/lib/units';
-import { Plus, X, Download, Send, Trash2, Save, Package, Calculator, LayoutDashboard, Link2, Unlink } from 'lucide-react';
+import { Plus, X, Download, Send, Trash2, Save, Package, Calculator, LayoutDashboard, Link2, Unlink, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function QuotesPage() {
   const modules = useModulesStore((state) => state.modules);
@@ -37,6 +37,8 @@ export default function QuotesPage() {
   const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
   // Track which fields have link UI expanded: Map<instanceId, Map<fieldName, boolean>>
   const [linkUIOpen, setLinkUIOpen] = useState<Record<string, Record<string, boolean>>>({});
+  // Track which modules are collapsed: Set<instanceId>
+  const [collapsedModules, setCollapsedModules] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!currentQuote) {
@@ -59,7 +61,8 @@ export default function QuotesPage() {
 
   const handleAddModule = (moduleId: string) => {
     addWorkspaceModule(moduleId);
-    setShowAddModule(false);
+    // Keep the Add Module section open for rapid multiple additions
+    // It will only close when user clicks Cancel
   };
 
   // Helper to format label with unit
@@ -211,6 +214,24 @@ export default function QuotesPage() {
   const handleUnlink = (instanceId: string, fieldName: string) => {
     unlinkField(instanceId, fieldName);
     closeLinkUI(instanceId, fieldName);
+  };
+
+  // Helper to toggle module collapse
+  const toggleModuleCollapse = (instanceId: string) => {
+    setCollapsedModules((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(instanceId)) {
+        updated.delete(instanceId);
+      } else {
+        updated.add(instanceId);
+      }
+      return updated;
+    });
+  };
+
+  // Helper to check if module is collapsed
+  const isModuleCollapsed = (instanceId: string): boolean => {
+    return collapsedModules.has(instanceId);
   };
 
   // Helper to get resolved value for display (when linked)
@@ -1034,23 +1055,43 @@ export default function QuotesPage() {
                 const module = modules.find((m) => m.id === instance.moduleId);
                 if (!module) return null;
 
+                const isCollapsed = isModuleCollapsed(instance.id);
+
                 return (
                   <Card 
                     key={instance.id} 
                     title={module.name}
                     className="overlay-white"
+                    actions={
+                      <button
+                        type="button"
+                        onClick={() => toggleModuleCollapse(instance.id)}
+                        className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
+                        aria-label={isCollapsed ? 'Expand module' : 'Collapse module'}
+                      >
+                        {isCollapsed ? (
+                          <ChevronDown className="h-5 w-5" />
+                        ) : (
+                          <ChevronUp className="h-5 w-5" />
+                        )}
+                      </button>
+                    }
                   >
-                    {module.description && (
-                      <p className="text-sm text-muted-foreground mb-5">{module.description}</p>
-                    )}
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                      {module.fields.map((field) => (
-                        <div key={field.id}>
-                          {renderFieldInput(instance, field)}
+                    {!isCollapsed && (
+                      <>
+                        {module.description && (
+                          <p className="text-sm text-muted-foreground mb-5">{module.description}</p>
+                        )}
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                          {module.fields.map((field) => (
+                            <div key={field.id}>
+                              {renderFieldInput(instance, field)}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </>
+                    )}
 
                     <div className="flex items-center justify-between pt-5 border-t border-border">
                       <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Module Cost</span>
@@ -1093,7 +1134,7 @@ export default function QuotesPage() {
         </div>
 
         <div className="lg:col-span-1">
-          <Card className="sticky top-16 z-40">
+          <Card className="sticky top-[88px] z-40">
             <h3 className="text-lg font-bold text-card-foreground mb-5 tracking-tight">Quote Summary</h3>
             
             <div className="space-y-5">
@@ -1112,8 +1153,8 @@ export default function QuotesPage() {
                 {/* Markup % Input */}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-label-foreground shrink-0">Markup (%)</label>
-                  <div className="w-20 shrink-0 flex items-center justify-end min-h-[44px]">
-                    <Input
+                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
+                    <input
                       type="number"
                       step="1"
                       min="0"
@@ -1122,8 +1163,7 @@ export default function QuotesPage() {
                         const percent = Math.round(Number(e.target.value) || 0);
                         setMarkupPercent(Math.max(0, percent));
                       }}
-                      variant="underline"
-                      className="w-full text-right"
+                      className="w-full text-right font-semibold text-card-foreground tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
                     />
                   </div>
                 </div>
@@ -1143,8 +1183,8 @@ export default function QuotesPage() {
                 {/* Tax Rate % Input */}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-label-foreground shrink-0">Tax Rate (%)</label>
-                  <div className="w-20 shrink-0 flex items-center justify-end min-h-[44px]">
-                    <Input
+                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
+                    <input
                       type="number"
                       step="1"
                       min="0"
@@ -1154,21 +1194,22 @@ export default function QuotesPage() {
                         const rate = Math.round(Number(e.target.value) || 0) / 100;
                         setTaxRate(Math.max(0, Math.min(1, rate)));
                       }}
-                      variant="underline"
-                      className="w-full text-right"
+                      className="w-full text-right font-semibold text-card-foreground tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
                     />
                   </div>
                 </div>
 
-                {/* Tax Amount Display */}
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-label-foreground shrink-0">Tax</label>
-                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                    <span className="font-semibold text-card-foreground tabular-nums text-sm">
-                      ${currentQuote.taxAmount.toFixed(2)}
-                    </span>
+                {/* Tax Amount Display (only if tax rate > 0) */}
+                {(currentQuote.taxRate ?? 0) > 0 && (
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="text-sm text-label-foreground shrink-0">Tax</label>
+                    <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
+                      <span className="font-semibold text-card-foreground tabular-nums text-sm">
+                        ${currentQuote.taxAmount.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Total */}
@@ -1242,6 +1283,20 @@ export default function QuotesPage() {
               </div>
             </div>
           </Card>
+        </div>
+      </div>
+
+      {/* BOTTOM ACTION BAR */}
+      <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3">
+          <Button 
+            onClick={() => setShowAddModule(true)}
+            className="rounded-full"
+            disabled={showAddModule}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Module
+          </Button>
         </div>
       </div>
     </Layout>
