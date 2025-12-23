@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { CalculationModule, Field, FieldType } from '@/lib/types';
-import { validateFormula, evaluateFormula } from '@/lib/formula-evaluator';
+import { validateFormula, evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { labelToVariableName, cn } from '@/lib/utils';
 import {
   DndContext,
@@ -494,6 +494,14 @@ export default function ModulesPage() {
     return regex.test(formula);
   };
 
+  // Helper function to check if a material property reference is in the formula
+  const isPropertyReferenceInFormula = (materialVar: string, propertyName: string, formula: string): boolean => {
+    if (!formula || !materialVar || !propertyName) return false;
+    const propertyRef = `${materialVar}.${propertyName}`;
+    const regex = new RegExp(`\\b${escapeRegex(propertyRef)}\\b`);
+    return regex.test(formula);
+  };
+
   const insertVariableAtCursor = (variableName: string) => {
     const textarea = formulaTextareaRef.current;
     if (!textarea) return;
@@ -545,7 +553,13 @@ export default function ModulesPage() {
     }
 
     const availableVars = fields.map((f) => f.variableName).filter(Boolean);
-    const validation = validateFormula(formula, availableVars, materials);
+    // Pass field definitions for validation (needed to identify material fields)
+    const fieldDefinitions = fields.map(f => ({
+      variableName: f.variableName,
+      type: f.type,
+      materialCategory: f.materialCategory,
+    }));
+    const validation = validateFormula(formula, availableVars, materials, fieldDefinitions);
 
     if (validation.valid) {
       // Calculate preview with default values
@@ -561,6 +575,19 @@ export default function ModulesPage() {
                 break;
               case 'boolean':
                 defaultValues[field.variableName] = true;
+                break;
+              case 'material':
+                // For material fields, select first available material in category (or any material)
+                let candidateMaterials = materials;
+                if (field.materialCategory && field.materialCategory.trim()) {
+                  candidateMaterials = materials.filter(m => m.category === field.materialCategory);
+                }
+                if (candidateMaterials.length > 0) {
+                  defaultValues[field.variableName] = candidateMaterials[0].variableName;
+                } else {
+                  // No material available - use empty string (will cause error if used in formula)
+                  defaultValues[field.variableName] = '';
+                }
                 break;
               default:
                 defaultValues[field.variableName] = 1;
@@ -672,8 +699,41 @@ export default function ModulesPage() {
         label: field?.label || varName,
         type: field?.type || 'unknown',
         required: field?.required || false,
+        materialCategory: field?.materialCategory,
       };
     });
+
+  // Get available properties for material fields
+  const getMaterialFieldProperties = (fieldVar: string) => {
+    const field = fields.find(f => f.variableName === fieldVar);
+    if (!field || field.type !== 'material') {
+      return [];
+    }
+    
+    // Get materials in the field's category (if specified)
+    let candidateMaterials = materials;
+    if (field.materialCategory && field.materialCategory.trim()) {
+      candidateMaterials = materials.filter(m => m.category === field.materialCategory);
+    }
+    
+    // Collect all unique properties from candidate materials
+    const propertyMap = new Map<string, { name: string; unit?: string; type: string }>();
+    candidateMaterials.forEach(material => {
+      if (material.properties) {
+        material.properties.forEach(prop => {
+          if (!propertyMap.has(prop.name)) {
+            propertyMap.set(prop.name, {
+              name: prop.name,
+              unit: prop.unit,
+              type: prop.type,
+            });
+          }
+        });
+      }
+    });
+    
+    return Array.from(propertyMap.values());
+  };
   
   // Calculate which fields are missing from the formula
   // Note: In formula builder, ALL fields are required (must be in formula)
@@ -703,25 +763,13 @@ export default function ModulesPage() {
   // These indicate fields that require user input when using the module
   const requiredFields = availableFieldVariables.filter((v) => v.required);
 
-  // Filter material variables based on material field category filters
-  // If any material fields have category filters, only show materials from those categories
-  // If no category filters are set, show all materials
-  const materialFields = fields.filter((f) => f.type === 'material');
-  const materialCategories = materialFields
-    .map((f) => f.materialCategory)
-    .filter((cat): cat is string => Boolean(cat && cat.trim()));
-  
-  let filteredMaterials = materials;
-  if (materialCategories.length > 0) {
-    // Show materials from any of the selected categories (union)
-    filteredMaterials = materials.filter((m) => materialCategories.includes(m.category));
-  }
-
-  const availableMaterialVariables = filteredMaterials.map((m) => ({
+  // Show all materials as available variables in formula builder
+  const availableMaterialVariables = materials.map((m) => ({
     name: m.variableName,
     label: m.name,
     price: m.price,
     unit: m.unit,
+    properties: m.properties || [],
   }));
 
   // Show workspace if editing
@@ -886,30 +934,67 @@ export default function ModulesPage() {
                         ) : null}
                       </>
                     )}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-3">
                       {availableFieldVariables.map((varInfo) => {
                         const isInFormula = isVariableInFormula(varInfo.name, formData.formula);
                         const showCheckmark = isInFormula;
+                        const isMaterialField = varInfo.type === 'material';
+                        const fieldProperties = isMaterialField ? getMaterialFieldProperties(varInfo.name) : [];
                         
                         return (
-                          <button
-                            key={varInfo.name}
-                            type="button"
-                            onClick={() => insertVariableAtCursor(varInfo.name)}
-                            aria-label={`Insert variable ${varInfo.name} (${varInfo.label}, ${varInfo.type})${showCheckmark ? ' - already in formula' : ''}`}
-                            title={`${varInfo.label} (${varInfo.type})`}
-                            className={cn(
-                              "px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover:shadow-md flex items-center gap-1.5",
-                              showCheckmark 
-                                ? "border-success bg-success hover:bg-success/90 text-success-foreground" 
-                                : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                          <div key={varInfo.name} className="space-y-2">
+                            <button
+                              type="button"
+                              onClick={() => insertVariableAtCursor(varInfo.name)}
+                              aria-label={`Insert variable ${varInfo.name} (${varInfo.label}, ${varInfo.type})${showCheckmark ? ' - already in formula' : ''}`}
+                              title={`${varInfo.label} (${varInfo.type})${isMaterialField ? ' - unit price' : ''}`}
+                              className={cn(
+                                "px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5",
+                                showCheckmark 
+                                  ? "border-success bg-success hover:bg-success/90 text-success-foreground" 
+                                  : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                              )}
+                            >
+                              <span>{varInfo.name}</span>
+                              {isMaterialField && (
+                                <span className="text-[10px] opacity-75">(price)</span>
+                              )}
+                              {showCheckmark && (
+                                <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
+                              )}
+                            </button>
+                            {isMaterialField && fieldProperties.length > 0 && (
+                              <div className="ml-4 space-y-1.5">
+                                <p className="text-xs text-muted-foreground font-medium">Properties:</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {fieldProperties.map((prop) => {
+                                    const propertyRef = `${varInfo.name}.${prop.name}`;
+                                    const isPropertyInFormula = isPropertyReferenceInFormula(varInfo.name, prop.name, formData.formula);
+                                    return (
+                                      <button
+                                        key={prop.name}
+                                        type="button"
+                                        onClick={() => insertVariableAtCursor(propertyRef)}
+                                        aria-label={`Insert property ${propertyRef} (${prop.name}: ${prop.type}${prop.unit ? `, ${prop.unit}` : ''})`}
+                                        title={`${prop.name}: ${prop.type}${prop.unit ? ` (${prop.unit})` : ''}`}
+                                        className={cn(
+                                          "px-2.5 py-1 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1",
+                                          isPropertyInFormula
+                                            ? "border-success bg-success hover:bg-success/90 text-success-foreground"
+                                            : "bg-muted text-muted-foreground hover:bg-accent/10 hover:text-accent border-border hover:border-accent"
+                                        )}
+                                      >
+                                        <span>{propertyRef}</span>
+                                        {isPropertyInFormula && (
+                                          <CheckCircle2 className="h-2.5 w-2.5 text-success-foreground shrink-0" aria-hidden="true" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             )}
-                          >
-                            <span>{varInfo.name}</span>
-                            {showCheckmark && (
-                              <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
-                            )}
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -919,19 +1004,62 @@ export default function ModulesPage() {
                 {availableMaterialVariables.length > 0 && (
                   <div>
                     <h4 className="text-sm font-semibold text-card-foreground mb-3">Material Variables</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {availableMaterialVariables.map((mat) => (
-                        <button
-                          key={mat.name}
-                          type="button"
-                          onClick={() => insertVariableAtCursor(mat.name)}
-                          aria-label={`Insert material variable ${mat.name} (${mat.label} - $${mat.price.toFixed(2)} per ${mat.unit})`}
-                          title={`${mat.label} - $${mat.price.toFixed(2)}/${mat.unit}`}
-                          className="px-3 py-1.5 bg-accent text-accent-foreground hover:bg-muted hover:text-accent border border-accent hover:border-border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover:shadow-md"
-                        >
-                          {mat.name}
-                        </button>
-                      ))}
+                    <div className="space-y-3">
+                      {availableMaterialVariables.map((mat) => {
+                        const isMaterialInFormula = isVariableInFormula(mat.name, formData.formula);
+                        return (
+                          <div key={mat.name} className="space-y-2">
+                            <button
+                              type="button"
+                              onClick={() => insertVariableAtCursor(mat.name)}
+                              aria-label={`Insert material variable ${mat.name} (${mat.label} - $${mat.price.toFixed(2)} per ${mat.unit})`}
+                              title={`${mat.label} - $${mat.price.toFixed(2)}/${mat.unit}`}
+                              className={cn(
+                                "px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5",
+                                isMaterialInFormula
+                                  ? "border-success bg-success hover:bg-success/90 text-success-foreground"
+                                  : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                              )}
+                            >
+                              <span>{mat.name}</span>
+                              {isMaterialInFormula && (
+                                <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
+                              )}
+                            </button>
+                            {mat.properties && mat.properties.length > 0 && (
+                              <div className="ml-4 space-y-1.5">
+                                <p className="text-xs text-muted-foreground font-medium">Properties:</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {mat.properties.map((prop) => {
+                                    const propertyRef = `${mat.name}.${prop.name}`;
+                                    const isPropertyInFormula = isPropertyReferenceInFormula(mat.name, prop.name, formData.formula);
+                                    return (
+                                      <button
+                                        key={prop.id}
+                                        type="button"
+                                        onClick={() => insertVariableAtCursor(propertyRef)}
+                                        aria-label={`Insert property ${propertyRef} (${prop.name}: ${prop.value}${prop.unit ? ` ${prop.unit}` : ''})`}
+                                        title={`${prop.name}: ${prop.value}${prop.unit ? ` ${prop.unit}` : ''} (${prop.type})`}
+                                        className={cn(
+                                          "px-2.5 py-1 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1",
+                                          isPropertyInFormula
+                                            ? "border-success bg-success hover:bg-success/90 text-success-foreground"
+                                            : "bg-muted text-muted-foreground hover:bg-accent/10 hover:text-accent border-border hover:border-accent"
+                                        )}
+                                      >
+                                        <span>{propertyRef}</span>
+                                        {isPropertyInFormula && (
+                                          <CheckCircle2 className="h-2.5 w-2.5 text-success-foreground shrink-0" aria-hidden="true" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -970,7 +1098,7 @@ export default function ModulesPage() {
                       setFormData({ ...formData, formula: e.target.value });
                     }}
                     error={errors.formula || formulaValidation.error}
-                    placeholder="e.g., width * height * lumber_price"
+                    placeholder="e.g., width * height * mat_plank.length * quantity"
                     rows={6}
                     className={`font-mono text-sm ${
                       formulaValidation.valid && formData.formula
@@ -997,6 +1125,136 @@ export default function ModulesPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Formula Debug Panel */}
+                <details className="mt-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                    Formula debug (detected variables)
+                  </summary>
+                  <div className="mt-3 space-y-3 p-3 bg-muted/30 rounded-lg border border-border">
+                    {(() => {
+                      const debugInfo = analyzeFormulaVariables(
+                        formData.formula,
+                        availableFieldVariables.map(v => v.name),
+                        materials,
+                        fields.map(f => ({
+                          variableName: f.variableName,
+                          type: f.type,
+                          materialCategory: f.materialCategory,
+                        }))
+                      );
+                      
+                      return (
+                        <>
+                          {/* Standalone Variables */}
+                          <div>
+                            <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                              Standalone Variables ({debugInfo.variables.length})
+                            </h5>
+                            {debugInfo.variables.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {debugInfo.variables.map((varName: string) => (
+                                  <code
+                                    key={varName}
+                                    className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-accent"
+                                  >
+                                    {varName}
+                                  </code>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">None</p>
+                            )}
+                          </div>
+
+                          {/* Unknown Variables */}
+                          <div>
+                            <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                              Unknown Variables ({debugInfo.unknownVariables.length})
+                            </h5>
+                            {debugInfo.unknownVariables.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {debugInfo.unknownVariables.map((varName: string) => (
+                                  <code
+                                    key={varName}
+                                    className="px-2 py-1 bg-destructive/10 border border-destructive/30 rounded text-xs font-mono text-destructive"
+                                  >
+                                    {varName}
+                                  </code>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">None</p>
+                            )}
+                          </div>
+
+                          {/* Field Property References */}
+                          <div>
+                            <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                              Field Property References ({debugInfo.fieldPropertyRefs.length})
+                            </h5>
+                            {debugInfo.fieldPropertyRefs.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {debugInfo.fieldPropertyRefs.map((ref: { full: string; fieldVar: string; property: string }, idx: number) => (
+                                  <code
+                                    key={`${ref.full}-${idx}`}
+                                    className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-accent"
+                                    title={`${ref.fieldVar}.${ref.property}`}
+                                  >
+                                    {ref.full}
+                                  </code>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">None</p>
+                            )}
+                          </div>
+
+                          {/* Material Property References */}
+                          <div>
+                            <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                              Material Property References ({debugInfo.materialPropertyRefs.length})
+                            </h5>
+                            {debugInfo.materialPropertyRefs.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {debugInfo.materialPropertyRefs.map((ref: { full: string; materialVar: string; property: string }, idx: number) => (
+                                  <code
+                                    key={`${ref.full}-${idx}`}
+                                    className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-accent"
+                                    title={`${ref.materialVar}.${ref.property}`}
+                                  >
+                                    {ref.full}
+                                  </code>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">None</p>
+                            )}
+                          </div>
+
+                          {/* Math Functions (for reference) */}
+                          {debugInfo.mathFunctions.length > 0 && (
+                            <div>
+                              <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                                Math Functions ({debugInfo.mathFunctions.length})
+                              </h5>
+                              <div className="flex flex-wrap gap-1.5">
+                                {debugInfo.mathFunctions.map((funcName: string) => (
+                                  <code
+                                    key={funcName}
+                                    className="px-2 py-1 bg-muted border border-border rounded text-xs font-mono text-muted-foreground"
+                                  >
+                                    {funcName}
+                                  </code>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </details>
 
                 {/* Operators Guide */}
                 <div className="pt-4 border-t border-border">
@@ -1034,6 +1292,36 @@ export default function ModulesPage() {
                     <div className="px-2 py-0.5">
                       <code className="text-accent font-mono font-semibold">floor(x)</code> <span className="text-muted-foreground ml-1">Round down to previous integer</span>
                     </div>
+                  </div>
+                  
+                  {/* Comparison Operators */}
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <h5 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                      Comparison Operators
+                    </h5>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                      <div className="px-2 py-0.5">
+                        <code className="text-accent font-mono font-semibold">==</code> <span className="text-muted-foreground ml-1">Equals</span>
+                      </div>
+                      <div className="px-2 py-0.5">
+                        <code className="text-accent font-mono font-semibold">!=</code> <span className="text-muted-foreground ml-1">Not equals</span>
+                      </div>
+                      <div className="px-2 py-0.5">
+                        <code className="text-accent font-mono font-semibold">&gt;</code> <span className="text-muted-foreground ml-1">Greater than</span>
+                      </div>
+                      <div className="px-2 py-0.5">
+                        <code className="text-accent font-mono font-semibold">&lt;</code> <span className="text-muted-foreground ml-1">Less than</span>
+                      </div>
+                      <div className="px-2 py-0.5">
+                        <code className="text-accent font-mono font-semibold">&gt;=</code> <span className="text-muted-foreground ml-1">Greater or equal</span>
+                      </div>
+                      <div className="px-2 py-0.5">
+                        <code className="text-accent font-mono font-semibold">&lt;=</code> <span className="text-muted-foreground ml-1">Less or equal</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3 px-2">
+                      <strong>Note:</strong> Boolean fields convert to 1 (true) or 0 (false). Use comparisons for conditional logic, e.g., <code className="text-accent">base_price * (include_tax == 1)</code>
+                    </p>
                   </div>
                 </div>
               </div>

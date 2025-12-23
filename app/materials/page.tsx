@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
-import { Material } from '@/lib/types';
-import { labelToVariableName } from '@/lib/utils';
+import { Material, MaterialProperty, MaterialPropertyType, COMMON_MATERIAL_PROPERTIES } from '@/lib/types';
+import { labelToVariableName, generateId } from '@/lib/utils';
 import { Plus, Edit2, Trash2, X, Search, Package } from 'lucide-react';
 
 /**
@@ -43,6 +43,20 @@ export default function MaterialsPage() {
     description: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [properties, setProperties] = useState<MaterialProperty[]>([]);
+  const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
+  const [newProperty, setNewProperty] = useState<{
+    name: string;
+    type: MaterialPropertyType;
+    value: string;
+    unit: string;
+  }>({
+    name: '',
+    type: 'number',
+    value: '',
+    unit: '',
+  });
+  const [propertyErrors, setPropertyErrors] = useState<Record<string, string>>({});
 
   // Get all unique categories
   const categories = useMemo(() => {
@@ -87,6 +101,7 @@ export default function MaterialsPage() {
         supplier: material.supplier || '',
         description: material.description || '',
       });
+      setProperties(material.properties ? [...material.properties] : []);
     } else {
       setSelectedMaterialId(null);
       setFormData({
@@ -99,8 +114,12 @@ export default function MaterialsPage() {
         supplier: '',
         description: '',
       });
+      setProperties([]);
     }
     setErrors({});
+    setPropertyErrors({});
+    setEditingPropertyId(null);
+    setNewProperty({ name: '', type: 'number', value: '', unit: '' });
     setIsEditorOpen(true);
   };
 
@@ -117,11 +136,33 @@ export default function MaterialsPage() {
       supplier: '',
       description: '',
     });
+    setProperties([]);
     setErrors({});
+    setPropertyErrors({});
+    setEditingPropertyId(null);
+    setNewProperty({ name: '', type: 'number', value: '', unit: '' });
+  };
+
+  const validatePropertyName = (name: string, excludeId?: string): string | null => {
+    if (!name.trim()) {
+      return 'Property name is required';
+    }
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+      return 'Property name must start with a letter or underscore and contain only letters, numbers, and underscores';
+    }
+    // Check for duplicate property names within the same material
+    const duplicate = properties.find(
+      (p) => p.name.toLowerCase() === name.toLowerCase() && p.id !== excludeId
+    );
+    if (duplicate) {
+      return 'Property name already exists';
+    }
+    return null;
   };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+    const newPropertyErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
@@ -150,8 +191,61 @@ export default function MaterialsPage() {
       }
     }
 
+    // Validate properties
+    for (const prop of properties) {
+      const nameError = validatePropertyName(prop.name, prop.id);
+      if (nameError) {
+        newPropertyErrors[prop.id] = nameError;
+      }
+    }
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setPropertyErrors(newPropertyErrors);
+    return Object.keys(newErrors).length === 0 && Object.keys(newPropertyErrors).length === 0;
+  };
+
+  const addProperty = () => {
+    const nameError = validatePropertyName(newProperty.name);
+    if (nameError) {
+      setPropertyErrors({ ...propertyErrors, new: nameError });
+      return;
+    }
+
+    let value: number | string | boolean;
+    if (newProperty.type === 'number') {
+      value = Number(newProperty.value) || 0;
+    } else if (newProperty.type === 'boolean') {
+      value = newProperty.value === 'true' || newProperty.value === '1';
+    } else {
+      value = newProperty.value;
+    }
+
+    const property: MaterialProperty = {
+      id: generateId(),
+      name: newProperty.name.trim(),
+      type: newProperty.type,
+      value,
+      unit: newProperty.unit.trim() || undefined,
+    };
+
+    setProperties([...properties, property]);
+    setNewProperty({ name: '', type: 'number', value: '', unit: '' });
+    setPropertyErrors({});
+  };
+
+  const updateProperty = (id: string, updates: Partial<MaterialProperty>) => {
+    setProperties(
+      properties.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    );
+    setEditingPropertyId(null);
+  };
+
+  const removeProperty = (id: string) => {
+    setProperties(properties.filter((p) => p.id !== id));
+  };
+
+  const quickAddProperty = (name: string) => {
+    setNewProperty({ ...newProperty, name });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -167,6 +261,7 @@ export default function MaterialsPage() {
       sku: formData.sku.trim() || undefined,
       supplier: formData.supplier.trim() || undefined,
       description: formData.description.trim() || undefined,
+      properties: properties.length > 0 ? properties : undefined,
     };
 
     if (selectedMaterialId) {
@@ -182,57 +277,58 @@ export default function MaterialsPage() {
 
   return (
     <Layout>
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">Materials Catalog</h1>
-        <p className="text-lg text-muted-foreground">Manage materials and their prices for use in calculation formulas</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">Materials Catalog</h1>
+          <p className="text-lg text-muted-foreground">Manage materials and their prices for use in calculation formulas</p>
+        </div>
+        <Button onClick={() => openEditor()} className="rounded-full">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Material
+        </Button>
       </div>
 
-      <div className={`grid grid-cols-1 gap-6 ${isEditorOpen ? 'lg:grid-cols-3' : 'lg:grid-cols-1'}`}>
+      <div className={`grid grid-cols-1 gap-6 pb-24 ${isEditorOpen ? 'lg:grid-cols-3' : 'lg:grid-cols-1'}`}>
         {/* LEFT SIDE - MATERIALS CATALOG */}
-        <div className={isEditorOpen ? 'lg:col-span-2' : 'lg:col-span-1'}>
+        <div className={isEditorOpen ? 'lg:col-span-2 space-y-5' : 'lg:col-span-1 space-y-5'}>
+          {/* Search and Filter Card */}
           <Card>
-            {/* Search and Filter Bar */}
-            <div className="mb-6">
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Search Input - Dominant, flex-grows to fill space */}
-                <div className="flex-1 min-w-[200px] relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    placeholder="Search materials..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-full"
-                  />
-                </div>
-                {/* Category Dropdown - Fixed width, no flex-grow */}
-                <div className="w-full sm:w-auto sm:min-w-[180px]">
-                  <Select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    options={[
-                      { value: 'all', label: 'All Categories' },
-                      ...categories.map((cat) => ({ value: cat, label: cat })),
-                    ]}
-                  />
-                </div>
-                {/* Add Material Button - Fixed width, no flex-grow */}
-                <Button onClick={() => openEditor()} className="w-full sm:w-auto whitespace-nowrap">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Material
-                </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input - Dominant, flex-grows to fill space */}
+              <div className="flex-1 min-w-[200px] relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Search materials..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+              {/* Category Dropdown - Fixed width, no flex-grow */}
+              <div className="w-full sm:w-auto sm:min-w-[180px]">
+                <Select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  options={[
+                    { value: 'all', label: 'All Categories' },
+                    ...categories.map((cat) => ({ value: cat, label: cat })),
+                  ]}
+                />
               </div>
             </div>
+          </Card>
 
-            {/* Materials List */}
-            {filteredMaterials.length === 0 ? (
-              <div className="text-center py-24">
-                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted shadow-lg mb-6">
-                  <Package className="h-12 w-12 text-muted-foreground" />
+          {/* Empty State */}
+          {filteredMaterials.length === 0 ? (
+            <Card>
+              <div className="text-center py-20">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted shadow-sm mb-5">
+                  <Package className="h-10 w-10 text-muted-foreground" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
+                <h3 className="text-lg font-bold text-foreground mb-2 tracking-tight">
                   {materials.length === 0 ? 'No Materials Yet' : 'No Materials Found'}
                 </h3>
-                <p className="text-base text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
+                <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed mb-5">
                   {materials.length === 0
                     ? 'Add your first material to start building your catalog.'
                     : 'Try adjusting your search or filter criteria.'}
@@ -244,83 +340,105 @@ export default function MaterialsPage() {
                   </Button>
                 )}
               </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredMaterials.map((material) => (
-                  <div
-                    key={material.id}
-                    className="bg-card border border-border rounded-xl p-6 transition-smooth group"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-semibold text-card-foreground mb-2">{material.name}</h3>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
-                                {material.category}
+            </Card>
+          ) : (
+            <>
+              {/* Materials List - Each material is its own Card */}
+              {filteredMaterials.map((material) => (
+                <Card key={material.id} className="overlay-white">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-card-foreground mb-2">{material.name}</h3>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
+                              {material.category}
+                            </span>
+                            {material.sku && (
+                              <span className="px-3 py-1 bg-muted text-muted-foreground text-xs rounded-full">
+                                SKU: {material.sku}
                               </span>
-                              {material.sku && (
-                                <span className="px-3 py-1 bg-muted text-muted-foreground text-xs rounded-full">
-                                  SKU: {material.sku}
-                                </span>
-                              )}
-                              {material.supplier && (
-                                <span className="px-3 py-1 bg-muted text-muted-foreground text-xs rounded-full">
-                                  {material.supplier}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-3xl font-bold text-success tabular-nums tracking-tight">
-                              ${material.price.toFixed(2)}
-                            </div>
-                            <div className="text-sm font-medium text-muted-foreground">per {material.unit}</div>
+                            )}
+                            {material.supplier && (
+                              <span className="px-3 py-1 bg-muted text-muted-foreground text-xs rounded-full">
+                                {material.supplier}
+                              </span>
+                            )}
                           </div>
                         </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">Variable:</span>
-                            <code className="px-2.5 py-1 bg-muted border border-accent/30 rounded-md text-sm text-accent font-mono">
-                              {material.variableName}
-                            </code>
+                        <div className="text-right shrink-0">
+                          <div className="text-3xl font-bold text-success tabular-nums tracking-tight">
+                            ${material.price.toFixed(2)}
                           </div>
-                          {material.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">{material.description}</p>
-                          )}
+                          <div className="text-sm font-medium text-muted-foreground">per {material.unit}</div>
                         </div>
                       </div>
-                      <div className="flex items-start gap-1 shrink-0">
-                        <button
-                          onClick={() => openEditor(material)}
-                          className="p-2 text-muted-foreground hover:text-accent hover:bg-muted rounded-lg transition-colors"
-                          aria-label={`Edit material: ${material.name}`}
-                        >
-                          <Edit2 className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`Are you sure you want to delete "${material.name}"?`)) {
-                              deleteMaterial(material.id);
-                              if (selectedMaterialId === material.id) {
-                                closeEditor();
-                              }
-                            }
-                          }}
-                          className="p-2 text-muted-foreground hover:text-destructive hover:bg-muted rounded-lg transition-colors"
-                          aria-label={`Delete material: ${material.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        </button>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">Variable:</span>
+                          <code className="px-2.5 py-1 bg-muted border border-accent/30 rounded-md text-sm text-accent font-mono">
+                            {material.variableName}
+                          </code>
+                        </div>
+                        {material.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">{material.description}</p>
+                        )}
+                        {material.properties && material.properties.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">Properties:</span>
+                              <span className="text-xs text-muted-foreground">
+                                {material.properties.length} {material.properties.length === 1 ? 'property' : 'properties'}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {material.properties.map((prop) => (
+                                <div
+                                  key={prop.id}
+                                  className="px-2.5 py-1 bg-muted/50 border border-border rounded-md text-xs"
+                                  title={`${prop.name}: ${prop.type === 'boolean' ? (prop.value === true || prop.value === 'true' ? 'True' : 'False') : String(prop.value)}${prop.unit ? ` ${prop.unit}` : ''}`}
+                                >
+                                  <code className="text-accent font-mono">{material.variableName}.{prop.name}</code>
+                                  {prop.unit && (
+                                    <span className="text-muted-foreground ml-1">({prop.unit})</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
+                    <div className="flex items-start gap-1 shrink-0">
+                      <button
+                        onClick={() => openEditor(material)}
+                        className="p-2 text-muted-foreground hover:text-accent hover:bg-muted rounded-lg transition-colors"
+                        aria-label={`Edit material: ${material.name}`}
+                      >
+                        <Edit2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete "${material.name}"?`)) {
+                            deleteMaterial(material.id);
+                            if (selectedMaterialId === material.id) {
+                              closeEditor();
+                            }
+                          }
+                        }}
+                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-muted rounded-lg transition-colors"
+                        aria-label={`Delete material: ${material.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </Card>
+                </Card>
+              ))}
+            </>
+          )}
         </div>
 
         {/* RIGHT SIDE - MATERIAL EDITOR SIDEBAR */}
@@ -410,6 +528,268 @@ export default function MaterialsPage() {
                   rows={3}
                   placeholder="Material description, usage notes, or specifications..."
                 />
+
+                {/* Properties Section */}
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-semibold text-foreground">Properties</label>
+                    <span className="text-xs text-muted-foreground">
+                      {properties.length} {properties.length === 1 ? 'property' : 'properties'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Add material properties (dimensions, density, etc.) that can be referenced in formulas using dot notation (e.g., <code className="text-accent">mat_plank.length</code>).
+                  </p>
+
+                  {/* Quick Add Common Properties */}
+                  <div className="mb-4">
+                    <p className="text-xs text-muted-foreground mb-2">Quick add:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {COMMON_MATERIAL_PROPERTIES.map((propName) => {
+                        const exists = properties.some((p) => p.name.toLowerCase() === propName.toLowerCase());
+                        return (
+                          <button
+                            key={propName}
+                            type="button"
+                            onClick={() => quickAddProperty(propName)}
+                            disabled={exists}
+                            className={`px-2.5 py-1 text-xs rounded-full border transition-smooth ${
+                              exists
+                                ? 'border-muted text-muted-foreground cursor-not-allowed opacity-50'
+                                : 'border-accent text-accent hover:bg-accent/10'
+                            }`}
+                          >
+                            {propName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Properties List */}
+                  {properties.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      {properties.map((prop) => (
+                        <div
+                          key={prop.id}
+                          className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg border border-border"
+                        >
+                          <div className="flex-1 min-w-0">
+                            {editingPropertyId === prop.id ? (
+                              <div className="space-y-2">
+                                <Input
+                                  label="Property Name"
+                                  value={prop.name}
+                                  onChange={(e) => updateProperty(prop.id, { name: e.target.value })}
+                                  error={propertyErrors[prop.id]}
+                                  placeholder="e.g., length"
+                                  className="text-sm"
+                                />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Select
+                                    label="Type"
+                                    value={prop.type}
+                                    onChange={(e) =>
+                                      updateProperty(prop.id, {
+                                        type: e.target.value as MaterialPropertyType,
+                                        value:
+                                          e.target.value === 'number'
+                                            ? 0
+                                            : e.target.value === 'boolean'
+                                            ? false
+                                            : '',
+                                      })
+                                    }
+                                    options={[
+                                      { value: 'number', label: 'Number' },
+                                      { value: 'string', label: 'String' },
+                                      { value: 'boolean', label: 'Boolean' },
+                                    ]}
+                                  />
+                                  <Input
+                                    label="Unit (optional)"
+                                    value={prop.unit || ''}
+                                    onChange={(e) => updateProperty(prop.id, { unit: e.target.value || undefined })}
+                                    placeholder="e.g., ft"
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  {prop.type === 'number' && (
+                                    <Input
+                                      label="Value"
+                                      type="number"
+                                      value={typeof prop.value === 'number' ? prop.value : ''}
+                                      onChange={(e) =>
+                                        updateProperty(prop.id, { value: Number(e.target.value) || 0 })
+                                      }
+                                      className="text-sm"
+                                    />
+                                  )}
+                                  {prop.type === 'boolean' && (
+                                    <Select
+                                      label="Value"
+                                      value={prop.value === true || prop.value === 'true' ? 'true' : 'false'}
+                                      onChange={(e) =>
+                                        updateProperty(prop.id, { value: e.target.value === 'true' })
+                                      }
+                                      options={[
+                                        { value: 'true', label: 'True' },
+                                        { value: 'false', label: 'False' },
+                                      ]}
+                                    />
+                                  )}
+                                  {prop.type === 'string' && (
+                                    <Input
+                                      label="Value"
+                                      value={typeof prop.value === 'string' ? prop.value : ''}
+                                      onChange={(e) => updateProperty(prop.id, { value: e.target.value })}
+                                      className="text-sm"
+                                    />
+                                  )}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setEditingPropertyId(null)}
+                                    className="flex-1"
+                                  >
+                                    Done
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <code className="px-2 py-0.5 bg-background border border-border rounded text-xs font-mono text-accent">
+                                      {prop.name}
+                                    </code>
+                                    <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-xs capitalize">
+                                      {prop.type}
+                                    </span>
+                                    {prop.unit && (
+                                      <span className="text-xs text-muted-foreground">({prop.unit})</span>
+                                    )}
+                                  </div>
+                                  <div className="mt-1 text-sm text-foreground">
+                                    {prop.type === 'boolean'
+                                      ? prop.value === true || prop.value === 'true'
+                                        ? 'True'
+                                        : 'False'
+                                      : String(prop.value)}
+                                  </div>
+                                </div>
+                                <div className="flex gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingPropertyId(prop.id)}
+                                    className="p-1.5 text-muted-foreground hover:text-accent hover:bg-muted rounded transition-colors"
+                                    aria-label="Edit property"
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeProperty(prop.id)}
+                                    className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-muted rounded transition-colors"
+                                    aria-label="Remove property"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add New Property Form */}
+                  <div className="p-3 bg-muted/30 rounded-lg border border-border">
+                    <div className="space-y-2">
+                      <Input
+                        label="Property Name"
+                        value={newProperty.name}
+                        onChange={(e) => {
+                          setNewProperty({ ...newProperty, name: e.target.value });
+                          setPropertyErrors({});
+                        }}
+                        error={propertyErrors.new}
+                        placeholder="e.g., length"
+                        className="text-sm"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select
+                          label="Type"
+                          value={newProperty.type}
+                          onChange={(e) =>
+                            setNewProperty({
+                              ...newProperty,
+                              type: e.target.value as MaterialPropertyType,
+                              value: '',
+                            })
+                          }
+                          options={[
+                            { value: 'number', label: 'Number' },
+                            { value: 'string', label: 'String' },
+                            { value: 'boolean', label: 'Boolean' },
+                          ]}
+                        />
+                        <Input
+                          label="Unit (optional)"
+                          value={newProperty.unit}
+                          onChange={(e) => setNewProperty({ ...newProperty, unit: e.target.value })}
+                          placeholder="e.g., ft"
+                          className="text-sm"
+                        />
+                      </div>
+                      <div>
+                        {newProperty.type === 'number' && (
+                          <Input
+                            label="Value"
+                            type="number"
+                            value={newProperty.value}
+                            onChange={(e) => setNewProperty({ ...newProperty, value: e.target.value })}
+                            className="text-sm"
+                          />
+                        )}
+                        {newProperty.type === 'boolean' && (
+                          <Select
+                            label="Value"
+                            value={newProperty.value}
+                            onChange={(e) => setNewProperty({ ...newProperty, value: e.target.value })}
+                            options={[
+                              { value: 'true', label: 'True' },
+                              { value: 'false', label: 'False' },
+                            ]}
+                          />
+                        )}
+                        {newProperty.type === 'string' && (
+                          <Input
+                            label="Value"
+                            value={newProperty.value}
+                            onChange={(e) => setNewProperty({ ...newProperty, value: e.target.value })}
+                            className="text-sm"
+                          />
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={addProperty}
+                        className="w-full"
+                        disabled={!newProperty.name.trim()}
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1.5" />
+                        Add Property
+                      </Button>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="flex space-x-3 pt-4 border-t border-border">
                   <Button type="button" variant="ghost" onClick={closeEditor} className="flex-1">

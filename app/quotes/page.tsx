@@ -348,7 +348,7 @@ export default function QuotesPage() {
                   <button
                     key={module.id}
                     onClick={() => handleAddModule(module.id)}
-                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover:shadow-md hover-overlay px-4 py-2 text-base w-full"
+                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
                   >
                     <Plus className="h-4 w-4 mr-2 shrink-0" />
                     <span className="truncate">{module.name}</span>

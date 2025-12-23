@@ -1,5 +1,27 @@
 export type FieldType = 'number' | 'dropdown' | 'text' | 'boolean' | 'material';
 
+export type MaterialPropertyType = 'number' | 'string' | 'boolean';
+
+export interface MaterialProperty {
+  id: string;
+  name: string; // e.g., "length", "width", "density"
+  type: MaterialPropertyType;
+  value: number | string | boolean;
+  unit?: string; // e.g., "ft", "lbs/ft³", "sq ft"
+}
+
+// Common property names for UI suggestions
+export const COMMON_MATERIAL_PROPERTIES = [
+  'length',
+  'width',
+  'height',
+  'thickness',
+  'density',
+  'coverage',
+  'weight',
+  'volume',
+] as const;
+
 export interface Field {
   id: string;
   label: string;
@@ -34,6 +56,7 @@ export interface Material {
   sku?: string; // Stock Keeping Unit
   supplier?: string; // Supplier name
   description?: string; // Material description or usage notes
+  properties?: MaterialProperty[]; // Material properties (dimensions, density, etc.)
   createdAt: string;
   updatedAt: string;
 }

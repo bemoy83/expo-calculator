@@ -380,6 +380,20 @@
     background: rgba(0, 0, 0, 0.08);
   }
   
+  /* Button hover glow effect for dark mode */
+  /* Small radius, light subtle glow instead of dark blur shadow */
+  .dark .hover-glow:hover {
+    box-shadow: 
+      0 0 0 1px rgba(103, 178, 255, 0.15),
+      0 0 6px 1px rgba(103, 178, 255, 0.2),
+      0 0 10px 2px rgba(103, 178, 255, 0.1);
+  }
+  
+  /* Light mode keeps regular shadow */
+  .hover-glow:hover {
+    box-shadow: var(--shadow-md);
+  }
+  
   /* Neumorphism - Soft UI effects for tactile, raised/pressed appearance */
   /* Raised: Element appears to protrude from the surface */
   .neu-raised {
