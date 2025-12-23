@@ -1,5 +1,6 @@
 import { evaluate, create, all } from 'mathjs';
 import { Material, CalculationModule, QuoteModuleInstance } from './types';
+import { UnitCategory, getUnitCategory, normalizeToBase, multiplyUnits, divideUnits } from './units';
 
 export interface EvaluationContext {
   fieldValues: Record<string, string | number | boolean>;
@@ -180,8 +181,9 @@ function parseFieldPropertyReferences(
 }
 
 /**
- * Resolves a material property reference to its numeric value
+ * Resolves a material property reference to its numeric value (base-normalized)
  * Returns the property value converted to a number, or null if not found
+ * Always uses storedValue (canonical) if available, falls back to value with migration
  */
 function resolveMaterialProperty(
   materialVar: string,
@@ -199,21 +201,64 @@ function resolveMaterialProperty(
   }
   
   // Convert property value to number based on type
+  let numValue: number;
   if (property.type === 'number') {
-    return typeof property.value === 'number' ? property.value : Number(property.value) || 0;
+    // Use storedValue (canonical) if available, otherwise migrate from value
+    if (property.storedValue !== undefined) {
+      numValue = property.storedValue;
+    } else {
+      // Migration: convert value to base unit if unitSymbol exists
+      const rawValue = typeof property.value === 'number' ? property.value : Number(property.value) || 0;
+      if (property.unitSymbol) {
+        numValue = normalizeToBase(rawValue, property.unitSymbol);
+      } else {
+        numValue = rawValue;
+      }
+    }
   } else if (property.type === 'boolean') {
-    return property.value === true || property.value === 'true' ? 1 : 0;
+    numValue = property.value === true || property.value === 'true' ? 1 : 0;
   } else if (property.type === 'string') {
     // Attempt numeric conversion for string properties
-    const numValue = Number(property.value);
-    return !isNaN(numValue) && isFinite(numValue) ? numValue : 0;
+    const rawValue = Number(property.value);
+    numValue = !isNaN(rawValue) && isFinite(rawValue) ? rawValue : 0;
+  } else {
+    return null;
   }
   
-  return null;
+  return numValue;
 }
 
 /**
- * Resolves a field property reference to its numeric value
+ * Gets the unit category for a material property
+ */
+function getMaterialPropertyUnitCategory(
+  materialVar: string,
+  propertyName: string,
+  materials: Material[]
+): UnitCategory | undefined {
+  const material = materials.find((m) => m.variableName === materialVar);
+  if (!material || !material.properties) {
+    return undefined;
+  }
+  
+  const property = material.properties.find((p) => p.name === propertyName);
+  if (!property) {
+    return undefined;
+  }
+  
+  // Use unitCategory if available, otherwise infer from unitSymbol
+  if (property.unitCategory) {
+    return property.unitCategory;
+  }
+  if (property.unitSymbol) {
+    return getUnitCategory(property.unitSymbol);
+  }
+  
+  return undefined;
+}
+
+/**
+ * Resolves a field property reference to its numeric value (base-normalized)
  * Returns the property value converted to a number
  * Throws error if material not selected or property doesn't exist
  */
@@ -240,6 +285,46 @@ function resolveFieldProperty(
   }
   
   return propertyValue;
+}
+
+/**
+ * Gets the unit category for a field property reference
+ */
+function getFieldPropertyUnitCategory(
+  fieldVar: string,
+  propertyName: string,
+  context: EvaluationContext
+): UnitCategory | undefined {
+  const fieldValue = context.fieldValues[fieldVar];
+  
+  if (typeof fieldValue !== 'string') {
+    return undefined;
+  }
+  
+  return getMaterialPropertyUnitCategory(fieldValue, propertyName, context.materials);
+}
+
+/**
+ * Gets the unit category for a field variable
+ */
+function getFieldUnitCategory(
+  fieldVar: string,
+  fields?: Array<{ variableName: string; type: string; unitCategory?: UnitCategory; unitSymbol?: string }>
+): UnitCategory | undefined {
+  const field = fields?.find(f => f.variableName === fieldVar);
+  if (!field) {
+    return undefined;
+  }
+  
+  // Use unitCategory if available, otherwise infer from unitSymbol
+  if (field.unitCategory) {
+    return field.unitCategory;
+  }
+  if (field.unitSymbol) {
+    return getUnitCategory(field.unitSymbol);
+  }
+  
+  return undefined;
 }
 
 /**
@@ -426,13 +511,128 @@ export function evaluateFormula(
 }
 
 /**
+ * Phase 1 unit compatibility validation
+ * Checks for obvious unit errors: incompatible additions, invalid divisions
+ */
+function validateUnitCompatibility(
+  formula: string,
+  fieldPropertyRefs: Array<{ fieldVar: string; propertyName: string; fullMatch: string }>,
+  materialPropertyRefs: Array<{ materialVar: string; propertyName: string; fullMatch: string }>,
+  availableVariables: string[],
+  materials: Material[],
+  fields?: Array<{ variableName: string; type: string; materialCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>
+): string | null {
+  // Collect unit categories for all variables/properties
+  const variableUnits = new Map<string, UnitCategory>();
+  
+  // Track field property references
+  for (const ref of fieldPropertyRefs) {
+    // Find the field to get material category
+    const field = fields?.find(f => f.variableName === ref.fieldVar);
+    if (field && field.type === 'material') {
+      // Find a material in the allowed category to get property unit
+      let candidateMaterials = materials;
+      if (field.materialCategory && field.materialCategory.trim()) {
+        candidateMaterials = materials.filter(m => m.category === field.materialCategory);
+      }
+      
+      for (const material of candidateMaterials) {
+        const property = material.properties?.find(p => p.name === ref.propertyName);
+        if (property) {
+          const unitCat = property.unitCategory || (property.unitSymbol ? getUnitCategory(property.unitSymbol) : undefined);
+          if (unitCat) {
+            variableUnits.set(ref.fullMatch, unitCat);
+            break;
+          }
+        }
+      }
+    }
+  }
+  
+  // Track material property references
+  for (const ref of materialPropertyRefs) {
+    const material = materials.find(m => m.variableName === ref.materialVar);
+    if (material) {
+      const property = material.properties?.find(p => p.name === ref.propertyName);
+      if (property) {
+        const unitCat = property.unitCategory || (property.unitSymbol ? getUnitCategory(property.unitSymbol) : undefined);
+        if (unitCat) {
+          variableUnits.set(ref.fullMatch, unitCat);
+        }
+      }
+    }
+  }
+  
+  // Track field variables
+  for (const varName of availableVariables) {
+    const field = fields?.find(f => f.variableName === varName);
+    if (field && (
+      field.type === 'number' || 
+      (field.type === 'dropdown' && field.dropdownMode === 'numeric')
+    )) {
+      const unitCat = field.unitCategory || (field.unitSymbol ? getUnitCategory(field.unitSymbol) : undefined);
+      if (unitCat) {
+        variableUnits.set(varName, unitCat);
+      }
+    }
+  }
+  
+  // Phase 1: Simple pattern-based validation
+  // Check for addition/subtraction of incompatible units
+  // Pattern: variable1 + variable2 or variable1 - variable2
+  const addSubPattern = /([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\s*([+\-])\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)/g;
+  let match;
+  while ((match = addSubPattern.exec(formula)) !== null) {
+    const var1 = match[1];
+    const var2 = match[3];
+    const unit1 = variableUnits.get(var1);
+    const unit2 = variableUnits.get(var2);
+    
+    // If both have units and they're different (and not unitless), error
+    if (unit1 && unit2 && unit1 !== unit2) {
+      // Allow unitless (count/percentage) to be added/subtracted with anything
+      if (unit1 !== 'count' && unit1 !== 'percentage' && unit2 !== 'count' && unit2 !== 'percentage') {
+        return `Cannot ${match[2] === '+' ? 'add' : 'subtract'} ${unit1} (${var1}) to ${unit2} (${var2})`;
+      }
+    }
+  }
+  
+  // Check division rules
+  // Pattern: variable1 / variable2
+  const divPattern = /([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\s*\/\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)/g;
+  while ((match = divPattern.exec(formula)) !== null) {
+    const var1 = match[1];
+    const var2 = match[2];
+    const unit1 = variableUnits.get(var1);
+    const unit2 = variableUnits.get(var2);
+    
+    if (unit1 && unit2) {
+      const resultUnit = divideUnits(unit1, unit2);
+      if (resultUnit === null) {
+        // Check specific error cases
+        // Unitless ÷ unit → disallow
+        if ((unit1 === 'count' || unit1 === 'percentage') && unit2 !== 'count' && unit2 !== 'percentage') {
+          return `Cannot divide unitless (${var1}) by ${unit2} (${var2})`;
+        }
+        // Different dimensional units → disallow
+        if (unit1 !== unit2 && unit1 !== 'count' && unit1 !== 'percentage' && unit2 !== 'count' && unit2 !== 'percentage') {
+          return `Cannot divide ${unit1} (${var1}) by ${unit2} (${var2})`;
+        }
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Validates a formula syntax and checks if variables exist
  */
 export function validateFormula(
   formula: string,
   availableVariables: string[],
   materials: Material[],
-  fields?: Array<{ variableName: string; type: string; materialCategory?: string }>
+  fields?: Array<{ variableName: string; type: string; materialCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>
 ): { valid: boolean; error?: string } {
   try {
     // First, check field property references (e.g., wallboard.width)
@@ -613,6 +813,22 @@ export function validateFormula(
       testFormula = testFormula.replace(regex, '1');
     }
     
+    // Phase 1: Unit compatibility validation
+    const unitValidationError = validateUnitCompatibility(
+      formula,
+      fieldPropertyRefs,
+      materialPropertyRefs,
+      availableVariables,
+      materials,
+      fields
+    );
+    if (unitValidationError) {
+      return {
+        valid: false,
+        error: unitValidationError
+      };
+    }
+    
     // Use our custom math instance for validation
     mathInstance.evaluate(testFormula);
     
@@ -636,7 +852,7 @@ export function analyzeFormulaVariables(
   formula: string,
   availableVariables: string[],
   materials: Material[],
-  fields?: Array<{ variableName: string; type: string; materialCategory?: string }>
+  fields?: Array<{ variableName: string; type: string; materialCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>
 ): FormulaDebugInfo {
   const mathFunctionsList = ['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor'];
   

@@ -6,8 +6,11 @@ export interface MaterialProperty {
   id: string;
   name: string; // e.g., "length", "width", "density"
   type: MaterialPropertyType;
-  value: number | string | boolean;
-  unit?: string; // e.g., "ft", "lbs/ft³", "sq ft"
+  value: number | string | boolean; // Legacy - for migration only
+  unit?: string; // Legacy display unit (e.g., "ft", "lbs/ft³", "sq ft")
+  unitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count'; // Auto-inferred from unitSymbol
+  unitSymbol?: string; // Normalized symbol (e.g., "mm", "m2", "m3")
+  storedValue?: number; // Canonical base-normalized value (always use this for evaluation)
 }
 
 // Common property names for UI suggestions
@@ -29,8 +32,11 @@ export interface Field {
   variableName: string;
   required?: boolean;
   options?: string[]; // For dropdown type
+  dropdownMode?: 'numeric' | 'string'; // For dropdown type: numeric mode enables unit awareness
   defaultValue?: string | number | boolean;
-  unit?: string; // Unit of measurement (e.g., "ft", "sq ft", "hours")
+  unit?: string; // Legacy unit of measurement (e.g., "ft", "sq ft", "hours")
+  unitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count'; // Auto-inferred from unitSymbol
+  unitSymbol?: string; // Normalized symbol (e.g., "mm", "m2", "m3")
   description?: string; // Help text for the field
   materialCategory?: string; // For material type fields: limit materials to this category (empty = all categories)
 }

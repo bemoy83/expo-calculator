@@ -13,6 +13,7 @@ import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { CalculationModule, Field, FieldType } from '@/lib/types';
 import { validateFormula, evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { labelToVariableName, cn } from '@/lib/utils';
+import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
 import {
   DndContext,
   closestCenter,
@@ -71,6 +72,7 @@ interface SortableFieldItemProps {
   onRemoveField: (id: string) => void;
   module: CalculationModule | null;
   availableVariables: Array<{ name: string; label: string; type: string }>;
+  fieldRef?: (el: HTMLDivElement | null) => void;
 }
 
 function SortableFieldItem({
@@ -80,6 +82,7 @@ function SortableFieldItem({
   onToggleExpanded,
   onUpdateField,
   onRemoveField,
+  fieldRef,
 }: SortableFieldItemProps) {
   // Get materials from store for category dropdown
   const materials = useMaterialsStore((state) => state.materials);
@@ -115,9 +118,17 @@ function SortableFieldItem({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // Combine sortable ref with field ref for scrolling
+  const combinedRef = (el: HTMLDivElement | null) => {
+    setNodeRef(el);
+    if (fieldRef) {
+      fieldRef(el);
+    }
+  };
+
   return (
     <div
-      ref={setNodeRef}
+      ref={combinedRef}
       style={style}
       className="bg-card border border-border rounded-xl overflow-hidden transition-smooth overlay-white"
     >
@@ -247,16 +258,74 @@ function SortableFieldItem({
               ]}
             />
             {field.type === 'number' && (
-              <Input
+              <Select
                 label="Unit (optional)"
-                value={field.unit || ''}
-                onChange={(e) => onUpdateField(field.id, { unit: e.target.value || undefined })}
-                placeholder="e.g., ft, sq ft, hours"
+                value={field.unitSymbol || ''}
+                onChange={(e) => {
+                  const unitSymbol = e.target.value || undefined;
+                  const unitCategory = unitSymbol ? getUnitCategory(unitSymbol) : undefined;
+                  onUpdateField(field.id, { 
+                    unitSymbol,
+                    unitCategory,
+                    // Keep legacy unit field for backward compatibility
+                    unit: unitSymbol || undefined,
+                  });
+                }}
+                options={[
+                  { value: '', label: 'None (unitless)' },
+                  ...getAllUnitSymbols().map(symbol => ({
+                    value: symbol,
+                    label: `${symbol}${getUnitCategory(symbol) ? ` (${getUnitCategory(symbol)})` : ''}`,
+                  })),
+                ]}
+              />
+            )}
+            {field.type === 'dropdown' && (
+              <Select
+                label="Dropdown Mode"
+                value={field.dropdownMode || 'string'}
+                onChange={(e) => {
+                  const dropdownMode = e.target.value as 'numeric' | 'string';
+                  const updates: Partial<Field> = { dropdownMode };
+                  // If switching to string mode, clear unit info
+                  if (dropdownMode === 'string') {
+                    updates.unitSymbol = undefined;
+                    updates.unitCategory = undefined;
+                    updates.unit = undefined;
+                  }
+                  onUpdateField(field.id, updates);
+                }}
+                options={[
+                  { value: 'string', label: 'Values are strings' },
+                  { value: 'numeric', label: 'Values are numeric with units' },
+                ]}
               />
             )}
           </div>
           {field.type === 'dropdown' && (
             <div>
+              {field.dropdownMode === 'numeric' && (
+                <Select
+                  label="Unit (optional)"
+                  value={field.unitSymbol || ''}
+                  onChange={(e) => {
+                    const unitSymbol = e.target.value || undefined;
+                    const unitCategory = unitSymbol ? getUnitCategory(unitSymbol) : undefined;
+                    onUpdateField(field.id, { 
+                      unitSymbol,
+                      unitCategory,
+                      unit: unitSymbol || undefined,
+                    });
+                  }}
+                  options={[
+                    { value: '', label: 'None (unitless)' },
+                    ...getAllUnitSymbols().map(symbol => ({
+                      value: symbol,
+                      label: `${symbol}${getUnitCategory(symbol) ? ` (${getUnitCategory(symbol)})` : ''}`,
+                    })),
+                  ]}
+                />
+              )}
               <Input
                 label="Options (comma-separated)"
                 value={dropdownOptionsInput}
@@ -276,7 +345,7 @@ function SortableFieldItem({
                   onUpdateField(field.id, { options });
                 }}
                 error={fieldError.options}
-                placeholder="Option 1, Option 2, Option 3"
+                placeholder={field.dropdownMode === 'numeric' ? "40, 60" : "Option 1, Option 2, Option 3"}
               />
             </div>
           )}
@@ -359,6 +428,8 @@ export default function ModulesPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, Record<string, string>>>({});
   const [formulaValidation, setFormulaValidation] = useState<{ valid: boolean; error?: string; preview?: number }>({ valid: false });
   const formulaTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [newlyAddedFieldId, setNewlyAddedFieldId] = useState<string | null>(null);
+  const fieldRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Initialize editing state
   const startEditing = (module?: CalculationModule) => {
@@ -422,6 +493,7 @@ export default function ModulesPage() {
     };
     setFields([...fields, newField]);
     setExpandedFields(new Set([...expandedFields, newField.id]));
+    setNewlyAddedFieldId(newField.id);
   };
 
   const updateField = (id: string, updates: Partial<Field>) => {
@@ -621,6 +693,49 @@ export default function ModulesPage() {
       setFormulaValidation({ valid: false });
     }
   }, [formData.formula, fields, materials]);
+
+  // Auto-scroll to newly added field
+  useEffect(() => {
+    if (newlyAddedFieldId) {
+      const fieldElement = fieldRefs.current.get(newlyAddedFieldId);
+      if (fieldElement) {
+        // Use setTimeout to ensure DOM has updated
+        setTimeout(() => {
+          // Calculate the position to scroll to, accounting for both sticky elements
+          const elementRect = fieldElement.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          
+          // Find the bottom action bar height (fixed at bottom)
+          const bottomActionBar = document.querySelector('[data-bottom-action-bar]') as HTMLElement;
+          const bottomActionBarHeight = bottomActionBar?.offsetHeight || 72; // Default ~72px (py-4 = 16px top + 16px bottom + button height ~40px)
+          
+          // Sticky "Add Field" button height (sticky at bottom-6, so 24px from bottom)
+          const stickyButtonHeight = 80; // Approximate height of sticky button + padding
+          
+          // Total space needed at bottom: action bar + sticky button + padding
+          const desiredBottomSpace = bottomActionBarHeight + stickyButtonHeight + 24; // Extra padding
+          
+          // Calculate how much we need to scroll
+          const currentScrollY = window.scrollY;
+          const elementTop = elementRect.top + currentScrollY;
+          const elementBottom = elementTop + elementRect.height;
+          
+          // Target: element should be visible with both buttons visible at bottom
+          const targetScrollY = elementTop - (viewportHeight - elementRect.height - desiredBottomSpace);
+          
+          // Only scroll if the element is not already in a good position
+          if (elementRect.bottom > viewportHeight - desiredBottomSpace || elementRect.top < 0) {
+            window.scrollTo({
+              top: Math.max(0, targetScrollY),
+              behavior: 'smooth'
+            });
+          }
+          
+          setNewlyAddedFieldId(null);
+        }, 100);
+      }
+    }
+  }, [newlyAddedFieldId, fields]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -828,63 +943,78 @@ export default function ModulesPage() {
             </Card>
 
             {/* INPUT FIELDS MANAGER */}
-            <Card
-              title="Input Fields"
-              actions={
-                <Button size="sm" onClick={addField}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Field
-                </Button>
-              }
-            >
-              {fields.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
-                    <Plus className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-muted-foreground mb-4">No fields added yet</p>
-                  <Button size="sm" onClick={addField} className="rounded-full">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Your First Field
-                  </Button>
-                </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext
-                    items={fields.map((f) => f.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div className="space-y-3">
-                      {fields.map((field, index) => {
-                        const isExpanded = expandedFields.has(field.id);
-                        const fieldError = fieldErrors[field.id] || {};
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-foreground tracking-tight">Input Fields</h2>
+              </div>
 
-                        return (
-                          <SortableFieldItem
-                            key={field.id}
-                            field={field}
-                            isExpanded={isExpanded}
-                            fieldError={fieldError}
-                            index={index}
-                            fields={fields}
-                            expandedFields={expandedFields}
-                            onToggleExpanded={toggleFieldExpanded}
-                            onUpdateField={updateField}
-                            onRemoveField={removeField}
-                            module={null}
-                            availableVariables={[]}
-                          />
-                        );
-                      })}
+              {fields.length === 0 ? (
+                <Card>
+                  <div className="text-center py-12">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
+                      <Plus className="h-8 w-8 text-muted-foreground" />
                     </div>
-                  </SortableContext>
-                </DndContext>
+                    <p className="text-muted-foreground mb-4">No fields added yet</p>
+                    <Button size="sm" onClick={addField} className="rounded-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Field
+                    </Button>
+                  </div>
+                </Card>
+              ) : (
+                <>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={fields.map((f) => f.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-3">
+                        {fields.map((field, index) => {
+                          const isExpanded = expandedFields.has(field.id);
+                          const fieldError = fieldErrors[field.id] || {};
+
+                          return (
+                            <SortableFieldItem
+                              key={field.id}
+                              field={field}
+                              isExpanded={isExpanded}
+                              fieldError={fieldError}
+                              index={index}
+                              fields={fields}
+                              expandedFields={expandedFields}
+                              onToggleExpanded={toggleFieldExpanded}
+                              onUpdateField={updateField}
+                              onRemoveField={removeField}
+                              module={null}
+                              availableVariables={[]}
+                              fieldRef={(el) => {
+                                if (el) {
+                                  fieldRefs.current.set(field.id, el);
+                                } else {
+                                  fieldRefs.current.delete(field.id);
+                                }
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                  
+                  {/* Sticky Add Field Button */}
+                  <div className="sticky bottom-6 pt-4 pb-2 bg-background/95 backdrop-blur-sm border-t border-border mt-6 rounded-t-xl shadow-sm">
+                    <Button onClick={addField} className="w-full rounded-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Field
+                    </Button>
+                  </div>
+                </>
               )}
-            </Card>
+            </div>
           </div>
 
           {/* RIGHT COLUMN - FORMULA BUILDER */}
@@ -1330,7 +1460,7 @@ export default function ModulesPage() {
         </div>
 
         {/* BOTTOM ACTION BAR */}
-        <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40">
+        <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3">
             <Button variant="ghost" onClick={cancelEditing} className="rounded-full">
               Cancel

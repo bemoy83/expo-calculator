@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/Select';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { Material, MaterialProperty, MaterialPropertyType, COMMON_MATERIAL_PROPERTIES } from '@/lib/types';
 import { labelToVariableName, generateId } from '@/lib/utils';
+import { getAllUnitSymbols, getUnitCategory, normalizeToBase, convertFromBase } from '@/lib/units';
 import { Plus, Edit2, Trash2, X, Search, Package } from 'lucide-react';
 
 /**
@@ -50,11 +51,13 @@ export default function MaterialsPage() {
     type: MaterialPropertyType;
     value: string;
     unit: string;
+    unitSymbol?: string;
   }>({
     name: '',
     type: 'number',
     value: '',
     unit: '',
+    unitSymbol: undefined,
   });
   const [propertyErrors, setPropertyErrors] = useState<Record<string, string>>({});
 
@@ -119,7 +122,7 @@ export default function MaterialsPage() {
     setErrors({});
     setPropertyErrors({});
     setEditingPropertyId(null);
-    setNewProperty({ name: '', type: 'number', value: '', unit: '' });
+    setNewProperty({ name: '', type: 'number', value: '', unit: '', unitSymbol: undefined });
     setIsEditorOpen(true);
   };
 
@@ -140,7 +143,7 @@ export default function MaterialsPage() {
     setErrors({});
     setPropertyErrors({});
     setEditingPropertyId(null);
-    setNewProperty({ name: '', type: 'number', value: '', unit: '' });
+    setNewProperty({ name: '', type: 'number', value: '', unit: '', unitSymbol: undefined });
   };
 
   const validatePropertyName = (name: string, excludeId?: string): string | null => {
@@ -212,8 +215,20 @@ export default function MaterialsPage() {
     }
 
     let value: number | string | boolean;
+    let storedValue: number | undefined;
+    let unitCategory: MaterialProperty['unitCategory'];
+    
     if (newProperty.type === 'number') {
-      value = Number(newProperty.value) || 0;
+      const rawValue = Number(newProperty.value) || 0;
+      value = rawValue;
+      
+      // If unitSymbol is provided, normalize to base unit
+      if (newProperty.unitSymbol) {
+        storedValue = normalizeToBase(rawValue, newProperty.unitSymbol);
+        unitCategory = getUnitCategory(newProperty.unitSymbol);
+      } else {
+        storedValue = rawValue; // No unit, treat as unitless
+      }
     } else if (newProperty.type === 'boolean') {
       value = newProperty.value === 'true' || newProperty.value === '1';
     } else {
@@ -226,16 +241,41 @@ export default function MaterialsPage() {
       type: newProperty.type,
       value,
       unit: newProperty.unit.trim() || undefined,
+      unitSymbol: newProperty.unitSymbol || undefined,
+      unitCategory,
+      storedValue: newProperty.type === 'number' ? storedValue : undefined,
     };
 
     setProperties([...properties, property]);
-    setNewProperty({ name: '', type: 'number', value: '', unit: '' });
+    setNewProperty({ name: '', type: 'number', value: '', unit: '', unitSymbol: undefined });
     setPropertyErrors({});
   };
 
   const updateProperty = (id: string, updates: Partial<MaterialProperty>) => {
     setProperties(
-      properties.map((p) => (p.id === id ? { ...p, ...updates } : p))
+      properties.map((p) => {
+        if (p.id !== id) return p;
+        
+        const updated = { ...p, ...updates };
+        
+        // If updating a number property with unitSymbol, normalize to base
+        if (updated.type === 'number' && typeof updated.value === 'number') {
+          if (updated.unitSymbol) {
+            updated.storedValue = normalizeToBase(updated.value, updated.unitSymbol);
+            updated.unitCategory = getUnitCategory(updated.unitSymbol);
+          } else if (updated.storedValue === undefined) {
+            // Migration: if no storedValue, use value as-is
+            updated.storedValue = updated.value;
+          }
+        }
+        
+        // Auto-infer unitCategory from unitSymbol if not set
+        if (updated.unitSymbol && !updated.unitCategory) {
+          updated.unitCategory = getUnitCategory(updated.unitSymbol);
+        }
+        
+        return updated;
+      })
     );
     setEditingPropertyId(null);
   };
@@ -401,8 +441,8 @@ export default function MaterialsPage() {
                                   title={`${prop.name}: ${prop.type === 'boolean' ? (prop.value === true || prop.value === 'true' ? 'True' : 'False') : String(prop.value)}${prop.unit ? ` ${prop.unit}` : ''}`}
                                 >
                                   <code className="text-accent font-mono">{material.variableName}.{prop.name}</code>
-                                  {prop.unit && (
-                                    <span className="text-muted-foreground ml-1">({prop.unit})</span>
+                                  {prop.unitSymbol && (
+                                    <span className="text-muted-foreground ml-1">({prop.unitSymbol})</span>
                                   )}
                                 </div>
                               ))}
@@ -606,11 +646,29 @@ export default function MaterialsPage() {
                                       { value: 'boolean', label: 'Boolean' },
                                     ]}
                                   />
-                                  <Input
+                                  <Select
                                     label="Unit (optional)"
-                                    value={prop.unit || ''}
-                                    onChange={(e) => updateProperty(prop.id, { unit: e.target.value || undefined })}
-                                    placeholder="e.g., ft"
+                                    value={prop.unitSymbol || ''}
+                                    onChange={(e) => {
+                                      const unitSymbol = e.target.value || undefined;
+                                      const unitCategory = unitSymbol ? getUnitCategory(unitSymbol) : undefined;
+                                      // If updating unitSymbol, also update storedValue if it's a number property
+                                      let updates: Partial<MaterialProperty> = {
+                                        unitSymbol,
+                                        unitCategory,
+                                      };
+                                      if (prop.type === 'number' && typeof prop.value === 'number' && unitSymbol) {
+                                        updates.storedValue = normalizeToBase(prop.value, unitSymbol);
+                                      }
+                                      updateProperty(prop.id, updates);
+                                    }}
+                                    options={[
+                                      { value: '', label: 'None (unitless)' },
+                                      ...getAllUnitSymbols().map(symbol => ({
+                                        value: symbol,
+                                        label: `${symbol}${getUnitCategory(symbol) ? ` (${getUnitCategory(symbol)})` : ''}`,
+                                      })),
+                                    ]}
                                     className="text-sm"
                                   />
                                 </div>
@@ -619,10 +677,23 @@ export default function MaterialsPage() {
                                     <Input
                                       label="Value"
                                       type="number"
-                                      value={typeof prop.value === 'number' ? prop.value : ''}
-                                      onChange={(e) =>
-                                        updateProperty(prop.id, { value: Number(e.target.value) || 0 })
+                                      value={
+                                        typeof prop.value === 'number'
+                                          ? prop.unitSymbol && prop.storedValue !== undefined
+                                            ? convertFromBase(prop.storedValue, prop.unitSymbol)
+                                            : prop.value
+                                          : ''
                                       }
+                                      onChange={(e) => {
+                                        const rawValue = Number(e.target.value) || 0;
+                                        const updates: Partial<MaterialProperty> = { value: rawValue };
+                                        if (prop.unitSymbol) {
+                                          updates.storedValue = normalizeToBase(rawValue, prop.unitSymbol);
+                                        } else {
+                                          updates.storedValue = rawValue;
+                                        }
+                                        updateProperty(prop.id, updates);
+                                      }}
                                       className="text-sm"
                                     />
                                   )}
@@ -670,8 +741,11 @@ export default function MaterialsPage() {
                                     <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-xs capitalize">
                                       {prop.type}
                                     </span>
-                                    {prop.unit && (
-                                      <span className="text-xs text-muted-foreground">({prop.unit})</span>
+                                    {prop.unitSymbol && (
+                                      <span className="text-xs text-muted-foreground">({prop.unitSymbol})</span>
+                                    )}
+                                    {prop.unitCategory && (
+                                      <span className="text-xs text-muted-foreground ml-1">[{prop.unitCategory}]</span>
                                     )}
                                   </div>
                                   <div className="mt-1 text-sm text-foreground">
@@ -679,6 +753,8 @@ export default function MaterialsPage() {
                                       ? prop.value === true || prop.value === 'true'
                                         ? 'True'
                                         : 'False'
+                                      : prop.type === 'number' && prop.unitSymbol && prop.storedValue !== undefined
+                                      ? `${convertFromBase(prop.storedValue, prop.unitSymbol)} ${prop.unitSymbol}`
                                       : String(prop.value)}
                                   </div>
                                 </div>
@@ -739,11 +815,20 @@ export default function MaterialsPage() {
                             { value: 'boolean', label: 'Boolean' },
                           ]}
                         />
-                        <Input
+                        <Select
                           label="Unit (optional)"
-                          value={newProperty.unit}
-                          onChange={(e) => setNewProperty({ ...newProperty, unit: e.target.value })}
-                          placeholder="e.g., ft"
+                          value={newProperty.unitSymbol || ''}
+                          onChange={(e) => {
+                            const unitSymbol = e.target.value || undefined;
+                            setNewProperty({ ...newProperty, unitSymbol });
+                          }}
+                          options={[
+                            { value: '', label: 'None (unitless)' },
+                            ...getAllUnitSymbols().map(symbol => ({
+                              value: symbol,
+                              label: `${symbol}${getUnitCategory(symbol) ? ` (${getUnitCategory(symbol)})` : ''}`,
+                            })),
+                          ]}
                           className="text-sm"
                         />
                       </div>

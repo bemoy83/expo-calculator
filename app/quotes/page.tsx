@@ -11,6 +11,7 @@ import { useQuotesStore } from '@/lib/stores/quotes-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { QuoteModuleInstance, FieldType } from '@/lib/types';
+import { normalizeToBase, convertFromBase } from '@/lib/units';
 import { Plus, X, Download, Send, Trash2, Save, Package, Calculator, LayoutDashboard } from 'lucide-react';
 
 export default function QuotesPage() {
@@ -57,54 +58,133 @@ export default function QuotesPage() {
   };
 
   // Helper to format label with unit
-  const formatLabel = (label: string, unit?: string) => {
-    return unit ? `${label} (${unit})` : label;
+  const formatLabel = (label: string, unit?: string, unitSymbol?: string) => {
+    const displayUnit = unitSymbol || unit;
+    return displayUnit ? `${label} (${displayUnit})` : label;
   };
 
   const renderFieldInput = (
     instance: QuoteModuleInstance,
-    field: { id: string; label: string; type: FieldType; variableName: string; options?: string[]; required?: boolean; materialCategory?: string; unit?: string }
+    field: { id: string; label: string; type: FieldType; variableName: string; options?: string[]; dropdownMode?: 'numeric' | 'string'; required?: boolean; materialCategory?: string; unit?: string; unitSymbol?: string; unitCategory?: string }
   ) => {
     const value = instance.fieldValues[field.variableName];
     const module = modules.find((m) => m.id === instance.moduleId);
 
     switch (field.type) {
-      case 'number':
+      case 'number': {
+        // For unit-aware fields, convert from base to display unit for input
+        // Store values are always base-normalized
+        let displayValue: number;
+        if (field.unitSymbol && typeof value === 'number') {
+          displayValue = convertFromBase(value, field.unitSymbol);
+        } else {
+          displayValue = typeof value === 'number' ? value : 0;
+        }
+        
         return (
           <Input
-            label={formatLabel(field.label, field.unit)}
+            label={formatLabel(field.label, field.unit, field.unitSymbol)}
             type="number"
-            value={value?.toString() || ''}
-            onChange={(e) =>
-              updateWorkspaceModuleFieldValue(instance.id, field.variableName, Number(e.target.value) || 0)
-            }
+            value={displayValue.toString()}
+            onChange={(e) => {
+              const inputValue = Number(e.target.value) || 0;
+              // Convert to base unit if field has unitSymbol
+              const baseValue = field.unitSymbol 
+                ? normalizeToBase(inputValue, field.unitSymbol)
+                : inputValue;
+              updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
+            }}
             required={field.required}
           />
         );
+      }
       case 'boolean':
         return (
           <Checkbox
-            label={formatLabel(field.label, field.unit)}
+            label={formatLabel(field.label, field.unit, field.unitSymbol)}
             checked={Boolean(value)}
             onChange={(e) =>
               updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.checked)
             }
           />
         );
-      case 'dropdown':
+      case 'dropdown': {
+        const options = field.options || [];
+        
+        // Numeric dropdown mode: treat options as numeric values with units
+        if (field.dropdownMode === 'numeric' && field.unitSymbol) {
+          // Create display labels with units appended
+          const displayOptions = options.map(opt => {
+            const numValue = Number(opt.trim());
+            if (!isNaN(numValue)) {
+              return `${opt.trim()} ${field.unitSymbol}`;
+            }
+            return opt; // Fallback for non-numeric options
+          });
+          
+          // Find current selection by matching base-normalized value
+          let currentDisplayValue = '';
+          if (typeof value === 'number') {
+            // Convert stored base value back to display unit
+            const displayValue = convertFromBase(value, field.unitSymbol);
+            // Find matching option (with tolerance for floating point)
+            const matchingIndex = options.findIndex(opt => {
+              const optNum = Number(opt.trim());
+              return !isNaN(optNum) && Math.abs(optNum - displayValue) < 0.0001;
+            });
+            if (matchingIndex >= 0) {
+              currentDisplayValue = displayOptions[matchingIndex];
+            } else {
+              // Format the value if no exact match
+              currentDisplayValue = `${displayValue} ${field.unitSymbol}`;
+            }
+          } else {
+            currentDisplayValue = value?.toString() || '';
+          }
+          
+          return (
+            <Select
+              label={formatLabel(field.label, field.unit, field.unitSymbol)}
+              value={currentDisplayValue}
+              onChange={(e) => {
+                const selectedDisplay = e.target.value;
+                // Extract numeric value from display string (e.g., "40 cm" -> 40)
+                const match = selectedDisplay.match(/^([\d.]+)/);
+                if (match && field.unitSymbol) {
+                  const numValue = Number(match[1]);
+                  if (!isNaN(numValue)) {
+                    // Convert to base unit and store as number
+                    const baseValue = normalizeToBase(numValue, field.unitSymbol);
+                    updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
+                  }
+                }
+              }}
+              options={[
+                { value: '', label: 'Select...' },
+                ...displayOptions.map((displayOpt) => ({
+                  value: displayOpt,
+                  label: displayOpt,
+                })),
+              ]}
+            />
+          );
+        }
+        
+        // String dropdown mode: original behavior (unchanged)
         return (
           <Select
-            label={formatLabel(field.label, field.unit)}
+            label={formatLabel(field.label, field.unit, field.unitSymbol)}
             value={value?.toString() || ''}
             onChange={(e) =>
               updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value)
             }
             options={[
               { value: '', label: 'Select...' },
-              ...(field.options || []).map((opt) => ({ value: opt, label: opt })),
+              ...options.map((opt) => ({ value: opt, label: opt })),
             ]}
           />
         );
+      }
       case 'material':
         // Material picker: show materials with display name, price, and unit
         // Filter by materialCategory if specified on the field
@@ -123,7 +203,7 @@ export default function QuotesPage() {
         return (
           <div>
             <Select
-              label={formatLabel(field.label, field.unit)}
+              label={formatLabel(field.label, field.unit, field.unitSymbol)}
               value={value?.toString() || ''}
               onChange={(e) =>
                 updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value)
@@ -146,7 +226,7 @@ export default function QuotesPage() {
       case 'text':
         return (
           <Input
-            label={formatLabel(field.label, field.unit)}
+            label={formatLabel(field.label, field.unit, field.unitSymbol)}
             value={value?.toString() || ''}
             onChange={(e) =>
               updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value)
