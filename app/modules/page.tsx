@@ -38,6 +38,7 @@ import {
   X, 
   ChevronUp, 
   ChevronDown,
+  ChevronRight,
   GripVertical,
   CheckCircle2,
   XCircle,
@@ -416,6 +417,8 @@ export default function ModulesPage() {
   const materials = useMaterialsStore((state) => state.materials);
 
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
+  const [expandedMaterial, setExpandedMaterial] = useState<string | null>(null);
+  const [expandedField, setExpandedField] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -832,7 +835,7 @@ export default function ModulesPage() {
     }
     
     // Collect all unique properties from candidate materials
-    const propertyMap = new Map<string, { name: string; unit?: string; type: string }>();
+    const propertyMap = new Map<string, { name: string; unit?: string; unitSymbol?: string; type: string }>();
     candidateMaterials.forEach(material => {
       if (material.properties) {
         material.properties.forEach(prop => {
@@ -840,6 +843,7 @@ export default function ModulesPage() {
             propertyMap.set(prop.name, {
               name: prop.name,
               unit: prop.unit,
+              unitSymbol: prop.unitSymbol,
               type: prop.type,
             });
           }
@@ -1064,64 +1068,104 @@ export default function ModulesPage() {
                         ) : null}
                       </>
                     )}
-                    <div className="space-y-3">
+                    <div 
+                      className="grid gap-3"
+                      style={{
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))'
+                      }}
+                    >
                       {availableFieldVariables.map((varInfo) => {
                         const isInFormula = isVariableInFormula(varInfo.name, formData.formula);
                         const showCheckmark = isInFormula;
                         const isMaterialField = varInfo.type === 'material';
                         const fieldProperties = isMaterialField ? getMaterialFieldProperties(varInfo.name) : [];
+                        const hasProperties = fieldProperties.length > 0;
+                        const isExpanded = expandedField === varInfo.name;
+
+                        const handleToggleExpand = (e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          setExpandedField(isExpanded ? null : varInfo.name);
+                        };
+
+                        const handleFieldClick = (e: React.MouseEvent) => {
+                          if (!hasProperties) {
+                            insertVariableAtCursor(varInfo.name);
+                          } else {
+                            // If expandable, clicking the button inserts the variable
+                            // Expansion is handled by the chevron button
+                            insertVariableAtCursor(varInfo.name);
+                          }
+                        };
                         
                         return (
-                          <div key={varInfo.name} className="space-y-2">
+                          <div key={varInfo.name} className="space-y-2 min-w-0">
                             <button
                               type="button"
-                              onClick={() => insertVariableAtCursor(varInfo.name)}
+                              onClick={handleFieldClick}
                               aria-label={`Insert variable ${varInfo.name} (${varInfo.label}, ${varInfo.type})${showCheckmark ? ' - already in formula' : ''}`}
                               title={`${varInfo.label} (${varInfo.type})${isMaterialField ? ' - unit price' : ''}`}
                               className={cn(
-                                "px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5",
+                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
                                 showCheckmark 
                                   ? "border-success bg-success hover:bg-success/90 text-success-foreground" 
                                   : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
                               )}
                             >
-                              <span>{varInfo.name}</span>
-                              {isMaterialField && (
-                                <span className="text-[10px] opacity-75">(price)</span>
-                              )}
                               {showCheckmark && (
                                 <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
                               )}
+                              <span className="truncate min-w-0 flex-1 text-center">{varInfo.name}</span>
+                              {isMaterialField && (
+                                <span className="text-[10px] opacity-75 shrink-0">(price)</span>
+                              )}
+                              {hasProperties && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleExpand(e);
+                                  }}
+                                  className="py-0.5 pl-2 pr-2 dark:text-black text-white hover:opacity-80 transition-opacity shrink-0 -mx-3"
+                                  aria-label={isExpanded ? `Collapse ${varInfo.name}` : `Expand ${varInfo.name}`}
+                                  aria-expanded={isExpanded}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3" />
+                                  )}
+                                </button>
+                              )}
                             </button>
-                            {isMaterialField && fieldProperties.length > 0 && (
-                              <div className="ml-4 space-y-1.5">
-                                <p className="text-xs text-muted-foreground font-medium">Properties:</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {fieldProperties.map((prop) => {
-                                    const propertyRef = `${varInfo.name}.${prop.name}`;
-                                    const isPropertyInFormula = isPropertyReferenceInFormula(varInfo.name, prop.name, formData.formula);
-                                    return (
-                                      <button
-                                        key={prop.name}
-                                        type="button"
-                                        onClick={() => insertVariableAtCursor(propertyRef)}
-                                        aria-label={`Insert property ${propertyRef} (${prop.name}: ${prop.type}${prop.unit ? `, ${prop.unit}` : ''})`}
-                                        title={`${prop.name}: ${prop.type}${prop.unit ? ` (${prop.unit})` : ''}`}
-                                        className={cn(
-                                          "px-2.5 py-1 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1",
-                                          isPropertyInFormula
-                                            ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                            : "bg-muted text-muted-foreground hover:bg-accent/10 hover:text-accent border-border hover:border-accent"
-                                        )}
-                                      >
-                                        <span>{propertyRef}</span>
-                                        {isPropertyInFormula && (
-                                          <CheckCircle2 className="h-2.5 w-2.5 text-success-foreground shrink-0" aria-hidden="true" />
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
+                            {hasProperties && isExpanded && (
+                              <div className="space-y-1.5 pt-1.5 ml-4">
+                                {fieldProperties.map((prop) => {
+                                  const propertyRef = `${varInfo.name}.${prop.name}`;
+                                  const isPropertyInFormula = isPropertyReferenceInFormula(varInfo.name, prop.name, formData.formula);
+                                  const unitDisplay = prop.unitSymbol || prop.unit || '';
+                                  const propertyLabel = unitDisplay ? `${prop.name} (${unitDisplay})` : prop.name;
+                                  
+                                  return (
+                                    <button
+                                      key={prop.name}
+                                      type="button"
+                                      onClick={() => insertVariableAtCursor(propertyRef)}
+                                      aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
+                                      title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
+                                      className={cn(
+                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                        isPropertyInFormula
+                                          ? "border-success bg-success hover:bg-success/90 text-success-foreground"
+                                          : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                                      )}
+                                    >
+                                      {isPropertyInFormula && (
+                                        <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
+                                      )}
+                                      <span className="truncate min-w-0 flex-1 text-center">{propertyLabel}</span>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -1134,57 +1178,98 @@ export default function ModulesPage() {
                 {availableMaterialVariables.length > 0 && (
                   <div>
                     <h4 className="text-sm font-semibold text-card-foreground mb-3">Material Variables</h4>
-                    <div className="space-y-3">
+                    <div 
+                      className="grid gap-3"
+                      style={{
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))'
+                      }}
+                    >
                       {availableMaterialVariables.map((mat) => {
                         const isMaterialInFormula = isVariableInFormula(mat.name, formData.formula);
+                        const hasProperties = mat.properties && mat.properties.length > 0;
+                        const isExpanded = expandedMaterial === mat.name;
+
+                        const handleToggleExpand = (e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          setExpandedMaterial(isExpanded ? null : mat.name);
+                        };
+
+                        const handleMaterialClick = (e: React.MouseEvent) => {
+                          if (!hasProperties) {
+                            insertVariableAtCursor(mat.name);
+                          } else {
+                            // If expandable, clicking the button inserts the variable
+                            // Expansion is handled by the chevron button
+                            insertVariableAtCursor(mat.name);
+                          }
+                        };
+
                         return (
-                          <div key={mat.name} className="space-y-2">
+                          <div key={mat.name} className="space-y-2 min-w-0">
                             <button
                               type="button"
-                              onClick={() => insertVariableAtCursor(mat.name)}
+                              onClick={handleMaterialClick}
                               aria-label={`Insert material variable ${mat.name} (${mat.label} - $${mat.price.toFixed(2)} per ${mat.unit})`}
                               title={`${mat.label} - $${mat.price.toFixed(2)}/${mat.unit}`}
                               className={cn(
-                                "px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5",
+                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
                                 isMaterialInFormula
                                   ? "border-success bg-success hover:bg-success/90 text-success-foreground"
                                   : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
                               )}
                             >
-                              <span>{mat.name}</span>
                               {isMaterialInFormula && (
                                 <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
                               )}
+                              <span className="truncate min-w-0 flex-1 text-center">{mat.name}</span>
+                              {hasProperties && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleExpand(e);
+                                  }}
+                                  className="py-0.5 pl-2 pr-2 dark:text-black text-white hover:opacity-80 transition-opacity shrink-0 -mx-3"
+                                  aria-label={isExpanded ? `Collapse ${mat.name}` : `Expand ${mat.name}`}
+                                  aria-expanded={isExpanded}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3" />
+                                  )}
+                                </button>
+                              )}
                             </button>
-                            {mat.properties && mat.properties.length > 0 && (
-                              <div className="ml-4 space-y-1.5">
-                                <p className="text-xs text-muted-foreground font-medium">Properties:</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {mat.properties.map((prop) => {
-                                    const propertyRef = `${mat.name}.${prop.name}`;
-                                    const isPropertyInFormula = isPropertyReferenceInFormula(mat.name, prop.name, formData.formula);
-                                    return (
-                                      <button
-                                        key={prop.id}
-                                        type="button"
-                                        onClick={() => insertVariableAtCursor(propertyRef)}
-                                        aria-label={`Insert property ${propertyRef} (${prop.name}: ${prop.value}${prop.unit ? ` ${prop.unit}` : ''})`}
-                                        title={`${prop.name}: ${prop.value}${prop.unit ? ` ${prop.unit}` : ''} (${prop.type})`}
-                                        className={cn(
-                                          "px-2.5 py-1 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1",
-                                          isPropertyInFormula
-                                            ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                            : "bg-muted text-muted-foreground hover:bg-accent/10 hover:text-accent border-border hover:border-accent"
-                                        )}
-                                      >
-                                        <span>{propertyRef}</span>
-                                        {isPropertyInFormula && (
-                                          <CheckCircle2 className="h-2.5 w-2.5 text-success-foreground shrink-0" aria-hidden="true" />
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
+                            {hasProperties && isExpanded && (
+                              <div className="space-y-1.5 pt-1.5 ml-4">
+                                {mat.properties.map((prop) => {
+                                  const propertyRef = `${mat.name}.${prop.name}`;
+                                  const isPropertyInFormula = isPropertyReferenceInFormula(mat.name, prop.name, formData.formula);
+                                  const unitDisplay = prop.unitSymbol || prop.unit || '';
+                                  const propertyLabel = unitDisplay ? `${prop.name} (${unitDisplay})` : prop.name;
+                                  
+                                  return (
+                                    <button
+                                      key={prop.id}
+                                      type="button"
+                                      onClick={() => insertVariableAtCursor(propertyRef)}
+                                      aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
+                                      title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
+                                      className={cn(
+                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                        isPropertyInFormula
+                                          ? "border-success bg-success hover:bg-success/90 text-success-foreground"
+                                          : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                                      )}
+                                    >
+                                      {isPropertyInFormula && (
+                                        <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
+                                      )}
+                                      <span className="truncate min-w-0 flex-1 text-center">{propertyLabel}</span>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>

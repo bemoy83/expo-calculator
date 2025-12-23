@@ -67,10 +67,16 @@ export interface Material {
   updatedAt: string;
 }
 
+export interface FieldLink {
+  moduleInstanceId: string;
+  fieldVariableName: string;
+}
+
 export interface QuoteModuleInstance {
   id: string;
   moduleId: string;
   fieldValues: Record<string, string | number | boolean>;
+  fieldLinks?: Record<string, FieldLink>; // Maps fieldVariableName -> link target
   calculatedCost: number;
 }
 
