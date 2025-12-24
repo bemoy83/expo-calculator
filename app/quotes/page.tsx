@@ -10,9 +10,172 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
-import { QuoteModuleInstance, FieldType } from '@/lib/types';
+import { useTemplatesStore } from '@/lib/stores/templates-store';
+import { useCategoriesStore } from '@/lib/stores/categories-store';
+import { QuoteModuleInstance, FieldType, CalculationModule, Field } from '@/lib/types';
 import { normalizeToBase, convertFromBase } from '@/lib/units';
-import { Plus, X, Download, Send, Trash2, Save, Package, Calculator, LayoutDashboard, Link2, Unlink, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, X, Download, Send, Trash2, Save, Package, Calculator, LayoutDashboard, Link2, Unlink, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react';
+import { Textarea } from '@/components/ui/Textarea';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface SortableModuleCardProps {
+  instance: QuoteModuleInstance;
+  module: CalculationModule;
+  isCollapsed: boolean;
+  onToggleCollapse: (id: string) => void;
+  onRemove: (id: string) => void;
+  onAddToQuote: (id: string) => void;
+  addedItems: Set<string>;
+  renderFieldInput: (instance: QuoteModuleInstance, field: Field) => React.ReactNode;
+}
+
+function SortableModuleCard({
+  instance,
+  module,
+  isCollapsed,
+  onToggleCollapse,
+  onRemove,
+  onAddToQuote,
+  addedItems,
+  renderFieldInput,
+}: SortableModuleCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: instance.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-card border border-border rounded-xl overflow-hidden transition-smooth overlay-white"
+    >
+      {/* Module Header */}
+      <div className="flex items-center">
+        {/* Drag Handle - Left Side */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-3 text-muted-foreground hover:text-accent cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset transition-smooth"
+          aria-label={`Drag to reorder ${module.name}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-5 w-5" />
+        </button>
+
+        {/* Interactive Header Content */}
+        <div
+          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-lg"
+          onClick={() => onToggleCollapse(instance.id)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onToggleCollapse(instance.id);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-expanded={!isCollapsed}
+          aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} module ${module.name}`}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-card-foreground">
+                {module.name}
+              </span>
+              {module.category && (
+                <span className="px-2.5 py-0.5 bg-accent/10 text-accent rounded-full text-xs font-medium">
+                  {module.category}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm font-semibold text-success tabular-nums">
+              ${instance.calculatedCost.toFixed(2)}
+            </span>
+            {isCollapsed ? (
+              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+            )}
+            {/* Action Buttons - Right Aligned */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddToQuote(instance.id);
+              }}
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-accent text-accent-foreground hover:bg-accent/90 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
+              aria-label={addedItems.has(instance.id) ? 'Added to quote' : 'Add to quote'}
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(instance.id);
+              }}
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 focus:ring-offset-background"
+              aria-label="Remove module"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Module Content */}
+      {!isCollapsed && (
+        <div className="px-4 pb-6">
+          {module.description && (
+            <p className="text-sm text-muted-foreground mb-5">{module.description}</p>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+            {module.fields.map((field) => (
+              <div key={field.id}>
+                {renderFieldInput(instance, field)}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between pt-5 border-t border-border">
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Module Cost</span>
+            <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
+              ${instance.calculatedCost.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function QuotesPage() {
   const modules = useModulesStore((state) => state.modules);
@@ -23,6 +186,7 @@ export default function QuotesPage() {
   const addWorkspaceModule = useQuotesStore((state) => state.addWorkspaceModule);
   const removeWorkspaceModule = useQuotesStore((state) => state.removeWorkspaceModule);
   const updateWorkspaceModuleFieldValue = useQuotesStore((state) => state.updateWorkspaceModuleFieldValue);
+  const reorderWorkspaceModules = useQuotesStore((state) => state.reorderWorkspaceModules);
   const linkField = useQuotesStore((state) => state.linkField);
   const unlinkField = useQuotesStore((state) => state.unlinkField);
   const canLinkFields = useQuotesStore((state) => state.canLinkFields);
@@ -31,6 +195,10 @@ export default function QuotesPage() {
   const setTaxRate = useQuotesStore((state) => state.setTaxRate);
   const setMarkupPercent = useQuotesStore((state) => state.setMarkupPercent);
   const saveQuote = useQuotesStore((state) => state.saveQuote);
+  const createTemplateFromWorkspace = useQuotesStore((state) => state.createTemplateFromWorkspace);
+  const applyTemplate = useQuotesStore((state) => state.applyTemplate);
+  const templates = useTemplatesStore((state) => state.templates);
+  const getAllCategories = useCategoriesStore((state) => state.getAllCategories);
 
   const [quoteName, setQuoteName] = useState('New Quote');
   const [showAddModule, setShowAddModule] = useState(false);
@@ -39,6 +207,15 @@ export default function QuotesPage() {
   const [linkUIOpen, setLinkUIOpen] = useState<Record<string, Record<string, boolean>>>({});
   // Track which modules are collapsed: Set<instanceId>
   const [collapsedModules, setCollapsedModules] = useState<Set<string>>(new Set());
+  // Template save modal state
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [templateSaveSuccess, setTemplateSaveSuccess] = useState<string | null>(null);
+  // Category filtering
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  // Template application warnings
+  const [templateWarnings, setTemplateWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     if (!currentQuote) {
@@ -63,6 +240,74 @@ export default function QuotesPage() {
     addWorkspaceModule(moduleId);
     // Keep the Add Module section open for rapid multiple additions
     // It will only close when user clicks Cancel
+  };
+
+  const handleSaveTemplate = () => {
+    if (!templateName.trim()) return;
+    
+    const result = createTemplateFromWorkspace(templateName.trim(), templateDescription.trim() || undefined);
+    if (result) {
+      setTemplateSaveSuccess(result.name);
+      setShowSaveTemplateModal(false);
+      setTemplateName('');
+      setTemplateDescription('');
+      // Auto-dismiss success message after 3 seconds
+      setTimeout(() => setTemplateSaveSuccess(null), 3000);
+    }
+  };
+
+  const handleApplyTemplate = (templateId: string) => {
+    setTemplateWarnings([]);
+    const result = applyTemplate(templateId);
+    
+    if (result.warnings.length > 0) {
+      setTemplateWarnings(result.warnings);
+      // Auto-dismiss warnings after 5 seconds
+      setTimeout(() => setTemplateWarnings([]), 5000);
+    }
+    
+    // Close Add Module section
+    setShowAddModule(false);
+  };
+
+  // Collect unique categories from modules, templates, and custom categories
+  const allAvailableCategories = getAllCategories();
+  const usedCategories = Array.from(new Set([
+    ...modules.map(m => m.category).filter(Boolean) as string[],
+    ...templates.flatMap(t => t.categories),
+  ]));
+  // Show all categories (including custom ones) that are either used or available
+  const allCategories = Array.from(new Set([...allAvailableCategories, ...usedCategories])).sort();
+
+  // Filter modules and templates by selected category
+  const filteredModules = selectedCategory === null 
+    ? modules 
+    : modules.filter(m => m.category === selectedCategory);
+  
+  const filteredTemplates = selectedCategory === null
+    ? templates
+    : templates.filter(t => t.categories.includes(selectedCategory));
+
+  // Drag and drop setup
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id && currentQuote) {
+      const oldIndex = currentQuote.workspaceModules.findIndex((m) => m.id === active.id);
+      const newIndex = currentQuote.workspaceModules.findIndex((m) => m.id === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reordered = arrayMove(currentQuote.workspaceModules, oldIndex, newIndex);
+        reorderWorkspaceModules(reordered);
+      }
+    }
   };
 
   // Helper to format label with unit
@@ -980,6 +1225,31 @@ export default function QuotesPage() {
             />
           </Card>
 
+          {/* Template Warnings */}
+          {templateWarnings.length > 0 && (
+            <Card className="border-amber-600 dark:border-amber-400 bg-amber-50 dark:bg-amber-900/20">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mb-2">
+                    Template applied with {templateWarnings.length} warning(s):
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-xs text-amber-700 dark:text-amber-300">
+                    {templateWarnings.map((warning, idx) => (
+                      <li key={idx}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+                <button
+                  onClick={() => setTemplateWarnings([])}
+                  className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </Card>
+          )}
+
           {/* Add Module Card */}
           {showAddModule && (
             <Card 
@@ -991,19 +1261,94 @@ export default function QuotesPage() {
               }
               className=""
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {modules.map((module) => (
-                  <button
-                    key={module.id}
-                    onClick={() => handleAddModule(module.id)}
-                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2 shrink-0" />
-                    <span className="truncate">{module.name}</span>
-                  </button>
-                ))}
+              {/* Category Filter Bar */}
+              {allCategories.length > 0 && (
+                <div className="mb-4 pb-4 border-b border-border">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedCategory(null)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
+                        selectedCategory === null
+                          ? 'bg-accent text-accent-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      All
+                    </button>
+                    {allCategories.map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
+                          selectedCategory === category
+                            ? 'bg-accent text-accent-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Single Modules Section */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-card-foreground mb-3">Single Modules</h4>
+                {filteredModules.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {filteredModules.map((module) => (
+                      <button
+                        key={module.id}
+                        onClick={() => handleAddModule(module.id)}
+                        className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
+                      >
+                        <Plus className="h-4 w-4 mr-2 shrink-0" />
+                        <span className="truncate flex-1 text-left">{module.name}</span>
+                        {module.category && (
+                          <span className="ml-2 px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full shrink-0">
+                            {module.category}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {selectedCategory ? `No modules in "${selectedCategory}" category.` : 'No modules available.'}
+                  </p>
+                )}
               </div>
-              {modules.length === 0 && (
+
+              {/* Module Templates Section */}
+              {templates.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-card-foreground mb-3">Module Templates</h4>
+                  {filteredTemplates.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {filteredTemplates.map((template) => (
+                        <button
+                          key={template.id}
+                          onClick={() => handleApplyTemplate(template.id)}
+                          className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
+                        >
+                          <Package className="h-4 w-4 mr-2 shrink-0" />
+                          <span className="truncate flex-1 text-left">{template.name}</span>
+                          <span className="ml-2 px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full shrink-0">
+                            {template.moduleInstances.length} {template.moduleInstances.length === 1 ? 'module' : 'modules'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {selectedCategory ? `No templates in "${selectedCategory}" category.` : 'No templates available.'}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {modules.length === 0 && templates.length === 0 && (
                 <div className="text-center py-8">
                   <LayoutDashboard className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
                   <p className="text-sm text-muted-foreground">No modules available.</p>
@@ -1050,86 +1395,41 @@ export default function QuotesPage() {
 
           {/* Module Cards */}
           {currentQuote.workspaceModules.length > 0 && (
-            <>
-              {currentQuote.workspaceModules.map((instance) => {
-                const module = modules.find((m) => m.id === instance.moduleId);
-                if (!module) return null;
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={currentQuote.workspaceModules.map(m => m.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {currentQuote.workspaceModules.map((instance) => {
+                  const module = modules.find((m) => m.id === instance.moduleId);
+                  if (!module) return null;
 
-                const isCollapsed = isModuleCollapsed(instance.id);
-
-                return (
-                  <Card 
-                    key={instance.id} 
-                    title={module.name}
-                    className="overlay-white"
-                    actions={
-                      <button
-                        type="button"
-                        onClick={() => toggleModuleCollapse(instance.id)}
-                        className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
-                        aria-label={isCollapsed ? 'Expand module' : 'Collapse module'}
-                      >
-                        {isCollapsed ? (
-                          <ChevronDown className="h-5 w-5" />
-                        ) : (
-                          <ChevronUp className="h-5 w-5" />
-                        )}
-                      </button>
-                    }
-                  >
-                    {!isCollapsed && (
-                      <>
-                        {module.description && (
-                          <p className="text-sm text-muted-foreground mb-5">{module.description}</p>
-                        )}
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-                          {module.fields.map((field) => (
-                            <div key={field.id}>
-                              {renderFieldInput(instance, field)}
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    <div className="flex items-center justify-between pt-5 border-t border-border">
-                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Module Cost</span>
-                      <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
-                        ${instance.calculatedCost.toFixed(2)}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 mt-5 pt-5 border-t border-border">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => {
-                          addLineItem(instance.id);
-                          setAddedItems(new Set([...addedItems, instance.id]));
-                          setTimeout(() => {
-                            setAddedItems(new Set());
-                          }, 2000);
-                        }}
-                        className="rounded-full flex-1 sm:flex-initial"
-                      >
-                        <Plus className="h-4 w-4 mr-1.5" />
-                        {addedItems.has(instance.id) ? 'Added!' : 'Add to Quote'}
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => removeWorkspaceModule(instance.id)}
-                        className="rounded-full"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1.5" />
-                        Remove
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </>
+                  return (
+                    <SortableModuleCard
+                      key={instance.id}
+                      instance={instance}
+                      module={module}
+                      isCollapsed={isModuleCollapsed(instance.id)}
+                      onToggleCollapse={toggleModuleCollapse}
+                      onRemove={removeWorkspaceModule}
+                      onAddToQuote={(id) => {
+                        addLineItem(id);
+                        setAddedItems(new Set([...addedItems, id]));
+                        setTimeout(() => {
+                          setAddedItems(new Set());
+                        }, 2000);
+                      }}
+                      addedItems={addedItems}
+                      renderFieldInput={renderFieldInput}
+                    />
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
           )}
         </div>
 
@@ -1286,9 +1586,111 @@ export default function QuotesPage() {
         </div>
       </div>
 
+      {/* Save Template Modal */}
+      {showSaveTemplateModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-card-foreground">Save as Template</h3>
+              <button
+                onClick={() => {
+                  setShowSaveTemplateModal(false);
+                  setTemplateName('');
+                  setTemplateDescription('');
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <Input
+                label="Template Name"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="e.g., Wall + Finish Setup"
+                required
+              />
+              
+              <Textarea
+                label="Description (optional)"
+                value={templateDescription}
+                onChange={(e) => setTemplateDescription(e.target.value)}
+                placeholder="Describe what this template is used for..."
+                rows={3}
+              />
+              
+              <div className="p-3 bg-muted/50 border border-border rounded-md">
+                <p className="text-xs font-medium text-card-foreground mb-2">This template will save:</p>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
+                    Module combinations
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
+                    Field linking relationships
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <X className="h-3 w-3 text-destructive shrink-0" />
+                    Field values (you'll enter these when using the template)
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowSaveTemplateModal(false);
+                    setTemplateName('');
+                    setTemplateDescription('');
+                  }}
+                  className="rounded-full"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveTemplate}
+                  disabled={!templateName.trim()}
+                  className="rounded-full"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Template
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Template Save Success Message */}
+      {templateSaveSuccess && (
+        <div className="fixed bottom-24 right-4 z-50">
+          <Card className="bg-success/10 border-success/30">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+              <p className="text-sm text-success">
+                Template '{templateSaveSuccess}' saved successfully
+              </p>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* BOTTOM ACTION BAR */}
       <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3">
+          <Button 
+            onClick={() => setShowSaveTemplateModal(true)}
+            className="rounded-full"
+            disabled={!currentQuote || currentQuote.workspaceModules.length === 0}
+            variant="secondary"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save as Template
+          </Button>
           <Button 
             onClick={() => setShowAddModule(true)}
             className="rounded-full"

@@ -111,3 +111,19 @@ export interface Quote {
   updatedAt: string;
 }
 
+export interface ModuleTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  moduleInstances: Array<{
+    moduleId: string;
+    fieldLinks?: Record<string, FieldLink>; // Preserved field links only
+  }>;
+  categories: string[]; // Derived from module categories
+  // Future-safe fields (not used in MVP but stored for schema evolution)
+  moduleVersion?: string; // For future version tracking
+  createdFromQuoteId?: string; // For future reference tracking
+  createdAt: string;
+  updatedAt: string;
+}
+

@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
+import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { CalculationModule, Field, FieldType } from '@/lib/types';
 import { validateFormula, evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { labelToVariableName, cn } from '@/lib/utils';
@@ -45,16 +46,6 @@ import {
   Calculator
 } from 'lucide-react';
 
-const CATEGORIES = [
-  'Foundation',
-  'Framing',
-  'Electrical',
-  'Plumbing',
-  'Finishing',
-  'Labor',
-  'Materials',
-  'Other'
-];
 
 /**
  * Sortable Field Item Component
@@ -414,6 +405,8 @@ export default function ModulesPage() {
   const updateModule = useModulesStore((state) => state.updateModule);
   const deleteModule = useModulesStore((state) => state.deleteModule);
   const materials = useMaterialsStore((state) => state.materials);
+  const getAllCategories = useCategoriesStore((state) => state.getAllCategories);
+  const addCategory = useCategoriesStore((state) => state.addCategory);
 
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [expandedMaterial, setExpandedMaterial] = useState<string | null>(null);
@@ -434,6 +427,9 @@ export default function ModulesPage() {
   const formulaTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [newlyAddedFieldId, setNewlyAddedFieldId] = useState<string | null>(null);
   const fieldRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  // Category management state
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Initialize editing state
   const startEditing = (module?: CalculationModule) => {
@@ -619,6 +615,50 @@ export default function ModulesPage() {
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
+
+  const insertOperatorAtCursor = (operator: string) => {
+    const textarea = formulaTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentValue = formData.formula;
+    
+    // Insert operator at cursor position
+    const before = currentValue.substring(0, start);
+    const after = currentValue.substring(end);
+    
+    // Add space before operator if needed
+    const charBefore = start > 0 ? currentValue[start - 1] : '';
+    const needsSpaceBefore = start > 0 && 
+      charBefore !== ' ' && 
+      charBefore !== '(' &&
+      charBefore !== '' &&
+      !['+', '-', '*', '/', '(', '='].includes(charBefore);
+    
+    // Add space after operator if needed (except for parentheses and functions)
+    const charAfter = end < currentValue.length ? currentValue[end] : '';
+    const needsSpaceAfter = end < currentValue.length && 
+      charAfter !== ' ' && 
+      charAfter !== ')' &&
+      charAfter !== '' &&
+      !['+', '-', '*', '/', ')', '='].includes(charAfter) &&
+      !operator.includes('(') && !operator.includes(')');
+    
+    const spaceBefore = needsSpaceBefore ? ' ' : '';
+    const spaceAfter = needsSpaceAfter ? ' ' : '';
+    
+    const newValue = before + spaceBefore + operator + spaceAfter + after;
+    
+    setFormData({ ...formData, formula: newValue });
+    
+    // Set cursor position after inserted operator
+    setTimeout(() => {
+      const newPosition = start + spaceBefore.length + operator.length + spaceAfter.length;
+      textarea.focus();
+      textarea.setSelectionRange(newPosition, newPosition);
     }, 0);
   };
 
@@ -908,8 +948,8 @@ export default function ModulesPage() {
                   <label className="block text-sm font-medium text-foreground mb-3">
                     Category
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {CATEGORIES.map((cat) => (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {getAllCategories().map((cat) => (
                       <button
                         key={cat}
                         type="button"
@@ -923,7 +963,77 @@ export default function ModulesPage() {
                         {cat}
                       </button>
                     ))}
+                    {!showAddCategory && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCategory(true)}
+                        className="px-4 py-2.5 rounded-full text-sm font-medium transition-all bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border border-dashed"
+                      >
+                        <Plus className="h-4 w-4 inline mr-1" />
+                        Add Category
+                      </button>
+                    )}
                   </div>
+                  {showAddCategory && (
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Enter category name"
+                        className="flex-1"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (newCategoryName.trim()) {
+                              addCategory(newCategoryName.trim());
+                              setFormData({ ...formData, category: newCategoryName.trim() });
+                              setNewCategoryName('');
+                              setShowAddCategory(false);
+                            }
+                          } else if (e.key === 'Escape') {
+                            setShowAddCategory(false);
+                            setNewCategoryName('');
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <Button
+                        onClick={() => {
+                          if (newCategoryName.trim()) {
+                            addCategory(newCategoryName.trim());
+                            setFormData({ ...formData, category: newCategoryName.trim() });
+                            setNewCategoryName('');
+                            setShowAddCategory(false);
+                          }
+                        }}
+                        disabled={!newCategoryName.trim()}
+                        size="sm"
+                        className="rounded-full"
+                      >
+                        Add
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setShowAddCategory(false);
+                          setNewCategoryName('');
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                  {formData.category && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, category: '' })}
+                      className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Clear category
+                    </button>
+                  )}
                 </div>
               </div>
             </Card>
@@ -1240,7 +1350,7 @@ export default function ModulesPage() {
                                         "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
                                         isPropertyInFormula
                                           ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                          : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                                          : "bg-muted text-foreground hover:bg-muted/80 border border-border hover:border-accent/50"
                                       )}
                                     >
                                       {isPropertyInFormula && (
@@ -1453,36 +1563,86 @@ export default function ModulesPage() {
                     Supported Operators
                   </h4>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                    <div className="px-2 py-0.5">
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('+')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert addition operator"
+                    >
                       <code className="text-accent font-mono">+</code> <span className="text-muted-foreground ml-1">Add</span>
-                    </div>
-                    <div className="px-2 py-0.5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('-')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert subtraction operator"
+                    >
                       <code className="text-accent font-mono font-semibold">-</code> <span className="text-muted-foreground ml-1">Subtract</span>
-                    </div>
-                    <div className="px-2 py-0.5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('*')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert multiplication operator"
+                    >
                       <code className="text-accent font-mono font-semibold">*</code> <span className="text-muted-foreground ml-1">Multiply</span>
-                    </div>
-                    <div className="px-2 py-0.5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('/')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert division operator"
+                    >
                       <code className="text-accent font-mono font-semibold">/</code> <span className="text-muted-foreground ml-1">Divide</span>
-                    </div>
-                    <div className="px-2 py-0.5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('()')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert parentheses"
+                    >
                       <code className="text-accent font-mono font-semibold">()</code> <span className="text-muted-foreground ml-1">Grouping</span>
-                    </div>
-                    <div className="px-2 py-0.5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('sqrt()')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert square root function"
+                    >
                       <code className="text-accent font-mono font-semibold">sqrt()</code> <span className="text-muted-foreground ml-1">Square root</span>
-                    </div>
-                    <div className="px-2 py-0.5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('round()')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert round function"
+                    >
                       <code className="text-accent font-mono font-semibold">round(x)</code> <span className="text-muted-foreground ml-1">Round to nearest integer</span>
-                    </div>
-                    <div className="px-2 py-0.5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('round(, )')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert round function with decimals"
+                    >
                       <code className="text-accent font-mono font-semibold">round(x, decimals)</code> <span className="text-muted-foreground ml-1">Round to fixed decimals</span>
-                    </div>
-                    <div className="px-2 py-0.5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('ceil()')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert ceil function"
+                    >
                       <code className="text-accent font-mono font-semibold">ceil(x)</code> <span className="text-muted-foreground ml-1">Round up to next integer</span>
-                    </div>
-                    <div className="px-2 py-0.5">
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertOperatorAtCursor('floor()')}
+                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      aria-label="Insert floor function"
+                    >
                       <code className="text-accent font-mono font-semibold">floor(x)</code> <span className="text-muted-foreground ml-1">Round down to previous integer</span>
-                    </div>
+                    </button>
                   </div>
                   
                   {/* Comparison Operators */}
@@ -1491,24 +1651,54 @@ export default function ModulesPage() {
                       Comparison Operators
                     </h5>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                      <div className="px-2 py-0.5">
+                      <button
+                        type="button"
+                        onClick={() => insertOperatorAtCursor('==')}
+                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        aria-label="Insert equals operator"
+                      >
                         <code className="text-accent font-mono font-semibold">==</code> <span className="text-muted-foreground ml-1">Equals</span>
-                      </div>
-                      <div className="px-2 py-0.5">
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertOperatorAtCursor('!=')}
+                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        aria-label="Insert not equals operator"
+                      >
                         <code className="text-accent font-mono font-semibold">!=</code> <span className="text-muted-foreground ml-1">Not equals</span>
-                      </div>
-                      <div className="px-2 py-0.5">
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertOperatorAtCursor('>')}
+                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        aria-label="Insert greater than operator"
+                      >
                         <code className="text-accent font-mono font-semibold">&gt;</code> <span className="text-muted-foreground ml-1">Greater than</span>
-                      </div>
-                      <div className="px-2 py-0.5">
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertOperatorAtCursor('<')}
+                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        aria-label="Insert less than operator"
+                      >
                         <code className="text-accent font-mono font-semibold">&lt;</code> <span className="text-muted-foreground ml-1">Less than</span>
-                      </div>
-                      <div className="px-2 py-0.5">
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertOperatorAtCursor('>=')}
+                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        aria-label="Insert greater or equal operator"
+                      >
                         <code className="text-accent font-mono font-semibold">&gt;=</code> <span className="text-muted-foreground ml-1">Greater or equal</span>
-                      </div>
-                      <div className="px-2 py-0.5">
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertOperatorAtCursor('<=')}
+                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        aria-label="Insert less or equal operator"
+                      >
                         <code className="text-accent font-mono font-semibold">&lt;=</code> <span className="text-muted-foreground ml-1">Less or equal</span>
-                      </div>
+                      </button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-3 px-2">
                       <strong>Note:</strong> Boolean fields convert to 1 (true) or 0 (false). Use comparisons for conditional logic, e.g., <code className="text-accent">base_price * (include_tax == 1)</code>

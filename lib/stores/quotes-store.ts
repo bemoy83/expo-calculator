@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Quote, QuoteModuleInstance, QuoteLineItem, FieldLink, Field } from '../types';
+import { Quote, QuoteModuleInstance, QuoteLineItem, FieldLink, Field, ModuleTemplate } from '../types';
 import { generateId } from '../utils';
 import { evaluateFormula } from '../formula-evaluator';
 import { useModulesStore } from './modules-store';
 import { useMaterialsStore } from './materials-store';
+import { useTemplatesStore } from './templates-store';
 
 /**
  * Quotes Store
@@ -29,6 +30,7 @@ interface QuotesStore {
   addWorkspaceModule: (moduleId: string) => void;
   removeWorkspaceModule: (instanceId: string) => void;
   updateWorkspaceModuleFieldValue: (instanceId: string, fieldName: string, value: string | number | boolean) => void;
+  reorderWorkspaceModules: (newOrder: QuoteModuleInstance[]) => void;
   // Link management
   linkField: (instanceId: string, fieldName: string, targetInstanceId: string, targetFieldName: string) => { valid: boolean; error?: string };
   unlinkField: (instanceId: string, fieldName: string) => void;
@@ -44,6 +46,9 @@ interface QuotesStore {
   setMarkupPercent: (percent: number) => void;
   saveQuote: () => void;
   deleteQuote: (id: string) => void;
+  // Template management
+  createTemplateFromWorkspace: (name: string, description?: string) => ModuleTemplate | null;
+  applyTemplate: (templateId: string) => { success: boolean; warnings: string[]; appliedModules: number };
 }
 
 export const useQuotesStore = create<QuotesStore>()(
@@ -171,6 +176,21 @@ export const useQuotesStore = create<QuotesStore>()(
           currentQuote: {
             ...current,
             workspaceModules: updatedModules.filter((m) => m.id !== instanceId),
+            updatedAt: new Date().toISOString(),
+          },
+        });
+        
+        get().recalculateWorkspaceModules();
+      },
+      
+      reorderWorkspaceModules: (newOrder) => {
+        const current = get().currentQuote;
+        if (!current) return;
+        
+        set({
+          currentQuote: {
+            ...current,
+            workspaceModules: newOrder,
             updatedAt: new Date().toISOString(),
           },
         });
@@ -688,6 +708,212 @@ export const useQuotesStore = create<QuotesStore>()(
           quotes: state.quotes.filter((q) => q.id !== id),
           currentQuote: state.currentQuote?.id === id ? null : state.currentQuote,
         }));
+      },
+      
+      // Template management
+      createTemplateFromWorkspace: (name, description) => {
+        const current = get().currentQuote;
+        if (!current || current.workspaceModules.length === 0) {
+          return null;
+        }
+        
+        // Create a map of instance ID -> index for link restoration
+        const instanceIdToIndex = new Map<string, number>();
+        current.workspaceModules.forEach((instance, index) => {
+          instanceIdToIndex.set(instance.id, index);
+        });
+        
+        // Extract module IDs and field links from workspaceModules
+        // Convert instance IDs in links to module indices for reliable restoration
+        const moduleInstances = current.workspaceModules.map(instance => {
+          const convertedLinks: Record<string, FieldLink> = {};
+          
+          if (instance.fieldLinks) {
+            Object.entries(instance.fieldLinks).forEach(([fieldName, link]) => {
+              const targetIndex = instanceIdToIndex.get(link.moduleInstanceId);
+              if (targetIndex !== undefined) {
+                // Store link with module index instead of instance ID
+                // We'll use a special format: store targetIndex as a string in moduleInstanceId field
+                // This is a workaround since FieldLink expects moduleInstanceId
+                convertedLinks[fieldName] = {
+                  moduleInstanceId: `__index_${targetIndex}__`, // Special marker for index-based links
+                  fieldVariableName: link.fieldVariableName,
+                };
+              }
+            });
+          }
+          
+          return {
+            moduleId: instance.moduleId,
+            fieldLinks: Object.keys(convertedLinks).length > 0 ? convertedLinks : undefined,
+          };
+        });
+        
+        // Derive categories from module definitions
+        const categories = Array.from(new Set(
+          current.workspaceModules
+            .map(instance => {
+              const module = useModulesStore.getState().getModule(instance.moduleId);
+              return module?.category;
+            })
+            .filter(Boolean) as string[]
+        ));
+        
+        // Create template via templates store
+        const template: Omit<ModuleTemplate, 'id' | 'createdAt' | 'updatedAt'> = {
+          name,
+          description,
+          moduleInstances,
+          categories,
+          createdFromQuoteId: current.id,
+        };
+        
+        useTemplatesStore.getState().addTemplate(template);
+        
+        // Return the created template
+        const templates = useTemplatesStore.getState().templates;
+        return templates[templates.length - 1] || null;
+      },
+      
+      applyTemplate: (templateId) => {
+        const template = useTemplatesStore.getState().getTemplate(templateId);
+        if (!template) {
+          return {
+            success: false,
+            warnings: ['Template not found'],
+            appliedModules: 0,
+          };
+        }
+        
+        const warnings: string[] = [];
+        let appliedModules = 0;
+        const current = get().currentQuote;
+        if (!current) {
+          get().createQuote('New Quote');
+        }
+        
+        // Track created instances: map template index -> new instance ID
+        const instanceMap: Map<number, string> = new Map();
+        
+        // First pass: Add all modules and track their new instance IDs
+        for (let i = 0; i < template.moduleInstances.length; i++) {
+          const templateInstance = template.moduleInstances[i];
+          const module = useModulesStore.getState().getModule(templateInstance.moduleId);
+          if (!module) {
+            warnings.push(`Module "${templateInstance.moduleId}" no longer exists`);
+            continue;
+          }
+          
+          // Store current workspace length to find the new instance
+          const beforeCount = get().currentQuote?.workspaceModules.length || 0;
+          
+          // Add module to workspace (creates new instance with default values)
+          get().addWorkspaceModule(templateInstance.moduleId);
+          
+          // Get the newly created instance
+          const updatedQuote = get().currentQuote;
+          if (updatedQuote && updatedQuote.workspaceModules.length > beforeCount) {
+            const newInstance = updatedQuote.workspaceModules[updatedQuote.workspaceModules.length - 1];
+            instanceMap.set(i, newInstance.id);
+            appliedModules++;
+          }
+        }
+        
+        // Second pass: Restore field links
+        // The fieldLinks in template reference moduleInstanceId from original workspace
+        // We need to map these to the new instance IDs by finding which template module they refer to
+        const finalQuote = get().currentQuote;
+        if (finalQuote) {
+          // Build a map of old instance IDs to template indices
+          // Since we can't know the old instance IDs, we'll use the order:
+          // Links reference instance IDs, but we only have module order
+          // We'll need to match by finding instances with matching moduleIds in order
+          
+          template.moduleInstances.forEach((templateInstance, sourceIndex) => {
+            const sourceInstanceId = instanceMap.get(sourceIndex);
+            if (!sourceInstanceId) return; // Skip if module wasn't added
+            
+            const sourceInstance = finalQuote.workspaceModules.find(i => i.id === sourceInstanceId);
+            if (!sourceInstance) return;
+            
+            // Restore field links
+            if (templateInstance.fieldLinks) {
+              Object.entries(templateInstance.fieldLinks).forEach(([fieldName, link]) => {
+                // Check if link uses index-based format (from our template creation)
+                let targetIndex: number | undefined;
+                
+                if (link.moduleInstanceId.startsWith('__index_')) {
+                  // Extract index from special format
+                  const indexStr = link.moduleInstanceId.replace('__index_', '').replace('__', '');
+                  const parsedIndex = parseInt(indexStr, 10);
+                  if (isNaN(parsedIndex)) {
+                    warnings.push(`Link from "${fieldName}" could not be restored: invalid index format`);
+                    return;
+                  }
+                  targetIndex = parsedIndex;
+                } else {
+                  // Legacy format: try to find by instance ID (won't work but try anyway)
+                  // This handles old templates that might have instance IDs
+                  warnings.push(`Link from "${fieldName}" uses legacy format and may not restore correctly`);
+                  return;
+                }
+                
+                if (targetIndex === undefined || targetIndex < 0 || targetIndex >= template.moduleInstances.length) {
+                  warnings.push(`Link from "${fieldName}" could not be restored: invalid target index`);
+                  return;
+                }
+                
+                const targetInstanceId = instanceMap.get(targetIndex);
+                if (!targetInstanceId) {
+                  warnings.push(`Link from "${fieldName}" could not be restored: target module was not added`);
+                  return;
+                }
+                
+                // Validate source field exists
+                const sourceModule = useModulesStore.getState().getModule(templateInstance.moduleId);
+                if (!sourceModule) return;
+                
+                const sourceField = sourceModule.fields.find(f => f.variableName === fieldName);
+                if (!sourceField) return;
+                
+                // Validate target field exists
+                const targetInstance = finalQuote.workspaceModules.find(i => i.id === targetInstanceId);
+                if (!targetInstance) return;
+                
+                const targetModule = useModulesStore.getState().getModule(targetInstance.moduleId);
+                if (!targetModule) return;
+                
+                const targetField = targetModule.fields.find(f => f.variableName === link.fieldVariableName);
+                if (!targetField) {
+                  warnings.push(`Link from "${fieldName}" could not be restored: target field "${link.fieldVariableName}" not found`);
+                  return;
+                }
+                
+                // Check type compatibility
+                const canLink = get().canLinkFields(sourceInstanceId, fieldName, targetInstanceId, link.fieldVariableName);
+                if (!canLink.valid) {
+                  warnings.push(`Link from "${fieldName}" could not be restored: ${canLink.error || 'incompatible types'}`);
+                  return;
+                }
+                
+                // Restore the link
+                const linkResult = get().linkField(sourceInstanceId, fieldName, targetInstanceId, link.fieldVariableName);
+                if (!linkResult.valid) {
+                  warnings.push(`Link from "${fieldName}" could not be restored: ${linkResult.error || 'unknown error'}`);
+                }
+              });
+            }
+          });
+        }
+        
+        // Recalculate workspace modules
+        get().recalculateWorkspaceModules();
+        
+        return {
+          success: appliedModules > 0,
+          warnings,
+          appliedModules,
+        };
       },
     }),
     {
