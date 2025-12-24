@@ -66,7 +66,7 @@ export default function Home() {
           <div>
             <h3 className="font-semibold text-card-foreground mb-2">1. Set Up Materials</h3>
             <p className="text-sm text-muted-foreground">
-              Start by adding materials that you'll reference in your calculation formulas. 
+              Start by adding materials that you&apos;ll reference in your calculation formulas. 
               Each material needs a unique variable name that you can use in formulas.
             </p>
           </div>

@@ -92,8 +92,8 @@ export const useQuotesStore = create<QuotesStore>()(
   
       // Workspace module management - these are editable and NOT included in totals
       addWorkspaceModule: (moduleId) => {
-        const module = useModulesStore.getState().getModule(moduleId);
-        if (!module) return;
+        const moduleDef = useModulesStore.getState().getModule(moduleId);
+        if (!moduleDef) return;
         
         const current = get().currentQuote;
         if (!current) {
@@ -103,7 +103,7 @@ export const useQuotesStore = create<QuotesStore>()(
         
         // Initialize field values with defaults
         const fieldValues: Record<string, string | number | boolean> = {};
-        for (const field of module.fields) {
+        for (const field of moduleDef.fields) {
           if (field.defaultValue !== undefined) {
             fieldValues[field.variableName] = field.defaultValue;
           } else {
@@ -442,8 +442,8 @@ export const useQuotesStore = create<QuotesStore>()(
         const instance = current.workspaceModules.find((m) => m.id === instanceId);
         if (!instance) return;
         
-        const module = useModulesStore.getState().getModule(instance.moduleId);
-        if (!module) return;
+        const moduleDef = useModulesStore.getState().getModule(instance.moduleId);
+        if (!moduleDef) return;
         
         // Resolve field links to get actual values (need all modules to resolve cross-module links)
         const resolvedValues = get().resolveFieldLinks(current.workspaceModules);
@@ -452,19 +452,19 @@ export const useQuotesStore = create<QuotesStore>()(
         const materials = useMaterialsStore.getState().materials;
         let cost = 0;
         try {
-          cost = evaluateFormula(module.formula, {
+          cost = evaluateFormula(moduleDef.formula, {
             fieldValues: resolved,
             materials,
           });
         } catch (error: any) {
           // If formula evaluation fails, show error and don't add line item
-          console.error(`Error evaluating formula for module "${module.name}":`, error.message);
+          console.error(`Error evaluating formula for module "${moduleDef.name}":`, error.message);
           alert(`Cannot add item: ${error.message || 'Formula evaluation failed'}`);
           return;
         }
         
         // Create a brief summary of key field values using resolved values
-        const fieldSummary = module.fields
+        const fieldSummary = moduleDef.fields
           .slice(0, 3) // Show first 3 fields
           .map((field) => {
             const value = resolved[field.variableName];
@@ -473,9 +473,9 @@ export const useQuotesStore = create<QuotesStore>()(
           .join(', ');
         
         const lineItem: QuoteLineItem = {
-          id: generateId(),
-          moduleId: instance.moduleId,
-          moduleName: module.name,
+            id: generateId(),
+            moduleId: instance.moduleId,
+            moduleName: moduleDef.name,
           fieldValues: { ...resolved }, // Snapshot of resolved values
           fieldSummary: fieldSummary || 'No details',
           cost,
@@ -613,20 +613,20 @@ export const useQuotesStore = create<QuotesStore>()(
         
         // Use resolved values for evaluation
         const updatedModules = current.workspaceModules.map((moduleInstance) => {
-          const module = useModulesStore.getState().getModule(moduleInstance.moduleId);
-          if (!module) return moduleInstance;
+          const moduleDef = useModulesStore.getState().getModule(moduleInstance.moduleId);
+          if (!moduleDef) return moduleInstance;
           
           const resolved = resolvedValues[moduleInstance.id] || moduleInstance.fieldValues;
           
           let cost = 0;
           try {
-            cost = evaluateFormula(module.formula, {
+            cost = evaluateFormula(moduleDef.formula, {
               fieldValues: resolved,
               materials,
             });
           } catch (error: any) {
             // If formula evaluation fails, log error and set cost to 0
-            console.error(`Error evaluating formula for module "${module.name}":`, error.message);
+            console.error(`Error evaluating formula for module "${moduleDef.name}":`, error.message);
             cost = 0;
           }
           
@@ -753,8 +753,8 @@ export const useQuotesStore = create<QuotesStore>()(
         const categories = Array.from(new Set(
           current.workspaceModules
             .map(instance => {
-              const module = useModulesStore.getState().getModule(instance.moduleId);
-              return module?.category;
+              const moduleDef = useModulesStore.getState().getModule(instance.moduleId);
+              return moduleDef?.category;
             })
             .filter(Boolean) as string[]
         ));
@@ -798,8 +798,8 @@ export const useQuotesStore = create<QuotesStore>()(
         // First pass: Add all modules and track their new instance IDs
         for (let i = 0; i < template.moduleInstances.length; i++) {
           const templateInstance = template.moduleInstances[i];
-          const module = useModulesStore.getState().getModule(templateInstance.moduleId);
-          if (!module) {
+          const moduleDef = useModulesStore.getState().getModule(templateInstance.moduleId);
+          if (!moduleDef) {
             warnings.push(`Module "${templateInstance.moduleId}" no longer exists`);
             continue;
           }

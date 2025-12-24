@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -92,7 +92,7 @@ function SortableFieldItem({
       // Reset when field type changes away from dropdown
       setDropdownOptionsInput('');
     }
-  }, [field.id, field.type, isExpanded]); // Sync when field ID, type, or expansion state changes
+  }, [field.id, field.type, field.options, isExpanded]); // Sync when field ID, type, options, or expansion state changes
   
   const {
     attributes,
@@ -345,7 +345,7 @@ function SortableFieldItem({
               <div className="p-3 mb-4">
                 <p className="text-xs text-accent mb-2">
                   <strong>Material Field:</strong> Users will select from the Materials Catalog. 
-                  The selected material's price will be used automatically in formulas when you reference this field's variable name.
+                  The selected material&apos;s price will be used automatically in formulas when you reference this field&apos;s variable name.
                 </p>
               </div>
               <Select
@@ -662,7 +662,7 @@ export default function ModulesPage() {
     }, 0);
   };
 
-  const validateFormulaInput = (formula: string) => {
+  const validateFormulaInput = useCallback((formula: string) => {
     if (!formula.trim()) {
       setFormulaValidation({ valid: false });
       return;
@@ -728,7 +728,7 @@ export default function ModulesPage() {
     } else {
       setFormulaValidation({ valid: false, error: validation.error });
     }
-  };
+  }, [fields, materials, setFormulaValidation]);
 
   useEffect(() => {
     if (formData.formula) {
@@ -736,7 +736,7 @@ export default function ModulesPage() {
     } else {
       setFormulaValidation({ valid: false });
     }
-  }, [formData.formula, fields, materials]);
+  }, [formData.formula, fields, materials, validateFormulaInput]);
 
   // Auto-scroll to newly added field
   useEffect(() => {

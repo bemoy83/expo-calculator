@@ -497,7 +497,7 @@ export default function QuotesPage() {
     const isLinked = isFieldLinked(instance, field.variableName);
     const displayValue = isLinked ? getResolvedValue(instance, field.variableName) : instance.fieldValues[field.variableName];
     const value = displayValue;
-    const module = modules.find((m) => m.id === instance.moduleId);
+    const moduleDef = modules.find((m) => m.id === instance.moduleId);
     
     // Material fields cannot be linked (per spec)
     const canLink = field.type !== 'material';
@@ -1055,7 +1055,7 @@ export default function QuotesPage() {
   const handleExport = () => {
     if (!currentQuote) return;
 
-    const module = useModulesStore.getState();
+    const modulesStore = useModulesStore.getState();
     const quoteData = {
       quote: {
         name: currentQuote.name,
@@ -1063,7 +1063,7 @@ export default function QuotesPage() {
         lineItems: currentQuote.lineItems.map((item) => ({
           moduleName: item.moduleName,
           fields: Object.entries(item.fieldValues).map(([key, value]) => {
-            const mod = module.getModule(item.moduleId);
+            const mod = modulesStore.getModule(item.moduleId);
             const field = mod?.fields.find((f) => f.variableName === key);
             return {
               label: field?.label || key,
@@ -1095,7 +1095,7 @@ export default function QuotesPage() {
   const handleExportPDF = () => {
     if (!currentQuote) return;
 
-    const module = useModulesStore.getState();
+    const modulesStore = useModulesStore.getState();
     let html = `
       <!DOCTYPE html>
       <html>
@@ -1367,7 +1367,7 @@ export default function QuotesPage() {
                 </div>
                 <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">No modules in workspace</h4>
                 <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed mb-5">
-                  Click "Add Module" to get started, then configure and add them to your quote.
+                  Click &quot;Add Module&quot; to get started, then configure and add them to your quote.
                 </p>
                 <Button 
                   onClick={() => setShowAddModule(true)}
@@ -1405,14 +1405,14 @@ export default function QuotesPage() {
                 strategy={verticalListSortingStrategy}
               >
                 {currentQuote.workspaceModules.map((instance) => {
-                  const module = modules.find((m) => m.id === instance.moduleId);
-                  if (!module) return null;
+                  const moduleDef = modules.find((m) => m.id === instance.moduleId);
+                  if (!moduleDef) return null;
 
                   return (
                     <SortableModuleCard
                       key={instance.id}
                       instance={instance}
-                      module={module}
+                      module={moduleDef}
                       isCollapsed={isModuleCollapsed(instance.id)}
                       onToggleCollapse={toggleModuleCollapse}
                       onRemove={removeWorkspaceModule}
@@ -1561,7 +1561,7 @@ export default function QuotesPage() {
                         No items in quote yet.
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Configure modules and click "Add to Quote"
+                        Configure modules and click &quot;Add to Quote&quot;
                       </p>
                     </div>
                   )}
@@ -1634,7 +1634,7 @@ export default function QuotesPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <X className="h-3 w-3 text-destructive shrink-0" />
-                    Field values (you'll enter these when using the template)
+                    Field values (you&apos;ll enter these when using the template)
                   </li>
                 </ul>
               </div>
@@ -1672,7 +1672,7 @@ export default function QuotesPage() {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
               <p className="text-sm text-success">
-                Template '{templateSaveSuccess}' saved successfully
+                Template &apos;{templateSaveSuccess}&apos; saved successfully
               </p>
             </div>
           </Card>
