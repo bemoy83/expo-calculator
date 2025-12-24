@@ -227,7 +227,7 @@ export default function QuotesPage() {
     if (currentQuote) {
       setQuoteName(currentQuote.name);
     }
-  }, [currentQuote?.id]); // Only update when quote ID changes
+  }, [currentQuote?.id, currentQuote]); // Update when quote ID or quote object changes
 
   const handleQuoteNameChange = (name: string) => {
     setQuoteName(name);

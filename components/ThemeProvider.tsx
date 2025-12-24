@@ -1,7 +1,7 @@
 'use client';
 
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import type { ThemeProviderProps } from 'next-themes';
+import type { ComponentProps } from 'react';
 
 /**
  * Theme Provider wrapper for next-themes
@@ -11,7 +11,7 @@ import type { ThemeProviderProps } from 'next-themes';
  * - Persistent theme selection
  * - Automatic dark class on <html> element for Tailwind dark mode
  */
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+export function ThemeProvider({ children, ...props }: ComponentProps<typeof NextThemesProvider>) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }
 
