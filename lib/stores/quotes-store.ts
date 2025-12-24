@@ -31,6 +31,7 @@ interface QuotesStore {
   removeWorkspaceModule: (instanceId: string) => void;
   updateWorkspaceModuleFieldValue: (instanceId: string, fieldName: string, value: string | number | boolean) => void;
   reorderWorkspaceModules: (newOrder: QuoteModuleInstance[]) => void;
+  recalculateWorkspaceModules: () => void;
   // Link management
   linkField: (instanceId: string, fieldName: string, targetInstanceId: string, targetFieldName: string) => { valid: boolean; error?: string };
   unlinkField: (instanceId: string, fieldName: string) => void;
