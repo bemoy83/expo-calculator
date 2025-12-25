@@ -5,8 +5,12 @@ const nextConfig = {
   images: {
     unoptimized: true, // Required for static export
   },
-  basePath: '/expo-calculator', // Matches your repository name
-  assetPrefix: '/expo-calculator', // Should match basePath
+  // Only apply basePath in production builds (for GitHub Pages)
+  // In development, this will be undefined, so routes work at root
+  ...(process.env.NODE_ENV === 'production' && {
+    basePath: '/expo-calculator', // Matches your repository name
+    assetPrefix: '/expo-calculator', // Should match basePath
+  }),
 };
 
 module.exports = nextConfig;

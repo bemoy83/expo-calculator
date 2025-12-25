@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -430,6 +430,18 @@ export default function ModulesPage() {
   // Category management state
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  // Autocomplete state
+  const [recentlyUsedVariables, setRecentlyUsedVariables] = useState<string[]>([]);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<Array<{
+    name: string;
+    displayName: string;
+    type: 'field' | 'material' | 'property' | 'function' | 'constant';
+    description?: string;
+  }>>([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
+  const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0 });
+  const [currentWord, setCurrentWord] = useState<{ word: string; start: number; end: number; hasDot: boolean; baseWord: string }>({ word: '', start: 0, end: 0, hasDot: false, baseWord: '' });
 
   // Initialize editing state
   const startEditing = (module?: CalculationModule) => {
@@ -574,6 +586,246 @@ export default function ModulesPage() {
     return regex.test(formula);
   };
 
+  // Get word at cursor position, handling dot notation
+  const getWordAtCursor = useCallback((formula: string, cursorPos: number) => {
+    if (cursorPos < 0 || cursorPos > formula.length) {
+      return { word: '', start: cursorPos, end: cursorPos, hasDot: false, baseWord: '' };
+    }
+
+    // Find the start of the current word
+    let start = cursorPos;
+    while (start > 0 && /[\w.]/.test(formula[start - 1])) {
+      start--;
+    }
+
+    // Find the end of the current word
+    let end = cursorPos;
+    while (end < formula.length && /[\w.]/.test(formula[end])) {
+      end++;
+    }
+
+    const word = formula.substring(start, end);
+    const hasDot = word.includes('.');
+    
+    // If dot notation, extract base word (before dot)
+    let baseWord = word;
+    if (hasDot) {
+      const dotIndex = word.lastIndexOf('.');
+      baseWord = word.substring(0, dotIndex);
+    }
+
+    return { word, start, end, hasDot, baseWord };
+  }, []);
+
+  // Filter suggestions with priority ordering
+  const filterSuggestions = useCallback((
+    word: string,
+    allSuggestions: Array<{
+      name: string;
+      displayName: string;
+      type: 'field' | 'material' | 'property' | 'function' | 'constant';
+      description?: string;
+    }>,
+    recentVariables: string[],
+    hasDot: boolean,
+    baseWord: string
+  ) => {
+    if (!word && !hasDot) {
+      // If no word, show all suggestions (prioritize recent)
+      return allSuggestions
+        .sort((a, b) => {
+          const aRecent = recentVariables.includes(a.name);
+          const bRecent = recentVariables.includes(b.name);
+          if (aRecent && !bRecent) return -1;
+          if (!aRecent && bRecent) return 1;
+          // Functions/constants last
+          if (a.type === 'function' || a.type === 'constant') return 1;
+          if (b.type === 'function' || b.type === 'constant') return -1;
+          return 0;
+        })
+        .slice(0, 30);
+    }
+
+    const searchTerm = word.toLowerCase();
+    const exactMatches: typeof allSuggestions = [];
+    const startsWithMatches: typeof allSuggestions = [];
+    const containsMatches: typeof allSuggestions = [];
+    const recentMatches: typeof allSuggestions = [];
+    const functionMatches: typeof allSuggestions = [];
+
+    // If dot notation, filter to only properties of the base word
+    let candidates = allSuggestions;
+    if (hasDot && baseWord) {
+      candidates = allSuggestions.filter(s => 
+        s.name.startsWith(`${baseWord}.`) || s.name === baseWord
+      );
+      // If we're typing after the dot, search in property names only
+      if (word.includes('.')) {
+        const afterDot = word.substring(word.lastIndexOf('.') + 1).toLowerCase();
+        if (afterDot) { // Only filter if there's text after the dot
+          candidates = candidates.filter(s => {
+            if (s.name === baseWord) return true;
+            const propName = s.name.substring(s.name.lastIndexOf('.') + 1).toLowerCase();
+            return propName.startsWith(afterDot) || propName.includes(afterDot);
+          });
+        }
+      }
+    }
+
+    candidates.forEach((suggestion) => {
+      const nameLower = suggestion.name.toLowerCase();
+      const displayLower = suggestion.displayName.toLowerCase();
+      const isRecent = recentVariables.includes(suggestion.name);
+      const isFunction = suggestion.type === 'function' || suggestion.type === 'constant';
+
+      // Exact match
+      if (nameLower === searchTerm || displayLower === searchTerm) {
+        exactMatches.push(suggestion);
+      }
+      // Starts with
+      else if (nameLower.startsWith(searchTerm) || displayLower.startsWith(searchTerm)) {
+        if (isRecent && !isFunction) {
+          recentMatches.push(suggestion);
+        } else {
+          startsWithMatches.push(suggestion);
+        }
+      }
+      // Contains (partial/fuzzy)
+      else if (nameLower.includes(searchTerm) || displayLower.includes(searchTerm)) {
+        if (isRecent && !isFunction) {
+          recentMatches.push(suggestion);
+        } else if (isFunction) {
+          functionMatches.push(suggestion);
+        } else {
+          containsMatches.push(suggestion);
+        }
+      }
+    });
+
+    // Combine in priority order: exact → starts-with → recent → contains → functions
+    const result = [
+      ...exactMatches,
+      ...startsWithMatches,
+      ...recentMatches.filter(s => !exactMatches.includes(s) && !startsWithMatches.includes(s)),
+      ...containsMatches.filter(s => !exactMatches.includes(s) && !startsWithMatches.includes(s) && !recentMatches.includes(s)),
+      ...functionMatches.filter(s => !exactMatches.includes(s) && !startsWithMatches.includes(s) && !containsMatches.includes(s) && !recentMatches.includes(s)),
+    ];
+
+    return result.slice(0, 30);
+  }, []);
+
+  // Insert suggestion with dot notation handling
+  const insertSuggestion = useCallback((suggestion: typeof collectAutocompleteCandidates[0], wordInfo: { word: string; start: number; end: number; hasDot: boolean; baseWord: string }) => {
+    const textarea = formulaTextareaRef.current;
+    if (!textarea) return;
+
+    let variableToInsert = suggestion.name;
+    
+    // Handle dot notation: if typing "mat_plank." and selecting "width", insert just "width"
+    if (wordInfo.hasDot && wordInfo.baseWord) {
+      if (suggestion.name.startsWith(`${wordInfo.baseWord}.`)) {
+        // Extract property name only
+        variableToInsert = suggestion.name.substring(wordInfo.baseWord.length + 1);
+      } else if (suggestion.name === wordInfo.baseWord) {
+        // Keep the base word
+        variableToInsert = wordInfo.baseWord;
+      }
+    }
+
+    const before = formData.formula.substring(0, wordInfo.start);
+    const after = formData.formula.substring(wordInfo.end);
+    
+    // Determine if we need spaces around the variable
+    const charBefore = wordInfo.start > 0 ? formData.formula[wordInfo.start - 1] : '';
+    const needsSpaceBefore = wordInfo.start > 0 && 
+      charBefore !== ' ' && 
+      charBefore !== '\t' && 
+      !/[+\-*/(]/.test(charBefore);
+    
+    const charAfter = wordInfo.end < formData.formula.length ? formData.formula[wordInfo.end] : '';
+    const needsSpaceAfter = wordInfo.end < formData.formula.length && 
+      charAfter !== ' ' && 
+      charAfter !== '\t' && 
+      !/[+\-*/)]/.test(charAfter);
+    
+    const spaceBefore = needsSpaceBefore ? ' ' : '';
+    const spaceAfter = needsSpaceAfter ? ' ' : '';
+    
+    // If we had dot notation and are inserting property, don't add space before
+    const finalBefore = wordInfo.hasDot && variableToInsert !== wordInfo.baseWord ? '' : spaceBefore;
+    
+    const insertedText = `${finalBefore}${variableToInsert}${spaceAfter}`;
+    const newValue = before + insertedText + after;
+    const newCursorPos = wordInfo.start + insertedText.length;
+    
+    setFormData({ ...formData, formula: newValue });
+    
+    // Track recently used variable
+    setRecentlyUsedVariables((prev) => {
+      const updated = [suggestion.name, ...prev.filter(v => v !== suggestion.name)].slice(0, 15);
+      return updated;
+    });
+    
+    setIsAutocompleteOpen(false);
+    setSelectedSuggestionIndex(-1);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  }, [formData, recentlyUsedVariables]);
+
+  // Placeholder - will be replaced after collectAutocompleteCandidates is defined
+  const updateAutocompleteSuggestions = useCallback(() => {
+    // This will be replaced by updateAutocompleteSuggestionsFinal
+  }, []);
+
+  // Handle keyboard navigation for autocomplete
+  const handleAutocompleteKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!isAutocompleteOpen || autocompleteSuggestions.length === 0) {
+      return false; // Let event propagate normally
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => 
+          prev < autocompleteSuggestions.length - 1 ? prev + 1 : 0
+        );
+        return true;
+      
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => 
+          prev > 0 ? prev - 1 : autocompleteSuggestions.length - 1
+        );
+        return true;
+      
+      case 'Tab':
+      case 'Enter':
+        e.preventDefault();
+        const index = selectedSuggestionIndex >= 0 ? selectedSuggestionIndex : 0;
+        if (autocompleteSuggestions[index]) {
+          insertSuggestion(autocompleteSuggestions[index], currentWord);
+        }
+        return true;
+      
+      case 'Escape':
+        e.preventDefault();
+        setIsAutocompleteOpen(false);
+        setSelectedSuggestionIndex(-1);
+        return true;
+      
+      case 'ArrowLeft':
+      case 'ArrowRight':
+        setIsAutocompleteOpen(false);
+        return false; // Let navigation happen
+      
+      default:
+        return false; // Let other keys through
+    }
+  }, [isAutocompleteOpen, autocompleteSuggestions, selectedSuggestionIndex, currentWord, insertSuggestion]);
+
   const insertVariableAtCursor = (variableName: string) => {
     const textarea = formulaTextareaRef.current;
     if (!textarea) return;
@@ -610,6 +862,12 @@ export default function ModulesPage() {
     
     // Update state
     setFormData({ ...formData, formula: newValue });
+    
+    // Track recently used variable
+    setRecentlyUsedVariables((prev) => {
+      const updated = [variableName, ...prev.filter(v => v !== variableName)].slice(0, 15);
+      return updated;
+    });
     
     // Set cursor position after React updates
     setTimeout(() => {
@@ -913,6 +1171,146 @@ export default function ModulesPage() {
     properties: m.properties || [],
   }));
 
+  // Collect all available autocomplete candidates
+  const collectAutocompleteCandidates = useMemo(() => {
+    const candidates: Array<{
+      name: string;
+      displayName: string;
+      type: 'field' | 'material' | 'property' | 'function' | 'constant';
+      description?: string;
+    }> = [];
+
+    // Field variables
+    availableFieldVariables.forEach((fieldVar) => {
+      candidates.push({
+        name: fieldVar.name,
+        displayName: fieldVar.name,
+        type: 'field',
+        description: fieldVar.label !== fieldVar.name ? fieldVar.label : undefined,
+      });
+
+      // If it's a material field, add its properties
+      if (fieldVar.type === 'material') {
+        const fieldProperties = getMaterialFieldProperties(fieldVar.name);
+        fieldProperties.forEach((prop) => {
+          const unitDisplay = prop.unitSymbol || prop.unit;
+          candidates.push({
+            name: `${fieldVar.name}.${prop.name}`,
+            displayName: `${fieldVar.name}.${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''}`,
+            type: 'property',
+            description: prop.name,
+          });
+        });
+      }
+    });
+
+    // Material variables
+    availableMaterialVariables.forEach((mat) => {
+      candidates.push({
+        name: mat.name,
+        displayName: mat.name,
+        type: 'material',
+        description: mat.label,
+      });
+
+      // Material properties
+      mat.properties.forEach((prop) => {
+        const unitDisplay = prop.unitSymbol || prop.unit;
+        candidates.push({
+          name: `${mat.name}.${prop.name}`,
+          displayName: `${mat.name}.${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''}`,
+          type: 'property',
+          description: prop.name,
+        });
+      });
+    });
+
+    // Functions
+    const functions = [
+      { name: 'sqrt', displayName: 'sqrt()', description: 'Square root' },
+      { name: 'round', displayName: 'round()', description: 'Round to nearest integer' },
+      { name: 'ceil', displayName: 'ceil()', description: 'Round up' },
+      { name: 'floor', displayName: 'floor()', description: 'Round down' },
+      { name: 'abs', displayName: 'abs()', description: 'Absolute value' },
+      { name: 'max', displayName: 'max()', description: 'Maximum value' },
+      { name: 'min', displayName: 'min()', description: 'Minimum value' },
+    ];
+    functions.forEach((fn) => {
+      candidates.push({
+        name: fn.name,
+        displayName: fn.displayName,
+        type: 'function',
+        description: fn.description,
+      });
+    });
+
+    // Constants
+    const constants = [
+      { name: 'pi', displayName: 'pi', description: 'Pi (3.14159...)' },
+      { name: 'e', displayName: 'e', description: 'Euler\'s number (2.71828...)' },
+    ];
+    constants.forEach((const_) => {
+      candidates.push({
+        name: const_.name,
+        displayName: const_.displayName,
+        type: 'constant',
+        description: const_.description,
+      });
+    });
+
+    return candidates;
+  }, [availableFieldVariables, availableMaterialVariables, materials, fields, getMaterialFieldProperties]);
+
+  // Update autocomplete suggestions - redefined after collectAutocompleteCandidates
+  const updateAutocompleteSuggestionsFinal = useCallback(() => {
+    const textarea = formulaTextareaRef.current;
+    if (!textarea) {
+      setIsAutocompleteOpen(false);
+      return;
+    }
+
+    // Read current value directly from textarea to get the latest typed character
+    const currentFormula = textarea.value;
+    const cursorPos = textarea.selectionStart;
+    const wordInfo = getWordAtCursor(currentFormula, cursorPos);
+    
+    setCurrentWord(wordInfo);
+
+    // Only show suggestions if there's actual input (word being typed)
+    // Don't show suggestions on empty focus/click
+    if (!wordInfo.word && !wordInfo.hasDot) {
+      setIsAutocompleteOpen(false);
+      return;
+    }
+
+    // Filter suggestions
+    const filtered = filterSuggestions(
+      wordInfo.word,
+      collectAutocompleteCandidates,
+      recentlyUsedVariables,
+      wordInfo.hasDot,
+      wordInfo.baseWord
+    );
+
+    if (filtered.length > 0) {
+      setAutocompleteSuggestions(filtered);
+      setSelectedSuggestionIndex(-1);
+      
+      // Calculate dropdown position using fixed positioning
+      const rect = textarea.getBoundingClientRect();
+      const lineHeight = 20; // Approximate line height
+      const linesBeforeCursor = (formData.formula.substring(0, cursorPos).match(/\n/g) || []).length;
+      // Use fixed positioning with viewport coordinates + scroll offset
+      const top = rect.top + (linesBeforeCursor * lineHeight) + 30 + window.scrollY;
+      const left = rect.left + 10 + window.scrollX;
+      
+      setAutocompletePosition({ top, left });
+      setIsAutocompleteOpen(true);
+    } else {
+      setIsAutocompleteOpen(false);
+    }
+  }, [formData.formula, getWordAtCursor, filterSuggestions, collectAutocompleteCandidates, recentlyUsedVariables]);
+
   // Show workspace if editing
   if (editingModuleId) {
     return (
@@ -1046,11 +1444,10 @@ export default function ModulesPage() {
 
               {fields.length === 0 ? (
                 <Card>
-                  <div className="text-center py-12">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
-                      <Plus className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <p className="text-muted-foreground mb-4">No fields added yet</p>
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Fields define the inputs required for your calculation formula. Each field becomes a variable you can use in your formula.
+                    </p>
                     <Button size="sm" onClick={addField} className="rounded-full">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Your First Field
@@ -1396,24 +1793,112 @@ export default function ModulesPage() {
                       </div>
                     )}
                   </div>
-                  <Textarea
-                    ref={formulaTextareaRef}
-                    id="formula-input"
-                    value={formData.formula}
-                    onChange={(e) => {
-                      setFormData({ ...formData, formula: e.target.value });
-                    }}
-                    error={errors.formula || formulaValidation.error}
-                    placeholder="e.g., width * height * mat_plank.length * quantity"
-                    rows={6}
-                    className={`font-mono text-sm ${
-                      formulaValidation.valid && formData.formula
-                        ? 'border-success/50 focus:ring-success/50'
-                        : formData.formula && !formulaValidation.valid
-                        ? 'border-destructive/50 focus:ring-destructive/50'
-                        : ''
-                    }`}
-                  />
+                  <div className="relative">
+                    <Textarea
+                      ref={formulaTextareaRef}
+                      id="formula-input"
+                      value={formData.formula}
+                      onChange={(e) => {
+                        setFormData({ ...formData, formula: e.target.value });
+                        // Update autocomplete immediately with the new value
+                        // Use requestAnimationFrame to ensure DOM is updated
+                        requestAnimationFrame(() => {
+                          updateAutocompleteSuggestionsFinal();
+                        });
+                      }}
+                      onKeyDown={(e) => {
+                        // Filter out modifier keys and non-character inputs
+                        const isModifierKey = e.ctrlKey || e.metaKey || e.altKey;
+                        const isNonCharacterKey = [
+                          'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+                          'Home', 'End', 'PageUp', 'PageDown', 'Tab', 'Enter', 'Escape',
+                          'Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'NumLock', 'ScrollLock'
+                        ].includes(e.key);
+                        
+                        // Handle autocomplete navigation first
+                        const handled = handleAutocompleteKeyDown(e);
+                        if (handled) {
+                          return; // Autocomplete handled the key
+                        }
+                        
+                        // Only update suggestions for character input (not modifiers or navigation)
+                        if (!isModifierKey && !isNonCharacterKey && e.key.length === 1) {
+                          // Character input - update suggestions after the character is inserted
+                          requestAnimationFrame(() => {
+                            updateAutocompleteSuggestionsFinal();
+                          });
+                        } else if (isNonCharacterKey && ['Backspace', 'Delete'].includes(e.key)) {
+                          // Backspace/Delete - update suggestions after deletion
+                          requestAnimationFrame(() => {
+                            updateAutocompleteSuggestionsFinal();
+                          });
+                        }
+                      }}
+                      onBlur={() => {
+                        // Delay closing to allow clicks on suggestions
+                        setTimeout(() => setIsAutocompleteOpen(false), 200);
+                      }}
+                      error={errors.formula || formulaValidation.error}
+                      placeholder="e.g., width * height * mat_plank.length * quantity"
+                      rows={6}
+                      className={`font-mono text-sm ${
+                        formulaValidation.valid && formData.formula
+                          ? 'border-success/50 focus:ring-success/50'
+                          : formData.formula && !formulaValidation.valid
+                          ? 'border-destructive/50 focus:ring-destructive/50'
+                          : ''
+                      }`}
+                    />
+                    {/* Autocomplete Dropdown */}
+                    {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
+                      <div
+                        className="fixed z-50 bg-card border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto"
+                        style={{
+                          top: `${autocompletePosition.top}px`,
+                          left: `${autocompletePosition.left}px`,
+                          minWidth: '280px',
+                        }}
+                        onMouseDown={(e) => e.preventDefault()} // Prevent blur
+                      >
+                        {autocompleteSuggestions.slice(0, 8).map((suggestion, index) => {
+                          const isSelected = index === selectedSuggestionIndex;
+                          const isRecent = recentlyUsedVariables.includes(suggestion.name);
+                          
+                          return (
+                            <button
+                              key={`${suggestion.name}-${index}`}
+                              type="button"
+                              onClick={() => {
+                                insertSuggestion(suggestion, currentWord);
+                              }}
+                              onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                              className={cn(
+                                "w-full px-3 py-2 text-left flex items-center gap-2 transition-colors",
+                                isSelected
+                                  ? "bg-accent text-accent-foreground"
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <code className="text-xs font-mono flex-1">{suggestion.displayName}</code>
+                              {isRecent && (
+                                <span className="text-xs text-muted-foreground">●</span>
+                              )}
+                              <span className={cn(
+                                "text-xs px-1.5 py-0.5 rounded",
+                                suggestion.type === 'field' && "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
+                                suggestion.type === 'material' && "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400",
+                                suggestion.type === 'property' && "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
+                                suggestion.type === 'function' && "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
+                                suggestion.type === 'constant' && "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                              )}>
+                                {suggestion.type}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                   {formulaValidation.valid && formulaValidation.preview !== undefined && (
                     <div className="mt-2 p-3" role="status" aria-live="polite">
                       <div className="flex items-center space-x-2">

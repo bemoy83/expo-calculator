@@ -198,7 +198,6 @@ export default function QuotesPage() {
   const createTemplateFromWorkspace = useQuotesStore((state) => state.createTemplateFromWorkspace);
   const applyTemplate = useQuotesStore((state) => state.applyTemplate);
   const templates = useTemplatesStore((state) => state.templates);
-  const getAllCategories = useCategoriesStore((state) => state.getAllCategories);
 
   const [quoteName, setQuoteName] = useState('New Quote');
   const [showAddModule, setShowAddModule] = useState(false);
@@ -270,14 +269,13 @@ export default function QuotesPage() {
     setShowAddModule(false);
   };
 
-  // Collect unique categories from modules, templates, and custom categories
-  const allAvailableCategories = getAllCategories();
+  // Collect unique categories from modules and templates (only active categories)
   const usedCategories = Array.from(new Set([
     ...modules.map(m => m.category).filter(Boolean) as string[],
     ...templates.flatMap(t => t.categories),
   ]));
-  // Show all categories (including custom ones) that are either used or available
-  const allCategories = Array.from(new Set([...allAvailableCategories, ...usedCategories])).sort();
+  // Only show categories that are actually assigned to modules/templates
+  const allCategories = usedCategories.sort();
 
   // Filter modules and templates by selected category
   const filteredModules = selectedCategory === null 
