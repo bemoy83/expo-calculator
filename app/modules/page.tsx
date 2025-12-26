@@ -11,10 +11,10 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useCategoriesStore } from '@/lib/stores/categories-store';
-import { CalculationModule, Field, FieldType } from '@/lib/types';
+import { CalculationModule, Field, FieldType, QuoteModuleInstance } from '@/lib/types';
 import { validateFormula, evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { labelToVariableName, cn } from '@/lib/utils';
-import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
+import { getAllUnitSymbols, getUnitCategory, normalizeToBase, convertFromBase } from '@/lib/units';
 import {
   DndContext,
   closestCenter,
@@ -43,7 +43,8 @@ import {
   GripVertical,
   CheckCircle2,
   XCircle,
-  Calculator
+  Calculator,
+  Eye
 } from 'lucide-react';
 
 
@@ -83,8 +84,17 @@ function SortableFieldItem({
     field.options?.join(', ') || ''
   );
   
+  // Ref to track if update is from user input (to prevent useEffect from overwriting)
+  const isUserInputRef = useRef(false);
+  
   // Sync local state when field.options changes externally (e.g., when field is loaded or type changes)
   useEffect(() => {
+    // Skip sync if the change came from user input
+    if (isUserInputRef.current) {
+      isUserInputRef.current = false;
+      return;
+    }
+    
     if (field.type === 'dropdown') {
       const currentValue = field.options?.join(', ') || '';
       setDropdownOptionsInput(currentValue);
@@ -292,6 +302,19 @@ function SortableFieldItem({
                 ]}
               />
             )}
+            {field.type === 'material' && (
+              <Select
+                label="Limit to Material Category (optional)"
+                value={field.materialCategory || ''}
+                onChange={(e) => onUpdateField(field.id, { materialCategory: e.target.value || undefined })}
+                options={[
+                  { value: '', label: 'All Categories' },
+                  ...Array.from(new Set((materials ?? []).map((m) => m.category)))
+                    .sort()
+                    .map((cat) => ({ value: cat, label: cat })),
+                ]}
+              />
+            )}
           </div>
           {field.type === 'dropdown' && (
             <div>
@@ -322,6 +345,10 @@ function SortableFieldItem({
                 value={dropdownOptionsInput}
                 onChange={(e) => {
                   const rawValue = e.target.value;
+                  
+                  // Mark that this is user input
+                  isUserInputRef.current = true;
+                  
                   // Update local state immediately to preserve trailing commas
                   setDropdownOptionsInput(rawValue);
                   
@@ -340,30 +367,6 @@ function SortableFieldItem({
               />
             </div>
           )}
-          {field.type === 'material' && (
-            <>
-              <div className="p-3 mb-4">
-                <p className="text-xs text-accent mb-2">
-                  <strong>Material Field:</strong> Users will select from the Materials Catalog. 
-                  The selected material&apos;s price will be used automatically in formulas when you reference this field&apos;s variable name.
-                </p>
-              </div>
-              <Select
-                label="Limit to Material Category (optional)"
-                value={field.materialCategory || ''}
-                onChange={(e) => onUpdateField(field.id, { materialCategory: e.target.value || undefined })}
-                options={[
-                  { value: '', label: 'All Categories' },
-                  ...Array.from(new Set((materials ?? []).map((m) => m.category)))
-                    .sort()
-                    .map((cat) => ({ value: cat, label: cat })),
-                ]}
-              />
-              <p className="text-xs text-muted-foreground -mt-2">
-                If you select a category, this field will only show materials from that category in the Quote Builder.
-              </p>
-            </>
-          )}
           {(field.type === 'number' || field.type === 'text') && (
             <Input
               label="Default Value (optional)"
@@ -379,7 +382,7 @@ function SortableFieldItem({
           )}
           {field.type === 'material' && (
             <div className="text-xs text-muted-foreground">
-              Default value: Leave empty or set a material variable name (e.g., mat_kvirke_48x98)
+              The material variable represents the price of the selected material in your formula. If you&apos;ve selected a category above, only materials from that category will be available in the Quote Builder.
             </div>
           )}
           <Input
@@ -430,6 +433,11 @@ export default function ModulesPage() {
   // Category management state
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  // Preview state
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewFieldValues, setPreviewFieldValues] = useState<Record<string, string | number | boolean>>({});
+  const [previewCalculatedCost, setPreviewCalculatedCost] = useState(0);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   // Autocomplete state
   const [recentlyUsedVariables, setRecentlyUsedVariables] = useState<string[]>([]);
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<Array<{
@@ -996,6 +1004,72 @@ export default function ModulesPage() {
     }
   }, [formData.formula, fields, materials, validateFormulaInput]);
 
+  // Calculate preview cost in real-time
+  useEffect(() => {
+    if (!showPreview || !formData.formula || !formulaValidation.valid) {
+      setPreviewCalculatedCost(0);
+      setPreviewError(null);
+      return;
+    }
+
+    try {
+      // Check if required fields are missing
+      const missingFields = fields
+        .filter(f => f.required && f.variableName && (
+          previewFieldValues[f.variableName] === undefined ||
+          previewFieldValues[f.variableName] === '' ||
+          previewFieldValues[f.variableName] === null
+        ))
+        .map(f => f.label);
+
+      if (missingFields.length > 0) {
+        setPreviewError('⚠️ Cannot calculate yet — missing inputs.');
+        setPreviewCalculatedCost(0);
+        return;
+      }
+
+      // Check if material is needed for property formulas
+      const availableVars = fields.map((f) => f.variableName).filter(Boolean);
+      const formulaVars = analyzeFormulaVariables(formData.formula, availableVars, materials, fields.map(f => ({
+        variableName: f.variableName,
+        type: f.type,
+        materialCategory: f.materialCategory,
+      })));
+      const materialFields = fields.filter(f => f.type === 'material');
+      const hasMaterialProperties = formulaVars.materialPropertyRefs.length > 0;
+      
+      if (hasMaterialProperties) {
+        const materialVarsInFormula = new Set(formulaVars.materialPropertyRefs.map(ref => ref.materialVar));
+        const missingMaterials = Array.from(materialVarsInFormula).filter(matVar => {
+          // Check if any material field has this variable name set
+          return !materialFields.some(f => previewFieldValues[f.variableName] === matVar);
+        });
+
+        if (missingMaterials.length > 0) {
+          setPreviewError('⚠️ Select a material to continue.');
+          setPreviewCalculatedCost(0);
+          return;
+        }
+      }
+
+      const result = evaluateFormula(formData.formula, {
+        fieldValues: previewFieldValues,
+        materials,
+        fields: fields.map(f => ({
+          variableName: f.variableName,
+          type: f.type,
+          materialCategory: f.materialCategory,
+        })),
+      });
+      setPreviewCalculatedCost(result);
+      setPreviewError(null);
+    } catch (error: any) {
+      // Calculation failed - show friendly error
+      setPreviewError('⚠️ Cannot calculate yet — missing inputs.');
+      setPreviewCalculatedCost(0);
+    }
+  }, [showPreview, formData.formula, previewFieldValues, materials, fields, formulaValidation.valid]);
+
   // Auto-scroll to newly added field
   useEffect(() => {
     if (newlyAddedFieldId) {
@@ -1517,13 +1591,13 @@ export default function ModulesPage() {
                       aria-expanded={fieldVariablesExpanded}
                     >
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-semibold text-card-foreground">Field Variables</h4>
-                        {allFields.length > 0 && (
-                          <span className="text-xs text-muted-foreground">
-                            {usedFields}/{allFields.length} fields
-                          </span>
-                        )}
-                      </div>
+                      <h4 className="text-sm font-semibold text-card-foreground">Field Variables</h4>
+                      {allFields.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {usedFields}/{allFields.length} fields
+                        </span>
+                      )}
+                    </div>
                       {fieldVariablesExpanded ? (
                         <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                       ) : (
@@ -1537,7 +1611,7 @@ export default function ModulesPage() {
                           gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))'
                         }}
                       >
-                        {availableFieldVariables.map((varInfo) => {
+                      {availableFieldVariables.map((varInfo) => {
                         const isInFormula = isVariableInFormula(varInfo.name, formData.formula);
                         const showCheckmark = isInFormula;
                         const isMaterialField = varInfo.type === 'material';
@@ -1596,45 +1670,45 @@ export default function ModulesPage() {
                                     <ChevronDown className="h-3 w-3" />
                                   ) : (
                                     <ChevronRight className="h-3 w-3" />
-                                  )}
-                                </button>
+                              )}
+                            </button>
                               )}
                             </button>
                             {hasProperties && isExpanded && (
                               <div className="space-y-1.5 pt-1.5 ml-4">
-                                {fieldProperties.map((prop) => {
-                                  const propertyRef = `${varInfo.name}.${prop.name}`;
-                                  const isPropertyInFormula = isPropertyReferenceInFormula(varInfo.name, prop.name, formData.formula);
+                                  {fieldProperties.map((prop) => {
+                                    const propertyRef = `${varInfo.name}.${prop.name}`;
+                                    const isPropertyInFormula = isPropertyReferenceInFormula(varInfo.name, prop.name, formData.formula);
                                   const unitDisplay = prop.unitSymbol || prop.unit || '';
                                   const propertyLabel = unitDisplay ? `${prop.name} (${unitDisplay})` : prop.name;
                                   
-                                  return (
-                                    <button
-                                      key={prop.name}
-                                      type="button"
-                                      onClick={() => insertVariableAtCursor(propertyRef)}
+                                    return (
+                                      <button
+                                        key={prop.name}
+                                        type="button"
+                                        onClick={() => insertVariableAtCursor(propertyRef)}
                                       aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
                                       title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
-                                      className={cn(
+                                        className={cn(
                                         "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
-                                        isPropertyInFormula
-                                          ? "border-success bg-success hover:bg-success/90 text-success-foreground"
+                                          isPropertyInFormula
+                                            ? "border-success bg-success hover:bg-success/90 text-success-foreground"
                                           : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
-                                      )}
-                                    >
-                                      {isPropertyInFormula && (
+                                        )}
+                                      >
+                                        {isPropertyInFormula && (
                                         <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
-                                      )}
+                                        )}
                                       <span className="truncate min-w-0 flex-1 text-center">{propertyLabel}</span>
-                                    </button>
-                                  );
-                                })}
+                                      </button>
+                                    );
+                                  })}
                               </div>
                             )}
                           </div>
                         );
-                        })}
-                      </div>
+                      })}
+                    </div>
                     )}
                   </div>
                 )}
@@ -1724,45 +1798,45 @@ export default function ModulesPage() {
                                     <ChevronDown className="h-3 w-3" />
                                   ) : (
                                     <ChevronRight className="h-3 w-3" />
-                                  )}
-                                </button>
+                              )}
+                            </button>
                               )}
                             </button>
                             {hasProperties && isExpanded && (
                               <div className="space-y-1.5 pt-1.5 ml-4">
-                                {mat.properties.map((prop) => {
-                                  const propertyRef = `${mat.name}.${prop.name}`;
-                                  const isPropertyInFormula = isPropertyReferenceInFormula(mat.name, prop.name, formData.formula);
+                                  {mat.properties.map((prop) => {
+                                    const propertyRef = `${mat.name}.${prop.name}`;
+                                    const isPropertyInFormula = isPropertyReferenceInFormula(mat.name, prop.name, formData.formula);
                                   const unitDisplay = prop.unitSymbol || prop.unit || '';
                                   const propertyLabel = unitDisplay ? `${prop.name} (${unitDisplay})` : prop.name;
                                   
-                                  return (
-                                    <button
-                                      key={prop.id}
-                                      type="button"
-                                      onClick={() => insertVariableAtCursor(propertyRef)}
+                                    return (
+                                      <button
+                                        key={prop.id}
+                                        type="button"
+                                        onClick={() => insertVariableAtCursor(propertyRef)}
                                       aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
                                       title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
-                                      className={cn(
+                                        className={cn(
                                         "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
-                                        isPropertyInFormula
-                                          ? "border-success bg-success hover:bg-success/90 text-success-foreground"
+                                          isPropertyInFormula
+                                            ? "border-success bg-success hover:bg-success/90 text-success-foreground"
                                           : "bg-muted text-foreground hover:bg-muted/80 border border-border hover:border-accent/50"
-                                      )}
-                                    >
-                                      {isPropertyInFormula && (
+                                        )}
+                                      >
+                                        {isPropertyInFormula && (
                                         <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
-                                      )}
+                                        )}
                                       <span className="truncate min-w-0 flex-1 text-center">{propertyLabel}</span>
-                                    </button>
-                                  );
-                                })}
+                                      </button>
+                                    );
+                                  })}
                               </div>
                             )}
                           </div>
                         );
                       })}
-                      </div>
+                    </div>
                     )}
                   </div>
                 )}
@@ -1794,12 +1868,12 @@ export default function ModulesPage() {
                     )}
                   </div>
                   <div className="relative">
-                    <Textarea
-                      ref={formulaTextareaRef}
-                      id="formula-input"
-                      value={formData.formula}
-                      onChange={(e) => {
-                        setFormData({ ...formData, formula: e.target.value });
+                  <Textarea
+                    ref={formulaTextareaRef}
+                    id="formula-input"
+                    value={formData.formula}
+                    onChange={(e) => {
+                      setFormData({ ...formData, formula: e.target.value });
                         // Update autocomplete immediately with the new value
                         // Use requestAnimationFrame to ensure DOM is updated
                         requestAnimationFrame(() => {
@@ -1837,18 +1911,18 @@ export default function ModulesPage() {
                       onBlur={() => {
                         // Delay closing to allow clicks on suggestions
                         setTimeout(() => setIsAutocompleteOpen(false), 200);
-                      }}
-                      error={errors.formula || formulaValidation.error}
-                      placeholder="e.g., width * height * mat_plank.length * quantity"
-                      rows={6}
-                      className={`font-mono text-sm ${
-                        formulaValidation.valid && formData.formula
-                          ? 'border-success/50 focus:ring-success/50'
-                          : formData.formula && !formulaValidation.valid
-                          ? 'border-destructive/50 focus:ring-destructive/50'
-                          : ''
-                      }`}
-                    />
+                    }}
+                    error={errors.formula || formulaValidation.error}
+                    placeholder="e.g., width * height * mat_plank.length * quantity"
+                    rows={6}
+                    className={`font-mono text-sm ${
+                      formulaValidation.valid && formData.formula
+                        ? 'border-success/50 focus:ring-success/50'
+                        : formData.formula && !formulaValidation.valid
+                        ? 'border-destructive/50 focus:ring-destructive/50'
+                        : ''
+                    }`}
+                  />
                     {/* Autocomplete Dropdown */}
                     {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
                       <div
@@ -2195,6 +2269,334 @@ export default function ModulesPage() {
           </div>
         </div>
 
+        {/* PREVIEW OVERLAY */}
+        {showPreview && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowPreview(false);
+                setPreviewFieldValues({});
+                setPreviewCalculatedCost(0);
+                setPreviewError(null);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setShowPreview(false);
+                setPreviewFieldValues({});
+                setPreviewCalculatedCost(0);
+                setPreviewError(null);
+              }
+            }}
+            tabIndex={-1}
+          >
+            <div 
+              className="bg-card border border-border rounded-xl overflow-hidden transition-smooth overlay-white w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Preview Card Header */}
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-card-foreground">
+                    {formData.name || 'Module Preview'}
+                  </span>
+                  <span className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-xs font-medium">
+                    Preview
+                  </span>
+                  {formData.category && (
+                    <span className="px-2.5 py-0.5 bg-accent/10 text-accent rounded-full text-xs font-medium">
+                      {formData.category}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPreview(false);
+                    setPreviewFieldValues({});
+                    setPreviewCalculatedCost(0);
+                    setPreviewError(null);
+                  }}
+                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Close preview"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Preview Card Content */}
+              <div className="px-4 pb-6">
+                {formData.description && (
+                  <p className="text-sm text-muted-foreground mb-5 mt-4">{formData.description}</p>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                  {fields.map((field) => {
+                    const value = previewFieldValues[field.variableName];
+                    
+                    // Helper to format label with unit
+                    const formatLabel = (label: string, unit?: string, unitSymbol?: string) => {
+                      if (unitSymbol) return `${label} (${unitSymbol})`;
+                      if (unit) return `${label} (${unit})`;
+                      return label;
+                    };
+
+                    switch (field.type) {
+                      case 'number': {
+                        let displayValue: number;
+                        if (field.unitSymbol && typeof value === 'number') {
+                          displayValue = convertFromBase(value, field.unitSymbol);
+                        } else {
+                          displayValue = typeof value === 'number' ? value : (value === '' ? NaN : Number(value) || 0);
+                        }
+                        
+                        return (
+                          <div key={field.id}>
+                            <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                              {formatLabel(field.label, field.unit, field.unitSymbol)}
+                              {field.required && <span className="text-destructive ml-1">*</span>}
+                            </label>
+                            {field.description && (
+                              <p className="text-xs text-muted-foreground mb-1.5">
+                                {field.description}
+                              </p>
+                            )}
+                            <Input
+                              type="number"
+                              value={isNaN(displayValue) ? '' : displayValue.toString()}
+                              onChange={(e) => {
+                                const inputValue = e.target.value === '' ? '' : Number(e.target.value) || 0;
+                                const baseValue = field.unitSymbol && typeof inputValue === 'number'
+                                  ? normalizeToBase(inputValue, field.unitSymbol)
+                                  : inputValue;
+                                setPreviewFieldValues(prev => ({
+                                  ...prev,
+                                  [field.variableName]: baseValue
+                                }));
+                              }}
+                              required={field.required}
+                            />
+                          </div>
+                        );
+                      }
+                      case 'boolean':
+                        return (
+                          <div key={field.id}>
+                            <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                              {formatLabel(field.label, field.unit, field.unitSymbol)}
+                              {field.required && <span className="text-destructive ml-1">*</span>}
+                            </label>
+                            {field.description && (
+                              <p className="text-xs text-muted-foreground mb-1.5">
+                                {field.description}
+                              </p>
+                            )}
+                            <Checkbox
+                              label=""
+                              checked={Boolean(value)}
+                              onChange={(e) => {
+                                setPreviewFieldValues(prev => ({
+                                  ...prev,
+                                  [field.variableName]: e.target.checked
+                                }));
+                              }}
+                            />
+                          </div>
+                        );
+                      case 'dropdown': {
+                        const options = field.options || [];
+                        
+                        if (field.dropdownMode === 'numeric' && field.unitSymbol) {
+                          const displayOptions = options.map(opt => {
+                            const numValue = Number(opt.trim());
+                            if (!isNaN(numValue)) {
+                              return `${opt.trim()} ${field.unitSymbol}`;
+                            }
+                            return opt;
+                          });
+                          
+                          let currentDisplayValue = '';
+                          if (typeof value === 'number') {
+                            const displayValue = convertFromBase(value, field.unitSymbol);
+                            const matchingIndex = options.findIndex(opt => {
+                              const optNum = Number(opt.trim());
+                              return !isNaN(optNum) && Math.abs(optNum - displayValue) < 0.0001;
+                            });
+                            if (matchingIndex >= 0) {
+                              currentDisplayValue = displayOptions[matchingIndex];
+                            } else {
+                              currentDisplayValue = `${displayValue} ${field.unitSymbol}`;
+                            }
+                          } else {
+                            currentDisplayValue = value?.toString() || '';
+                          }
+                          
+                          return (
+                            <div key={field.id}>
+                              <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                                {formatLabel(field.label, field.unit, field.unitSymbol)}
+                                {field.required && <span className="text-destructive ml-1">*</span>}
+                              </label>
+                              {field.description && (
+                                <p className="text-xs text-muted-foreground mb-1.5">
+                                  {field.description}
+                                </p>
+                              )}
+                              <Select
+                                label=""
+                                value={currentDisplayValue}
+                                onChange={(e) => {
+                                  const selectedDisplay = e.target.value;
+                                  const match = selectedDisplay.match(/^([\d.]+)/);
+                                  if (match && field.unitSymbol) {
+                                    const numValue = Number(match[1]);
+                                    if (!isNaN(numValue)) {
+                                      const baseValue = normalizeToBase(numValue, field.unitSymbol);
+                                      setPreviewFieldValues(prev => ({
+                                        ...prev,
+                                        [field.variableName]: baseValue
+                                      }));
+                                    }
+                                  }
+                                }}
+                                options={[
+                                  { value: '', label: 'Select...' },
+                                  ...displayOptions.map((displayOpt) => ({
+                                    value: displayOpt,
+                                    label: displayOpt,
+                                  })),
+                                ]}
+                              />
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <div key={field.id}>
+                            <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                              {formatLabel(field.label, field.unit, field.unitSymbol)}
+                              {field.required && <span className="text-destructive ml-1">*</span>}
+                            </label>
+                            {field.description && (
+                              <p className="text-xs text-muted-foreground mb-1.5">
+                                {field.description}
+                              </p>
+                            )}
+                            <Select
+                              label=""
+                              value={value?.toString() || ''}
+                              onChange={(e) => {
+                                setPreviewFieldValues(prev => ({
+                                  ...prev,
+                                  [field.variableName]: e.target.value
+                                }));
+                              }}
+                              options={[
+                                { value: '', label: 'Select...' },
+                                ...options.map((opt) => ({ value: opt, label: opt })),
+                              ]}
+                            />
+                          </div>
+                        );
+                      }
+                      case 'material': {
+                        const materialCategory = field.materialCategory;
+                        let availableMaterials = materials;
+                        
+                        if (materialCategory && materialCategory.trim()) {
+                          availableMaterials = materials.filter((mat) => mat.category === materialCategory);
+                        }
+                        
+                        const sortedMaterials = availableMaterials.sort((a, b) => a.name.localeCompare(b.name));
+                        
+                        return (
+                          <div key={field.id}>
+                            <div className="mb-1.5">
+                              <label className="block text-sm font-medium text-label-foreground">
+                                {formatLabel(field.label, field.unit, field.unitSymbol)}
+                                {field.required && <span className="text-destructive ml-1">*</span>}
+                              </label>
+                              {field.description && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {field.description}
+                                </p>
+                              )}
+                            </div>
+                            <Select
+                              label=""
+                              value={value?.toString() || ''}
+                              onChange={(e) => {
+                                setPreviewFieldValues(prev => ({
+                                  ...prev,
+                                  [field.variableName]: e.target.value
+                                }));
+                              }}
+                              options={[
+                                { value: '', label: 'Select a material...' },
+                                ...sortedMaterials.map((mat) => ({
+                                  value: mat.variableName,
+                                  label: `${mat.name} - $${mat.price.toFixed(2)}/${mat.unit}`,
+                                })),
+                              ]}
+                            />
+                            {materialCategory && sortedMaterials.length === 0 && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                No materials available in category &quot;{materialCategory}&quot;.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      }
+                      case 'text':
+                        return (
+                          <div key={field.id}>
+                            <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                              {formatLabel(field.label, field.unit, field.unitSymbol)}
+                              {field.required && <span className="text-destructive ml-1">*</span>}
+                            </label>
+                            {field.description && (
+                              <p className="text-xs text-muted-foreground mb-1.5">
+                                {field.description}
+                              </p>
+                            )}
+                            <Input
+                              label=""
+                              value={value?.toString() || ''}
+                              onChange={(e) => {
+                                setPreviewFieldValues(prev => ({
+                                  ...prev,
+                                  [field.variableName]: e.target.value
+                                }));
+                              }}
+                              required={field.required}
+                            />
+                          </div>
+                        );
+                      default:
+                        return null;
+                    }
+                  })}
+                </div>
+
+                {/* Calculated Cost */}
+                <div className="flex items-center justify-between pt-5 border-t border-border">
+                  <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Module Cost</span>
+                  {previewError ? (
+                    <span className="text-sm text-muted-foreground">
+                      {previewError}
+                    </span>
+                  ) : (
+                    <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
+                      ${previewCalculatedCost.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* BOTTOM ACTION BAR */}
         <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
@@ -2203,12 +2605,61 @@ export default function ModulesPage() {
               Add Field
             </Button>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" onClick={cancelEditing} className="rounded-full">
-                Cancel
+              <Button 
+                variant="secondary"
+                onClick={() => {
+                  // Initialize preview with defaults
+                  const defaults: Record<string, string | number | boolean> = {};
+                  fields.forEach((field) => {
+                    if (field.variableName) {
+                      if (field.defaultValue !== undefined) {
+                        defaults[field.variableName] = field.defaultValue;
+                      } else {
+                        switch (field.type) {
+                          case 'number':
+                            defaults[field.variableName] = ''; // Empty, not 0
+                            break;
+                          case 'boolean':
+                            defaults[field.variableName] = false;
+                            break;
+                          case 'dropdown':
+                            defaults[field.variableName] = ''; // Empty - require selection
+                            break;
+                          case 'material':
+                            // If category exists, preselect first matching material
+                            const materials = useMaterialsStore.getState().materials;
+                            let candidateMaterials = materials;
+                            if (field.materialCategory && field.materialCategory.trim()) {
+                              candidateMaterials = materials.filter(m => m.category === field.materialCategory);
+                            }
+                            if (candidateMaterials.length > 0) {
+                              defaults[field.variableName] = candidateMaterials[0].variableName;
+                            } else {
+                              defaults[field.variableName] = '';
+                            }
+                            break;
+                          case 'text':
+                            defaults[field.variableName] = '';
+                            break;
+                        }
+                      }
+                    }
+                  });
+                  setPreviewFieldValues(defaults);
+                  setShowPreview(true);
+                }}
+                disabled={!formulaValidation.valid || fields.length === 0}
+                className="rounded-full"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Preview
               </Button>
-              <Button onClick={handleSubmit} className="rounded-full">
-                {editingModuleId === 'new' ? 'Create' : 'Update'} Module
-              </Button>
+            <Button variant="ghost" onClick={cancelEditing} className="rounded-full">
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} className="rounded-full">
+              {editingModuleId === 'new' ? 'Create' : 'Update'} Module
+            </Button>
             </div>
           </div>
         </div>
@@ -2247,8 +2698,30 @@ export default function ModulesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {modules.map((module) => (
-            <Card key={module.id} className="hover:border-accent/30 transition-smooth cursor-pointer group">
-              <h3 className="text-lg font-bold text-card-foreground mb-3 group-hover:text-accent transition-smooth tracking-tight">{module.name}</h3>
+            <div
+              key={module.id}
+              className="hover:border-accent/30 transition-smooth cursor-pointer group relative"
+              onClick={() => startEditing(module)}
+            >
+              <Card className="h-full hover:border-accent/30">
+                {/* Delete button - top right corner */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm('Are you sure you want to delete this module?')) {
+                      deleteModule(module.id);
+                    }
+                  }}
+                  className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-smooth active:scale-95 z-10"
+                  aria-label="Delete module"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+
+                <h3 className="text-lg font-bold text-card-foreground mb-3 group-hover:text-accent transition-smooth tracking-tight pr-10">
+                  {module.name}
+                </h3>
               {module.category && (
                 <div className="mb-3">
                   <span className="px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
@@ -2278,27 +2751,8 @@ export default function ModulesPage() {
                   {module.formula}
                 </code>
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => startEditing(module)}
-                  className="flex-1"
-                >
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete this module?')) {
-                      deleteModule(module.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
             </Card>
+            </div>
           ))}
         </div>
       )}

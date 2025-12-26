@@ -490,7 +490,7 @@ export default function QuotesPage() {
 
   const renderFieldInput = (
     instance: QuoteModuleInstance,
-    field: { id: string; label: string; type: FieldType; variableName: string; options?: string[]; dropdownMode?: 'numeric' | 'string'; required?: boolean; materialCategory?: string; unit?: string; unitSymbol?: string; unitCategory?: string }
+    field: { id: string; label: string; type: FieldType; variableName: string; options?: string[]; dropdownMode?: 'numeric' | 'string'; required?: boolean; materialCategory?: string; unit?: string; unitSymbol?: string; unitCategory?: string; description?: string }
   ) => {
     const isLinked = isFieldLinked(instance, field.variableName);
     const displayValue = isLinked ? getResolvedValue(instance, field.variableName) : instance.fieldValues[field.variableName];
@@ -517,10 +517,17 @@ export default function QuotesPage() {
           <div>
             {/* Custom label with Link button */}
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm font-medium text-label-foreground">
-                {formatLabel(field.label, field.unit, field.unitSymbol)}
-                {field.required && <span className="text-destructive ml-1">*</span>}
-              </label>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-label-foreground">
+                  {formatLabel(field.label, field.unit, field.unitSymbol)}
+                  {field.required && <span className="text-destructive ml-1">*</span>}
+                </label>
+                {field.description && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {field.description}
+                  </p>
+                )}
+              </div>
               {canLink && !isLinked && (
                 <button
                   type="button"
@@ -535,19 +542,19 @@ export default function QuotesPage() {
             </div>
             
             <div className={isLinked ? 'relative' : ''}>
-              <Input
-                type="number"
-                value={displayValue.toString()}
-                onChange={(e) => {
+          <Input
+            type="number"
+            value={displayValue.toString()}
+            onChange={(e) => {
                   if (isLinked) return; // Prevent changes when linked
-                  const inputValue = Number(e.target.value) || 0;
-                  // Convert to base unit if field has unitSymbol
-                  const baseValue = field.unitSymbol 
-                    ? normalizeToBase(inputValue, field.unitSymbol)
-                    : inputValue;
-                  updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
-                }}
-                required={field.required}
+              const inputValue = Number(e.target.value) || 0;
+              // Convert to base unit if field has unitSymbol
+              const baseValue = field.unitSymbol 
+                ? normalizeToBase(inputValue, field.unitSymbol)
+                : inputValue;
+              updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
+            }}
+            required={field.required}
                 disabled={isLinked}
               />
               {isLinked && (
@@ -609,10 +616,17 @@ export default function QuotesPage() {
           <div>
             {/* Custom label with Link button */}
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm font-medium text-label-foreground">
-                {formatLabel(field.label, field.unit, field.unitSymbol)}
-                {field.required && <span className="text-destructive ml-1">*</span>}
-              </label>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-label-foreground">
+                  {formatLabel(field.label, field.unit, field.unitSymbol)}
+                  {field.required && <span className="text-destructive ml-1">*</span>}
+                </label>
+                {field.description && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {field.description}
+                  </p>
+                )}
+              </div>
               {canLink && !isLinked && (
                 <button
                   type="button"
@@ -627,9 +641,9 @@ export default function QuotesPage() {
             </div>
             
             <div className={isLinked ? 'relative' : ''}>
-              <Checkbox
+          <Checkbox
                 label=""
-                checked={Boolean(value)}
+            checked={Boolean(value)}
                 onChange={(e) => {
                   if (isLinked) return; // Prevent changes when linked
                   updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.checked);
@@ -747,30 +761,30 @@ export default function QuotesPage() {
               </div>
               
               <div className={isLinked ? 'relative' : ''}>
-                <Select
+            <Select
                   label=""
-                  value={currentDisplayValue}
-                  onChange={(e) => {
+              value={currentDisplayValue}
+              onChange={(e) => {
                     if (isLinked) return; // Prevent changes when linked
-                    const selectedDisplay = e.target.value;
-                    // Extract numeric value from display string (e.g., "40 cm" -> 40)
-                    const match = selectedDisplay.match(/^([\d.]+)/);
-                    if (match && field.unitSymbol) {
-                      const numValue = Number(match[1]);
-                      if (!isNaN(numValue)) {
-                        // Convert to base unit and store as number
-                        const baseValue = normalizeToBase(numValue, field.unitSymbol);
-                        updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
-                      }
-                    }
-                  }}
-                  options={[
-                    { value: '', label: 'Select...' },
-                    ...displayOptions.map((displayOpt) => ({
-                      value: displayOpt,
-                      label: displayOpt,
-                    })),
-                  ]}
+                const selectedDisplay = e.target.value;
+                // Extract numeric value from display string (e.g., "40 cm" -> 40)
+                const match = selectedDisplay.match(/^([\d.]+)/);
+                if (match && field.unitSymbol) {
+                  const numValue = Number(match[1]);
+                  if (!isNaN(numValue)) {
+                    // Convert to base unit and store as number
+                    const baseValue = normalizeToBase(numValue, field.unitSymbol);
+                    updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
+                  }
+                }
+              }}
+              options={[
+                { value: '', label: 'Select...' },
+                ...displayOptions.map((displayOpt) => ({
+                  value: displayOpt,
+                  label: displayOpt,
+                })),
+              ]}
                   disabled={isLinked}
                 />
                 {isLinked && (
@@ -838,10 +852,17 @@ export default function QuotesPage() {
           <div>
             {/* Custom label with Link button */}
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm font-medium text-label-foreground">
-                {formatLabel(field.label, field.unit, field.unitSymbol)}
-                {field.required && <span className="text-destructive ml-1">*</span>}
-              </label>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-label-foreground">
+                  {formatLabel(field.label, field.unit, field.unitSymbol)}
+                  {field.required && <span className="text-destructive ml-1">*</span>}
+                </label>
+                {field.description && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {field.description}
+                  </p>
+                )}
+              </div>
               {canLink && !isLinked && (
                 <button
                   type="button"
@@ -856,17 +877,17 @@ export default function QuotesPage() {
             </div>
             
             <div className={isLinked ? 'relative' : ''}>
-              <Select
+          <Select
                 label=""
-                value={value?.toString() || ''}
+            value={value?.toString() || ''}
                 onChange={(e) => {
                   if (isLinked) return; // Prevent changes when linked
                   updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value);
                 }}
-                options={[
-                  { value: '', label: 'Select...' },
-                  ...options.map((opt) => ({ value: opt, label: opt })),
-                ]}
+            options={[
+              { value: '', label: 'Select...' },
+              ...options.map((opt) => ({ value: opt, label: opt })),
+            ]}
                 disabled={isLinked}
               />
               {isLinked && (
@@ -938,8 +959,19 @@ export default function QuotesPage() {
         
         return (
           <div>
+            <div className="mb-1.5">
+              <label className="block text-sm font-medium text-label-foreground">
+                {formatLabel(field.label, field.unit, field.unitSymbol)}
+                {field.required && <span className="text-destructive ml-1">*</span>}
+              </label>
+              {field.description && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {field.description}
+                </p>
+              )}
+            </div>
             <Select
-              label={formatLabel(field.label, field.unit, field.unitSymbol)}
+              label=""
               value={value?.toString() || ''}
               onChange={(e) =>
                 updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value)
@@ -966,10 +998,17 @@ export default function QuotesPage() {
           <div>
             {/* Custom label with Link button */}
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm font-medium text-label-foreground">
-                {formatLabel(field.label, field.unit, field.unitSymbol)}
-                {field.required && <span className="text-destructive ml-1">*</span>}
-              </label>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-label-foreground">
+                  {formatLabel(field.label, field.unit, field.unitSymbol)}
+                  {field.required && <span className="text-destructive ml-1">*</span>}
+                </label>
+                {field.description && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {field.description}
+                  </p>
+                )}
+              </div>
               {canLink && !isLinked && (
                 <button
                   type="button"
@@ -984,14 +1023,14 @@ export default function QuotesPage() {
             </div>
             
             <div className={isLinked ? 'relative' : ''}>
-              <Input
+          <Input
                 label=""
-                value={value?.toString() || ''}
+            value={value?.toString() || ''}
                 onChange={(e) => {
                   if (isLinked) return; // Prevent changes when linked
                   updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value);
                 }}
-                required={field.required}
+            required={field.required}
                 disabled={isLinked}
               />
               {isLinked && (
@@ -1294,23 +1333,23 @@ export default function QuotesPage() {
               <div className="mb-6">
                 <h4 className="text-sm font-semibold text-card-foreground mb-3">Single Modules</h4>
                 {filteredModules.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {filteredModules.map((module) => (
-                      <button
-                        key={module.id}
-                        onClick={() => handleAddModule(module.id)}
-                        className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
-                      >
-                        <Plus className="h-4 w-4 mr-2 shrink-0" />
+                  <button
+                    key={module.id}
+                    onClick={() => handleAddModule(module.id)}
+                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2 shrink-0" />
                         <span className="truncate flex-1 text-left">{module.name}</span>
                         {module.category && (
                           <span className="ml-2 px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full shrink-0">
                             {module.category}
                           </span>
                         )}
-                      </button>
-                    ))}
-                  </div>
+                  </button>
+                ))}
+              </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     {selectedCategory ? `No modules in "${selectedCategory}" category.` : 'No modules available.'}
@@ -1402,13 +1441,13 @@ export default function QuotesPage() {
                 items={currentQuote.workspaceModules.map(m => m.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {currentQuote.workspaceModules.map((instance) => {
+              {currentQuote.workspaceModules.map((instance) => {
                   const moduleDef = modules.find((m) => m.id === instance.moduleId);
                   if (!moduleDef) return null;
 
-                  return (
+                return (
                     <SortableModuleCard
-                      key={instance.id}
+                    key={instance.id} 
                       instance={instance}
                       module={moduleDef}
                       isCollapsed={isModuleCollapsed(instance.id)}
@@ -1417,15 +1456,15 @@ export default function QuotesPage() {
                       onAddToQuote={(id) => {
                         addLineItem(id);
                         setAddedItems(new Set([...addedItems, id]));
-                        setTimeout(() => {
-                          setAddedItems(new Set());
-                        }, 2000);
-                      }}
+                          setTimeout(() => {
+                            setAddedItems(new Set());
+                          }, 2000);
+                        }}
                       addedItems={addedItems}
                       renderFieldInput={renderFieldInput}
                     />
-                  );
-                })}
+                );
+              })}
               </SortableContext>
             </DndContext>
           )}
@@ -1499,14 +1538,14 @@ export default function QuotesPage() {
 
                 {/* Tax Amount Display (only if tax rate > 0) */}
                 {(currentQuote.taxRate ?? 0) > 0 && (
-                  <div className="flex items-center justify-between gap-3">
-                    <label className="text-sm text-label-foreground shrink-0">Tax</label>
-                    <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                      <span className="font-semibold text-card-foreground tabular-nums text-sm">
-                        ${currentQuote.taxAmount.toFixed(2)}
-                      </span>
-                    </div>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm text-label-foreground shrink-0">Tax</label>
+                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
+                    <span className="font-semibold text-card-foreground tabular-nums text-sm">
+                      ${currentQuote.taxAmount.toFixed(2)}
+                    </span>
                   </div>
+                </div>
                 )}
               </div>
 
