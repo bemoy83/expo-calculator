@@ -21,6 +21,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Materials', href: '/materials', icon: Package },
   { name: 'Modules', href: '/modules', icon: LayoutDashboard },
+  { name: 'Templates', href: '/templates', icon: FileText },
   { name: 'Quote Builder', href: '/quotes', icon: Calculator },
 ];
 

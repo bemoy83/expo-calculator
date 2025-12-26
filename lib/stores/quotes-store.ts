@@ -769,11 +769,10 @@ export const useQuotesStore = create<QuotesStore>()(
           createdFromQuoteId: current.id,
         };
         
-        useTemplatesStore.getState().addTemplate(template);
+        const createdTemplate = useTemplatesStore.getState().addTemplate(template);
         
         // Return the created template
-        const templates = useTemplatesStore.getState().templates;
-        return templates[templates.length - 1] || null;
+        return createdTemplate;
       },
       
       applyTemplate: (templateId) => {

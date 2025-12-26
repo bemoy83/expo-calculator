@@ -5,7 +5,7 @@ import { generateId } from '../utils';
 
 interface TemplatesStore {
   templates: ModuleTemplate[];
-  addTemplate: (template: Omit<ModuleTemplate, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  addTemplate: (template: Omit<ModuleTemplate, 'id' | 'createdAt' | 'updatedAt'>) => ModuleTemplate;
   updateTemplate: (id: string, updates: Partial<ModuleTemplate>) => void;
   deleteTemplate: (id: string) => void;
   getTemplate: (id: string) => ModuleTemplate | undefined;
@@ -27,6 +27,7 @@ export const useTemplatesStore = create<TemplatesStore>()(
         set((state) => ({
           templates: [...state.templates, newTemplate],
         }));
+        return newTemplate;
       },
       
       updateTemplate: (id, updates) => {

@@ -1370,20 +1370,107 @@ export default function ModulesPage() {
       setAutocompleteSuggestions(filtered);
       setSelectedSuggestionIndex(-1);
       
-      // Calculate dropdown position using fixed positioning
+      // Calculate cursor position accurately using text measurement up to cursor
       const rect = textarea.getBoundingClientRect();
-      const lineHeight = 20; // Approximate line height
-      const linesBeforeCursor = (formData.formula.substring(0, cursorPos).match(/\n/g) || []).length;
-      // Use fixed positioning with viewport coordinates + scroll offset
-      const top = rect.top + (linesBeforeCursor * lineHeight) + 30 + window.scrollY;
-      const left = rect.left + 10 + window.scrollX;
+      const computedStyle = window.getComputedStyle(textarea);
       
-      setAutocompletePosition({ top, left });
-      setIsAutocompleteOpen(true);
+      // Get text before cursor to measure exact cursor position
+      const textBeforeCursor = currentFormula.substring(0, cursorPos);
+      
+      // Split to get current line and line number
+      const lines = textBeforeCursor.split('\n');
+      const currentLine = lines[lines.length - 1];
+      const lineNumber = lines.length - 1;
+      
+      // Create a temporary element to measure text width up to cursor position
+      const measureDiv = document.createElement('div');
+      measureDiv.style.position = 'fixed'; // Use fixed to match dropdown positioning
+      measureDiv.style.visibility = 'hidden';
+      measureDiv.style.whiteSpace = 'pre-wrap';
+      measureDiv.style.wordWrap = 'break-word';
+      measureDiv.style.font = computedStyle.font;
+      measureDiv.style.fontFamily = computedStyle.fontFamily;
+      measureDiv.style.fontSize = computedStyle.fontSize;
+      measureDiv.style.fontWeight = computedStyle.fontWeight;
+      measureDiv.style.lineHeight = computedStyle.lineHeight;
+      measureDiv.style.letterSpacing = computedStyle.letterSpacing;
+      measureDiv.style.padding = computedStyle.padding;
+      measureDiv.style.width = `${rect.width}px`;
+      measureDiv.style.boxSizing = computedStyle.boxSizing;
+      measureDiv.style.border = computedStyle.border;
+      measureDiv.style.borderWidth = computedStyle.borderWidth;
+      // Position at textarea location
+      measureDiv.style.top = `${rect.top}px`;
+      measureDiv.style.left = `${rect.left}px`;
+      
+      // Create a span to measure only the text up to cursor on current line
+      const textSpan = document.createElement('span');
+      textSpan.textContent = currentLine;
+      measureDiv.appendChild(textSpan);
+      
+      // Create a cursor marker span
+      const cursorSpan = document.createElement('span');
+      cursorSpan.textContent = '|';
+      measureDiv.appendChild(cursorSpan);
+      
+      document.body.appendChild(measureDiv);
+      
+      try {
+        // Get the position of the cursor span (viewport coordinates)
+        const cursorSpanRect = cursorSpan.getBoundingClientRect();
+        
+        // Position dropdown at cursor position
+        const top = cursorSpanRect.bottom + 2; // Small offset below cursor
+        const left = cursorSpanRect.left;
+        
+        // Validate positions are numbers
+        if (isNaN(top) || isNaN(left) || top < 0 || left < 0) {
+          throw new Error('Invalid cursor position');
+        }
+        
+        // Use fixed positioning (viewport coordinates, no scroll offset needed)
+        setAutocompletePosition({ top, left });
+        setIsAutocompleteOpen(true);
+      } catch (error) {
+        // Fallback to simple positioning if measurement fails
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+        const lineHeight = parseFloat(computedStyle.lineHeight) || 20;
+        
+        // Simple fallback: position below textarea
+        const top = rect.bottom + 2;
+        const left = rect.left + paddingLeft;
+        
+        setAutocompletePosition({ top, left });
+        setIsAutocompleteOpen(true);
+      } finally {
+        document.body.removeChild(measureDiv);
+      }
     } else {
       setIsAutocompleteOpen(false);
     }
   }, [formData.formula, getWordAtCursor, filterSuggestions, collectAutocompleteCandidates, recentlyUsedVariables]);
+
+  // Update autocomplete position on scroll/resize
+  useEffect(() => {
+    if (!isAutocompleteOpen) return;
+    
+    const handleScroll = () => {
+      // Use requestAnimationFrame to debounce and ensure smooth updates
+      requestAnimationFrame(() => {
+        updateAutocompleteSuggestionsFinal();
+      });
+    };
+    
+    // Listen to scroll on window and all scrollable parents (capture phase)
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [isAutocompleteOpen, updateAutocompleteSuggestionsFinal]);
 
   // Show workspace if editing
   if (editingModuleId) {
