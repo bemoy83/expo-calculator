@@ -69,68 +69,25 @@
   --md-elevation-overlay-16: 0.15;
   --md-elevation-overlay-24: 0.16;
   
+  /* MD3 Disabled State Overlay */
+  --md-disabled-overlay: 0.12;                    /* 12% overlay for disabled containers */
+  
   /* ============================================
-     Legacy Variables (Backward Compatibility)
-     Maps to MD3 tokens for existing code
+     Custom Tokens (Not in MD3 Spec)
      ============================================ */
   
-  /* Base Layer Tokens */
-  --surface: var(--md-surface-container-lowest);
-  --surface-muted: var(--md-surface-container-low);
-  --panel: var(--md-surface-container);
-  --panel-muted: var(--md-surface-container-low);
-  --elevated: var(--md-surface-container);
-  --overlay: 0 0 0;
-  
-  /* Legacy mappings */
-  --background: var(--md-surface);
-  --foreground: var(--md-on-surface);
-  --card: var(--md-surface-container);
-  --card-foreground: var(--md-on-surface);
-  --muted: var(--md-surface-variant);
-  --muted-foreground: var(--md-on-surface-variant);
-  --label-foreground: var(--md-on-surface);
-  --input-bg: 242 244 246;                    /* Custom - slightly darker than container */
-  --border: var(--md-outline);
-  
-  /* Interaction / State Tokens */
-  --accent: var(--md-primary);
-  --accent-muted: var(--md-primary-container);
-  --accent-foreground: var(--md-on-primary);
-  --separator: var(--md-outline);
-  --focus: var(--md-primary);
+  --warning: 245 158 11;                      /* Custom warning color */
+  --success: 22 163 74;                       /* Custom success color */
+  --success-foreground: 15 23 42;             /* Text on success background */
   --disabled: 156 163 175;                    /* Custom disabled color */
-  --warning: 245 158 11;                      /* Custom warning (not in MD3) */
-  --destructive: var(--md-error);
-  --destructive-foreground: var(--md-on-error);
-  --success: 22 163 74;                       /* Custom success (not in MD3) */
-  --success-foreground: 15 23 42;
+  --separator: var(--md-outline);             /* Separator color (maps to outline) */
+  --focus: var(--md-primary);                  /* Focus ring color (maps to primary) */
+  --overlay: 0 0 0;                           /* Overlay/scrim color */
+  --input-bg: 242 244 246;                    /* Input background - slightly darker than container */
   
-  /* Typography Tokens */
-  --text: var(--md-on-surface);
-  --text-muted: var(--md-on-surface-variant);
-  --text-inverted: 255 255 255;
-  
-  /* Border Radius Tokens (map to MD3 shape) */
-  --radius-xs: var(--md-shape-corner-extra-small);
-  --radius-sm: 6px;                            /* Custom - between extra-small and small */
-  --radius-md: var(--md-shape-corner-small);
-  --radius-lg: var(--md-shape-corner-medium);
-  --radius-xl: var(--md-shape-corner-large);
-  --radius-2xl: 20px;                          /* Custom - between large and extra-large */
-  --radius-full: var(--md-shape-corner-full);
-  
-  /* Elevation Overlay Opacities (map to MD3) */
-  --elevation-overlay-0: var(--md-elevation-overlay-0);
-  --elevation-overlay-1: var(--md-elevation-overlay-1);
-  --elevation-overlay-2: var(--md-elevation-overlay-2);
-  --elevation-overlay-3: var(--md-elevation-overlay-3);
-  --elevation-overlay-4: var(--md-elevation-overlay-4);
-  --elevation-overlay-5: var(--md-elevation-overlay-5);
-  --elevation-overlay-8: var(--md-elevation-overlay-8);
-  --elevation-overlay-12: var(--md-elevation-overlay-12);
-  --elevation-overlay-16: var(--md-elevation-overlay-16);
-  --elevation-overlay-24: var(--md-elevation-overlay-24);
+  /* Custom Border Radius (not in MD3 standard sizes) */
+  --radius-sm: 6px;                           /* Between extra-small (4px) and small (8px) */
+  --radius-2xl: 20px;                         /* Between large (16px) and extra-large (28px) */
 }
 
 .dark {
@@ -200,72 +157,30 @@
   --md-elevation-overlay-16: 0.15;
   --md-elevation-overlay-24: 0.16;
   
+  /* MD3 Disabled State Overlay (same as light mode) */
+  --md-disabled-overlay: 0.12;                    /* 12% overlay for disabled containers */
+  
   /* ============================================
-     Legacy Variables (Backward Compatibility)
+     Custom Tokens (Not in MD3 Spec)
      ============================================ */
   
-  /* Base Layer Tokens */
-  --surface: var(--md-surface-container-lowest);
-  --surface-muted: var(--md-surface-container-low);
-  --panel: var(--md-surface-container);
-  --panel-muted: var(--md-surface-container-low);
-  --elevated: var(--md-surface-container);
-  --overlay: 0 0 0;
+  --warning: 255 193 7;                        /* Custom warning color */
+  --success: 76 175 80;                        /* Custom success color */
+  --success-foreground: 255 255 255;           /* Text on success background */
+  --disabled: 100 100 100;                     /* Custom disabled color */
+  --separator: var(--md-outline-variant);       /* Separator color (maps to outline-variant) */
+  --focus: var(--md-primary);                   /* Focus ring color (maps to primary) */
+  --overlay: 0 0 0;                            /* Overlay/scrim color */
+  --input-bg: 24 24 24;                        /* Input background - darker than container */
   
-  /* Legacy mappings */
-  --background: var(--md-surface);
-  --foreground: var(--md-on-surface);
-  --card: var(--md-surface-container);
-  --card-foreground: var(--md-on-surface);
-  --muted: var(--md-surface-variant);
-  --muted-foreground: 140 140 140;            /* Custom - dimmer than on-surface-variant */
-  --label-foreground: var(--md-on-surface-variant);
-  --input-bg: 24 24 24;                        /* Custom - darker than container */
-  --border: var(--md-outline);
-  
-  /* Interaction / State Tokens */
-  --accent: var(--md-primary);
-  --accent-muted: var(--md-primary-container);
-  --accent-foreground: var(--md-on-primary);
-  --separator: var(--md-outline-variant);
-  --focus: var(--md-primary);
-  --disabled: 100 100 100;                    /* Custom disabled color */
-  --warning: 255 193 7;                        /* Custom warning */
-  --destructive: var(--md-error);
-  --destructive-foreground: var(--md-on-error);
-  --success: 76 175 80;                        /* Custom success */
-  --success-foreground: 255 255 255;
-  
-  /* Typography Tokens */
-  --text: var(--md-on-surface);
-  --text-muted: var(--muted-foreground);       /* Use custom muted-foreground */
-  --text-inverted: 18 18 18;
-  
-  /* Border Radius Tokens */
-  --radius-xs: var(--md-shape-corner-extra-small);
-  --radius-sm: 6px;                            /* Custom - between extra-small and small */
-  --radius-md: var(--md-shape-corner-small);
-  --radius-lg: var(--md-shape-corner-medium);
-  --radius-xl: var(--md-shape-corner-large);
-  --radius-2xl: 20px;                          /* Custom - between large and extra-large */
-  --radius-full: var(--md-shape-corner-full);
-  
-  /* Elevation Overlay Opacities */
-  --elevation-overlay-0: var(--md-elevation-overlay-0);
-  --elevation-overlay-1: var(--md-elevation-overlay-1);
-  --elevation-overlay-2: var(--md-elevation-overlay-2);
-  --elevation-overlay-3: var(--md-elevation-overlay-3);
-  --elevation-overlay-4: var(--md-elevation-overlay-4);
-  --elevation-overlay-5: var(--md-elevation-overlay-5);
-  --elevation-overlay-8: var(--md-elevation-overlay-8);
-  --elevation-overlay-12: var(--md-elevation-overlay-12);
-  --elevation-overlay-16: var(--md-elevation-overlay-16);
-  --elevation-overlay-24: var(--md-elevation-overlay-24);
+  /* Custom Border Radius (not in MD3 standard sizes) */
+  --radius-sm: 6px;                            /* Between extra-small (4px) and small (8px) */
+  --radius-2xl: 20px;                          /* Between large (16px) and extra-large (28px) */
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground;
+    @apply bg-md-surface text-md-on-surface;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
       sans-serif;
@@ -898,6 +813,53 @@
   
   .hover-overlay:active::after {
     background: rgba(0, 0, 0, 0.08);
+  }
+  
+  /* Material Design 3 Disabled State Overlay System */
+  /* Dark theme: 12% white overlay, Light theme: 12% black overlay */
+  .disabled-overlay {
+    position: relative;
+  }
+  
+  /* Dark theme disabled overlay */
+  .dark .disabled-overlay:disabled::after,
+  .dark .disabled-overlay[disabled]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-disabled-overlay));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Light theme disabled overlay */
+  .disabled-overlay:disabled::after,
+  .disabled-overlay[disabled]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, var(--md-disabled-overlay));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Ensure content is above disabled overlay */
+  .disabled-overlay > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Content opacity for disabled state (38% per MD3) */
+  .disabled-overlay:disabled,
+  .disabled-overlay[disabled] {
+    cursor: not-allowed;
+  }
+  
+  .disabled-overlay:disabled *,
+  .disabled-overlay[disabled] * {
+    opacity: 0.38;
   }
 }
 

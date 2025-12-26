@@ -103,7 +103,7 @@ export const ToolsCard = React.memo(function ToolsCard({
     <div className="space-y-4">
       {/* Search Box */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-md-on-surface-variant" />
         <Input
           placeholder="Search variables..."
           value={searchQuery}
@@ -115,8 +115,8 @@ export const ToolsCard = React.memo(function ToolsCard({
       {/* Field Variables Section */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Field Variables</h4>
-          <span className="text-[10px] text-muted-foreground">
+          <h4 className="text-xs font-semibold text-md-on-surface-variant uppercase tracking-wider">Field Variables</h4>
+          <span className="text-[10px] text-md-on-surface-variant">
             {usedFields}/{allFields.length}
           </span>
         </div>
@@ -138,7 +138,7 @@ export const ToolsCard = React.memo(function ToolsCard({
                       "px-2 py-1.5 border rounded-lg text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 active:scale-[0.98] text-left flex items-center gap-1",
                       isInFormula 
                         ? "border-success bg-success/10 text-success hover:bg-success/20" 
-                        : "border-border bg-background hover:bg-muted hover:border-accent/50"
+                        : "border-md-outline bg-md-surface hover:bg-md-surface-variant hover:border-md-primary/50"
                     )}
                   >
                     <span className="truncate flex-1 min-w-0">{varInfo.name}</span>
@@ -160,7 +160,7 @@ export const ToolsCard = React.memo(function ToolsCard({
               
               return (
                 <div key={`${varInfo.name}-props`} className="mt-2 space-y-1.5">
-                  <p className="text-[10px] text-muted-foreground">{varInfo.name} properties:</p>
+                  <p className="text-[10px] text-md-on-surface-variant">{varInfo.name} properties:</p>
                   <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(90px,1fr))] gap-1">
                     {fieldProperties.map((prop) => {
                       const propertyRef = `${varInfo.name}.${prop.name}`;
@@ -174,7 +174,7 @@ export const ToolsCard = React.memo(function ToolsCard({
                             "px-2 py-1 border rounded text-[10px] font-mono transition-smooth focus:outline-none focus:ring-1 focus:ring-accent/50 active:scale-[0.98] text-left flex items-center gap-1",
                             isPropertyInFormula
                               ? "border-success bg-success/10 text-success"
-                              : "border-border bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground"
+                              : "border-md-outline bg-md-surface-variant/50 hover:bg-md-surface-variant text-md-on-surface-variant hover:text-md-on-surface"
                           )}
                         >
                           <span className="truncate flex-1 min-w-0">{propertyRef}</span>
@@ -190,7 +190,7 @@ export const ToolsCard = React.memo(function ToolsCard({
             })}
           </>
         ) : (
-          <p className="text-xs text-muted-foreground text-center py-4">
+          <p className="text-xs text-md-on-surface-variant text-center py-4">
             {searchQuery ? 'No matching variables' : 'Add fields to use variables'}
           </p>
         )}
@@ -199,7 +199,7 @@ export const ToolsCard = React.memo(function ToolsCard({
       {/* Material Fields Section */}
       {filteredFieldVariables.filter(v => v.type === 'material').length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Material Fields</h4>
+          <h4 className="text-xs font-semibold text-md-on-surface-variant uppercase tracking-wider">Material Fields</h4>
           <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-1.5">
             {filteredFieldVariables
               .filter(v => v.type === 'material')
@@ -215,7 +215,7 @@ export const ToolsCard = React.memo(function ToolsCard({
                       "px-2 py-1.5 border rounded-lg text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 active:scale-[0.98] text-left flex items-center gap-1",
                       isInFormula
                         ? "border-success bg-success/10 text-success hover:bg-success/20"
-                        : "border-border bg-background hover:bg-muted hover:border-accent/50"
+                        : "border-md-outline bg-md-surface hover:bg-md-surface-variant hover:border-md-primary/50"
                     )}
                   >
                     <span className="truncate flex-1 min-w-0">{varInfo.name}</span>
@@ -233,7 +233,7 @@ export const ToolsCard = React.memo(function ToolsCard({
       {/* Material Catalog Section */}
       {filteredMaterialVariables.length > 0 ? (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Material Catalog</h4>
+          <h4 className="text-xs font-semibold text-md-on-surface-variant uppercase tracking-wider">Material Catalog</h4>
           <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-1.5">
             {filteredMaterialVariables.map((mat) => {
               const isMaterialInFormula = isVariableInFormula(mat.name, formula);
@@ -246,7 +246,7 @@ export const ToolsCard = React.memo(function ToolsCard({
                     "px-2 py-1.5 border rounded-lg text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 active:scale-[0.98] text-left flex items-center gap-1",
                     isMaterialInFormula
                       ? "border-success bg-success/10 text-success hover:bg-success/20"
-                      : "border-border bg-background hover:bg-muted hover:border-accent/50"
+                      : "border-md-outline bg-md-surface hover:bg-md-surface-variant hover:border-md-primary/50"
                   )}
                 >
                   <span className="truncate flex-1 min-w-0">{mat.name}</span>
@@ -261,7 +261,7 @@ export const ToolsCard = React.memo(function ToolsCard({
           {/* Material catalog properties */}
           {filteredMaterialVariables.filter(m => m.properties && m.properties.length > 0).map((mat) => (
             <div key={`${mat.name}-props`} className="mt-2 space-y-1.5">
-              <p className="text-[10px] text-muted-foreground">{mat.name} properties:</p>
+              <p className="text-[10px] text-md-on-surface-variant">{mat.name} properties:</p>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(90px,1fr))] gap-1">
                 {mat.properties!.map((prop) => {
                   const propertyRef = `${mat.name}.${prop.name}`;
@@ -275,7 +275,7 @@ export const ToolsCard = React.memo(function ToolsCard({
                         "px-2 py-1 border rounded text-[10px] font-mono transition-smooth focus:outline-none focus:ring-1 focus:ring-accent/50 active:scale-[0.98] text-left flex items-center gap-1",
                         isPropertyInFormula
                           ? "border-success bg-success/10 text-success"
-                          : "border-border bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground"
+                          : "border-md-outline bg-md-surface-variant/50 hover:bg-md-surface-variant text-md-on-surface-variant hover:text-md-on-surface"
                       )}
                     >
                       <span className="truncate flex-1 min-w-0">{propertyRef}</span>
@@ -291,7 +291,7 @@ export const ToolsCard = React.memo(function ToolsCard({
         </div>
       ) : filteredFieldVariables.filter(v => v.type === 'material').length === 0 && (
         <div>
-          <p className="text-xs text-muted-foreground text-center py-4">
+          <p className="text-xs text-md-on-surface-variant text-center py-4">
             {searchQuery ? 'No matching materials' : 'Add materials to use them in formulas'}
           </p>
         </div>

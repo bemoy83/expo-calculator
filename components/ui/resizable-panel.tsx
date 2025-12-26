@@ -108,7 +108,7 @@ export function ResizablePanel({
   return (
     <div
       className={cn(
-        'relative flex-shrink-0 bg-elevated border border-border rounded-xl shadow-sm overflow-hidden',
+        'relative flex-shrink-0 bg-md-surface-container border border-md-outline rounded-xl shadow-sm overflow-hidden',
         isResizing && 'select-none',
         className
       )}
@@ -121,7 +121,7 @@ export function ResizablePanel({
       <div
         className={cn(
           'absolute top-0 bottom-0 w-1 cursor-col-resize z-10 group',
-          'hover:bg-accent/50 active:bg-accent transition-colors',
+          'hover:bg-md-primary/50 active:bg-md-primary transition-colors',
           side === 'left' ? 'right-0' : 'left-0'
         )}
         onMouseDown={(e) => startResize(e, side)}
@@ -133,7 +133,7 @@ export function ResizablePanel({
         <div
           className={cn(
             'absolute top-1/2 -translate-y-1/2 w-1 h-8 rounded-full',
-            'bg-muted-foreground/30 group-hover:bg-accent-foreground/50',
+            'bg-md-on-surface-variant/30 group-hover:bg-md-on-primary/50',
             'transition-all opacity-0 group-hover:opacity-100',
             side === 'left' ? 'right-0' : 'left-0'
           )}

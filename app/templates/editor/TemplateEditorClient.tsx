@@ -71,7 +71,7 @@ function SortableModuleCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-elevated border border-border rounded-xl overflow-hidden transition-smooth elevation-1"
+      className="bg-md-surface-container border border-md-outline rounded-xl overflow-hidden transition-smooth elevation-1"
     >
       {/* Module Header */}
       <div className="flex items-center">
@@ -79,7 +79,7 @@ function SortableModuleCard({
         <button
           {...attributes}
           {...listeners}
-          className="p-3 text-muted-foreground hover:text-accent cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset transition-smooth"
+          className="p-3 text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-inset transition-smooth"
           aria-label={`Drag to reorder ${module.name}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -103,11 +103,11 @@ function SortableModuleCard({
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-card-foreground">
+              <span className="font-semibold text-md-on-surface">
                 {module.name}
               </span>
               {module.category && (
-                <span className="px-2.5 py-0.5 bg-accent/10 text-accent rounded-full text-xs font-medium">
+                <span className="px-2.5 py-0.5 bg-md-primary/10 text-md-primary rounded-full text-xs font-medium">
                   {module.category}
                 </span>
               )}
@@ -118,9 +118,9 @@ function SortableModuleCard({
               ${instance.calculatedCost.toFixed(2)}
             </span>
             {isCollapsed ? (
-              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              <ChevronDown className="h-5 w-5 text-md-on-surface-variant" />
             ) : (
-              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+              <ChevronUp className="h-5 w-5 text-md-on-surface-variant" />
             )}
             {/* Remove Button */}
             <button
@@ -128,7 +128,7 @@ function SortableModuleCard({
                 e.stopPropagation();
                 onRemove(instance.id);
               }}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 focus:ring-offset-background"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-md-error text-md-on-error hover:bg-md-error/90 transition-colors focus:outline-none focus:ring-2 focus:ring-md-error focus:ring-offset-2 focus:ring-offset-md-surface"
               aria-label="Remove module"
             >
               <Trash2 className="h-4 w-4" />
@@ -141,7 +141,7 @@ function SortableModuleCard({
       {!isCollapsed && (
         <div className="px-4 pb-6">
           {module.description && (
-            <p className="text-sm text-muted-foreground mb-5">{module.description}</p>
+            <p className="text-sm text-md-on-surface-variant mb-5">{module.description}</p>
           )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
@@ -152,8 +152,8 @@ function SortableModuleCard({
             ))}
           </div>
 
-          <div className="flex items-center justify-between pt-5 border-t border-border">
-            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Module Cost</span>
+          <div className="flex items-center justify-between pt-5 border-t border-md-outline">
+            <span className="text-sm font-semibold text-md-on-surface-variant uppercase tracking-wide">Module Cost</span>
             <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
               ${instance.calculatedCost.toFixed(2)}
             </span>
@@ -865,12 +865,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
             {/* Custom label with Link button */}
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-label-foreground">
+                <label className="block text-sm font-medium text-md-on-surface">
               {formatLabel(field.label, field.unit, field.unitSymbol)}
-              {field.required && <span className="text-destructive ml-1">*</span>}
+              {field.required && <span className="text-md-error ml-1">*</span>}
             </label>
             {field.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-md-on-surface-variant mt-0.5">
                 {field.description}
               </p>
             )}
@@ -879,7 +879,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 <button
                   type="button"
                   onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
                   title="Link this field to another module field"
                 >
                   <Link2 className="h-3.5 w-3.5" />
@@ -917,12 +917,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               return (
                 <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
                   {broken ? (
-                    <X className="h-3.5 w-3.5 text-destructive shrink-0" />
+                    <X className="h-3.5 w-3.5 text-md-error shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-accent'
+                    broken ? 'text-md-error' : 'text-md-primary'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -933,7 +933,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                     size="sm"
                     variant="ghost"
                     onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
                   >
                     <Unlink className="h-3 w-3 mr-1" />
                     {broken ? 'Remove Link' : 'Unlink'}
@@ -964,12 +964,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
             {/* Custom label with Link button */}
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-label-foreground">
+                <label className="block text-sm font-medium text-md-on-surface">
               {formatLabel(field.label, field.unit, field.unitSymbol)}
-              {field.required && <span className="text-destructive ml-1">*</span>}
+              {field.required && <span className="text-md-error ml-1">*</span>}
             </label>
             {field.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-md-on-surface-variant mt-0.5">
                 {field.description}
               </p>
             )}
@@ -978,7 +978,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 <button
                   type="button"
                   onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
                   title="Link this field to another module field"
                 >
                   <Link2 className="h-3.5 w-3.5" />
@@ -1013,12 +1013,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               return (
                 <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
                   {broken ? (
-                    <X className="h-3.5 w-3.5 text-destructive shrink-0" />
+                    <X className="h-3.5 w-3.5 text-md-error shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-accent'
+                    broken ? 'text-md-error' : 'text-md-primary'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -1029,7 +1029,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                     size="sm"
                     variant="ghost"
                     onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
                   >
                     <Unlink className="h-3 w-3 mr-1" />
                     {broken ? 'Remove Link' : 'Unlink'}
@@ -1091,15 +1091,15 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
             <div>
               {/* Custom label with Link button */}
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-label-foreground">
+                <label className="block text-sm font-medium text-md-on-surface">
                 {formatLabel(field.label, field.unit, field.unitSymbol)}
-                {field.required && <span className="text-destructive ml-1">*</span>}
+                {field.required && <span className="text-md-error ml-1">*</span>}
               </label>
                 {canLink && !isLinked && (
                   <button
                     type="button"
                     onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                    className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
                     title="Link this field to another module field"
                   >
                     <Link2 className="h-3.5 w-3.5" />
@@ -1108,7 +1108,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 )}
               </div>
               {field.description && (
-                <p className="text-xs text-muted-foreground mb-1.5">
+                <p className="text-xs text-md-on-surface-variant mb-1.5">
                   {field.description}
                 </p>
               )}
@@ -1156,12 +1156,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 return (
                   <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
                     {broken ? (
-                      <X className="h-3.5 w-3.5 text-destructive shrink-0" />
+                      <X className="h-3.5 w-3.5 text-md-error shrink-0" />
                     ) : (
-                      <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                      <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
                     )}
                     <span className={`text-xs flex-1 ${
-                      broken ? 'text-destructive' : 'text-accent'
+                      broken ? 'text-md-error' : 'text-md-primary'
                     }`}>
                       {broken 
                         ? 'Link broken: source unavailable'
@@ -1172,7 +1172,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                       size="sm"
                       variant="ghost"
                       onClick={() => handleUnlink(instance.id, field.variableName)}
-                      className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                      className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
                     >
                       <Unlink className="h-3 w-3 mr-1" />
                       {broken ? 'Remove Link' : 'Unlink'}
@@ -1202,12 +1202,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
             {/* Custom label with Link button */}
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-label-foreground">
+                <label className="block text-sm font-medium text-md-on-surface">
               {formatLabel(field.label, field.unit, field.unitSymbol)}
-              {field.required && <span className="text-destructive ml-1">*</span>}
+              {field.required && <span className="text-md-error ml-1">*</span>}
             </label>
             {field.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-md-on-surface-variant mt-0.5">
                 {field.description}
               </p>
             )}
@@ -1216,7 +1216,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 <button
                   type="button"
                   onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
                   title="Link this field to another module field"
                 >
                   <Link2 className="h-3.5 w-3.5" />
@@ -1252,12 +1252,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               return (
                 <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
                   {broken ? (
-                    <X className="h-3.5 w-3.5 text-destructive shrink-0" />
+                    <X className="h-3.5 w-3.5 text-md-error shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-accent'
+                    broken ? 'text-md-error' : 'text-md-primary'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -1268,7 +1268,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                     size="sm"
                     variant="ghost"
                     onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
                   >
                     <Unlink className="h-3 w-3 mr-1" />
                     {broken ? 'Remove Link' : 'Unlink'}
@@ -1304,12 +1304,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
         return (
           <div>
             <div className="mb-1.5">
-              <label className="block text-sm font-medium text-label-foreground">
+              <label className="block text-sm font-medium text-md-on-surface">
                 {formatLabel(field.label, field.unit, field.unitSymbol)}
-                {field.required && <span className="text-destructive ml-1">*</span>}
+                {field.required && <span className="text-md-error ml-1">*</span>}
               </label>
               {field.description && (
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-md-on-surface-variant mt-0.5">
                   {field.description}
                 </p>
               )}
@@ -1329,7 +1329,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               ]}
             />
             {materialCategory && sortedMaterials.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-md-on-surface-variant mt-1">
                 No materials available in category &quot;{materialCategory}&quot;.
               </p>
             )}
@@ -1344,12 +1344,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
             {/* Custom label with Link button */}
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-label-foreground">
+                <label className="block text-sm font-medium text-md-on-surface">
               {formatLabel(field.label, field.unit, field.unitSymbol)}
-              {field.required && <span className="text-destructive ml-1">*</span>}
+              {field.required && <span className="text-md-error ml-1">*</span>}
             </label>
             {field.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-md-on-surface-variant mt-0.5">
                 {field.description}
               </p>
             )}
@@ -1358,7 +1358,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 <button
                   type="button"
                   onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
                   title="Link this field to another module field"
                 >
                   <Link2 className="h-3.5 w-3.5" />
@@ -1391,12 +1391,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               return (
                 <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
                   {broken ? (
-                    <X className="h-3.5 w-3.5 text-destructive shrink-0" />
+                    <X className="h-3.5 w-3.5 text-md-error shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-accent'
+                    broken ? 'text-md-error' : 'text-md-primary'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -1407,7 +1407,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                     size="sm"
                     variant="ghost"
                     onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
                   >
                     <Unlink className="h-3 w-3 mr-1" />
                     {broken ? 'Remove Link' : 'Unlink'}
@@ -1462,9 +1462,9 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
         <div className="flex items-center justify-center py-24">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-              <AlertCircle className="h-8 w-8 text-muted-foreground" />
+              <AlertCircle className="h-8 w-8 text-md-on-surface-variant" />
             </div>
-            <p className="text-muted-foreground">Template not found</p>
+            <p className="text-md-on-surface-variant">Template not found</p>
           </div>
         </div>
       </Layout>
@@ -1491,7 +1491,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
     <Layout>
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">Edit Template</h1>
-        <p className="text-lg text-muted-foreground">Configure module combinations and field relationships</p>
+        <p className="text-lg text-md-on-surface-variant">Configure module combinations and field relationships</p>
       </div>
 
       {/* Template Name/Description Editor */}
@@ -1545,8 +1545,8 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                     onClick={() => setSelectedCategory(null)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
                       selectedCategory === null
-                        ? 'bg-accent text-accent-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        ? 'bg-accent text-md-primary-foreground'
+                        : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
                     }`}
                   >
                     All
@@ -1557,8 +1557,8 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                       onClick={() => setSelectedCategory(category)}
                       className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
                         selectedCategory === category
-                          ? 'bg-accent text-accent-foreground'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          ? 'bg-accent text-md-primary-foreground'
+                          : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
                       }`}
                     >
                       {category}
@@ -1580,12 +1580,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                         handleAddModule(module.id);
                         setShowAddModule(false);
                       }}
-                      className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
+                      className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-accent text-md-primary-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
                     >
                       <Plus className="h-4 w-4 mr-2 shrink-0" />
                       <span className="truncate flex-1 text-left">{module.name}</span>
                       {module.category && (
-                        <span className="ml-2 px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full shrink-0">
+                        <span className="ml-2 px-2 py-0.5 bg-accent/20 text-md-primary text-xs rounded-full shrink-0">
                           {module.category}
                         </span>
                       )}
@@ -1593,7 +1593,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-md-on-surface-variant">
                   {selectedCategory ? `No modules in "${selectedCategory}" category.` : 'No modules available.'}
                 </p>
               )}
@@ -1606,10 +1606,10 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
           <Card>
             <div className="text-center py-20">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted shadow-sm mb-5">
-                <Plus className="h-10 w-10 text-muted-foreground" />
+                <Plus className="h-10 w-10 text-md-on-surface-variant" />
               </div>
               <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">No modules in template</h4>
-              <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed mb-5">
+              <p className="text-base text-md-on-surface-variant max-w-md mx-auto leading-relaxed mb-5">
                 Click &quot;Add Module&quot; to add modules to this template.
               </p>
               <Button
@@ -1654,8 +1654,8 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                   return (
                     <Card key={instance.id} className="border-destructive">
                       <div className="flex items-center gap-2 p-4">
-                        <AlertCircle className="h-5 w-5 text-destructive" />
-                        <span className="text-sm text-destructive">
+                        <AlertCircle className="h-5 w-5 text-md-error" />
+                        <span className="text-sm text-md-error">
                           Module no longer exists
                         </span>
                         <Button

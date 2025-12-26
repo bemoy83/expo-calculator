@@ -23,7 +23,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <button
-        className="p-2.5 rounded-full border border-border bg-muted/30 text-muted-foreground transition-smooth shadow-soft"
+        className="p-2.5 rounded-full border border-md-outline bg-md-surface-variant/30 text-md-on-surface-variant transition-smooth shadow-soft"
         aria-label="Toggle theme"
         disabled
       >
@@ -45,7 +45,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2.5 rounded-full border border-border bg-muted/30 hover:border-accent hover:text-accent-foreground text-muted-foreground transition-smooth shadow-soft hover:shadow-elevated active:scale-95 hover-overlay relative"
+      className="p-2.5 rounded-full border border-md-outline bg-md-surface-variant/30 hover:border-md-primary hover:text-md-on-primary text-md-on-surface-variant transition-smooth shadow-soft hover:shadow-elevated active:scale-95 hover-overlay relative"
       aria-label="Toggle theme"
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >

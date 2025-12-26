@@ -47,22 +47,22 @@ export function OperatorsCard({ onInsertOperator }: OperatorsCardProps) {
   const renderOperatorGroup = (title: string, operators: OperatorInfo[], buttonSize: 'sm' | 'md' | 'lg' = 'md') => {
     return (
       <div className="space-y-1.5">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>
+        <p className="text-[10px] font-semibold text-md-on-surface-variant uppercase tracking-wider">{title}</p>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-1.5">
           {operators.map((op) => (
             <button
               key={op.symbol}
               type="button"
               onClick={() => onInsertOperator(op.symbol)}
-              className="flex items-start gap-1.5 px-2 py-1.5 border border-border rounded-lg hover:bg-accent/10 hover:border-accent/50 transition-smooth group text-left"
+              className="flex items-start gap-1.5 px-2 py-1.5 border border-md-outline rounded-lg hover:bg-md-primary/10 hover:border-md-primary/50 transition-smooth group text-left"
             >
               {/* Operator Button */}
               <div className={cn(
-                "flex-shrink-0 px-1.5 py-0.5 border border-border rounded font-mono font-bold text-center",
+                "flex-shrink-0 px-1.5 py-0.5 border border-md-outline rounded font-mono font-bold text-center",
                 buttonSize === 'sm' && "text-xs min-w-[40px]",
                 buttonSize === 'md' && "text-[10px] min-w-[50px]",
                 buttonSize === 'lg' && "text-sm min-w-[55px]",
-                "group-hover:bg-accent/20 group-hover:border-accent"
+                "group-hover:bg-md-primary/20 group-hover:border-md-primary"
               )}>
                 {op.display}
               </div>
@@ -70,7 +70,7 @@ export function OperatorsCard({ onInsertOperator }: OperatorsCardProps) {
               {/* Inline Description */}
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-medium text-card-foreground leading-tight">{op.description}</div>
-                <div className="text-[10px] text-muted-foreground font-mono mt-0.5 leading-tight">{op.example}</div>
+                <div className="text-[10px] text-md-on-surface-variant font-mono mt-0.5 leading-tight">{op.example}</div>
               </div>
             </button>
           ))}

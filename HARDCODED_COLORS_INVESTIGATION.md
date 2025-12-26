@@ -88,3 +88,4 @@ The input color implementation is **not being broken** by hardcoded colors. All 
 The `bg-input-bg` implementation is working correctly. No hardcoded colors are breaking the color update. The input fields should display with the darker background (`242 244 246` in light mode, `24 24 24` in dark mode) as intended.
 
 
+

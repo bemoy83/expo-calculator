@@ -36,8 +36,8 @@ export const FormulaCard = React.memo(function FormulaCard({
       return {
         icon: XCircle,
         label: 'Error',
-        className: 'text-destructive',
-        bgClassName: 'bg-destructive/10 border-destructive/30',
+        className: 'text-md-error',
+        bgClassName: 'bg-md-error/10 border-destructive/30',
       };
     } else {
       return {
@@ -55,7 +55,7 @@ export const FormulaCard = React.memo(function FormulaCard({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label htmlFor="formula-input" className="text-sm font-semibold text-card-foreground">
+        <label htmlFor="formula-input" className="text-sm font-semibold text-md-on-surface">
           Formula
         </label>
         <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ export const FormulaCard = React.memo(function FormulaCard({
         )}
       />
       {validation.error && (
-        <p className="text-xs text-destructive" role="alert" aria-live="polite">
+        <p className="text-xs text-md-error" role="alert" aria-live="polite">
           {validation.error}
         </p>
       )}

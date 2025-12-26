@@ -16,24 +16,23 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   const checkboxId = id || generatedId;
 
   return (
-    <div className={cn('flex items-center', props.disabled && 'opacity-60')}>
+    <div className="flex items-center">
       <input
         type="checkbox"
         id={checkboxId}
         required={required}
         aria-required={required}
         className={cn(
-          'w-4 h-4 bg-card border-border rounded',
-          'text-accent focus:ring-accent focus:ring-2',
-          'cursor-pointer disabled:cursor-not-allowed',
-          'disabled:opacity-[0.38]',
+          'w-4 h-4 bg-md-surface-container border-md-outline rounded',
+          'text-md-primary focus:ring-md-primary focus:ring-2',
+          'cursor-pointer disabled-overlay disabled:cursor-not-allowed',
           className
         )}
         {...props}
       />
       {label && (
         <label htmlFor={checkboxId} className={cn(
-          'ml-2 text-sm text-label-foreground cursor-pointer',
+          'ml-2 text-sm text-md-on-surface cursor-pointer',
           props.disabled && 'cursor-not-allowed opacity-[0.38]'
         )}>
           {label}

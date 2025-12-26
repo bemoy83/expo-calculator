@@ -74,7 +74,7 @@ function SortableModuleCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-elevated border border-border rounded-xl overflow-hidden transition-smooth elevation-1"
+      className="bg-md-surface-container border border-md-outline rounded-xl overflow-hidden transition-smooth elevation-1"
     >
       {/* Module Header */}
       <div className="flex items-center">
@@ -82,7 +82,7 @@ function SortableModuleCard({
         <button
           {...attributes}
           {...listeners}
-          className="p-3 text-muted-foreground hover:text-accent cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset transition-smooth"
+          className="p-3 text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-inset transition-smooth"
           aria-label={`Drag to reorder ${module.name}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -106,11 +106,11 @@ function SortableModuleCard({
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-card-foreground">
+              <span className="font-semibold text-md-on-surface">
                 {module.name}
               </span>
               {module.category && (
-                <span className="px-2.5 py-0.5 bg-accent/10 text-accent rounded-full text-xs font-medium">
+                <span className="px-2.5 py-0.5 bg-md-primary/10 text-md-primary rounded-full text-xs font-medium">
                   {module.category}
                 </span>
               )}
@@ -121,9 +121,9 @@ function SortableModuleCard({
               ${instance.calculatedCost.toFixed(2)}
             </span>
             {isCollapsed ? (
-              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              <ChevronDown className="h-5 w-5 text-md-on-surface-variant" />
             ) : (
-              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+              <ChevronUp className="h-5 w-5 text-md-on-surface-variant" />
             )}
             {/* Action Buttons - Right Aligned */}
             <button
@@ -131,7 +131,7 @@ function SortableModuleCard({
                 e.stopPropagation();
                 onAddToQuote(instance.id);
               }}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-accent text-accent-foreground hover:bg-accent/90 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-md-primary text-md-primary-foreground hover:bg-md-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-offset-2 focus:ring-offset-md-surface"
               aria-label={addedItems.has(instance.id) ? 'Added to quote' : 'Add to quote'}
             >
               <Plus className="h-4 w-4" />
@@ -141,7 +141,7 @@ function SortableModuleCard({
                 e.stopPropagation();
                 onRemove(instance.id);
               }}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 focus:ring-offset-background"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-md-error text-md-on-error hover:bg-md-error/90 transition-colors focus:outline-none focus:ring-2 focus:ring-md-error focus:ring-offset-2 focus:ring-offset-md-surface"
               aria-label="Remove module"
             >
               <Trash2 className="h-4 w-4" />
@@ -154,7 +154,7 @@ function SortableModuleCard({
       {!isCollapsed && (
         <div className="px-4 pb-6">
           {module.description && (
-            <p className="text-sm text-muted-foreground mb-5">{module.description}</p>
+            <p className="text-sm text-md-on-surface-variant mb-5">{module.description}</p>
           )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
@@ -166,7 +166,7 @@ function SortableModuleCard({
           </div>
 
           <div className="flex items-center justify-between pt-5 border-t border-border">
-            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Module Cost</span>
+            <span className="text-sm font-semibold text-md-on-surface-variant uppercase tracking-wide">Module Cost</span>
             <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
               ${instance.calculatedCost.toFixed(2)}
             </span>
@@ -523,7 +523,7 @@ export default function QuotesPage() {
                   {field.required && <span className="text-destructive ml-1">*</span>}
                 </label>
                 {field.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-md-on-surface-variant mt-0.5">
                     {field.description}
                   </p>
                 )}
@@ -532,7 +532,7 @@ export default function QuotesPage() {
                 <button
                   type="button"
                   onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
                   title="Link this field to another module field"
                 >
                   <Link2 className="h-3.5 w-3.5" />
@@ -572,10 +572,10 @@ export default function QuotesPage() {
                   {broken ? (
                     <X className="h-3.5 w-3.5 text-destructive shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-accent'
+                    broken ? 'text-destructive' : 'text-md-primary'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -586,7 +586,7 @@ export default function QuotesPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-6 text-xs text-md-on-surface-variant hover:text-foreground"
                   >
                     <Unlink className="h-3 w-3 mr-1" />
                     {broken ? 'Remove Link' : 'Unlink'}
@@ -622,7 +622,7 @@ export default function QuotesPage() {
                   {field.required && <span className="text-destructive ml-1">*</span>}
                 </label>
                 {field.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-md-on-surface-variant mt-0.5">
                     {field.description}
                   </p>
                 )}
@@ -631,7 +631,7 @@ export default function QuotesPage() {
                 <button
                   type="button"
                   onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
                   title="Link this field to another module field"
                 >
                   <Link2 className="h-3.5 w-3.5" />
@@ -668,10 +668,10 @@ export default function QuotesPage() {
                   {broken ? (
                     <X className="h-3.5 w-3.5 text-destructive shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-accent'
+                    broken ? 'text-destructive' : 'text-md-primary'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -682,7 +682,7 @@ export default function QuotesPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-6 text-xs text-md-on-surface-variant hover:text-foreground"
                   >
                     <Unlink className="h-3 w-3 mr-1" />
                     {broken ? 'Remove Link' : 'Unlink'}
@@ -751,7 +751,7 @@ export default function QuotesPage() {
                   <button
                     type="button"
                     onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                    className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
                     title="Link this field to another module field"
                   >
                     <Link2 className="h-3.5 w-3.5" />
@@ -803,16 +803,16 @@ export default function QuotesPage() {
                 return (
                   <div className={`mt-2 flex items-center gap-2 p-2 rounded-md border ${
                     broken 
-                      ? 'bg-destructive/10 border-destructive/30' 
+                      ? 'bg-md-error/10 border-destructive/30' 
                       : 'bg-muted/30 border-border/50'
                   }`}>
                     {broken ? (
                       <X className="h-3.5 w-3.5 text-destructive shrink-0" />
                     ) : (
-                      <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <Link2 className="h-3.5 w-3.5 text-md-on-surface-variant shrink-0" />
                     )}
                     <span className={`text-xs flex-1 ${
-                      broken ? 'text-destructive' : 'text-muted-foreground'
+                      broken ? 'text-destructive' : 'text-md-on-surface-variant'
                     }`}>
                       {broken 
                         ? 'Link broken: source unavailable'
@@ -858,7 +858,7 @@ export default function QuotesPage() {
                   {field.required && <span className="text-destructive ml-1">*</span>}
                 </label>
                 {field.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-md-on-surface-variant mt-0.5">
                     {field.description}
                   </p>
                 )}
@@ -867,7 +867,7 @@ export default function QuotesPage() {
                 <button
                   type="button"
                   onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
                   title="Link this field to another module field"
                 >
                   <Link2 className="h-3.5 w-3.5" />
@@ -905,10 +905,10 @@ export default function QuotesPage() {
                   {broken ? (
                     <X className="h-3.5 w-3.5 text-destructive shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-accent'
+                    broken ? 'text-destructive' : 'text-md-primary'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -919,7 +919,7 @@ export default function QuotesPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-6 text-xs text-md-on-surface-variant hover:text-foreground"
                   >
                     <Unlink className="h-3 w-3 mr-1" />
                     {broken ? 'Remove Link' : 'Unlink'}
@@ -965,7 +965,7 @@ export default function QuotesPage() {
                 {field.required && <span className="text-destructive ml-1">*</span>}
               </label>
               {field.description && (
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-md-on-surface-variant mt-0.5">
                   {field.description}
                 </p>
               )}
@@ -985,7 +985,7 @@ export default function QuotesPage() {
               ]}
             />
             {materialCategory && sortedMaterials.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-md-on-surface-variant mt-1">
                 No materials available in category &quot;{materialCategory}&quot;. Please add materials or adjust the field&apos;s category.
               </p>
             )}
@@ -1004,7 +1004,7 @@ export default function QuotesPage() {
                   {field.required && <span className="text-destructive ml-1">*</span>}
                 </label>
                 {field.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-md-on-surface-variant mt-0.5">
                     {field.description}
                   </p>
                 )}
@@ -1013,7 +1013,7 @@ export default function QuotesPage() {
                 <button
                   type="button"
                   onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
                   title="Link this field to another module field"
                 >
                   <Link2 className="h-3.5 w-3.5" />
@@ -1048,10 +1048,10 @@ export default function QuotesPage() {
                   {broken ? (
                     <X className="h-3.5 w-3.5 text-destructive shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-accent'
+                    broken ? 'text-destructive' : 'text-md-primary'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -1062,7 +1062,7 @@ export default function QuotesPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-6 text-xs text-md-on-surface-variant hover:text-foreground"
                   >
                     <Unlink className="h-3 w-3 mr-1" />
                     {broken ? 'Remove Link' : 'Unlink'}
@@ -1219,9 +1219,9 @@ export default function QuotesPage() {
         <div className="flex items-center justify-center py-24">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-              <Calculator className="h-8 w-8 text-muted-foreground animate-pulse" />
+              <Calculator className="h-8 w-8 text-md-on-surface-variant animate-pulse" />
             </div>
-            <p className="text-muted-foreground">Loading quote builder...</p>
+            <p className="text-md-on-surface-variant">Loading quote builder...</p>
           </div>
         </div>
       </Layout>
@@ -1233,7 +1233,7 @@ export default function QuotesPage() {
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">Quote Builder</h1>
-          <p className="text-lg text-muted-foreground">Build comprehensive construction cost estimates</p>
+          <p className="text-lg text-md-on-surface-variant">Build comprehensive construction cost estimates</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" onClick={() => saveQuote()} className="rounded-full">
@@ -1306,8 +1306,8 @@ export default function QuotesPage() {
                       onClick={() => setSelectedCategory(null)}
                       className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
                         selectedCategory === null
-                          ? 'bg-accent text-accent-foreground'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          ? 'bg-md-primary text-md-primary-foreground'
+                          : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
                       }`}
                     >
                       All
@@ -1318,8 +1318,8 @@ export default function QuotesPage() {
                         onClick={() => setSelectedCategory(category)}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
                           selectedCategory === category
-                            ? 'bg-accent text-accent-foreground'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                            ? 'bg-md-primary text-md-primary-foreground'
+                            : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
                         }`}
                       >
                         {category}
@@ -1331,19 +1331,19 @@ export default function QuotesPage() {
 
               {/* Single Modules Section */}
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-card-foreground mb-3">Single Modules</h4>
+                <h4 className="text-sm font-semibold text-md-on-surface mb-3">Single Modules</h4>
                 {filteredModules.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {filteredModules.map((module) => (
                   <button
                     key={module.id}
                     onClick={() => handleAddModule(module.id)}
-                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
+                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-primary-foreground focus:ring-md-primary shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
                   >
                     <Plus className="h-4 w-4 mr-2 shrink-0" />
                         <span className="truncate flex-1 text-left">{module.name}</span>
                         {module.category && (
-                          <span className="ml-2 px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full shrink-0">
+                          <span className="ml-2 px-2 py-0.5 bg-md-primary/20 text-md-primary text-xs rounded-full shrink-0">
                             {module.category}
                           </span>
                         )}
@@ -1351,7 +1351,7 @@ export default function QuotesPage() {
                 ))}
               </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-md-on-surface-variant">
                     {selectedCategory ? `No modules in "${selectedCategory}" category.` : 'No modules available.'}
                   </p>
                 )}
@@ -1360,25 +1360,25 @@ export default function QuotesPage() {
               {/* Module Templates Section */}
               {templates.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-card-foreground mb-3">Module Templates</h4>
+                  <h4 className="text-sm font-semibold text-md-on-surface mb-3">Module Templates</h4>
                   {filteredTemplates.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {filteredTemplates.map((template) => (
                         <button
                           key={template.id}
                           onClick={() => handleApplyTemplate(template.id)}
-                          className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
+                          className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-primary-foreground focus:ring-md-primary shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
                         >
                           <Package className="h-4 w-4 mr-2 shrink-0" />
                           <span className="truncate flex-1 text-left">{template.name}</span>
-                          <span className="ml-2 px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full shrink-0">
+                          <span className="ml-2 px-2 py-0.5 bg-md-primary/20 text-md-primary text-xs rounded-full shrink-0">
                             {template.moduleInstances.length} {template.moduleInstances.length === 1 ? 'module' : 'modules'}
                           </span>
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-md-on-surface-variant">
                       {selectedCategory ? `No templates in "${selectedCategory}" category.` : 'No templates available.'}
                     </p>
                   )}
@@ -1387,9 +1387,9 @@ export default function QuotesPage() {
 
               {modules.length === 0 && templates.length === 0 && (
                 <div className="text-center py-8">
-                  <LayoutDashboard className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-muted-foreground">No modules available.</p>
-                  <p className="text-xs text-muted-foreground mt-1">Create modules first to add them to quotes.</p>
+                  <LayoutDashboard className="h-10 w-10 text-md-on-surface-variant mx-auto mb-3 opacity-50" />
+                  <p className="text-sm text-md-on-surface-variant">No modules available.</p>
+                  <p className="text-xs text-md-on-surface-variant mt-1">Create modules first to add them to quotes.</p>
                 </div>
               )}
             </Card>
@@ -1400,10 +1400,10 @@ export default function QuotesPage() {
             <Card>
               <div className="text-center py-20">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted shadow-sm mb-5">
-                  <Package className="h-10 w-10 text-muted-foreground" />
+                  <Package className="h-10 w-10 text-md-on-surface-variant" />
                 </div>
                 <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">No modules in workspace</h4>
-                <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed mb-5">
+                <p className="text-base text-md-on-surface-variant max-w-md mx-auto leading-relaxed mb-5">
                   Click &quot;Add Module&quot; to get started, then configure and add them to your quote.
                 </p>
                 <Button 
@@ -1472,7 +1472,7 @@ export default function QuotesPage() {
 
         <div className="lg:col-span-1">
           <Card elevation={2} className="sticky top-[88px] z-40">
-            <h3 className="text-lg font-bold text-card-foreground mb-5 tracking-tight">Quote Summary</h3>
+            <h3 className="text-lg font-bold text-md-on-surface mb-5 tracking-tight">Quote Summary</h3>
             
             <div className="space-y-5">
               {/* Financial Breakdown */}
@@ -1481,7 +1481,7 @@ export default function QuotesPage() {
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-label-foreground shrink-0">Subtotal</label>
                   <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                    <span className="font-semibold text-card-foreground tabular-nums text-sm">
+                    <span className="font-semibold text-md-on-surface tabular-nums text-sm">
                       ${currentQuote.subtotal.toFixed(2)}
                     </span>
                   </div>
@@ -1500,7 +1500,7 @@ export default function QuotesPage() {
                         const percent = Math.round(Number(e.target.value) || 0);
                         setMarkupPercent(Math.max(0, percent));
                       }}
-                      className="w-full text-right font-semibold text-card-foreground tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
+                      className="w-full text-right font-semibold text-md-on-surface tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
                     />
                   </div>
                 </div>
@@ -1510,7 +1510,7 @@ export default function QuotesPage() {
                   <div className="flex items-center justify-between gap-3">
                     <label className="text-sm text-label-foreground shrink-0">Markup</label>
                     <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                      <span className="font-semibold text-card-foreground tabular-nums text-sm">
+                      <span className="font-semibold text-md-on-surface tabular-nums text-sm">
                         ${(currentQuote.markupAmount ?? 0).toFixed(2)}
                       </span>
                     </div>
@@ -1531,7 +1531,7 @@ export default function QuotesPage() {
                         const rate = Math.round(Number(e.target.value) || 0) / 100;
                         setTaxRate(Math.max(0, Math.min(1, rate)));
                       }}
-                      className="w-full text-right font-semibold text-card-foreground tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
+                      className="w-full text-right font-semibold text-md-on-surface tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
                     />
                   </div>
                 </div>
@@ -1541,7 +1541,7 @@ export default function QuotesPage() {
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-label-foreground shrink-0">Tax</label>
                   <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                    <span className="font-semibold text-card-foreground tabular-nums text-sm">
+                    <span className="font-semibold text-md-on-surface tabular-nums text-sm">
                       ${currentQuote.taxAmount.toFixed(2)}
                     </span>
                   </div>
@@ -1552,8 +1552,8 @@ export default function QuotesPage() {
               {/* Total */}
               <div className="pt-4 border-t border-border">
                 <div className="flex justify-between items-baseline p-4 -mx-2">
-                  <span className="text-base font-bold text-card-foreground">Total</span>
-                  <span className="text-3xl font-bold text-accent tabular-nums tracking-tight">
+                  <span className="text-base font-bold text-md-on-surface">Total</span>
+                  <span className="text-3xl font-bold text-md-primary tabular-nums tracking-tight">
                     ${currentQuote.total.toFixed(2)}
                   </span>
                 </div>
@@ -1561,7 +1561,7 @@ export default function QuotesPage() {
 
               {/* Line Items */}
               <div className="pt-5 border-t border-border">
-                <h4 className="text-sm font-semibold text-card-foreground mb-3">Line Items</h4>
+                <h4 className="text-sm font-semibold text-md-on-surface mb-3">Line Items</h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
                   {currentQuote.lineItems.map((item) => (
                     <div
@@ -1569,20 +1569,20 @@ export default function QuotesPage() {
                       className="group flex items-start justify-between gap-3 p-3 rounded-lg transition-smooth"
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-card-foreground text-sm mb-0.5 truncate">
+                        <div className="font-medium text-md-on-surface text-sm mb-0.5 truncate">
                           {item.moduleName}
                         </div>
-                        <div className="text-muted-foreground text-xs truncate">
+                        <div className="text-md-on-surface-variant text-xs truncate">
                           {item.fieldSummary}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="font-semibold text-card-foreground text-sm tabular-nums">
+                        <span className="font-semibold text-md-on-surface text-sm tabular-nums">
                           ${item.cost.toFixed(2)}
                         </span>
                         <button
                           onClick={() => removeLineItem(item.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/10 rounded-md text-destructive"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-md-error/10 rounded-md text-destructive"
                           title="Remove item"
                           aria-label={`Remove line item: ${item.moduleName}`}
                         >
@@ -1593,11 +1593,11 @@ export default function QuotesPage() {
                   ))}
                   {currentQuote.lineItems.length === 0 && (
                     <div className="text-center py-8">
-                      <Calculator className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-                      <p className="text-xs text-muted-foreground">
+                      <Calculator className="h-8 w-8 text-md-on-surface-variant mx-auto mb-2 opacity-50" />
+                      <p className="text-xs text-md-on-surface-variant">
                         No items in quote yet.
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-md-on-surface-variant mt-1">
                         Configure modules and click &quot;Add to Quote&quot;
                       </p>
                     </div>
@@ -1628,14 +1628,14 @@ export default function QuotesPage() {
         <div className="fixed inset-0 bg-overlay/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-card-foreground">Save as Template</h3>
+              <h3 className="text-lg font-semibold text-md-on-surface">Save as Template</h3>
               <button
                 onClick={() => {
                   setShowSaveTemplateModal(false);
                   setTemplateName('');
                   setTemplateDescription('');
                 }}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-md-on-surface-variant hover:text-foreground"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1659,8 +1659,8 @@ export default function QuotesPage() {
               />
               
               <div className="p-3 bg-muted/50 border border-border rounded-md">
-                <p className="text-xs font-medium text-card-foreground mb-2">This template will save:</p>
-                <ul className="space-y-1 text-xs text-muted-foreground">
+                <p className="text-xs font-medium text-md-on-surface mb-2">This template will save:</p>
+                <ul className="space-y-1 text-xs text-md-on-surface-variant">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
                     Module combinations

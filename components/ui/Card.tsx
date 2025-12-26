@@ -20,7 +20,7 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div className={cn(
-      'bg-elevated border border-border rounded-xl p-6 transition-all relative',
+      'bg-md-surface-container border border-md-outline rounded-xl p-6 transition-all relative',
       `elevation-${elevation}`, // Apply MD3 elevation utility
       interactive && 'hover-overlay',
       className
@@ -28,7 +28,7 @@ export const Card: React.FC<CardProps> = ({
       {(title || actions) && (
         <div className="flex items-center justify-between mb-5 relative z-10">
           {title && (
-            <h3 className="text-lg font-bold text-card-foreground tracking-tight">{title}</h3>
+            <h3 className="text-lg font-bold text-md-on-surface tracking-tight">{title}</h3>
           )}
           {actions && <div>{actions}</div>}
         </div>

@@ -24,7 +24,7 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={selectId} className="block text-sm font-medium text-label-foreground mb-1.5">
+        <label htmlFor={selectId} className="block text-sm font-medium text-md-on-surface mb-1.5">
           {label}
         </label>
       )}
@@ -36,13 +36,12 @@ export const Select: React.FC<SelectProps> = ({
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={errorId}
           className={cn(
-            'w-full pl-4 pr-10 py-2.5 bg-input-bg rounded-full border border-border/50',
-            'text-foreground appearance-none',
-            'focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent',
+            'w-full pl-4 pr-10 py-2.5 bg-input-bg rounded-full border border-md-outline/50',
+            'text-md-on-surface appearance-none',
+            'focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:border-md-primary',
             'transition-smooth',
-            'disabled:opacity-60 disabled:cursor-not-allowed',
-            'disabled:[&_*]:opacity-[0.38]',
-            error && 'focus:ring-destructive/50 border-destructive/50',
+            'disabled-overlay disabled:cursor-not-allowed',
+            error && 'focus:ring-md-error/50 border-md-error/50',
             className
           )}
           {...props}
@@ -54,12 +53,12 @@ export const Select: React.FC<SelectProps> = ({
           ))}
         </select>
         <ChevronDown 
-          className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" 
+          className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-md-on-surface-variant pointer-events-none" 
           aria-hidden="true"
         />
       </div>
       {error && (
-        <p id={errorId} className="mt-1 text-sm text-destructive" role="alert">
+        <p id={errorId} className="mt-1 text-sm text-md-error" role="alert">
           {error}
         </p>
       )}

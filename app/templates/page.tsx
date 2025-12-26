@@ -122,10 +122,10 @@ export default function TemplatesPage() {
 
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">
+          <h1 className="text-4xl font-bold text-md-on-surface mb-2 tracking-tight">
             Templates
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-md-on-surface-variant">
             Manage reusable module combinations and field links
           </p>
         </div>
@@ -139,15 +139,15 @@ export default function TemplatesPage() {
         <Card>
           <div className="text-center py-24">
             <div
-              className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted shadow-lg mb-6"
+              className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-md-surface-variant shadow-lg mb-6"
               aria-hidden="true"
             >
-              <FileText className="h-12 w-12 text-muted-foreground" />
+              <FileText className="h-12 w-12 text-md-on-surface-variant" />
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
+            <h3 className="text-xl font-bold text-md-on-surface mb-3 tracking-tight">
               No Templates Yet
             </h3>
-            <p className="text-base text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">
+            <p className="text-base text-md-on-surface-variant mb-8 max-w-md mx-auto leading-relaxed">
               Create templates from your Quote Builder workspace to save module combinations and field links for reuse.
             </p>
           </div>
@@ -176,7 +176,7 @@ export default function TemplatesPage() {
                   <button
                     type="button"
                     onClick={(e) => handleDuplicate(template.id, e)}
-                    className="absolute top-4 right-12 p-2 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-lg transition-smooth active:scale-95 z-10"
+                    className="absolute top-4 right-12 p-2 text-md-on-surface-variant hover:text-md-primary hover:bg-md-primary/10 rounded-lg transition-smooth active:scale-95 z-10"
                     aria-label="Duplicate template"
                   >
                     <Copy className="h-4 w-4" />
@@ -184,18 +184,18 @@ export default function TemplatesPage() {
                   <button
                     type="button"
                     onClick={(e) => handleDelete(template.id, template.name, e)}
-                    className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-smooth active:scale-95 z-10"
+                    className="absolute top-4 right-4 p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-error/10 rounded-lg transition-smooth active:scale-95 z-10"
                     aria-label="Delete template"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
 
-                  <h3 className="text-lg font-bold text-card-foreground mb-3 group-hover:text-accent transition-smooth tracking-tight pr-20">
+                  <h3 className="text-lg font-bold text-md-on-surface mb-3 group-hover:text-md-primary transition-smooth tracking-tight pr-20">
                     {template.name}
                   </h3>
 
                   {template.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                    <p className="text-sm text-md-on-surface-variant mb-4 line-clamp-2">
                       {template.description}
                     </p>
                   )}
@@ -205,7 +205,7 @@ export default function TemplatesPage() {
                       {template.categories.map((category) => (
                         <span
                           key={category}
-                          className="px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full mr-2 mb-2 inline-block"
+                          className="px-3 py-1 bg-md-primary/10 text-md-primary text-xs font-medium rounded-full mr-2 mb-2 inline-block"
                         >
                           {category}
                         </span>
@@ -214,32 +214,32 @@ export default function TemplatesPage() {
                   )}
 
                   <div className="mb-5">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
+                    <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">
                       Modules
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {visibleModules.map((name) => (
                         <span
                           key={name}
-                          className="px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs"
+                          className="px-2.5 py-1 bg-md-surface-variant text-md-on-surface-variant rounded-full text-xs"
                         >
                           {name}
                         </span>
                       ))}
                       {remainingCount > 0 && (
-                        <span className="px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs">
+                        <span className="px-2.5 py-1 bg-md-surface-variant text-md-on-surface-variant rounded-full text-xs">
                           + {remainingCount} more
                         </span>
                       )}
                       {moduleNames.length === 0 && (
-                        <span className="px-2.5 py-1 bg-destructive/10 text-destructive rounded-full text-xs">
+                        <span className="px-2.5 py-1 bg-md-error/10 text-destructive rounded-full text-xs">
                           No modules found
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-md-on-surface-variant">
                     {moduleCount} {moduleCount === 1 ? 'module' : 'modules'}
                   </div>
                 </Card>

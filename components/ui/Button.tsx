@@ -13,13 +13,13 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   ...props
 }) => {
-  const baseStyles = 'font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background inline-flex items-center justify-center active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:[&_*]:opacity-[0.38]';
+  const baseStyles = 'font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] disabled-overlay disabled:cursor-not-allowed';
   
   const variants = {
-    primary: 'bg-accent text-accent-foreground focus:ring-accent shadow-sm hover-glow hover-overlay',
-    secondary: 'bg-muted text-foreground focus:ring-muted-foreground border border-border shadow-sm hover-overlay',
-    danger: 'bg-destructive text-destructive-foreground focus:ring-destructive shadow-sm hover-glow hover-overlay',
-    ghost: 'bg-transparent text-muted-foreground hover:text-foreground focus:ring-accent hover-overlay',
+    primary: 'bg-md-primary text-md-on-primary focus:ring-md-primary shadow-sm hover-glow hover-overlay',
+    secondary: 'bg-md-surface-variant text-md-on-surface focus:ring-md-on-surface-variant border border-md-outline shadow-sm hover-overlay',
+    danger: 'bg-md-error text-md-on-error focus:ring-md-error shadow-sm hover-glow hover-overlay',
+    ghost: 'bg-transparent text-md-on-surface-variant hover:text-md-on-surface focus:ring-md-primary hover-overlay',
   };
   
   const sizes = {

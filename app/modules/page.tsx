@@ -131,7 +131,7 @@ function SortableFieldItem({
     <div
       ref={combinedRef}
       style={style}
-      className="bg-elevated border border-border rounded-xl overflow-hidden transition-smooth elevation-1"
+      className="bg-md-surface-container border border-md-outline rounded-xl overflow-hidden transition-smooth elevation-1"
     >
       {/* Field Header */}
       <div className="flex items-center">
@@ -139,7 +139,7 @@ function SortableFieldItem({
         <button
           {...attributes}
           {...listeners}
-          className="p-3 text-muted-foreground hover:text-accent cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset transition-smooth"
+          className="p-3 text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-inset transition-smooth"
           aria-label={`Drag to reorder ${field.label || 'field'}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -163,25 +163,25 @@ function SortableFieldItem({
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-card-foreground">
+              <span className="font-semibold text-md-on-surface">
                 {field.label || 'Unnamed Field'}
               </span>
               {field.variableName && (
-                <code className="px-2.5 py-0.5 bg-accent text-accent-foreground rounded-full text-xs font-mono">
+                <code className="px-2.5 py-0.5 bg-md-primary text-md-primary-foreground rounded-full text-xs font-mono">
                   {field.variableName}
                 </code>
               )}
-              <span className="px-2.5 py-0.5 bg-muted border border-border rounded-full text-xs text-muted-foreground capitalize">
+              <span className="px-2.5 py-0.5 bg-md-surface-variant border border-border rounded-full text-xs text-md-on-surface-variant capitalize">
                 {field.type}
               </span>
               {field.required && (
-                <span className="px-2.5 py-0.5 bg-destructive text-destructive-foreground rounded-full text-xs font-medium">
+                <span className="px-2.5 py-0.5 bg-md-error text-md-on-error rounded-full text-xs font-medium">
                   Required
                 </span>
               )}
             </div>
             {field.description && (
-              <p className="text-sm text-muted-foreground mt-1.5 truncate">
+              <p className="text-sm text-md-on-surface-variant mt-1.5 truncate">
                 {field.description}
               </p>
             )}
@@ -193,7 +193,7 @@ function SortableFieldItem({
                 e.stopPropagation();
                 onToggleExpanded(field.id);
               }}
-              className="p-2 text-muted-foreground hover:text-foreground hover-overlay rounded-lg transition-smooth active:scale-95 relative"
+              className="p-2 text-md-on-surface-variant hover:text-md-on-surface hover-overlay rounded-lg transition-smooth active:scale-95 relative"
               aria-label={isExpanded ? 'Collapse field' : 'Expand field'}
             >
               {isExpanded ? (
@@ -210,7 +210,7 @@ function SortableFieldItem({
                   onRemoveField(field.id);
                 }
               }}
-              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-smooth active:scale-95"
+              className="p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 rounded-lg transition-smooth active:scale-95"
               aria-label="Remove field"
             >
               <Trash2 className="h-4 w-4" />
@@ -381,7 +381,7 @@ function SortableFieldItem({
             />
           )}
           {field.type === 'material' && (
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-md-on-surface-variant">
               The material variable represents the price of the selected material in your formula. If you&apos;ve selected a category above, only materials from that category will be available in the Quote Builder.
             </div>
           )}
@@ -1480,7 +1480,7 @@ export default function ModulesPage() {
           <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">
             {editingModuleId === 'new' ? 'Create Module' : 'Edit Module'}
           </h1>
-          <p className="text-lg text-muted-foreground">Define → Configure → Calculate</p>
+          <p className="text-lg text-md-on-surface-variant">Define → Configure → Calculate</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
@@ -1515,8 +1515,8 @@ export default function ModulesPage() {
                         onClick={() => setFormData({ ...formData, category: cat })}
                         className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                           formData.category === cat
-                            ? 'bg-accent text-accent-foreground shadow-sm'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border'
+                            ? 'bg-md-primary text-md-primary-foreground shadow-sm'
+                            : 'bg-md-surface-variant text-md-on-surface-variant hover:bg-md-surface-variant/80 hover:text-md-on-surface border border-border'
                         }`}
                       >
                         {cat}
@@ -1526,7 +1526,7 @@ export default function ModulesPage() {
                       <button
                         type="button"
                         onClick={() => setShowAddCategory(true)}
-                        className="px-4 py-2.5 rounded-full text-sm font-medium transition-all bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border border-dashed"
+                        className="px-4 py-2.5 rounded-full text-sm font-medium transition-all bg-md-surface-variant text-md-on-surface-variant hover:bg-md-surface-variant/80 hover:text-md-on-surface border border-border border-dashed"
                       >
                         <Plus className="h-4 w-4 inline mr-1" />
                         Add Category
@@ -1588,7 +1588,7 @@ export default function ModulesPage() {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, category: '' })}
-                      className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      className="mt-2 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors"
                     >
                       Clear category
                     </button>
@@ -1606,7 +1606,7 @@ export default function ModulesPage() {
               {fields.length === 0 ? (
                 <Card>
                   <div className="text-center py-6">
-                    <p className="text-sm text-muted-foreground mb-3">
+                    <p className="text-sm text-md-on-surface-variant mb-3">
                       Fields define the inputs required for your calculation formula. Each field becomes a variable you can use in your formula.
                     </p>
                     <Button size="sm" onClick={addField} className="rounded-full">
@@ -1678,17 +1678,17 @@ export default function ModulesPage() {
                       aria-expanded={fieldVariablesExpanded}
                     >
                       <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-semibold text-card-foreground">Field Variables</h4>
+                      <h4 className="text-sm font-semibold text-md-on-surface">Field Variables</h4>
                       {allFields.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-md-on-surface-variant">
                           {usedFields}/{allFields.length} fields
                         </span>
                       )}
                     </div>
                       {fieldVariablesExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <ChevronDown className="h-4 w-4 text-md-on-surface-variant group-hover:text-md-on-surface transition-colors" />
                       ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <ChevronRight className="h-4 w-4 text-md-on-surface-variant group-hover:text-md-on-surface transition-colors" />
                       )}
                     </button>
                     {fieldVariablesExpanded && (
@@ -1729,10 +1729,10 @@ export default function ModulesPage() {
                               aria-label={`Insert variable ${varInfo.name} (${varInfo.label}, ${varInfo.type})${showCheckmark ? ' - already in formula' : ''}`}
                               title={`${varInfo.label} (${varInfo.type})${isMaterialField ? ' - unit price' : ''}`}
                               className={cn(
-                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
                                 showCheckmark 
                                   ? "border-success bg-success hover:bg-success/90 text-success-foreground" 
-                                  : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                                  : "bg-md-primary text-md-primary-foreground hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
                               )}
                             >
                               {showCheckmark && (
@@ -1777,10 +1777,10 @@ export default function ModulesPage() {
                                       aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
                                       title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
                                         className={cn(
-                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
                                           isPropertyInFormula
                                             ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                          : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                                          : "bg-md-primary text-md-primary-foreground hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
                                         )}
                                       >
                                         {isPropertyInFormula && (
@@ -1809,19 +1809,19 @@ export default function ModulesPage() {
                       aria-expanded={materialVariablesExpanded}
                     >
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-semibold text-card-foreground">Material Variables</h4>
-                        <span className="text-xs text-muted-foreground">
+                        <h4 className="text-sm font-semibold text-md-on-surface">Material Variables</h4>
+                        <span className="text-xs text-md-on-surface-variant">
                           {availableMaterialVariables.length} {availableMaterialVariables.length === 1 ? 'material' : 'materials'}
                         </span>
                       </div>
                       {materialVariablesExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <ChevronDown className="h-4 w-4 text-md-on-surface-variant group-hover:text-md-on-surface transition-colors" />
                       ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <ChevronRight className="h-4 w-4 text-md-on-surface-variant group-hover:text-md-on-surface transition-colors" />
                       )}
                     </button>
                     {!materialVariablesExpanded && (
-                      <p className="text-xs text-muted-foreground mb-3">
+                      <p className="text-xs text-md-on-surface-variant mb-3">
                         Click to expand and access material variables for your formula.
                       </p>
                     )}
@@ -1860,10 +1860,10 @@ export default function ModulesPage() {
                               aria-label={`Insert material variable ${mat.name} (${mat.label} - $${mat.price.toFixed(2)} per ${mat.unit})`}
                               title={`${mat.label} - $${mat.price.toFixed(2)}/${mat.unit}`}
                               className={cn(
-                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
                                 isMaterialInFormula
                                   ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                  : "bg-accent text-accent-foreground hover:bg-muted hover:text-accent border-accent hover:border-border"
+                                  : "bg-md-primary text-md-primary-foreground hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
                               )}
                             >
                               {isMaterialInFormula && (
@@ -1905,10 +1905,10 @@ export default function ModulesPage() {
                                       aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
                                       title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
                                         className={cn(
-                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-background active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
                                           isPropertyInFormula
                                             ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                          : "bg-muted text-foreground hover:bg-muted/80 border border-border hover:border-accent/50"
+                                          : "bg-md-surface-variant text-foreground hover:bg-md-surface-variant/80 border border-border hover:border-accent/50"
                                         )}
                                       >
                                         {isPropertyInFormula && (
@@ -1929,7 +1929,7 @@ export default function ModulesPage() {
                 )}
 
                 {availableFieldVariables.length === 0 && availableMaterialVariables.length === 0 && (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
+                  <div className="text-center py-4 text-md-on-surface-variant text-sm">
                     <p>Add fields or materials to use variables in your formula</p>
                   </div>
                 )}
@@ -1937,18 +1937,18 @@ export default function ModulesPage() {
                 {/* Formula Editor */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label htmlFor="formula-input" className="text-sm font-semibold text-card-foreground">Formula</label>
+                    <label htmlFor="formula-input" className="text-sm font-semibold text-md-on-surface">Formula</label>
                     {formData.formula && (
                       <div className="flex items-center space-x-1" role="status" aria-live="polite">
                         {formulaValidation.valid ? (
                           <>
-                            <CheckCircle2 className="h-4 w-4 text-accent" aria-hidden="true" />
-                            <span className="text-xs text-accent font-medium">Valid</span>
+                            <CheckCircle2 className="h-4 w-4 text-md-primary" aria-hidden="true" />
+                            <span className="text-xs text-md-primary font-medium">Valid</span>
                           </>
                         ) : (
                           <>
-                            <XCircle className="h-4 w-4 text-destructive" aria-hidden="true" />
-                            <span className="text-xs text-destructive font-medium">Invalid</span>
+                            <XCircle className="h-4 w-4 text-md-error" aria-hidden="true" />
+                            <span className="text-xs text-md-error font-medium">Invalid</span>
                           </>
                         )}
                       </div>
@@ -2013,7 +2013,7 @@ export default function ModulesPage() {
                     {/* Autocomplete Dropdown */}
                     {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
                       <div
-                        className="fixed z-50 bg-elevated border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto"
+                        className="fixed z-50 bg-md-surface-container border border-md-outline rounded-lg shadow-lg max-h-64 overflow-y-auto"
                         style={{
                           top: `${autocompletePosition.top}px`,
                           left: `${autocompletePosition.left}px`,
@@ -2036,19 +2036,19 @@ export default function ModulesPage() {
                               className={cn(
                                 "w-full px-3 py-2 text-left flex items-center gap-2 transition-colors",
                                 isSelected
-                                  ? "bg-accent text-accent-foreground"
-                                  : "hover:bg-muted"
+                                  ? "bg-md-primary text-md-primary-foreground"
+                                  : "hover:bg-md-surface-variant"
                               )}
                             >
                               <code className="text-xs font-mono flex-1">{suggestion.displayName}</code>
                               {isRecent && (
-                                <span className="text-xs text-muted-foreground">●</span>
+                                <span className="text-xs text-md-on-surface-variant">●</span>
                               )}
                               <span className={cn(
                                 "text-xs px-1.5 py-0.5 rounded",
-                                suggestion.type === 'field' && "bg-accent/10 text-accent",
+                                suggestion.type === 'field' && "bg-md-primary/10 text-md-primary",
                                 suggestion.type === 'material' && "bg-success/10 text-success",
-                                suggestion.type === 'property' && "bg-accent-muted/10 text-accent-muted",
+                                suggestion.type === 'property' && "bg-md-primary-muted/10 text-md-primary-muted",
                                 suggestion.type === 'function' && "bg-warning/10 text-warning",
                                 suggestion.type === 'constant' && "bg-warning/10 text-warning"
                               )}>
@@ -2063,8 +2063,8 @@ export default function ModulesPage() {
                   {formulaValidation.valid && formulaValidation.preview !== undefined && (
                     <div className="mt-2 p-3" role="status" aria-live="polite">
                       <div className="flex items-center space-x-2">
-                        <Calculator className="h-4 w-4 text-accent" aria-hidden="true" />
-                        <span className="text-xs text-muted-foreground">Preview (with defaults):</span>
+                        <Calculator className="h-4 w-4 text-md-primary" aria-hidden="true" />
+                        <span className="text-xs text-md-on-surface-variant">Preview (with defaults):</span>
                         <span className="text-sm font-bold text-success">
                           ${formulaValidation.preview.toFixed(2)}
                         </span>
@@ -2075,10 +2075,10 @@ export default function ModulesPage() {
 
                 {/* Formula Debug Panel */}
                 <details className="mt-4">
-                  <summary className="cursor-pointer text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                  <summary className="cursor-pointer text-sm font-semibold text-md-on-surface-variant hover:text-md-on-surface transition-colors">
                     Formula debug (detected variables)
                   </summary>
-                  <div className="mt-3 space-y-3 p-3 bg-muted/30 rounded-lg border border-border">
+                  <div className="mt-3 space-y-3 p-3 bg-md-surface-variant/30 rounded-lg border border-border">
                     {(() => {
                       const debugInfo = analyzeFormulaVariables(
                         formData.formula,
@@ -2095,7 +2095,7 @@ export default function ModulesPage() {
                         <>
                           {/* Standalone Variables */}
                           <div>
-                            <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                            <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
                               Standalone Variables ({debugInfo.variables.length})
                             </h5>
                             {debugInfo.variables.length > 0 ? (
@@ -2103,20 +2103,20 @@ export default function ModulesPage() {
                                 {debugInfo.variables.map((varName: string) => (
                                   <code
                                     key={varName}
-                                    className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-accent"
+                                    className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-md-primary"
                                   >
                                     {varName}
                                   </code>
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-xs text-muted-foreground italic">None</p>
+                              <p className="text-xs text-md-on-surface-variant italic">None</p>
                             )}
                           </div>
 
                           {/* Unknown Variables */}
                           <div>
-                            <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                            <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
                               Unknown Variables ({debugInfo.unknownVariables.length})
                             </h5>
                             {debugInfo.unknownVariables.length > 0 ? (
@@ -2124,20 +2124,20 @@ export default function ModulesPage() {
                                 {debugInfo.unknownVariables.map((varName: string) => (
                                   <code
                                     key={varName}
-                                    className="px-2 py-1 bg-destructive/10 border border-destructive/30 rounded text-xs font-mono text-destructive"
+                                    className="px-2 py-1 bg-md-error/10 border border-destructive/30 rounded text-xs font-mono text-md-error"
                                   >
                                     {varName}
                                   </code>
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-xs text-muted-foreground italic">None</p>
+                              <p className="text-xs text-md-on-surface-variant italic">None</p>
                             )}
                           </div>
 
                           {/* Field Property References */}
                           <div>
-                            <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                            <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
                               Field Property References ({debugInfo.fieldPropertyRefs.length})
                             </h5>
                             {debugInfo.fieldPropertyRefs.length > 0 ? (
@@ -2145,7 +2145,7 @@ export default function ModulesPage() {
                                 {debugInfo.fieldPropertyRefs.map((ref: { full: string; fieldVar: string; property: string }, idx: number) => (
                                   <code
                                     key={`${ref.full}-${idx}`}
-                                    className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-accent"
+                                    className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-md-primary"
                                     title={`${ref.fieldVar}.${ref.property}`}
                                   >
                                     {ref.full}
@@ -2153,13 +2153,13 @@ export default function ModulesPage() {
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-xs text-muted-foreground italic">None</p>
+                              <p className="text-xs text-md-on-surface-variant italic">None</p>
                             )}
                           </div>
 
                           {/* Material Property References */}
                           <div>
-                            <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                            <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
                               Material Property References ({debugInfo.materialPropertyRefs.length})
                             </h5>
                             {debugInfo.materialPropertyRefs.length > 0 ? (
@@ -2167,7 +2167,7 @@ export default function ModulesPage() {
                                 {debugInfo.materialPropertyRefs.map((ref: { full: string; materialVar: string; property: string }, idx: number) => (
                                   <code
                                     key={`${ref.full}-${idx}`}
-                                    className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-accent"
+                                    className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-md-primary"
                                     title={`${ref.materialVar}.${ref.property}`}
                                   >
                                     {ref.full}
@@ -2175,21 +2175,21 @@ export default function ModulesPage() {
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-xs text-muted-foreground italic">None</p>
+                              <p className="text-xs text-md-on-surface-variant italic">None</p>
                             )}
                           </div>
 
                           {/* Math Functions (for reference) */}
                           {debugInfo.mathFunctions.length > 0 && (
                             <div>
-                              <h5 className="text-xs font-semibold text-card-foreground mb-1.5">
+                              <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
                                 Math Functions ({debugInfo.mathFunctions.length})
                               </h5>
                               <div className="flex flex-wrap gap-1.5">
                                 {debugInfo.mathFunctions.map((funcName: string) => (
                                   <code
                                     key={funcName}
-                                    className="px-2 py-1 bg-muted border border-border rounded text-xs font-mono text-muted-foreground"
+                                    className="px-2 py-1 bg-md-surface-variant border border-border rounded text-xs font-mono text-md-on-surface-variant"
                                   >
                                     {funcName}
                                   </code>
@@ -2205,149 +2205,149 @@ export default function ModulesPage() {
 
                 {/* Operators Guide */}
                 <div className="pt-4 border-t border-border">
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                  <h4 className="text-xs font-semibold text-md-on-surface-variant mb-2 uppercase tracking-wide">
                     Supported Operators
                   </h4>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('+')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert addition operator"
                     >
-                      <code className="text-accent font-mono">+</code> <span className="text-muted-foreground ml-1">Add</span>
+                      <code className="text-md-primary font-mono">+</code> <span className="text-md-on-surface-variant ml-1">Add</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('-')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert subtraction operator"
                     >
-                      <code className="text-accent font-mono font-semibold">-</code> <span className="text-muted-foreground ml-1">Subtract</span>
+                      <code className="text-md-primary font-mono font-semibold">-</code> <span className="text-md-on-surface-variant ml-1">Subtract</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('*')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert multiplication operator"
                     >
-                      <code className="text-accent font-mono font-semibold">*</code> <span className="text-muted-foreground ml-1">Multiply</span>
+                      <code className="text-md-primary font-mono font-semibold">*</code> <span className="text-md-on-surface-variant ml-1">Multiply</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('/')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert division operator"
                     >
-                      <code className="text-accent font-mono font-semibold">/</code> <span className="text-muted-foreground ml-1">Divide</span>
+                      <code className="text-md-primary font-mono font-semibold">/</code> <span className="text-md-on-surface-variant ml-1">Divide</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('()')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert parentheses"
                     >
-                      <code className="text-accent font-mono font-semibold">()</code> <span className="text-muted-foreground ml-1">Grouping</span>
+                      <code className="text-md-primary font-mono font-semibold">()</code> <span className="text-md-on-surface-variant ml-1">Grouping</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('sqrt()')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert square root function"
                     >
-                      <code className="text-accent font-mono font-semibold">sqrt()</code> <span className="text-muted-foreground ml-1">Square root</span>
+                      <code className="text-md-primary font-mono font-semibold">sqrt()</code> <span className="text-md-on-surface-variant ml-1">Square root</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('round()')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert round function"
                     >
-                      <code className="text-accent font-mono font-semibold">round(x)</code> <span className="text-muted-foreground ml-1">Round to nearest integer</span>
+                      <code className="text-md-primary font-mono font-semibold">round(x)</code> <span className="text-md-on-surface-variant ml-1">Round to nearest integer</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('round(, )')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert round function with decimals"
                     >
-                      <code className="text-accent font-mono font-semibold">round(x, decimals)</code> <span className="text-muted-foreground ml-1">Round to fixed decimals</span>
+                      <code className="text-md-primary font-mono font-semibold">round(x, decimals)</code> <span className="text-md-on-surface-variant ml-1">Round to fixed decimals</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('ceil()')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert ceil function"
                     >
-                      <code className="text-accent font-mono font-semibold">ceil(x)</code> <span className="text-muted-foreground ml-1">Round up to next integer</span>
+                      <code className="text-md-primary font-mono font-semibold">ceil(x)</code> <span className="text-md-on-surface-variant ml-1">Round up to next integer</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertOperatorAtCursor('floor()')}
-                      className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                      className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                       aria-label="Insert floor function"
                     >
-                      <code className="text-accent font-mono font-semibold">floor(x)</code> <span className="text-muted-foreground ml-1">Round down to previous integer</span>
+                      <code className="text-md-primary font-mono font-semibold">floor(x)</code> <span className="text-md-on-surface-variant ml-1">Round down to previous integer</span>
                     </button>
                   </div>
                   
                   {/* Comparison Operators */}
                   <div className="mt-4 pt-4 border-t border-border">
-                    <h5 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                    <h5 className="text-xs font-semibold text-md-on-surface-variant mb-2 uppercase tracking-wide">
                       Comparison Operators
                     </h5>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                       <button
                         type="button"
                         onClick={() => insertOperatorAtCursor('==')}
-                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                         aria-label="Insert equals operator"
                       >
-                        <code className="text-accent font-mono font-semibold">==</code> <span className="text-muted-foreground ml-1">Equals</span>
+                        <code className="text-md-primary font-mono font-semibold">==</code> <span className="text-md-on-surface-variant ml-1">Equals</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => insertOperatorAtCursor('!=')}
-                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                         aria-label="Insert not equals operator"
                       >
-                        <code className="text-accent font-mono font-semibold">!=</code> <span className="text-muted-foreground ml-1">Not equals</span>
+                        <code className="text-md-primary font-mono font-semibold">!=</code> <span className="text-md-on-surface-variant ml-1">Not equals</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => insertOperatorAtCursor('>')}
-                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                         aria-label="Insert greater than operator"
                       >
-                        <code className="text-accent font-mono font-semibold">&gt;</code> <span className="text-muted-foreground ml-1">Greater than</span>
+                        <code className="text-md-primary font-mono font-semibold">&gt;</code> <span className="text-md-on-surface-variant ml-1">Greater than</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => insertOperatorAtCursor('<')}
-                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                         aria-label="Insert less than operator"
                       >
-                        <code className="text-accent font-mono font-semibold">&lt;</code> <span className="text-muted-foreground ml-1">Less than</span>
+                        <code className="text-md-primary font-mono font-semibold">&lt;</code> <span className="text-md-on-surface-variant ml-1">Less than</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => insertOperatorAtCursor('>=')}
-                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                         aria-label="Insert greater or equal operator"
                       >
-                        <code className="text-accent font-mono font-semibold">&gt;=</code> <span className="text-muted-foreground ml-1">Greater or equal</span>
+                        <code className="text-md-primary font-mono font-semibold">&gt;=</code> <span className="text-md-on-surface-variant ml-1">Greater or equal</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => insertOperatorAtCursor('<=')}
-                        className="px-2 py-0.5 text-left hover:text-accent transition-colors cursor-pointer"
+                        className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
                         aria-label="Insert less or equal operator"
                       >
-                        <code className="text-accent font-mono font-semibold">&lt;=</code> <span className="text-muted-foreground ml-1">Less or equal</span>
+                        <code className="text-md-primary font-mono font-semibold">&lt;=</code> <span className="text-md-on-surface-variant ml-1">Less or equal</span>
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-3 px-2">
-                      <strong>Note:</strong> Boolean fields convert to 1 (true) or 0 (false). Use comparisons for conditional logic, e.g., <code className="text-accent">base_price * (include_tax == 1)</code>
+                    <p className="text-xs text-md-on-surface-variant mt-3 px-2">
+                      <strong>Note:</strong> Boolean fields convert to 1 (true) or 0 (false). Use comparisons for conditional logic, e.g., <code className="text-md-primary">base_price * (include_tax == 1)</code>
                     </p>
                   </div>
                 </div>
@@ -2379,20 +2379,20 @@ export default function ModulesPage() {
             tabIndex={-1}
           >
             <div 
-              className="bg-elevated border border-border rounded-xl overflow-hidden transition-smooth w-full max-w-3xl max-h-[90vh] overflow-y-auto elevation-8"
+              className="bg-md-surface-container border border-md-outline rounded-xl overflow-hidden transition-smooth w-full max-w-3xl max-h-[90vh] overflow-y-auto elevation-8"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Preview Card Header */}
               <div className="flex items-center justify-between p-4 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-card-foreground">
+                  <span className="font-semibold text-md-on-surface">
                     {formData.name || 'Module Preview'}
                   </span>
-                  <span className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-xs font-medium">
+                  <span className="px-2 py-0.5 bg-md-primary/10 text-md-primary rounded-full text-xs font-medium">
                     Preview
                   </span>
                   {formData.category && (
-                    <span className="px-2.5 py-0.5 bg-accent/10 text-accent rounded-full text-xs font-medium">
+                    <span className="px-2.5 py-0.5 bg-md-primary/10 text-md-primary rounded-full text-xs font-medium">
                       {formData.category}
                     </span>
                   )}
@@ -2405,7 +2405,7 @@ export default function ModulesPage() {
                     setPreviewCalculatedCost(0);
                     setPreviewError(null);
                   }}
-                  className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="p-2 text-md-on-surface-variant hover:text-md-on-surface transition-colors"
                   aria-label="Close preview"
                 >
                   <X className="h-5 w-5" />
@@ -2415,7 +2415,7 @@ export default function ModulesPage() {
               {/* Preview Card Content */}
               <div className="px-4 pb-6">
                 {formData.description && (
-                  <p className="text-sm text-muted-foreground mb-5 mt-4">{formData.description}</p>
+                  <p className="text-sm text-md-on-surface-variant mb-5 mt-4">{formData.description}</p>
                 )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
@@ -2442,10 +2442,10 @@ export default function ModulesPage() {
                           <div key={field.id}>
                             <label className="block text-sm font-medium text-label-foreground mb-1.5">
                               {formatLabel(field.label, field.unit, field.unitSymbol)}
-                              {field.required && <span className="text-destructive ml-1">*</span>}
+                              {field.required && <span className="text-md-error ml-1">*</span>}
                             </label>
                             {field.description && (
-                              <p className="text-xs text-muted-foreground mb-1.5">
+                              <p className="text-xs text-md-on-surface-variant mb-1.5">
                                 {field.description}
                               </p>
                             )}
@@ -2472,10 +2472,10 @@ export default function ModulesPage() {
                           <div key={field.id}>
                             <label className="block text-sm font-medium text-label-foreground mb-1.5">
                               {formatLabel(field.label, field.unit, field.unitSymbol)}
-                              {field.required && <span className="text-destructive ml-1">*</span>}
+                              {field.required && <span className="text-md-error ml-1">*</span>}
                             </label>
                             {field.description && (
-                              <p className="text-xs text-muted-foreground mb-1.5">
+                              <p className="text-xs text-md-on-surface-variant mb-1.5">
                                 {field.description}
                               </p>
                             )}
@@ -2523,10 +2523,10 @@ export default function ModulesPage() {
                             <div key={field.id}>
                               <label className="block text-sm font-medium text-label-foreground mb-1.5">
                                 {formatLabel(field.label, field.unit, field.unitSymbol)}
-                                {field.required && <span className="text-destructive ml-1">*</span>}
+                                {field.required && <span className="text-md-error ml-1">*</span>}
                               </label>
                               {field.description && (
-                                <p className="text-xs text-muted-foreground mb-1.5">
+                                <p className="text-xs text-md-on-surface-variant mb-1.5">
                                   {field.description}
                                 </p>
                               )}
@@ -2563,10 +2563,10 @@ export default function ModulesPage() {
                           <div key={field.id}>
                             <label className="block text-sm font-medium text-label-foreground mb-1.5">
                               {formatLabel(field.label, field.unit, field.unitSymbol)}
-                              {field.required && <span className="text-destructive ml-1">*</span>}
+                              {field.required && <span className="text-md-error ml-1">*</span>}
                             </label>
                             {field.description && (
-                              <p className="text-xs text-muted-foreground mb-1.5">
+                              <p className="text-xs text-md-on-surface-variant mb-1.5">
                                 {field.description}
                               </p>
                             )}
@@ -2602,10 +2602,10 @@ export default function ModulesPage() {
                             <div className="mb-1.5">
                               <label className="block text-sm font-medium text-label-foreground">
                                 {formatLabel(field.label, field.unit, field.unitSymbol)}
-                                {field.required && <span className="text-destructive ml-1">*</span>}
+                                {field.required && <span className="text-md-error ml-1">*</span>}
                               </label>
                               {field.description && (
-                                <p className="text-xs text-muted-foreground mt-0.5">
+                                <p className="text-xs text-md-on-surface-variant mt-0.5">
                                   {field.description}
                                 </p>
                               )}
@@ -2628,7 +2628,7 @@ export default function ModulesPage() {
                               ]}
                             />
                             {materialCategory && sortedMaterials.length === 0 && (
-                              <p className="text-xs text-muted-foreground mt-1">
+                              <p className="text-xs text-md-on-surface-variant mt-1">
                                 No materials available in category &quot;{materialCategory}&quot;.
                               </p>
                             )}
@@ -2640,10 +2640,10 @@ export default function ModulesPage() {
                           <div key={field.id}>
                             <label className="block text-sm font-medium text-label-foreground mb-1.5">
                               {formatLabel(field.label, field.unit, field.unitSymbol)}
-                              {field.required && <span className="text-destructive ml-1">*</span>}
+                              {field.required && <span className="text-md-error ml-1">*</span>}
                             </label>
                             {field.description && (
-                              <p className="text-xs text-muted-foreground mb-1.5">
+                              <p className="text-xs text-md-on-surface-variant mb-1.5">
                                 {field.description}
                               </p>
                             )}
@@ -2668,9 +2668,9 @@ export default function ModulesPage() {
 
                 {/* Calculated Cost */}
                 <div className="flex items-center justify-between pt-5 border-t border-border">
-                  <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Module Cost</span>
+                  <span className="text-sm font-semibold text-md-on-surface-variant uppercase tracking-wide">Module Cost</span>
                   {previewError ? (
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-md-on-surface-variant">
                       {previewError}
                     </span>
                   ) : (
@@ -2760,7 +2760,7 @@ export default function ModulesPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">Calculation Modules</h1>
-          <p className="text-lg text-muted-foreground">Create reusable calculation modules with custom fields and formulas</p>
+          <p className="text-lg text-md-on-surface-variant">Create reusable calculation modules with custom fields and formulas</p>
         </div>
         <Button onClick={() => startEditing()} className="rounded-full">
           <Plus className="h-4 w-4 mr-2" />
@@ -2771,11 +2771,11 @@ export default function ModulesPage() {
       {modules.length === 0 ? (
         <Card>
           <div className="text-center py-24">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted shadow-lg mb-6" aria-hidden="true">
-              <Calculator className="h-12 w-12 text-muted-foreground" />
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-md-surface-variant shadow-lg mb-6" aria-hidden="true">
+              <Calculator className="h-12 w-12 text-md-on-surface-variant" />
             </div>
             <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">No Modules Yet</h3>
-            <p className="text-base text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">Create your first calculation module to get started building professional estimates.</p>
+            <p className="text-base text-md-on-surface-variant mb-8 max-w-md mx-auto leading-relaxed">Create your first calculation module to get started building professional estimates.</p>
             <Button onClick={() => startEditing()} className="rounded-full">
               <Plus className="h-4 w-4 mr-2" />
               Create Module
@@ -2800,32 +2800,32 @@ export default function ModulesPage() {
                       deleteModule(module.id);
                     }
                   }}
-                  className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-smooth active:scale-95 z-10"
+                  className="absolute top-4 right-4 p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 rounded-lg transition-smooth active:scale-95 z-10"
                   aria-label="Delete module"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
 
-                <h3 className="text-lg font-bold text-card-foreground mb-3 group-hover:text-accent transition-smooth tracking-tight pr-10">
+                <h3 className="text-lg font-bold text-md-on-surface mb-3 group-hover:text-md-primary transition-smooth tracking-tight pr-10">
                   {module.name}
                 </h3>
               {module.category && (
                 <div className="mb-3">
-                  <span className="px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
+                  <span className="px-3 py-1 bg-md-primary/10 text-md-primary text-xs font-medium rounded-full">
                     {module.category}
                   </span>
                 </div>
               )}
-              <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+              <p className="text-sm text-md-on-surface-variant mb-4 line-clamp-2">
                 {module.description || 'No description'}
               </p>
               <div className="mb-5">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Fields</p>
+                <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">Fields</p>
                 <div className="flex flex-wrap gap-2">
                   {module.fields.map((field) => (
                     <span
                       key={field.id}
-                      className="px-2.5 py-1 bg-muted text-muted-foreground rounded-full text-xs"
+                      className="px-2.5 py-1 bg-md-surface-variant text-md-on-surface-variant rounded-full text-xs"
                     >
                       {field.label}
                     </span>
@@ -2833,8 +2833,8 @@ export default function ModulesPage() {
                 </div>
               </div>
               <div className="mb-4">
-                <p className="text-xs text-muted-foreground mb-1">Formula:</p>
-                <code className="block px-3 py-2 bg-muted rounded text-sm text-accent break-all">
+                <p className="text-xs text-md-on-surface-variant mb-1">Formula:</p>
+                <code className="block px-3 py-2 bg-md-surface-variant rounded text-sm text-md-primary break-all">
                   {module.formula}
                 </code>
               </div>
