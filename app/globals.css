@@ -3,97 +3,269 @@
 @tailwind utilities;
 
 :root {
-  /* Light theme - Professional with REAL visible hierarchy */
-  --background: 243 244 246;          /* Cool gray background - NOT white */
-  --foreground: 15 23 42;             /* Deep slate text */
-  --card: 255 255 255;                /* Pure white cards - elevated on gray */
-  --card-foreground: 15 23 42;        /* Deep slate on cards */
-  --muted: 248 250 252;               /* Very light gray - subtle surfaces */
-  --muted-foreground: 100 116 139;    /* Medium slate text */
-  --label-foreground: 15 23 42;       /* Same as foreground in light mode */
-  --input-bg: 242 244 246;            /* More noticeably darker than card (~5% contrast) */
-  --border: 226 232 240;              /* Soft visible borders */
-  --accent: 37 99 235;                /* Vibrant professional blue */
-  --accent-foreground: 255 255 255;   /* White on accent */
-  --destructive: 220 38 38;           /* Clear red */
-  --destructive-foreground: 255 255 255;
-  --success: 22 163 74;               /* Green for success */
-  --success-foreground: 255 255 255;   /* Light text on green background (light mode) */
+  /* ============================================
+     Material Design 3 Color System - Light Mode
+     ============================================ */
   
-  /* Corner Radius Tokens - Concentricity System */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
-  --radius-full: 9999px;
+  /* MD3 Primary Palette */
+  --md-primary: 37 99 235;                    /* Primary color */
+  --md-on-primary: 255 255 255;               /* Text/icon on primary */
+  --md-primary-container: 219 234 254;         /* Primary container background */
+  --md-on-primary-container: 15 23 42;         /* Text/icon on primary container */
   
-  /* Slab Shadow Tokens - Physical, grounded appearance */
-  /* Two-part shadows: tight edge + soft base */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.08);
-  --shadow-md: 0 2px 4px rgba(0,0,0,.14), 0 6px 12px rgba(0,0,0,.12);
-  --shadow-lg: 0 4px 6px rgba(0,0,0,.16), 0 12px 24px rgba(0,0,0,.12);
-  --shadow-xl: 0 8px 10px rgba(0,0,0,.18), 0 20px 40px rgba(0,0,0,.18);
+  /* MD3 Secondary Palette */
+  --md-secondary: 59 130 246;                 /* Secondary color */
+  --md-on-secondary: 255 255 255;             /* Text/icon on secondary */
+  --md-secondary-container: 191 219 254;        /* Secondary container */
+  --md-on-secondary-container: 15 23 42;       /* Text/icon on secondary container */
+  
+  /* MD3 Tertiary Palette */
+  --md-tertiary: 168 85 247;                  /* Tertiary color */
+  --md-on-tertiary: 255 255 255;               /* Text/icon on tertiary */
+  --md-tertiary-container: 233 213 255;        /* Tertiary container */
+  --md-on-tertiary-container: 15 23 42;         /* Text/icon on tertiary container */
+  
+  /* MD3 Error Palette */
+  --md-error: 220 38 38;                       /* Error color */
+  --md-on-error: 255 255 255;                  /* Text/icon on error */
+  --md-error-container: 254 226 226;           /* Error container background */
+  --md-on-error-container: 127 29 29;          /* Text/icon on error container */
+  
+  /* MD3 Surface System */
+  --md-surface: 240 244 248;                   /* Base surface color */
+  --md-on-surface: 15 23 42;                    /* Text/icon on surface */
+  --md-surface-variant: 248 250 252;           /* Surface variant */
+  --md-on-surface-variant: 71 85 105;          /* Text/icon on surface variant */
+  
+  /* MD3 Surface Container Hierarchy */
+  --md-surface-container-lowest: 240 244 248;  /* Lowest - base background */
+  --md-surface-container-low: 248 250 252;      /* Low - muted surfaces */
+  --md-surface-container: 255 255 255;          /* Default - cards, containers */
+  --md-surface-container-high: 255 255 255;      /* High - elevated surfaces */
+  --md-surface-container-highest: 255 255 255;  /* Highest - pure white */
+  
+  /* MD3 Outline System */
+  --md-outline: 226 232 240;                   /* Outline color */
+  --md-outline-variant: 241 245 249;           /* Outline variant (lighter) */
+  
+  /* MD3 Shape System (Border Radius) */
+  --md-shape-corner-none: 0px;
+  --md-shape-corner-extra-small: 4px;
+  --md-shape-corner-small: 8px;
+  --md-shape-corner-medium: 12px;
+  --md-shape-corner-large: 16px;
+  --md-shape-corner-extra-large: 28px;
+  --md-shape-corner-full: 9999px;
+  
+  /* MD3 Elevation Overlay Opacities */
+  --md-elevation-overlay-0: 0;
+  --md-elevation-overlay-1: 0.05;
+  --md-elevation-overlay-2: 0.07;
+  --md-elevation-overlay-3: 0.08;
+  --md-elevation-overlay-4: 0.09;
+  --md-elevation-overlay-5: 0.10;
+  --md-elevation-overlay-8: 0.12;
+  --md-elevation-overlay-12: 0.14;
+  --md-elevation-overlay-16: 0.15;
+  --md-elevation-overlay-24: 0.16;
+  
+  /* ============================================
+     Legacy Variables (Backward Compatibility)
+     Maps to MD3 tokens for existing code
+     ============================================ */
+  
+  /* Base Layer Tokens */
+  --surface: var(--md-surface-container-lowest);
+  --surface-muted: var(--md-surface-container-low);
+  --panel: var(--md-surface-container);
+  --panel-muted: var(--md-surface-container-low);
+  --elevated: var(--md-surface-container);
+  --overlay: 0 0 0;
+  
+  /* Legacy mappings */
+  --background: var(--md-surface);
+  --foreground: var(--md-on-surface);
+  --card: var(--md-surface-container);
+  --card-foreground: var(--md-on-surface);
+  --muted: var(--md-surface-variant);
+  --muted-foreground: var(--md-on-surface-variant);
+  --label-foreground: var(--md-on-surface);
+  --input-bg: 242 244 246;                    /* Custom - slightly darker than container */
+  --border: var(--md-outline);
+  
+  /* Interaction / State Tokens */
+  --accent: var(--md-primary);
+  --accent-muted: var(--md-primary-container);
+  --accent-foreground: var(--md-on-primary);
+  --separator: var(--md-outline);
+  --focus: var(--md-primary);
+  --disabled: 156 163 175;                    /* Custom disabled color */
+  --warning: 245 158 11;                      /* Custom warning (not in MD3) */
+  --destructive: var(--md-error);
+  --destructive-foreground: var(--md-on-error);
+  --success: 22 163 74;                       /* Custom success (not in MD3) */
+  --success-foreground: 15 23 42;
+  
+  /* Typography Tokens */
+  --text: var(--md-on-surface);
+  --text-muted: var(--md-on-surface-variant);
+  --text-inverted: 255 255 255;
+  
+  /* Border Radius Tokens (map to MD3 shape) */
+  --radius-xs: var(--md-shape-corner-extra-small);
+  --radius-sm: 6px;                            /* Custom - between extra-small and small */
+  --radius-md: var(--md-shape-corner-small);
+  --radius-lg: var(--md-shape-corner-medium);
+  --radius-xl: var(--md-shape-corner-large);
+  --radius-2xl: 20px;                          /* Custom - between large and extra-large */
+  --radius-full: var(--md-shape-corner-full);
+  
+  /* Elevation Overlay Opacities (map to MD3) */
+  --elevation-overlay-0: var(--md-elevation-overlay-0);
+  --elevation-overlay-1: var(--md-elevation-overlay-1);
+  --elevation-overlay-2: var(--md-elevation-overlay-2);
+  --elevation-overlay-3: var(--md-elevation-overlay-3);
+  --elevation-overlay-4: var(--md-elevation-overlay-4);
+  --elevation-overlay-5: var(--md-elevation-overlay-5);
+  --elevation-overlay-8: var(--md-elevation-overlay-8);
+  --elevation-overlay-12: var(--md-elevation-overlay-12);
+  --elevation-overlay-16: var(--md-elevation-overlay-16);
+  --elevation-overlay-24: var(--md-elevation-overlay-24);
 }
 
 .dark {
-  /* Material Design 3 Dark Theme */
-  /* Background: Material Design's standard dark background */
-  --background: 12 12 12;             /* #121212 - Material dark background */
+  /* ============================================
+     Material Design 3 Color System - Dark Mode
+     ============================================ */
   
-  /* Foreground: High contrast primary text (87% opacity white) */
-  --foreground: 255 255 255;           /* Pure white for maximum contrast */
+  /* MD3 Primary Palette - Dark Mode */
+  --md-primary: 147 197 253;                   /* Lighter blue for dark mode */
+  --md-on-primary: 15 23 42;                   /* Dark text on primary */
+  --md-primary-container: 30 58 138;           /* Darker blue container */
+  --md-on-primary-container: 219 234 254;     /* Light text on container */
   
-  /* Card/Surface: Elevated surface (slightly lighter than background) */
-  --card: 30 30 30;                   /* #1E1E1E - Material surface color */
-  --card-foreground: 255 255 255;      /* White text on surfaces */
+  /* MD3 Secondary Palette - Dark Mode */
+  --md-secondary: 147 197 253;                 /* Secondary color */
+  --md-on-secondary: 15 23 42;                 /* Dark text on secondary */
+  --md-secondary-container: 30 58 138;         /* Secondary container */
+  --md-on-secondary-container: 219 234 254;     /* Light text on container */
   
-  /* Muted: Intermediate surface between background and card */
-  --muted: 23 23 23;                  /* #171717 - Between background and card */
-  --muted-foreground: 140 140 140;    /* ~55% opacity white - Help text (dimmest) */
+  /* MD3 Tertiary Palette - Dark Mode */
+  --md-tertiary: 168 85 247;                   /* Tertiary color */
+  --md-on-tertiary: 255 255 255;               /* White text on tertiary */
+  --md-tertiary-container: 91 33 182;          /* Tertiary container */
+  --md-on-tertiary-container: 233 213 255;     /* Light text on container */
   
-  /* Label: Dimmer than foreground, brighter than muted-foreground */
-  --label-foreground: 200 200 200;    /* ~78% opacity white - Labels (dimmer than input text) */
+  /* MD3 Error Palette - Dark Mode */
+  --md-error: 207 102 121;                     /* Material error (desaturated red) */
+  --md-on-error: 255 255 255;                   /* White text on error */
+  --md-error-container: 127 29 29;             /* Error container background */
+  --md-on-error-container: 255 218 218;         /* Light text on error container */
   
-  /* Input background: More noticeably darker than card (~20% contrast) */
-  --input-bg: 24 24 24;                /* #181818 - More noticeably darker than card #1E1E1E */
+  /* MD3 Surface System - Dark Mode */
+  --md-surface: 18 18 18;                      /* Base surface - #121212 */
+  --md-on-surface: 255 255 255;                 /* White text on surface */
+  --md-surface-variant: 23 23 23;              /* Surface variant */
+  --md-on-surface-variant: 200 200 200;        /* Text/icon on surface variant */
   
-  /* Border: Subtle borders with low opacity (will be applied at 12% opacity) */
-  --border: 255 255 255;              /* White borders - opacity handled via CSS */
+  /* MD3 Surface Container Hierarchy - Dark Mode */
+  --md-surface-container-lowest: 18 18 18;     /* Lowest - #121212 */
+  --md-surface-container-low: 23 23 23;        /* Low - #171717 */
+  --md-surface-container: 30 30 30;             /* Default - #1E1E1E */
+  --md-surface-container-high: 38 38 38;        /* High - slightly lighter */
+  --md-surface-container-highest: 45 45 45;     /* Highest - lightest */
   
-  /* Accent: Material Design primary color (desaturated blue for dark theme) */
-  --accent: 103 178 255;              /* #67B2FF - Desaturated blue, Material primary */
-  --accent-foreground: 18 18 18;       /* Dark text on accent for contrast */
+  /* MD3 Outline System - Dark Mode */
+  --md-outline: 100 116 139;                   /* Outline color */
+  --md-outline-variant: 71 85 105;             /* Outline variant (darker) */
   
-  /* Destructive: Material Design error color */
-  --destructive: 207 102 121;          /* #CF6679 - Material error (desaturated red) */
-  --destructive-foreground: 18 18 18;  /* Dark text on error (dark mode) */
+  /* MD3 Shape System (same as light mode) */
+  --md-shape-corner-none: 0px;
+  --md-shape-corner-extra-small: 4px;
+  --md-shape-corner-small: 8px;
+  --md-shape-corner-medium: 12px;
+  --md-shape-corner-large: 16px;
+  --md-shape-corner-extra-large: 28px;
+  --md-shape-corner-full: 9999px;
   
-  /* Success: Material Design success color */
-  --success: 76 175 80;                /* #4CAF50 - Material success green */
-  --success-foreground: 18 18 18;       /* Dark text on success (dark mode) */
+  /* MD3 Elevation Overlay Opacities (same as light mode) */
+  --md-elevation-overlay-0: 0;
+  --md-elevation-overlay-1: 0.05;
+  --md-elevation-overlay-2: 0.07;
+  --md-elevation-overlay-3: 0.08;
+  --md-elevation-overlay-4: 0.09;
+  --md-elevation-overlay-5: 0.10;
+  --md-elevation-overlay-8: 0.12;
+  --md-elevation-overlay-12: 0.14;
+  --md-elevation-overlay-16: 0.15;
+  --md-elevation-overlay-24: 0.16;
   
-  /* Slab Shadow Tokens - Dark theme with subtle light bloom */
-  /* Prevents "void collapse" in dark mode */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.5), 0 0 2px rgba(255,255,255,.04);
-  --shadow-md: 0 2px 6px rgba(0,0,0,.55), 0 0 4px rgba(255,255,255,.06);
-  --shadow-lg: 0 6px 12px rgba(0,0,0,.6), 0 0 8px rgba(255,255,255,.08);
-  --shadow-xl: 0 10px 24px rgba(0,0,0,.65), 0 0 16px rgba(255,255,255,.1);
+  /* ============================================
+     Legacy Variables (Backward Compatibility)
+     ============================================ */
+  
+  /* Base Layer Tokens */
+  --surface: var(--md-surface-container-lowest);
+  --surface-muted: var(--md-surface-container-low);
+  --panel: var(--md-surface-container);
+  --panel-muted: var(--md-surface-container-low);
+  --elevated: var(--md-surface-container);
+  --overlay: 0 0 0;
+  
+  /* Legacy mappings */
+  --background: var(--md-surface);
+  --foreground: var(--md-on-surface);
+  --card: var(--md-surface-container);
+  --card-foreground: var(--md-on-surface);
+  --muted: var(--md-surface-variant);
+  --muted-foreground: 140 140 140;            /* Custom - dimmer than on-surface-variant */
+  --label-foreground: var(--md-on-surface-variant);
+  --input-bg: 24 24 24;                        /* Custom - darker than container */
+  --border: var(--md-outline);
+  
+  /* Interaction / State Tokens */
+  --accent: var(--md-primary);
+  --accent-muted: var(--md-primary-container);
+  --accent-foreground: var(--md-on-primary);
+  --separator: var(--md-outline-variant);
+  --focus: var(--md-primary);
+  --disabled: 100 100 100;                    /* Custom disabled color */
+  --warning: 255 193 7;                        /* Custom warning */
+  --destructive: var(--md-error);
+  --destructive-foreground: var(--md-on-error);
+  --success: 76 175 80;                        /* Custom success */
+  --success-foreground: 255 255 255;
+  
+  /* Typography Tokens */
+  --text: var(--md-on-surface);
+  --text-muted: var(--muted-foreground);       /* Use custom muted-foreground */
+  --text-inverted: 18 18 18;
+  
+  /* Border Radius Tokens */
+  --radius-xs: var(--md-shape-corner-extra-small);
+  --radius-sm: 6px;                            /* Custom - between extra-small and small */
+  --radius-md: var(--md-shape-corner-small);
+  --radius-lg: var(--md-shape-corner-medium);
+  --radius-xl: var(--md-shape-corner-large);
+  --radius-2xl: 20px;                          /* Custom - between large and extra-large */
+  --radius-full: var(--md-shape-corner-full);
+  
+  /* Elevation Overlay Opacities */
+  --elevation-overlay-0: var(--md-elevation-overlay-0);
+  --elevation-overlay-1: var(--md-elevation-overlay-1);
+  --elevation-overlay-2: var(--md-elevation-overlay-2);
+  --elevation-overlay-3: var(--md-elevation-overlay-3);
+  --elevation-overlay-4: var(--md-elevation-overlay-4);
+  --elevation-overlay-5: var(--md-elevation-overlay-5);
+  --elevation-overlay-8: var(--md-elevation-overlay-8);
+  --elevation-overlay-12: var(--md-elevation-overlay-12);
+  --elevation-overlay-16: var(--md-elevation-overlay-16);
+  --elevation-overlay-24: var(--md-elevation-overlay-24);
 }
 
 @layer base {
-  html, body {
-    height: 100%;
-  }
-
-  html {
-    overflow-x: hidden; /* optional */
-  }
-
   body {
     @apply bg-background text-foreground;
-    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
       sans-serif;
@@ -135,25 +307,7 @@
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  /* Slab Shadow Utilities - Primary shadow system */
-  /* Uses CSS tokens for consistent physical, grounded appearance */
-  .shadow-sm {
-    box-shadow: var(--shadow-sm);
-  }
-  
-  .shadow-md {
-    box-shadow: var(--shadow-md);
-  }
-  
-  .shadow-lg {
-    box-shadow: var(--shadow-lg);
-  }
-  
-  .shadow-xl {
-    box-shadow: var(--shadow-xl);
-  }
-  
-  /* Legacy shadow utilities - kept for backward compatibility */
+  /* Custom shadow utilities for depth hierarchy */
   /* Light mode shadows - crisp and clean */
   .shadow-soft {
     box-shadow: 
@@ -204,10 +358,71 @@
     box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.05);
   }
   
+  /* MD3 Elevation Utilities - Material Design 3 Elevation System */
+  /* Each elevation level has specific shadow values per MD3 specifications */
+  
+  .elevation-0 {
+    box-shadow: none;
+  }
+  
+  .elevation-1 {
+    box-shadow: 
+      0px 1px 2px rgba(0, 0, 0, 0.3),
+      0px 1px 3px rgba(0, 0, 0, 0.15);
+  }
+  
+  .elevation-2 {
+    box-shadow: 
+      0px 2px 6px rgba(0, 0, 0, 0.15),
+      0px 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  
+  .elevation-3 {
+    box-shadow: 
+      0px 4px 8px rgba(0, 0, 0, 0.15),
+      0px 1px 3px rgba(0, 0, 0, 0.3);
+  }
+  
+  .elevation-4 {
+    box-shadow: 
+      0px 6px 10px rgba(0, 0, 0, 0.15),
+      0px 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .elevation-5 {
+    box-shadow: 
+      0px 8px 12px rgba(0, 0, 0, 0.15),
+      0px 3px 5px rgba(0, 0, 0, 0.3);
+  }
+  
+  .elevation-8 {
+    box-shadow: 
+      0px 12px 16px rgba(0, 0, 0, 0.15),
+      0px 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .elevation-12 {
+    box-shadow: 
+      0px 16px 24px rgba(0, 0, 0, 0.15),
+      0px 6px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .elevation-16 {
+    box-shadow: 
+      0px 20px 32px rgba(0, 0, 0, 0.15),
+      0px 8px 16px rgba(0, 0, 0, 0.3);
+  }
+  
+  .elevation-24 {
+    box-shadow: 
+      0px 24px 40px rgba(0, 0, 0, 0.15),
+      0px 10px 20px rgba(0, 0, 0, 0.3);
+  }
+  
   /* Material Design dark theme border opacity */
   /* Override border color to use 12% opacity white in dark mode */
   .dark .border-border {
-    border-color: rgb(255 255 255 / 0.02);
+    border-color: rgb(255 255 255 / 0.12);
   }
   
   /* Subtle input borders - hairline 1px with appropriate opacity */
@@ -222,12 +437,381 @@
   
   /* Material Design elevation overlays for dark theme */
   /* Elevated surfaces should be lighter via white overlays, not just shadows */
-  /* Elevation 1dp: ~5% overlay */
+  /* MD3 uses white overlays in dark mode to create elevation hierarchy */
+  
+  /* Elevation 0dp - No overlay */
+  .dark .elevation-0 {
+    position: relative;
+  }
+  
+  /* Elevation 1dp - 5% overlay */
+  .dark .elevation-1 {
+    position: relative;
+  }
+  
+  .dark .elevation-1::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-1));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 2dp - 7% overlay */
+  .dark .elevation-2 {
+    position: relative;
+  }
+  
+  .dark .elevation-2::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-2));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 3dp - 8% overlay */
+  .dark .elevation-3 {
+    position: relative;
+  }
+  
+  .dark .elevation-3::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-3));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 4dp - 9% overlay */
+  .dark .elevation-4 {
+    position: relative;
+  }
+  
+  .dark .elevation-4::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-4));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 5dp - 10% overlay */
+  .dark .elevation-5 {
+    position: relative;
+  }
+  
+  .dark .elevation-5::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-5));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 8dp - 12% overlay */
+  .dark .elevation-8 {
+    position: relative;
+  }
+  
+  .dark .elevation-8::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-8));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 12dp - 14% overlay */
+  .dark .elevation-12 {
+    position: relative;
+  }
+  
+  .dark .elevation-12::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-12));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 16dp - 15% overlay */
+  .dark .elevation-16 {
+    position: relative;
+  }
+  
+  .dark .elevation-16::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-16));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Elevation 24dp - 16% overlay */
+  .dark .elevation-24 {
+    position: relative;
+  }
+  
+  .dark .elevation-24::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-24));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Light mode elevation overlays - White overlays make surfaces lighter */
+  /* In light mode, higher elevation = whiter surface (closer to pure white) */
+  /* This creates visual hierarchy by making elevated surfaces appear brighter */
+  
+  .elevation-1 {
+    position: relative;
+  }
+  
+  .elevation-1::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-1));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  .elevation-2 {
+    position: relative;
+  }
+  
+  .elevation-2::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-2));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  .elevation-3 {
+    position: relative;
+  }
+  
+  .elevation-3::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-3));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  .elevation-4 {
+    position: relative;
+  }
+  
+  .elevation-4::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-4));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  .elevation-5 {
+    position: relative;
+  }
+  
+  .elevation-5::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-5));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  .elevation-8 {
+    position: relative;
+  }
+  
+  .elevation-8::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-8));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  .elevation-12 {
+    position: relative;
+  }
+  
+  .elevation-12::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-12));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  .elevation-16 {
+    position: relative;
+  }
+  
+  .elevation-16::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-16));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  .elevation-24 {
+    position: relative;
+  }
+  
+  .elevation-24::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, var(--md-elevation-overlay-24));
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+  
+  /* Ensure content is above elevation overlays */
+  .elevation-0 > *,
+  .elevation-1 > *,
+  .elevation-2 > *,
+  .elevation-3 > *,
+  .elevation-4 > *,
+  .elevation-5 > *,
+  .elevation-8 > *,
+  .elevation-12 > *,
+  .elevation-16 > *,
+  .elevation-24 > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Preserve explicit positioning when combined with elevation */
+  /* This ensures sticky/fixed/absolute positioning works with elevation overlays */
+  /* Light mode positioning preservation */
+  .elevation-0.sticky,
+  .elevation-1.sticky,
+  .elevation-2.sticky,
+  .elevation-3.sticky,
+  .elevation-4.sticky,
+  .elevation-5.sticky,
+  .elevation-8.sticky,
+  .elevation-12.sticky,
+  .elevation-16.sticky,
+  .elevation-24.sticky {
+    position: sticky;
+  }
+  
+  .elevation-0.fixed,
+  .elevation-1.fixed,
+  .elevation-2.fixed,
+  .elevation-3.fixed,
+  .elevation-4.fixed,
+  .elevation-5.fixed,
+  .elevation-8.fixed,
+  .elevation-12.fixed,
+  .elevation-16.fixed,
+  .elevation-24.fixed {
+    position: fixed;
+  }
+  
+  .elevation-0.absolute,
+  .elevation-1.absolute,
+  .elevation-2.absolute,
+  .elevation-3.absolute,
+  .elevation-4.absolute,
+  .elevation-5.absolute,
+  .elevation-8.absolute,
+  .elevation-12.absolute,
+  .elevation-16.absolute,
+  .elevation-24.absolute {
+    position: absolute;
+  }
+  
+  /* Dark mode positioning preservation */
+  .dark .elevation-0.sticky,
+  .dark .elevation-1.sticky,
+  .dark .elevation-2.sticky,
+  .dark .elevation-3.sticky,
+  .dark .elevation-4.sticky,
+  .dark .elevation-5.sticky,
+  .dark .elevation-8.sticky,
+  .dark .elevation-12.sticky,
+  .dark .elevation-16.sticky,
+  .dark .elevation-24.sticky {
+    position: sticky;
+  }
+  
+  .dark .elevation-0.fixed,
+  .dark .elevation-1.fixed,
+  .dark .elevation-2.fixed,
+  .dark .elevation-3.fixed,
+  .dark .elevation-4.fixed,
+  .dark .elevation-5.fixed,
+  .dark .elevation-8.fixed,
+  .dark .elevation-12.fixed,
+  .dark .elevation-16.fixed,
+  .dark .elevation-24.fixed {
+    position: fixed;
+  }
+  
+  .dark .elevation-0.absolute,
+  .dark .elevation-1.absolute,
+  .dark .elevation-2.absolute,
+  .dark .elevation-3.absolute,
+  .dark .elevation-4.absolute,
+  .dark .elevation-5.absolute,
+  .dark .elevation-8.absolute,
+  .dark .elevation-12.absolute,
+  .dark .elevation-16.absolute,
+  .dark .elevation-24.absolute {
+    position: absolute;
+  }
+  
+  /* Legacy shadow utility overlays (for backward compatibility) */
   .dark .shadow-soft {
     position: relative;
   }
   
- /* .dark .shadow-soft::before {
+  .dark .shadow-soft::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -237,102 +821,38 @@
     z-index: 0;
   }
   
-  /* Elevation 4dp: ~8% overlay */
   .dark .shadow-elevated {
     position: relative;
   }
   
-  /*.dark .shadow-elevated::before {
+  .dark .shadow-elevated::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.07) 0%,
-      rgba(255, 255, 255, 0.08) 100%
-    );
+    background: rgba(255, 255, 255, 0.09);
     pointer-events: none;
     border-radius: inherit;
     z-index: 0;
   }
   
-  /* Elevation 8dp: ~12% overlay */
   .dark .shadow-floating {
     position: relative;
   }
   
-  /*.dark .shadow-floating::before {
+  .dark .shadow-floating::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.10) 0%,
-      rgba(255, 255, 255, 0.12) 100%
-    );
+    background: rgba(255, 255, 255, 0.12);
     pointer-events: none;
     border-radius: inherit;
     z-index: 0;
   }
   
-  /* Ensure content is above overlay */
+  /* Ensure content is above legacy shadow overlays */
   .dark .shadow-soft > *,
   .dark .shadow-elevated > *,
   .dark .shadow-floating > * {
-    position: relative;
-    z-index: 1;
-  }
-  
-  /* Preserve explicit positioning utilities when combined with shadow utilities */
-  /* This fixes sticky nav in dark mode - shadow utilities need position: relative for ::before overlays,
-     but we must not override explicit positioning like sticky or fixed */
-  .dark .sticky.shadow-sm,
-  .dark .sticky.shadow-md,
-  .dark .sticky.shadow-lg,
-  .dark .sticky.shadow-xl,
-  .dark .sticky.shadow-soft,
-  .dark .sticky.shadow-elevated,
-  .dark .sticky.shadow-floating {
-    position: sticky;
-  }
-  
-  .dark .fixed.shadow-sm,
-  .dark .fixed.shadow-md,
-  .dark .fixed.shadow-lg,
-  .dark .fixed.shadow-xl,
-  .dark .fixed.shadow-soft,
-  .dark .fixed.shadow-elevated,
-  .dark .fixed.shadow-floating {
-    position: fixed;
-  }
-  
-  .dark .absolute.shadow-sm,
-  .dark .absolute.shadow-md,
-  .dark .absolute.shadow-lg,
-  .dark .absolute.shadow-xl,
-  .dark .absolute.shadow-soft,
-  .dark .absolute.shadow-elevated,
-  .dark .absolute.shadow-floating {
-    position: absolute;
-  }
-  
-  /* White overlay utility - subtle elevation effect */
-  .overlay-white {
-    position: relative;
-  }
-  
-  .overlay-white::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.00);
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Ensure content is above overlay */
-  .overlay-white > * {
     position: relative;
     z-index: 1;
   }
@@ -378,111 +898,6 @@
   
   .hover-overlay:active::after {
     background: rgba(0, 0, 0, 0.08);
-  }
-  
-  /* Button hover glow effect for dark mode */
-  /* Small radius, light subtle glow instead of dark blur shadow */
-  .dark .hover-glow:hover {
-    box-shadow: 
-      0 0 0 1px rgba(103, 178, 255, 0.15),
-      0 0 6px 1px rgba(103, 178, 255, 0.2),
-      0 0 10px 2px rgba(103, 178, 255, 0.1);
-  }
-  
-  /* Light mode keeps regular shadow */
-  .hover-glow:hover {
-    box-shadow: var(--shadow-md);
-  }
-  
-  /* Neumorphism - Soft UI effects for tactile, raised/pressed appearance */
-  /* Raised: Element appears to protrude from the surface */
-  .neu-raised {
-    box-shadow:
-      2px 2px 4px rgba(0, 0, 0, 0.08),
-      -2px -2px 4px rgba(255, 255, 255, 0.95);
-  }
-  
-  .dark .neu-raised {
-    box-shadow:
-      2px 2px 4px rgba(0, 0, 0, 0.3),
-      -2px -2px 4px rgba(255, 255, 255, 0.03);
-  }
-  
-  /* Pressed: Element appears to be pressed into the surface */
-  .neu-pressed {
-    box-shadow:
-      inset 2px 2px 4px rgba(0, 0, 0, 0.08),
-      inset -2px -2px 4px rgba(255, 255, 255, 0.95);
-  }
-  
-  .dark .neu-pressed {
-    box-shadow:
-      inset 2px 2px 4px rgba(0, 0, 0, 0.3),
-      inset -2px -2px 4px rgba(255, 255, 255, 0.03);
-  }
-  
-  /* Embossed: Inward shadow with content appearing raised */
-  .neu-embossed {
-    box-shadow:
-      inset 4px 4px 8px rgba(0, 0, 0, 0.1),
-      inset -4px -4px 8px rgba(255, 255, 255, 0.9);
-  }
-  
-  .dark .neu-embossed {
-    box-shadow:
-      inset 4px 4px 8px rgba(0, 0, 0, 0.4),
-      inset -4px -4px 8px rgba(255, 255, 255, 0.05);
-  }
-  
-  /* Soft raised: Subtle neumorphic effect */
-  .neu-soft {
-    box-shadow:
-      4px 4px 8px rgba(0, 0, 0, 0.08),
-      -4px -4px 8px rgba(255, 255, 255, 0.95);
-  }
-  
-  .dark .neu-soft {
-    box-shadow:
-      4px 4px 8px rgba(0, 0, 0, 0.3),
-      -4px -4px 8px rgba(255, 255, 255, 0.03);
-  }
-  
-  /* Flat neumorphic: Minimal shadow for subtle depth */
-  .neu-flat {
-    box-shadow:
-      2px 2px 4px rgba(0, 0, 0, 0.06),
-      -2px -2px 4px rgba(255, 255, 255, 0.98);
-  }
-  
-  .dark .neu-flat {
-    box-shadow:
-      2px 2px 4px rgba(0, 0, 0, 0.25),
-      -2px -2px 4px rgba(255, 255, 255, 0.02);
-  }
-  
-  /* Neumorphic hover states */
-  .neu-raised:hover {
-    box-shadow:
-      3px 3px 6px rgba(0, 0, 0, 0.1),
-      -3px -3px 6px rgba(255, 255, 255, 0.9);
-  }
-  
-  .dark .neu-raised:hover {
-    box-shadow:
-      3px 3px 6px rgba(0, 0, 0, 0.35),
-      -3px -3px 6px rgba(255, 255, 255, 0.04);
-  }
-  
-  .neu-pressed:active {
-    box-shadow:
-      inset 1px 1px 2px rgba(0, 0, 0, 0.12),
-      inset -1px -1px 2px rgba(255, 255, 255, 0.9);
-  }
-  
-  .dark .neu-pressed:active {
-    box-shadow:
-      inset 1px 1px 2px rgba(0, 0, 0, 0.4),
-      inset -1px -1px 2px rgba(255, 255, 255, 0.02);
   }
 }
 

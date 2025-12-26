@@ -14,6 +14,7 @@ export const Select: React.FC<SelectProps> = ({
   options,
   id,
   className,
+  required,
   ...props
 }) => {
   const generatedId = useId();
@@ -30,16 +31,18 @@ export const Select: React.FC<SelectProps> = ({
       <div className="relative">
         <select
           id={selectId}
+          required={required}
+          aria-required={required}
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={errorId}
           className={cn(
-            'w-full pl-4 pr-10 py-2.5 bg-input-bg rounded-full',
+            'w-full pl-4 pr-10 py-2.5 bg-input-bg rounded-full border border-border/50',
             'text-foreground appearance-none',
-            'focus:outline-none focus:ring-2 focus:ring-accent/50',
+            'focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent',
             'transition-smooth',
             'disabled:opacity-60 disabled:cursor-not-allowed',
             'disabled:[&_*]:opacity-[0.38]',
-            error && 'focus:ring-destructive/50',
+            error && 'focus:ring-destructive/50 border-destructive/50',
             className
           )}
           {...props}

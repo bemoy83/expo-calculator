@@ -108,7 +108,7 @@ export function ResizablePanel({
   return (
     <div
       className={cn(
-        'relative flex-shrink-0 bg-card border border-border rounded-xl shadow-sm overflow-hidden',
+        'relative flex-shrink-0 bg-elevated border border-border rounded-xl shadow-sm overflow-hidden',
         isResizing && 'select-none',
         className
       )}

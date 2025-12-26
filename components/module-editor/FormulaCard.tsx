@@ -43,8 +43,8 @@ export const FormulaCard = React.memo(function FormulaCard({
       return {
         icon: AlertCircle,
         label: 'May have issues',
-        className: 'text-amber-600 dark:text-amber-400',
-        bgClassName: 'bg-amber-600/10 border-amber-600/30',
+        className: 'text-warning',
+        bgClassName: 'bg-warning/10 border-warning/30',
       };
     }
   };

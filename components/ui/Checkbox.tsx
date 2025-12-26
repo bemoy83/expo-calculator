@@ -9,6 +9,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   label,
   id,
   className,
+  required,
   ...props
 }) => {
   const generatedId = useId();
@@ -19,6 +20,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({
       <input
         type="checkbox"
         id={checkboxId}
+        required={required}
+        aria-required={required}
         className={cn(
           'w-4 h-4 bg-card border-border rounded',
           'text-accent focus:ring-accent focus:ring-2',

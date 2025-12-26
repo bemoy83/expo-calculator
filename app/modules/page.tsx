@@ -131,7 +131,7 @@ function SortableFieldItem({
     <div
       ref={combinedRef}
       style={style}
-      className="bg-card border border-border rounded-xl overflow-hidden transition-smooth overlay-white"
+      className="bg-elevated border border-border rounded-xl overflow-hidden transition-smooth elevation-1"
     >
       {/* Field Header */}
       <div className="flex items-center">
@@ -221,7 +221,7 @@ function SortableFieldItem({
 
       {/* Expanded Field Form */}
       {isExpanded && (
-        <div className="p-5 border-t border-border space-y-4 bg-muted/20">
+        <div className="p-5 border-t border-border space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="Field Label"
@@ -1666,7 +1666,7 @@ export default function ModulesPage() {
 
           {/* RIGHT COLUMN - FORMULA BUILDER */}
           <div className="lg:col-span-1">
-            <Card title="Formula Builder" className="sticky top-[88px]">
+            <Card title="Formula Builder" elevation={2} className="sticky top-[88px]">
               <div className="space-y-6">
                 {/* Available Variables */}
                 {availableFieldVariables.length > 0 && (
@@ -2013,7 +2013,7 @@ export default function ModulesPage() {
                     {/* Autocomplete Dropdown */}
                     {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
                       <div
-                        className="fixed z-50 bg-card border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto"
+                        className="fixed z-50 bg-elevated border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto"
                         style={{
                           top: `${autocompletePosition.top}px`,
                           left: `${autocompletePosition.left}px`,
@@ -2046,11 +2046,11 @@ export default function ModulesPage() {
                               )}
                               <span className={cn(
                                 "text-xs px-1.5 py-0.5 rounded",
-                                suggestion.type === 'field' && "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
-                                suggestion.type === 'material' && "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400",
-                                suggestion.type === 'property' && "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
-                                suggestion.type === 'function' && "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
-                                suggestion.type === 'constant' && "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                                suggestion.type === 'field' && "bg-accent/10 text-accent",
+                                suggestion.type === 'material' && "bg-success/10 text-success",
+                                suggestion.type === 'property' && "bg-accent-muted/10 text-accent-muted",
+                                suggestion.type === 'function' && "bg-warning/10 text-warning",
+                                suggestion.type === 'constant' && "bg-warning/10 text-warning"
                               )}>
                                 {suggestion.type}
                               </span>
@@ -2359,7 +2359,7 @@ export default function ModulesPage() {
         {/* PREVIEW OVERLAY */}
         {showPreview && (
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-overlay/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowPreview(false);
@@ -2379,7 +2379,7 @@ export default function ModulesPage() {
             tabIndex={-1}
           >
             <div 
-              className="bg-card border border-border rounded-xl overflow-hidden transition-smooth overlay-white w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+              className="bg-elevated border border-border rounded-xl overflow-hidden transition-smooth w-full max-w-3xl max-h-[90vh] overflow-y-auto elevation-8"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Preview Card Header */}
@@ -2685,7 +2685,7 @@ export default function ModulesPage() {
         )}
 
         {/* BOTTOM ACTION BAR */}
-        <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40">
+        <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-panel/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40 elevation-2">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
             <Button onClick={addField} className="rounded-full">
               <Plus className="h-4 w-4 mr-2" />

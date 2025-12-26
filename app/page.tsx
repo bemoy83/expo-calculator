@@ -53,9 +53,9 @@ export default function Home() {
                 <p className="text-sm font-medium text-muted-foreground mb-1 uppercase tracking-wide">Saved Quotes</p>
                 <p className="text-4xl font-bold text-card-foreground tabular-nums tracking-tight">{quotesCount}</p>
             </div>
-            <Calculator className="h-12 w-12 text-purple-500" />
+            <Calculator className="h-12 w-12 text-accent" />
           </div>
-          <Link href="/quotes" className="block mt-4 text-sm text-purple-400 hover:text-purple-300">
+          <Link href="/quotes" className="block mt-4 text-sm text-accent hover:text-accent/80">
             Build Quote →
           </Link>
         </Card>

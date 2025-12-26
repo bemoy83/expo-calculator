@@ -11,6 +11,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({
   error,
   id,
   className,
+  required,
   ...props
 }, ref) => {
   const generatedId = useId();
@@ -27,6 +28,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({
       <textarea
         ref={ref}
         id={textareaId}
+        required={required}
+        aria-required={required}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={errorId}
         className={cn(

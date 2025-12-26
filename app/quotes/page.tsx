@@ -74,7 +74,7 @@ function SortableModuleCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-card border border-border rounded-xl overflow-hidden transition-smooth overlay-white"
+      className="bg-elevated border border-border rounded-xl overflow-hidden transition-smooth elevation-1"
     >
       {/* Module Header */}
       <div className="flex items-center">
@@ -572,10 +572,10 @@ export default function QuotesPage() {
                   {broken ? (
                     <X className="h-3.5 w-3.5 text-destructive shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-blue-600 dark:text-blue-400'
+                    broken ? 'text-destructive' : 'text-accent'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -668,10 +668,10 @@ export default function QuotesPage() {
                   {broken ? (
                     <X className="h-3.5 w-3.5 text-destructive shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-blue-600 dark:text-blue-400'
+                    broken ? 'text-destructive' : 'text-accent'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -905,10 +905,10 @@ export default function QuotesPage() {
                   {broken ? (
                     <X className="h-3.5 w-3.5 text-destructive shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-blue-600 dark:text-blue-400'
+                    broken ? 'text-destructive' : 'text-accent'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -1048,10 +1048,10 @@ export default function QuotesPage() {
                   {broken ? (
                     <X className="h-3.5 w-3.5 text-destructive shrink-0" />
                   ) : (
-                    <Link2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <Link2 className="h-3.5 w-3.5 text-accent shrink-0" />
                   )}
                   <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-blue-600 dark:text-blue-400'
+                    broken ? 'text-destructive' : 'text-accent'
                   }`}>
                     {broken 
                       ? 'Link broken: source unavailable'
@@ -1264,14 +1264,14 @@ export default function QuotesPage() {
 
           {/* Template Warnings */}
           {templateWarnings.length > 0 && (
-            <Card className="border-amber-600 dark:border-amber-400 bg-amber-50 dark:bg-amber-900/20">
+            <Card className="border-warning bg-warning/10">
               <div className="flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mb-2">
+                  <p className="text-sm font-medium text-warning mb-2">
                     Template applied with {templateWarnings.length} warning(s):
                   </p>
-                  <ul className="list-disc list-inside space-y-1 text-xs text-amber-700 dark:text-amber-300">
+                  <ul className="list-disc list-inside space-y-1 text-xs text-warning">
                     {templateWarnings.map((warning, idx) => (
                       <li key={idx}>{warning}</li>
                     ))}
@@ -1279,7 +1279,7 @@ export default function QuotesPage() {
                 </div>
                 <button
                   onClick={() => setTemplateWarnings([])}
-                  className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+                  className="text-warning hover:text-warning/80"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1471,7 +1471,7 @@ export default function QuotesPage() {
         </div>
 
         <div className="lg:col-span-1">
-          <Card className="sticky top-[88px] z-40">
+          <Card elevation={2} className="sticky top-[88px] z-40">
             <h3 className="text-lg font-bold text-card-foreground mb-5 tracking-tight">Quote Summary</h3>
             
             <div className="space-y-5">
@@ -1625,7 +1625,7 @@ export default function QuotesPage() {
 
       {/* Save Template Modal */}
       {showSaveTemplateModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-overlay/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-card-foreground">Save as Template</h3>
@@ -1717,7 +1717,7 @@ export default function QuotesPage() {
       )}
 
       {/* BOTTOM ACTION BAR */}
-      <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40">
+      <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-panel/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40 elevation-2">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3">
           <Button 
             onClick={() => setShowSaveTemplateModal(true)}

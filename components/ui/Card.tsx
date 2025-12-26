@@ -7,6 +7,7 @@ interface CardProps {
   title?: string;
   actions?: React.ReactNode;
   interactive?: boolean; // If true, card shows hover states (implies clickability)
+  elevation?: 0 | 1 | 2 | 3 | 4 | 5 | 8 | 12 | 16 | 24; // MD3 elevation level
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -15,10 +16,12 @@ export const Card: React.FC<CardProps> = ({
   title,
   actions,
   interactive = false,
+  elevation = 1, // Default to 1dp elevation
 }) => {
   return (
     <div className={cn(
-      'bg-card border border-border rounded-xl p-6 transition-all relative',
+      'bg-elevated border border-border rounded-xl p-6 transition-all relative',
+      `elevation-${elevation}`, // Apply MD3 elevation utility
       interactive && 'hover-overlay',
       className
     )}>

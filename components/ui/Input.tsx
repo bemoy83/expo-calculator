@@ -13,6 +13,7 @@ export const Input: React.FC<InputProps> = ({
   id,
   className,
   variant = 'default',
+  required,
   ...props
 }) => {
   const generatedId = useId();
@@ -30,6 +31,8 @@ export const Input: React.FC<InputProps> = ({
       )}
       <input
         id={inputId}
+        required={required}
+        aria-required={required}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={errorId}
         className={cn(
@@ -46,9 +49,9 @@ export const Input: React.FC<InputProps> = ({
                 error && '!border-destructive focus:!border-destructive hover:!border-destructive',
               ]
             : [
-                'px-4 py-2.5 bg-input-bg rounded-full',
-                'focus:outline-none focus:ring-2 focus:ring-accent/50',
-                error && 'focus:ring-destructive/50',
+                'px-4 py-2.5 bg-input-bg rounded-full border border-border/50',
+                'focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent',
+                error && 'focus:ring-destructive/50 border-destructive/50',
               ],
           className
         )}

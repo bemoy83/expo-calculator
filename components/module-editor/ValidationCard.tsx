@@ -47,8 +47,8 @@ export const ValidationCard = React.memo(function ValidationCard({
       return {
         icon: AlertCircle,
         label: 'Warning',
-        className: 'text-amber-600 dark:text-amber-400',
-        bgClassName: 'bg-amber-600/10 border-amber-600/30',
+        className: 'text-warning',
+        bgClassName: 'bg-warning/10 border-warning/30',
       };
     }
   };
