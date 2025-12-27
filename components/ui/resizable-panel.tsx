@@ -108,7 +108,7 @@ export function ResizablePanel({
   return (
     <div
       className={cn(
-        'relative flex-shrink-0 bg-md-surface-container border border-md-outline rounded-xl shadow-sm overflow-hidden',
+        'relative flex-shrink-0 bg-md-surface-container border border-md-outline rounded-xl elevation-1 overflow-hidden',
         isResizing && 'select-none',
         className
       )}
@@ -184,7 +184,7 @@ export function ThreePanelLayout({
         minWidth={leftMinWidth}
         maxWidth={leftMaxWidth}
         side="left"
-        className="bg-transparent border-0 rounded-none shadow-none"
+        className="bg-transparent border-0 rounded-none elevation-0"
       >
         {leftPanel}
       </ResizablePanel>

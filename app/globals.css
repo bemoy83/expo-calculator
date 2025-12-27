@@ -84,6 +84,9 @@
   --focus: var(--md-primary);                  /* Focus ring color (maps to primary) */
   --overlay: 0 0 0;                           /* Overlay/scrim color */
   --input-bg: 242 244 246;                    /* Input background - slightly darker than container */
+  --border: var(--md-outline);                /* Border color (maps to MD3 outline) */
+  --panel: var(--md-surface-container-high);  /* Panel background (maps to MD3 surface container high) */
+  --elevated: var(--md-surface-container-high); /* Elevated surface (maps to MD3 surface container high) */
   
   /* Custom Border Radius (not in MD3 standard sizes) */
   --radius-sm: 6px;                           /* Between extra-small (4px) and small (8px) */
@@ -172,6 +175,9 @@
   --focus: var(--md-primary);                   /* Focus ring color (maps to primary) */
   --overlay: 0 0 0;                            /* Overlay/scrim color */
   --input-bg: 24 24 24;                        /* Input background - darker than container */
+  --border: var(--md-outline);                 /* Border color (maps to MD3 outline) */
+  --panel: var(--md-surface-container-high);   /* Panel background (maps to MD3 surface container high) */
+  --elevated: var(--md-surface-container-high); /* Elevated surface (maps to MD3 surface container high) */
   
   /* Custom Border Radius (not in MD3 standard sizes) */
   --radius-sm: 6px;                            /* Between extra-small (4px) and small (8px) */
@@ -220,57 +226,6 @@
   /* Smooth transitions for interactive elements */
   .transition-smooth {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  /* Custom shadow utilities for depth hierarchy */
-  /* Light mode shadows - crisp and clean */
-  .shadow-soft {
-    box-shadow: 
-      0 1px 2px 0 rgb(0 0 0 / 0.05),
-      0 1px 3px 0 rgb(0 0 0 / 0.04);
-  }
-  
-  .shadow-elevated {
-    box-shadow: 
-      0 4px 6px -1px rgb(0 0 0 / 0.08),
-      0 2px 4px -2px rgb(0 0 0 / 0.06);
-  }
-  
-  .shadow-floating {
-    box-shadow: 
-      0 10px 15px -3px rgb(0 0 0 / 0.1),
-      0 4px 6px -4px rgb(0 0 0 / 0.08);
-  }
-  
-  /* Material Design dark mode shadows - elevation-based */
-  /* Material Design uses elevation shadows with black at various opacities */
-  .dark .shadow-soft {
-    /* Elevation 1dp */
-    box-shadow: 
-      0 1px 1px 0 rgb(0 0 0 / 0.14),
-      0 2px 1px -1px rgb(0 0 0 / 0.12),
-      0 1px 3px 0 rgb(0 0 0 / 0.20);
-  }
-  
-  .dark .shadow-elevated {
-    /* Elevation 4dp */
-    box-shadow: 
-      0 2px 4px -1px rgb(0 0 0 / 0.20),
-      0 4px 5px 0 rgb(0 0 0 / 0.14),
-      0 1px 10px 0 rgb(0 0 0 / 0.12);
-  }
-  
-  .dark .shadow-floating {
-    /* Elevation 8dp */
-    box-shadow: 
-      0 5px 5px -3px rgb(0 0 0 / 0.20),
-      0 8px 10px 1px rgb(0 0 0 / 0.14),
-      0 3px 14px 2px rgb(0 0 0 / 0.12);
-  }
-  
-  /* Subtle inner glow for depth on dark surfaces */
-  .dark .shadow-inset {
-    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.05);
   }
   
   /* MD3 Elevation Utilities - Material Design 3 Elevation System */
@@ -337,17 +292,17 @@
   /* Material Design dark theme border opacity */
   /* Override border color to use 12% opacity white in dark mode */
   .dark .border-border {
-    border-color: rgb(255 255 255 / 0.12);
+    border-color: rgb(var(--md-outline) / 0.12);
   }
   
   /* Subtle input borders - hairline 1px with appropriate opacity */
   .border-input {
     border-width: 1px;
-    border-color: rgb(var(--border) / 0.25);
+    border-color: rgb(var(--md-outline) / 0.25);
   }
   
   .dark .border-input {
-    border-color: rgb(255 255 255 / 0.15);
+    border-color: rgb(var(--md-outline) / 0.15);
   }
   
   /* Material Design elevation overlays for dark theme */
@@ -721,57 +676,6 @@
     position: absolute;
   }
   
-  /* Legacy shadow utility overlays (for backward compatibility) */
-  .dark .shadow-soft {
-    position: relative;
-  }
-  
-  .dark .shadow-soft::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.05);
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .dark .shadow-elevated {
-    position: relative;
-  }
-  
-  .dark .shadow-elevated::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.09);
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .dark .shadow-floating {
-    position: relative;
-  }
-  
-  .dark .shadow-floating::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.12);
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Ensure content is above legacy shadow overlays */
-  .dark .shadow-soft > *,
-  .dark .shadow-elevated > *,
-  .dark .shadow-floating > * {
-    position: relative;
-    z-index: 1;
-  }
-  
   /* Material Design hover overlay system */
   /* Dark theme: 8% white overlay, Light theme: 4% black overlay */
   .hover-overlay {
@@ -830,7 +734,7 @@
     background: rgba(255, 255, 255, var(--md-disabled-overlay));
     pointer-events: none;
     border-radius: inherit;
-    z-index: 0;
+    z-index: 1; /* Above background, below content */
   }
   
   /* Light theme disabled overlay */
@@ -842,24 +746,70 @@
     background: rgba(0, 0, 0, var(--md-disabled-overlay));
     pointer-events: none;
     border-radius: inherit;
-    z-index: 0;
+    z-index: 1; /* Above background, below content */
   }
   
-  /* Ensure content is above disabled overlay */
-  .disabled-overlay > * {
-    position: relative;
-    z-index: 1;
-  }
-  
-  /* Content opacity for disabled state (38% per MD3) */
+  /* Base disabled state */
   .disabled-overlay:disabled,
   .disabled-overlay[disabled] {
     cursor: not-allowed;
   }
   
-  .disabled-overlay:disabled *,
-  .disabled-overlay[disabled] * {
+  /* Enhanced disabled styling for form inputs */
+  /* Provides multiple visual cues: background, border, text opacity, and overlay */
+  input.disabled-overlay:disabled,
+  textarea.disabled-overlay:disabled,
+  select.disabled-overlay:disabled,
+  input.disabled-overlay[disabled],
+  textarea.disabled-overlay[disabled],
+  select.disabled-overlay[disabled] {
+    /* Text opacity (38% per MD3) */
+    color: color-mix(in srgb, currentColor 38%, transparent);
+    position: relative;
+    z-index: 2; /* Above overlay */
+    
+    /* Background change - use surface container for better contrast */
+    background-color: rgb(var(--md-surface-container-low)) !important;
+    
+    /* Border styling - use outline-variant with reduced opacity */
+    border-color: rgb(var(--md-outline-variant) / 0.5) !important;
+    
+    /* Remove interactive states */
+    pointer-events: none;
+  }
+  
+  /* Placeholder opacity */
+  input.disabled-overlay:disabled::placeholder,
+  textarea.disabled-overlay:disabled::placeholder,
+  select.disabled-overlay:disabled::placeholder,
+  input.disabled-overlay[disabled]::placeholder,
+  textarea.disabled-overlay[disabled]::placeholder,
+  select.disabled-overlay[disabled]::placeholder {
     opacity: 0.38;
+  }
+  
+  /* Fallback for browsers without color-mix support: use opacity on element */
+  /* This is less ideal but prevents gradients by ensuring overlay is separate */
+  @supports not (color: color-mix(in srgb, currentColor 38%, transparent)) {
+    input.disabled-overlay:disabled,
+    textarea.disabled-overlay:disabled,
+    select.disabled-overlay:disabled,
+    input.disabled-overlay[disabled],
+    textarea.disabled-overlay[disabled],
+    select.disabled-overlay[disabled] {
+      opacity: 0.38;
+      /* Still apply background and border changes for visual differentiation */
+      background-color: rgb(var(--md-surface-container-low)) !important;
+      border-color: rgb(var(--md-outline-variant) / 0.5) !important;
+    }
+  }
+  
+  /* For elements with children (like buttons), apply opacity to children */
+  .disabled-overlay:disabled > *:not(input):not(textarea):not(select),
+  .disabled-overlay[disabled] > *:not(input):not(textarea):not(select) {
+    opacity: 0.38;
+    position: relative;
+    z-index: 2; /* Above overlay */
   }
 }
 

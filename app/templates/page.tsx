@@ -139,7 +139,7 @@ export default function TemplatesPage() {
         <Card>
           <div className="text-center py-24">
             <div
-              className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-md-surface-variant shadow-lg mb-6"
+              className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-md-surface-variant elevation-4 mb-6"
               aria-hidden="true"
             >
               <FileText className="h-12 w-12 text-md-on-surface-variant" />

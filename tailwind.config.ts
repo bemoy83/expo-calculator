@@ -76,6 +76,8 @@ const config: Config = {
         input: {
           bg: "rgb(var(--input-bg) / <alpha-value>)",
         },
+        panel: "rgb(var(--panel) / <alpha-value>)",
+        elevated: "rgb(var(--elevated) / <alpha-value>)",
       },
       borderColor: {
         DEFAULT: "rgb(var(--md-outline) / <alpha-value>)",

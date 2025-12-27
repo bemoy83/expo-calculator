@@ -362,7 +362,7 @@ export default function MaterialsPage() {
           {filteredMaterials.length === 0 ? (
             <Card>
               <div className="text-center py-20">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-md-surface-variant shadow-sm mb-5">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-md-surface-variant elevation-1 mb-5">
                   <Package className="h-10 w-10 text-md-on-surface-variant" />
                 </div>
                 <h3 className="text-lg font-bold text-md-on-surface mb-2 tracking-tight">

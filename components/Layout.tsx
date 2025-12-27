@@ -60,7 +60,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       className={cn(
                         'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-smooth relative',
                         isActive
-                          ? 'bg-md-primary text-md-on-primary shadow-sm'
+                          ? 'bg-md-primary text-md-on-primary elevation-1'
                           : 'text-md-on-surface-variant hover:text-md-on-surface hover-overlay'
                       )}
                     >

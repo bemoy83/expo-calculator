@@ -1338,7 +1338,7 @@ export default function QuotesPage() {
                   <button
                     key={module.id}
                     onClick={() => handleAddModule(module.id)}
-                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-primary-foreground focus:ring-md-primary shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
+                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-primary-foreground focus:ring-md-primary elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
                   >
                     <Plus className="h-4 w-4 mr-2 shrink-0" />
                         <span className="truncate flex-1 text-left">{module.name}</span>
@@ -1367,7 +1367,7 @@ export default function QuotesPage() {
                         <button
                           key={template.id}
                           onClick={() => handleApplyTemplate(template.id)}
-                          className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-primary-foreground focus:ring-md-primary shadow-sm hover-glow hover-overlay px-4 py-2 text-base w-full"
+                          className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-primary-foreground focus:ring-md-primary elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
                         >
                           <Package className="h-4 w-4 mr-2 shrink-0" />
                           <span className="truncate flex-1 text-left">{template.name}</span>
@@ -1399,7 +1399,7 @@ export default function QuotesPage() {
           {!showAddModule && currentQuote.workspaceModules.length === 0 && (
             <Card>
               <div className="text-center py-20">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted shadow-sm mb-5">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted elevation-1 mb-5">
                   <Package className="h-10 w-10 text-md-on-surface-variant" />
                 </div>
                 <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">No modules in workspace</h4>
@@ -1717,7 +1717,7 @@ export default function QuotesPage() {
       )}
 
       {/* BOTTOM ACTION BAR */}
-      <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-panel/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40 elevation-2">
+      <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-panel/95 backdrop-blur-md border-t border-border px-4 py-4 z-40 elevation-2">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3">
           <Button 
             onClick={() => setShowSaveTemplateModal(true)}

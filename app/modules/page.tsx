@@ -1515,7 +1515,7 @@ export default function ModulesPage() {
                         onClick={() => setFormData({ ...formData, category: cat })}
                         className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                           formData.category === cat
-                            ? 'bg-md-primary text-md-primary-foreground shadow-sm'
+                            ? 'bg-md-primary text-md-primary-foreground elevation-1'
                             : 'bg-md-surface-variant text-md-on-surface-variant hover:bg-md-surface-variant/80 hover:text-md-on-surface border border-border'
                         }`}
                       >
@@ -1729,7 +1729,7 @@ export default function ModulesPage() {
                               aria-label={`Insert variable ${varInfo.name} (${varInfo.label}, ${varInfo.type})${showCheckmark ? ' - already in formula' : ''}`}
                               title={`${varInfo.label} (${varInfo.type})${isMaterialField ? ' - unit price' : ''}`}
                               className={cn(
-                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
                                 showCheckmark 
                                   ? "border-success bg-success hover:bg-success/90 text-success-foreground" 
                                   : "bg-md-primary text-md-primary-foreground hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
@@ -1777,7 +1777,7 @@ export default function ModulesPage() {
                                       aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
                                       title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
                                         className={cn(
-                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
                                           isPropertyInFormula
                                             ? "border-success bg-success hover:bg-success/90 text-success-foreground"
                                           : "bg-md-primary text-md-primary-foreground hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
@@ -1860,7 +1860,7 @@ export default function ModulesPage() {
                               aria-label={`Insert material variable ${mat.name} (${mat.label} - $${mat.price.toFixed(2)} per ${mat.unit})`}
                               title={`${mat.label} - $${mat.price.toFixed(2)}/${mat.unit}`}
                               className={cn(
-                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
                                 isMaterialInFormula
                                   ? "border-success bg-success hover:bg-success/90 text-success-foreground"
                                   : "bg-md-primary text-md-primary-foreground hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
@@ -1905,7 +1905,7 @@ export default function ModulesPage() {
                                       aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
                                       title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
                                         className={cn(
-                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 shadow-sm hover-glow flex items-center gap-1.5 min-w-0 relative",
+                                        "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
                                           isPropertyInFormula
                                             ? "border-success bg-success hover:bg-success/90 text-success-foreground"
                                           : "bg-md-surface-variant text-foreground hover:bg-md-surface-variant/80 border border-border hover:border-accent/50"
@@ -2013,7 +2013,7 @@ export default function ModulesPage() {
                     {/* Autocomplete Dropdown */}
                     {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
                       <div
-                        className="fixed z-50 bg-md-surface-container border border-md-outline rounded-lg shadow-lg max-h-64 overflow-y-auto"
+                        className="fixed z-50 bg-md-surface-container border border-md-outline rounded-lg elevation-4 max-h-64 overflow-y-auto"
                         style={{
                           top: `${autocompletePosition.top}px`,
                           left: `${autocompletePosition.left}px`,
@@ -2685,7 +2685,7 @@ export default function ModulesPage() {
         )}
 
         {/* BOTTOM ACTION BAR */}
-        <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-panel/95 backdrop-blur-md border-t border-border shadow-xl px-4 py-4 z-40 elevation-2">
+        <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-panel/95 backdrop-blur-md border-t border-border px-4 py-4 z-40 elevation-2">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
             <Button onClick={addField} className="rounded-full">
               <Plus className="h-4 w-4 mr-2" />
@@ -2771,7 +2771,7 @@ export default function ModulesPage() {
       {modules.length === 0 ? (
         <Card>
           <div className="text-center py-24">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-md-surface-variant shadow-lg mb-6" aria-hidden="true">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-md-surface-variant elevation-4 mb-6" aria-hidden="true">
               <Calculator className="h-12 w-12 text-md-on-surface-variant" />
             </div>
             <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">No Modules Yet</h3>
