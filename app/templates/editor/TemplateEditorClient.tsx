@@ -869,34 +869,26 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               unitSymbol={field.unitSymbol}
               required={field.required}
               description={field.description}
-              canLink={canLink}
+              showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              formatLabel={formatLabel}
             />
             
-            <div className={isLinked ? 'relative' : ''}>
             <Input
               type="number"
               value={isNaN(displayValue) ? '' : displayValue.toString()}
               onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
+                if (isLinked) return; // Prevent changes when linked
                 const inputValue = e.target.value === '' ? '' : Number(e.target.value) || 0;
-                  // Convert to base unit if field has unitSymbol
+                // Convert to base unit if field has unitSymbol
                 const baseValue = field.unitSymbol && typeof inputValue === 'number'
                   ? normalizeToBase(inputValue, field.unitSymbol)
                   : inputValue;
                 updateFieldValue(instance.id, field.variableName, baseValue);
               }}
               required={field.required}
-                disabled={isLinked}
-              />
-              {isLinked && (
-                <div 
-                  className="absolute inset-0 pointer-events-none rounded-full [background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(0,0,0,0.05)_4px,rgba(0,0,0,0.05)_8px)] dark:[background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(255,255,255,0.02)_4px,rgba(255,255,255,0.02)_8px)]"
-                />
-              )}
-            </div>
+              disabled={isLinked}
+            />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -954,31 +946,20 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               unitSymbol={field.unitSymbol}
               required={field.required}
               description={field.description}
-              canLink={canLink}
+              showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              formatLabel={formatLabel}
             />
             
-            <div className={isLinked ? 'relative' : ''}>
             <Checkbox
               label=""
               checked={Boolean(value)}
               onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
+                if (isLinked) return; // Prevent changes when linked
                 updateFieldValue(instance.id, field.variableName, e.target.checked);
               }}
-                disabled={isLinked}
-              />
-              {isLinked && (
-                <div 
-                  className="absolute inset-0 pointer-events-none rounded"
-                  style={{
-                    background: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.05) 4px, rgba(0, 0, 0, 0.05) 8px)'
-                  }}
-                />
-              )}
-            </div>
+              disabled={isLinked}
+            />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -1068,25 +1049,23 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 unitSymbol={field.unitSymbol}
                 required={field.required}
                 description={field.description}
-                canLink={canLink}
+                showLink={canLink}
                 isLinked={isLinked}
                 onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-                formatLabel={formatLabel}
               />
               
-              <div className={isLinked ? 'relative' : ''}>
               <Select
                 label=""
                 value={currentDisplayValue}
                 onChange={(e) => {
-                    if (isLinked) return; // Prevent changes when linked
+                  if (isLinked) return; // Prevent changes when linked
                   const selectedDisplay = e.target.value;
-                    // Extract numeric value from display string (e.g., "40 cm" -> 40)
+                  // Extract numeric value from display string (e.g., "40 cm" -> 40)
                   const match = selectedDisplay.match(/^([\d.]+)/);
                   if (match && field.unitSymbol) {
                     const numValue = Number(match[1]);
                     if (!isNaN(numValue)) {
-                        // Convert to base unit and store as number
+                      // Convert to base unit and store as number
                       const baseValue = normalizeToBase(numValue, field.unitSymbol);
                       updateFieldValue(instance.id, field.variableName, baseValue);
                     }
@@ -1099,17 +1078,8 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                     label: displayOpt,
                   })),
                 ]}
-                  disabled={isLinked}
-                />
-                {isLinked && (
-                  <div 
-                    className="absolute inset-0 pointer-events-none rounded-full"
-                    style={{
-                      background: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.05) 4px, rgba(0, 0, 0, 0.05) 8px)'
-                    }}
-                  />
-                )}
-              </div>
+                disabled={isLinked}
+              />
               
               {/* Linked state UI */}
               {isLinked && (() => {
@@ -1166,13 +1136,11 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 unitSymbol={field.unitSymbol}
                 required={field.required}
                 description={field.description}
-                canLink={canLink}
+                showLink={canLink}
                 isLinked={isLinked}
                 onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-                formatLabel={formatLabel}
               />
             
-            <div className={isLinked ? 'relative' : ''}>
             <Select
               label=""
               value={value?.toString() || ''}
@@ -1184,14 +1152,8 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 { value: '', label: 'Select...' },
                 ...options.map((opt) => ({ value: opt, label: opt })),
               ]}
-                disabled={isLinked}
-              />
-              {isLinked && (
-                <div 
-                  className="absolute inset-0 pointer-events-none rounded-full [background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(0,0,0,0.05)_4px,rgba(0,0,0,0.05)_8px)] dark:[background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(255,255,255,0.02)_4px,rgba(255,255,255,0.02)_8px)]"
-                />
-              )}
-            </div>
+              disabled={isLinked}
+            />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -1256,7 +1218,6 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               unitSymbol={field.unitSymbol}
               required={field.required}
               description={field.description}
-              formatLabel={formatLabel}
             />
             <Select
               label=""
@@ -1291,29 +1252,21 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               unitSymbol={field.unitSymbol}
               required={field.required}
               description={field.description}
-              canLink={canLink}
+              showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              formatLabel={formatLabel}
             />
             
-            <div className={isLinked ? 'relative' : ''}>
             <Input
               label=""
               value={value?.toString() || ''}
               onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
+                if (isLinked) return; // Prevent changes when linked
                 updateFieldValue(instance.id, field.variableName, e.target.value);
               }}
               required={field.required}
-                disabled={isLinked}
-              />
-              {isLinked && (
-                <div 
-                  className="absolute inset-0 pointer-events-none rounded-full [background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(0,0,0,0.05)_4px,rgba(0,0,0,0.05)_8px)] dark:[background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(255,255,255,0.02)_4px,rgba(255,255,255,0.02)_8px)]"
-                />
-              )}
-            </div>
+              disabled={isLinked}
+            />
             
             {/* Linked state UI */}
             {isLinked && (() => {

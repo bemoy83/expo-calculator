@@ -522,34 +522,26 @@ export default function QuotesPage() {
               unitSymbol={field.unitSymbol}
               required={field.required}
               description={field.description}
-              canLink={canLink}
+              showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              formatLabel={formatLabel}
             />
             
-            <div className={isLinked ? 'relative' : ''}>
-          <Input
-            type="number"
-            value={displayValue.toString()}
-            onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-              const inputValue = Number(e.target.value) || 0;
-              // Convert to base unit if field has unitSymbol
-              const baseValue = field.unitSymbol 
-                ? normalizeToBase(inputValue, field.unitSymbol)
-                : inputValue;
-              updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
-            }}
-            required={field.required}
-                disabled={isLinked}
-              />
-              {isLinked && (
-                <div 
-                  className="absolute inset-0 pointer-events-none rounded-full [background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(0,0,0,0.05)_4px,rgba(0,0,0,0.05)_8px)] dark:[background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(255,255,255,0.02)_4px,rgba(255,255,255,0.02)_8px)]"
-                />
-              )}
-            </div>
+            <Input
+              type="number"
+              value={displayValue.toString()}
+              onChange={(e) => {
+                if (isLinked) return; // Prevent changes when linked
+                const inputValue = Number(e.target.value) || 0;
+                // Convert to base unit if field has unitSymbol
+                const baseValue = field.unitSymbol 
+                  ? normalizeToBase(inputValue, field.unitSymbol)
+                  : inputValue;
+                updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
+              }}
+              required={field.required}
+              disabled={isLinked}
+            />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -607,31 +599,20 @@ export default function QuotesPage() {
               unitSymbol={field.unitSymbol}
               required={field.required}
               description={field.description}
-              canLink={canLink}
+              showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              formatLabel={formatLabel}
             />
             
-            <div className={isLinked ? 'relative' : ''}>
-          <Checkbox
-                label=""
-            checked={Boolean(value)}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.checked);
-                }}
-                disabled={isLinked}
-              />
-              {isLinked && (
-                <div 
-                  className="absolute inset-0 pointer-events-none rounded"
-                  style={{
-                    background: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0, 0, 0, 0.05) 4px, rgba(0, 0, 0, 0.05) 8px)'
-                  }}
-                />
-              )}
-            </div>
+            <Checkbox
+              label=""
+              checked={Boolean(value)}
+              onChange={(e) => {
+                if (isLinked) return; // Prevent changes when linked
+                updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.checked);
+              }}
+              disabled={isLinked}
+            />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -720,48 +701,37 @@ export default function QuotesPage() {
                 unitSymbol={field.unitSymbol}
                 required={field.required}
                 description={field.description}
-                canLink={canLink}
+                showLink={canLink}
                 isLinked={isLinked}
                 onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-                formatLabel={formatLabel}
               />
               
-              <div className={isLinked ? 'relative' : ''}>
-            <Select
-                  label=""
-              value={currentDisplayValue}
-              onChange={(e) => {
-                    if (isLinked) return; // Prevent changes when linked
-                const selectedDisplay = e.target.value;
-                // Extract numeric value from display string (e.g., "40 cm" -> 40)
-                const match = selectedDisplay.match(/^([\d.]+)/);
-                if (match && field.unitSymbol) {
-                  const numValue = Number(match[1]);
-                  if (!isNaN(numValue)) {
-                    // Convert to base unit and store as number
-                    const baseValue = normalizeToBase(numValue, field.unitSymbol);
-                    updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
+              <Select
+                label=""
+                value={currentDisplayValue}
+                onChange={(e) => {
+                  if (isLinked) return; // Prevent changes when linked
+                  const selectedDisplay = e.target.value;
+                  // Extract numeric value from display string (e.g., "40 cm" -> 40)
+                  const match = selectedDisplay.match(/^([\d.]+)/);
+                  if (match && field.unitSymbol) {
+                    const numValue = Number(match[1]);
+                    if (!isNaN(numValue)) {
+                      // Convert to base unit and store as number
+                      const baseValue = normalizeToBase(numValue, field.unitSymbol);
+                      updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
+                    }
                   }
-                }
-              }}
-              options={[
-                { value: '', label: 'Select...' },
-                ...displayOptions.map((displayOpt) => ({
-                  value: displayOpt,
-                  label: displayOpt,
-                })),
-              ]}
-                  disabled={isLinked}
-                />
-                {isLinked && (
-                  <div 
-                    className="absolute inset-0 pointer-events-none rounded-full"
-                    style={{
-                      background: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(59, 130, 246, 0.08) 4px, rgba(59, 130, 246, 0.08) 8px)'
-                    }}
-                  />
-                )}
-              </div>
+                }}
+                options={[
+                  { value: '', label: 'Select...' },
+                  ...displayOptions.map((displayOpt) => ({
+                    value: displayOpt,
+                    label: displayOpt,
+                  })),
+                ]}
+                disabled={isLinked}
+              />
               
               {/* Linked state UI */}
               {isLinked && (() => {
@@ -822,32 +792,24 @@ export default function QuotesPage() {
               unitSymbol={field.unitSymbol}
               required={field.required}
               description={field.description}
-              canLink={canLink}
+              showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              formatLabel={formatLabel}
             />
             
-            <div className={isLinked ? 'relative' : ''}>
-          <Select
-                label=""
-            value={value?.toString() || ''}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value);
-                }}
-            options={[
-              { value: '', label: 'Select...' },
-              ...options.map((opt) => ({ value: opt, label: opt })),
-            ]}
-                disabled={isLinked}
-              />
-              {isLinked && (
-                <div 
-                  className="absolute inset-0 pointer-events-none rounded-full [background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(0,0,0,0.05)_4px,rgba(0,0,0,0.05)_8px)] dark:[background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(255,255,255,0.12)_4px,rgba(255,255,255,0.12)_8px)]"
-                />
-              )}
-            </div>
+            <Select
+              label=""
+              value={value?.toString() || ''}
+              onChange={(e) => {
+                if (isLinked) return; // Prevent changes when linked
+                updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value);
+              }}
+              options={[
+                { value: '', label: 'Select...' },
+                ...options.map((opt) => ({ value: opt, label: opt })),
+              ]}
+              disabled={isLinked}
+            />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -917,7 +879,6 @@ export default function QuotesPage() {
               unitSymbol={field.unitSymbol}
               required={field.required}
               description={field.description}
-              formatLabel={formatLabel}
             />
             <Select
               label=""
@@ -951,29 +912,21 @@ export default function QuotesPage() {
               unitSymbol={field.unitSymbol}
               required={field.required}
               description={field.description}
-              canLink={canLink}
+              showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              formatLabel={formatLabel}
             />
             
-            <div className={isLinked ? 'relative' : ''}>
-          <Input
-                label=""
-            value={value?.toString() || ''}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value);
-                }}
-            required={field.required}
-                disabled={isLinked}
-              />
-              {isLinked && (
-                <div 
-                  className="absolute inset-0 pointer-events-none rounded-full [background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(0,0,0,0.05)_4px,rgba(0,0,0,0.05)_8px)] dark:[background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(255,255,255,0.12)_4px,rgba(255,255,255,0.12)_8px)]"
-                />
-              )}
-            </div>
+            <Input
+              label=""
+              value={value?.toString() || ''}
+              onChange={(e) => {
+                if (isLinked) return; // Prevent changes when linked
+                updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value);
+              }}
+              required={field.required}
+              disabled={isLinked}
+            />
             
             {/* Linked state UI */}
             {isLinked && (() => {

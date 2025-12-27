@@ -806,7 +806,7 @@
   }
   
   /* Fallback for browsers without color-mix support: use opacity on element */
-  /* This is less ideal but prevents gradients by ensuring overlay is separate */
+  /* Ensures overlay is separate from background for proper visual differentiation */
   @supports not (color: color-mix(in srgb, currentColor 38%, transparent)) {
     input.disabled-overlay:disabled,
     textarea.disabled-overlay:disabled,

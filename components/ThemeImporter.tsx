@@ -86,11 +86,9 @@ export function ThemeImporter() {
                 onChange={handleFileUpload}
                 className="hidden"
               />
-              <Button type="button" className="w-full" asChild>
-                <span className="flex items-center justify-center">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload JSON File
-                </span>
+              <Button type="button" className="w-full">
+                <Upload className="h-4 w-4 mr-2" />
+                Upload JSON File
               </Button>
             </label>
           </div>
@@ -180,7 +178,7 @@ export function ThemeImporter() {
                 )}
                 <Button
                   size="sm"
-                  variant="destructive"
+                  variant="danger"
                   onClick={() => removeTheme(theme.name)}
                   className="flex items-center gap-1"
                 >
