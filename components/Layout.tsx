@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ThemeSelector } from '@/components/ThemeSelector';
 import { 
   LayoutDashboard, 
   Package, 
@@ -71,7 +72,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 })}
               </div>
               <div className="h-6 w-px bg-md-outline" />
-              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                <ThemeSelector />
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </div>
