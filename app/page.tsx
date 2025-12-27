@@ -16,7 +16,7 @@ export default function Home() {
   return (
     <Layout>
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-md-on-surface mb-2 tracking-tight">Dashboard</h1>
+        <h1 className="text-4xl font-bold text-md-primary mb-2 tracking-tight">Dashboard</h1>
         <p className="text-lg text-md-on-surface-variant">Welcome to the Event Construction Cost Estimator</p>
       </div>
 
@@ -64,21 +64,21 @@ export default function Home() {
       <Card title="Quick Start Guide">
         <div className="space-y-4 text-md-on-surface">
           <div>
-            <h3 className="font-semibold text-md-on-surface mb-2">1. Set Up Materials</h3>
+            <h3 className="font-semibold text-md-primary mb-2">1. Set Up Materials</h3>
             <p className="text-sm text-md-on-surface-variant">
               Start by adding materials that you&apos;ll reference in your calculation formulas. 
               Each material needs a unique variable name that you can use in formulas.
             </p>
           </div>
           <div>
-            <h3 className="font-semibold text-md-on-surface mb-2">2. Create Calculation Modules</h3>
+            <h3 className="font-semibold text-md-primary mb-2">2. Create Calculation Modules</h3>
             <p className="text-sm text-md-on-surface-variant">
               Define reusable calculation modules with custom input fields and formulas. 
               Use variable names from fields and materials in your formulas.
             </p>
           </div>
           <div>
-            <h3 className="font-semibold text-md-on-surface mb-2">3. Build Quotes</h3>
+            <h3 className="font-semibold text-md-primary mb-2">3. Build Quotes</h3>
             <p className="text-sm text-md-on-surface-variant">
               Combine multiple modules to create comprehensive quotes. 
               All calculations update automatically as you change values.

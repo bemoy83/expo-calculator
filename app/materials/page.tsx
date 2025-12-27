@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
+import { Chip } from '@/components/ui/Chip';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { Material, MaterialProperty, MaterialPropertyType, COMMON_MATERIAL_PROPERTIES } from '@/lib/types';
 import { labelToVariableName, generateId } from '@/lib/utils';
@@ -319,7 +320,7 @@ export default function MaterialsPage() {
     <Layout>
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-md-on-surface mb-2 tracking-tight">Materials Catalog</h1>
+          <h1 className="text-4xl font-bold text-md-primary mb-2 tracking-tight">Materials Catalog</h1>
           <p className="text-lg text-md-on-surface-variant">Manage materials and their prices for use in calculation formulas</p>
         </div>
         <Button onClick={() => openEditor()} className="rounded-full">
@@ -365,7 +366,7 @@ export default function MaterialsPage() {
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-md-surface-variant elevation-1 mb-5">
                   <Package className="h-10 w-10 text-md-on-surface-variant" />
                 </div>
-                <h3 className="text-lg font-bold text-md-on-surface mb-2 tracking-tight">
+                <h3 className="text-lg font-bold text-md-primary mb-2 tracking-tight">
                   {materials.length === 0 ? 'No Materials Yet' : 'No Materials Found'}
                 </h3>
                 <p className="text-base text-md-on-surface-variant max-w-md mx-auto leading-relaxed mb-5">
@@ -390,20 +391,14 @@ export default function MaterialsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-md-on-surface mb-2">{material.name}</h3>
+                          <h3 className="text-lg font-semibold text-md-primary mb-2">{material.name}</h3>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="px-3 py-1 bg-md-primary/10 text-md-primary text-xs font-medium rounded-full">
-                              {material.category}
-                            </span>
+                            <Chip size="sm">{material.category}</Chip>
                             {material.sku && (
-                              <span className="px-3 py-1 bg-md-surface-variant text-md-on-surface-variant text-xs rounded-full">
-                                SKU: {material.sku}
-                              </span>
+                              <Chip size="sm">SKU: {material.sku}</Chip>
                             )}
                             {material.supplier && (
-                              <span className="px-3 py-1 bg-md-surface-variant text-md-on-surface-variant text-xs rounded-full">
-                                {material.supplier}
-                              </span>
+                              <Chip size="sm">{material.supplier}</Chip>
                             )}
                           </div>
                         </div>
@@ -418,7 +413,7 @@ export default function MaterialsPage() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs text-md-on-surface-variant uppercase tracking-wide shrink-0">Variable:</span>
-                          <code className="px-2.5 py-1 bg-md-surface-variant border border-accent/30 rounded-md text-sm text-md-primary font-mono">
+                          <code className="px-2.5 py-1 bg-md-secondary border-accent rounded-full text-sm text-md-on-secondary font-mono">
                             {material.variableName}
                           </code>
                         </div>
@@ -437,12 +432,12 @@ export default function MaterialsPage() {
                               {material.properties.map((prop) => (
                                 <div
                                   key={prop.id}
-                                  className="px-2.5 py-1 bg-md-surface-variant/50 border border-border rounded-md text-xs"
+                                  className="px-2.5 py-1 bg-md-secondary border rounded-full text-xs"
                                   title={`${prop.name}: ${prop.type === 'boolean' ? (prop.value === true || prop.value === 'true' ? 'True' : 'False') : String(prop.value)}${prop.unit ? ` ${prop.unit}` : ''}`}
                                 >
-                                  <code className="text-md-primary font-mono">{material.variableName}.{prop.name}</code>
+                                  <code className="text-md-on-secondary font-mono">{material.variableName}.{prop.name}</code>
                                   {prop.unitSymbol && (
-                                    <span className="text-md-on-surface-variant ml-1">({prop.unitSymbol})</span>
+                                    <span className="text-md-on-secondary ml-1">({prop.unitSymbol})</span>
                                   )}
                                 </div>
                               ))}
@@ -572,7 +567,7 @@ export default function MaterialsPage() {
                 {/* Properties Section */}
                 <div className="pt-4 border-t border-border">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-md-on-surface">Properties</label>
+                    <label className="text-sm font-semibold text-md-primary">Properties</label>
                     <span className="text-xs text-md-on-surface-variant">
                       {properties.length} {properties.length === 1 ? 'property' : 'properties'}
                     </span>

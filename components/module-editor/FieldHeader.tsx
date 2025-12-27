@@ -40,7 +40,7 @@ export function FieldHeader({
   return (
     <div className="flex items-center justify-between h-6 mb-2">
       <div className="flex-1 min-w-0">
-        <label className="block text-sm font-medium text-label-foreground leading-tight truncate">
+        <label className="block text-sm font-medium text-md-on-surface leading-tight truncate">
           {label}
 
           {/* Inline unit helper */}

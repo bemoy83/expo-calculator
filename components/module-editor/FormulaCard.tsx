@@ -55,7 +55,7 @@ export const FormulaCard = React.memo(function FormulaCard({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label htmlFor="formula-input" className="text-sm font-semibold text-md-on-surface">
+        <label htmlFor="formula-input" className="text-sm font-semibold text-md-primary">
           Formula
         </label>
         <div className="flex items-center gap-2">

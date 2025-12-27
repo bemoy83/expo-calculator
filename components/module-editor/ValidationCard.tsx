@@ -60,7 +60,7 @@ export const ValidationCard = React.memo(function ValidationCard({
     <div className="space-y-4">
       {/* Validation Status */}
       <div className="space-y-2">
-        <h4 className="text-xs font-semibold text-md-on-surface-variant uppercase tracking-wider">Validation Status</h4>
+        <h4 className="text-xs font-semibold text-md-primary uppercase tracking-wider">Validation Status</h4>
         <div className={cn(
           "p-3 rounded-lg border",
           validation.valid ? "bg-success/10 border-success/30" : 
@@ -81,7 +81,7 @@ export const ValidationCard = React.memo(function ValidationCard({
 
       {/* Debug Panel */}
       <div className="space-y-3">
-        <h4 className="text-xs font-semibold text-md-on-surface-variant uppercase tracking-wider">Debug Info</h4>
+        <h4 className="text-xs font-semibold text-md-primary uppercase tracking-wider">Debug Info</h4>
         
         {/* Standalone Variables */}
         <div className="space-y-1.5">
@@ -183,7 +183,7 @@ export const ValidationCard = React.memo(function ValidationCard({
 
       {/* Quick Help */}
       <div className="space-y-2">
-        <h4 className="text-xs font-semibold text-md-on-surface-variant uppercase tracking-wider">Quick Help</h4>
+        <h4 className="text-xs font-semibold text-md-primary uppercase tracking-wider">Quick Help</h4>
         <div className="text-xs text-md-on-surface-variant space-y-2 pt-2">
           <p>• Click variables on the left to insert them</p>
           <p>• Use <code className="px-1 bg-muted rounded">material.property</code> for dimensions</p>

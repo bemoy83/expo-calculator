@@ -13,7 +13,7 @@ function TemplateEditorContent() {
     return (
       <div className="min-h-screen bg-md-surface text-md-on-surface flex items-center justify-center p-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-md-on-surface mb-2">Template not found</h1>
+          <h1 className="text-2xl font-bold text-md-primary mb-2">Template not found</h1>
           <p className="text-md-on-surface-variant mb-4">
             No template ID provided.
           </p>

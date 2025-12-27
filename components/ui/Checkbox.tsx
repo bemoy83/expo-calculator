@@ -25,6 +25,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         className={cn(
           'w-4 h-4 bg-md-surface-container border-md-outline rounded',
           'text-md-primary focus:ring-md-primary focus:ring-2',
+          'checked:bg-md-primary checked:border-md-primary',
           'cursor-pointer disabled-overlay disabled:cursor-not-allowed',
           className
         )}

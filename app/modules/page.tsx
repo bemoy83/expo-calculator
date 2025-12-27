@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Layout } from '@/components/Layout';
-import { Card } from '@/components/ui/Card';
+import { Card, CARD_BACKGROUND, CARD_BORDER, CARD_ROUNDED } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { Chip } from '@/components/ui/Chip';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useCategoriesStore } from '@/lib/stores/categories-store';
@@ -131,7 +132,7 @@ function SortableFieldItem({
     <div
       ref={combinedRef}
       style={style}
-      className="bg-md-surface-container border border-md-outline rounded-xl overflow-hidden transition-smooth elevation-1"
+      className={`${CARD_BACKGROUND} ${CARD_BORDER} ${CARD_ROUNDED} overflow-hidden transition-smooth elevation-1`}
     >
       {/* Field Header */}
       <div className="flex items-center">
@@ -163,7 +164,7 @@ function SortableFieldItem({
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-md-on-surface">
+              <span className="font-semibold text-md-primary">
                 {field.label || 'Unnamed Field'}
               </span>
               {field.variableName && (
@@ -171,9 +172,9 @@ function SortableFieldItem({
                   {field.variableName}
                 </code>
               )}
-              <span className="px-2.5 py-0.5 bg-md-surface-variant border border-border rounded-full text-xs text-md-on-surface-variant capitalize">
+              <Chip size="sm" variant="outline" className="capitalize">
                 {field.type}
-              </span>
+              </Chip>
               {field.required && (
                 <span className="px-2.5 py-0.5 bg-md-error text-md-on-error rounded-full text-xs font-medium">
                   Required
@@ -1509,28 +1510,26 @@ export default function ModulesPage() {
                   </label>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {getAllCategories().map((cat) => (
-                      <button
+                      <Chip
                         key={cat}
-                        type="button"
+                        as="button"
+                        size="md"
+                        variant={formData.category === cat ? 'selected' : 'outline'}
                         onClick={() => setFormData({ ...formData, category: cat })}
-                        className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                          formData.category === cat
-                            ? 'bg-md-primary text-md-on-primary elevation-1'
-                            : 'bg-md-surface-variant text-md-on-surface-variant hover:bg-md-surface-variant/80 hover:text-md-on-surface border border-border'
-                        }`}
                       >
                         {cat}
-                      </button>
+                      </Chip>
                     ))}
                     {!showAddCategory && (
-                      <button
-                        type="button"
+                      <Chip
+                        as="button"
+                        size="md"
+                        variant="dashed"
                         onClick={() => setShowAddCategory(true)}
-                        className="px-4 py-2.5 rounded-full text-sm font-medium transition-all bg-md-surface-variant text-md-on-surface-variant hover:bg-md-surface-variant/80 hover:text-md-on-surface border border-border border-dashed"
                       >
                         <Plus className="h-4 w-4 inline mr-1" />
                         Add Category
-                      </button>
+                      </Chip>
                     )}
                   </div>
                   {showAddCategory && (
@@ -1678,7 +1677,7 @@ export default function ModulesPage() {
                       aria-expanded={fieldVariablesExpanded}
                     >
                       <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-semibold text-md-on-surface">Field Variables</h4>
+                      <h4 className="text-sm font-semibold text-md-primary">Field Variables</h4>
                       {allFields.length > 0 && (
                         <span className="text-xs text-md-on-surface-variant">
                           {usedFields}/{allFields.length} fields
@@ -1809,7 +1808,7 @@ export default function ModulesPage() {
                       aria-expanded={materialVariablesExpanded}
                     >
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-semibold text-md-on-surface">Material Variables</h4>
+                        <h4 className="text-sm font-semibold text-md-primary">Material Variables</h4>
                         <span className="text-xs text-md-on-surface-variant">
                           {availableMaterialVariables.length} {availableMaterialVariables.length === 1 ? 'material' : 'materials'}
                         </span>
@@ -1937,7 +1936,7 @@ export default function ModulesPage() {
                 {/* Formula Editor */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label htmlFor="formula-input" className="text-sm font-semibold text-md-on-surface">Formula</label>
+                    <label htmlFor="formula-input" className="text-sm font-semibold text-md-primary">Formula</label>
                     {formData.formula && (
                       <div className="flex items-center space-x-1" role="status" aria-live="polite">
                         {formulaValidation.valid ? (
@@ -2095,7 +2094,7 @@ export default function ModulesPage() {
                         <>
                           {/* Standalone Variables */}
                           <div>
-                            <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
+                            <h5 className="text-xs font-semibold text-md-primary mb-1.5">
                               Standalone Variables ({debugInfo.variables.length})
                             </h5>
                             {debugInfo.variables.length > 0 ? (
@@ -2116,7 +2115,7 @@ export default function ModulesPage() {
 
                           {/* Unknown Variables */}
                           <div>
-                            <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
+                            <h5 className="text-xs font-semibold text-md-primary mb-1.5">
                               Unknown Variables ({debugInfo.unknownVariables.length})
                             </h5>
                             {debugInfo.unknownVariables.length > 0 ? (
@@ -2137,7 +2136,7 @@ export default function ModulesPage() {
 
                           {/* Field Property References */}
                           <div>
-                            <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
+                            <h5 className="text-xs font-semibold text-md-primary mb-1.5">
                               Field Property References ({debugInfo.fieldPropertyRefs.length})
                             </h5>
                             {debugInfo.fieldPropertyRefs.length > 0 ? (
@@ -2159,7 +2158,7 @@ export default function ModulesPage() {
 
                           {/* Material Property References */}
                           <div>
-                            <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
+                            <h5 className="text-xs font-semibold text-md-primary mb-1.5">
                               Material Property References ({debugInfo.materialPropertyRefs.length})
                             </h5>
                             {debugInfo.materialPropertyRefs.length > 0 ? (
@@ -2182,7 +2181,7 @@ export default function ModulesPage() {
                           {/* Math Functions (for reference) */}
                           {debugInfo.mathFunctions.length > 0 && (
                             <div>
-                              <h5 className="text-xs font-semibold text-md-on-surface mb-1.5">
+                              <h5 className="text-xs font-semibold text-md-primary mb-1.5">
                                 Math Functions ({debugInfo.mathFunctions.length})
                               </h5>
                               <div className="flex flex-wrap gap-1.5">
@@ -2205,7 +2204,7 @@ export default function ModulesPage() {
 
                 {/* Operators Guide */}
                 <div className="pt-4 border-t border-border">
-                  <h4 className="text-xs font-semibold text-md-on-surface-variant mb-2 uppercase tracking-wide">
+                  <h4 className="text-xs font-semibold text-md-primary mb-2 uppercase tracking-wide">
                     Supported Operators
                   </h4>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
@@ -2293,7 +2292,7 @@ export default function ModulesPage() {
                   
                   {/* Comparison Operators */}
                   <div className="mt-4 pt-4 border-t border-border">
-                    <h5 className="text-xs font-semibold text-md-on-surface-variant mb-2 uppercase tracking-wide">
+                    <h5 className="text-xs font-semibold text-md-primary mb-2 uppercase tracking-wide">
                       Comparison Operators
                     </h5>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
@@ -2385,16 +2384,12 @@ export default function ModulesPage() {
               {/* Preview Card Header */}
               <div className="flex items-center justify-between p-4 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-md-on-surface">
+                  <span className="font-semibold text-md-primary">
                     {formData.name || 'Module Preview'}
                   </span>
-                  <span className="px-2 py-0.5 bg-md-primary/10 text-md-primary rounded-full text-xs font-medium">
-                    Preview
-                  </span>
+                  <Chip size="sm">Preview</Chip>
                   {formData.category && (
-                    <span className="px-2.5 py-0.5 bg-md-primary/10 text-md-primary rounded-full text-xs font-medium">
-                      {formData.category}
-                    </span>
+                    <Chip size="sm">{formData.category}</Chip>
                   )}
                 </div>
                 <button
@@ -2440,7 +2435,7 @@ export default function ModulesPage() {
                         
                         return (
                           <div key={field.id}>
-                            <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                            <label className="block text-sm font-medium text-md-on-surface-variant mb-1.5">
                               {formatLabel(field.label, field.unit, field.unitSymbol)}
                               {field.required && <span className="text-md-error ml-1">*</span>}
                             </label>
@@ -2470,7 +2465,7 @@ export default function ModulesPage() {
                       case 'boolean':
                         return (
                           <div key={field.id}>
-                            <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                            <label className="block text-sm font-medium text-md-on-surface-variant mb-1.5">
                               {formatLabel(field.label, field.unit, field.unitSymbol)}
                               {field.required && <span className="text-md-error ml-1">*</span>}
                             </label>
@@ -2521,7 +2516,7 @@ export default function ModulesPage() {
                           
                           return (
                             <div key={field.id}>
-                              <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                              <label className="block text-sm font-medium text-md-on-surface-variant mb-1.5">
                                 {formatLabel(field.label, field.unit, field.unitSymbol)}
                                 {field.required && <span className="text-md-error ml-1">*</span>}
                               </label>
@@ -2561,7 +2556,7 @@ export default function ModulesPage() {
                         
                         return (
                           <div key={field.id}>
-                            <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                            <label className="block text-sm font-medium text-md-on-surface-variant mb-1.5">
                               {formatLabel(field.label, field.unit, field.unitSymbol)}
                               {field.required && <span className="text-md-error ml-1">*</span>}
                             </label>
@@ -2600,7 +2595,7 @@ export default function ModulesPage() {
                         return (
                           <div key={field.id}>
                             <div className="mb-1.5">
-                              <label className="block text-sm font-medium text-label-foreground">
+                              <label className="block text-sm font-medium text-md-on-surface-variant">
                                 {formatLabel(field.label, field.unit, field.unitSymbol)}
                                 {field.required && <span className="text-md-error ml-1">*</span>}
                               </label>
@@ -2638,7 +2633,7 @@ export default function ModulesPage() {
                       case 'text':
                         return (
                           <div key={field.id}>
-                            <label className="block text-sm font-medium text-label-foreground mb-1.5">
+                            <label className="block text-sm font-medium text-md-on-surface-variant mb-1.5">
                               {formatLabel(field.label, field.unit, field.unitSymbol)}
                               {field.required && <span className="text-md-error ml-1">*</span>}
                             </label>
@@ -2806,14 +2801,12 @@ export default function ModulesPage() {
                   <Trash2 className="h-4 w-4" />
                 </button>
 
-                <h3 className="text-lg font-bold text-md-on-surface mb-3 group-hover:text-md-primary transition-smooth tracking-tight pr-10">
+                <h3 className="text-lg font-bold text-md-primary mb-3 transition-smooth tracking-tight pr-10">
                   {module.name}
                 </h3>
               {module.category && (
                 <div className="mb-3">
-                  <span className="px-3 py-1 bg-md-primary/10 text-md-primary text-xs font-medium rounded-full">
-                    {module.category}
-                  </span>
+                  <Chip size="sm">{module.category}</Chip>
                 </div>
               )}
               <p className="text-sm text-md-on-surface-variant mb-4 line-clamp-2">
@@ -2823,12 +2816,9 @@ export default function ModulesPage() {
                 <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">Fields</p>
                 <div className="flex flex-wrap gap-2">
                   {module.fields.map((field) => (
-                    <span
-                      key={field.id}
-                      className="px-2.5 py-1 bg-md-surface-variant text-md-on-surface-variant rounded-full text-xs"
-                    >
+                    <Chip key={field.id} size="sm">
                       {field.label}
-                    </span>
+                    </Chip>
                   ))}
                 </div>
               </div>

@@ -16,7 +16,7 @@ import { normalizeToBase, convertFromBase } from '@/lib/units';
 import { evaluateFormula } from '@/lib/formula-evaluator';
 import { generateId } from '@/lib/utils';
 import { canLinkFields, resolveFieldLinks } from '@/lib/utils/field-linking';
-import { Plus, X, Trash2, ChevronDown, ChevronUp, GripVertical, AlertCircle, Link2, Unlink, CheckCircle2 } from 'lucide-react';
+import { Plus, X, Trash2, AlertCircle, Link2, Unlink, CheckCircle2 } from 'lucide-react';
 import { FieldHeader, FieldDescription } from '@/components/module-editor/FieldHeader';
 import {
   DndContext,
@@ -31,139 +31,9 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-
-interface SortableModuleCardProps {
-  instance: QuoteModuleInstance;
-  module: CalculationModule;
-  isCollapsed: boolean;
-  onToggleCollapse: (id: string) => void;
-  onRemove: (id: string) => void;
-  renderFieldInput: (instance: QuoteModuleInstance, field: Field) => React.ReactNode;
-}
-
-function SortableModuleCard({
-  instance,
-  module,
-  isCollapsed,
-  onToggleCollapse,
-  onRemove,
-  renderFieldInput,
-}: SortableModuleCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: instance.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="bg-md-surface-container border border-md-outline rounded-xl overflow-hidden transition-smooth elevation-1"
-    >
-      {/* Module Header */}
-      <div className="flex items-center">
-        {/* Drag Handle - Left Side */}
-        <button
-          {...attributes}
-          {...listeners}
-          className="p-3 text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-inset transition-smooth"
-          aria-label={`Drag to reorder ${module.name}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-5 w-5" />
-        </button>
-
-        {/* Interactive Header Content */}
-        <div
-          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-lg"
-          onClick={() => onToggleCollapse(instance.id)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onToggleCollapse(instance.id);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-expanded={!isCollapsed}
-          aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} module ${module.name}`}
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-md-on-surface">
-                {module.name}
-              </span>
-              {module.category && (
-                <span className="px-2.5 py-0.5 bg-md-primary/10 text-md-primary rounded-full text-xs font-medium">
-                  {module.category}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm font-semibold text-success tabular-nums">
-              ${instance.calculatedCost.toFixed(2)}
-            </span>
-            {isCollapsed ? (
-              <ChevronDown className="h-5 w-5 text-md-on-surface-variant" />
-            ) : (
-              <ChevronUp className="h-5 w-5 text-md-on-surface-variant" />
-            )}
-            {/* Remove Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(instance.id);
-              }}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-md-error text-md-on-error hover:bg-md-error/90 transition-colors focus:outline-none focus:ring-2 focus:ring-md-error focus:ring-offset-2 focus:ring-offset-md-surface"
-              aria-label="Remove module"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Module Content */}
-      {!isCollapsed && (
-        <div className="px-4 pb-6">
-          {module.description && (
-            <p className="text-sm text-md-on-surface-variant mb-5">{module.description}</p>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-            {module.fields.map((field) => (
-              <div key={field.id}>
-                {renderFieldInput(instance, field)}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between pt-5 border-t border-md-outline">
-            <span className="text-sm font-semibold text-md-on-surface-variant uppercase tracking-wide">Module Cost</span>
-            <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
-              ${instance.calculatedCost.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+import { SortableModuleCard } from '@/components/SortableModuleCard';
 
 interface TemplateEditorClientProps {
   templateId: string;
@@ -180,8 +50,10 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
   // Call all hooks before any conditional returns to ensure hooks order stability
   const router = useRouter();
   
-  const template = useTemplatesStore((state) => state.getTemplate(templateId));
+  // Handle new template mode - don't fetch template if id is 'new'
+  const template = templateId === 'new' ? null : useTemplatesStore((state) => state.getTemplate(templateId));
   const updateTemplate = useTemplatesStore((state) => state.updateTemplate);
+  const addTemplate = useTemplatesStore((state) => state.addTemplate);
   const modules = useModulesStore((state) => state.modules);
   const materials = useMaterialsStore((state) => state.materials);
 
@@ -235,6 +107,14 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
   // Initialize template data
   useEffect(() => {
+    // Handle new template mode
+    if (templateId === 'new') {
+      setTemplateName('');
+      setTemplateDescription('');
+      setWorkspaceModules([]);
+      return;
+    }
+
     if (!template) {
       router.push('/templates');
       return;
@@ -339,7 +219,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
     setWorkspaceModules(initialModules);
     recalculateModules(initialModules);
-  }, [template, modules, materials, router, recalculateModules]);
+  }, [template, templateId, modules, materials, router, recalculateModules]);
 
   // Update field value
   const updateFieldValue = useCallback((instanceId: string, fieldName: string, value: string | number | boolean) => {
@@ -678,8 +558,6 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
   // Save template
   const handleSaveTemplate = () => {
-    if (!template) return;
-
     // Build a map of instance IDs to indices for link conversion
     const instanceIdToIndex = new Map<string, number>();
     workspaceModules.forEach((instance, index) => {
@@ -722,12 +600,22 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
       )
     );
 
-    updateTemplate(templateId, {
-      name: templateName.trim(),
-      description: templateDescription.trim() || undefined,
-      moduleInstances,
-      categories,
-    });
+    // Create new template or update existing
+    if (templateId === 'new') {
+      addTemplate({
+        name: templateName.trim() || 'New Template',
+        description: templateDescription.trim() || undefined,
+        moduleInstances,
+        categories,
+      });
+    } else if (template) {
+      updateTemplate(templateId, {
+        name: templateName.trim(),
+        description: templateDescription.trim() || undefined,
+        moduleInstances,
+        categories,
+      });
+    }
 
     router.push('/templates');
   };
@@ -1280,7 +1168,8 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
   }
 
   // Early return AFTER all hooks to ensure hooks order stability
-  if (!template) {
+  // Allow 'new' template mode, but redirect if templateId is invalid (not 'new' and template doesn't exist)
+  if (templateId !== 'new' && !template) {
     return (
       <Layout>
         <div className="flex items-center justify-center py-24">
@@ -1306,10 +1195,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
     return module.category === selectedCategory;
   });
 
-  // Check for deleted modules
-  const hasDeletedModules = template.moduleInstances.some(
-    (instance) => !modules.find((m) => m.id === instance.moduleId)
-  );
+  // Check for deleted modules (only for existing templates, not new ones)
+  const hasDeletedModules = templateId !== 'new' && template
+    ? template.moduleInstances.some(
+        (instance) => !modules.find((m) => m.id === instance.moduleId)
+      )
+    : false;
 
   return (
     <Layout>
@@ -1504,6 +1395,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                     onToggleCollapse={toggleModuleCollapse}
                     onRemove={handleRemoveModule}
                     renderFieldInput={renderFieldInput}
+                    borderClassName="border-md-outline"
                   />
                 );
               })}

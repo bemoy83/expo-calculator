@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Chip';
 import { Button } from '@/components/ui/Button';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
@@ -63,16 +64,9 @@ export default function TemplatesPage() {
   };
 
   const handleCreateTemplate = () => {
-    const store = useTemplatesStore.getState();
-    
-    const newTemplate = store.addTemplate({
-      name: 'New Template',
-      description: undefined,
-      moduleInstances: [],
-      categories: [],
-    });
-
-    router.push(`/templates/editor?id=${newTemplate.id}`);
+    // Navigate to editor with 'new' identifier instead of creating immediately
+    // Template will only be created when user clicks Save
+    router.push('/templates/editor?id=new');
   };
 
   const handleDuplicate = (id: string, e: React.MouseEvent) => {
@@ -122,7 +116,7 @@ export default function TemplatesPage() {
 
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-md-on-surface mb-2 tracking-tight">
+          <h1 className="text-4xl font-bold text-md-primary mb-2 tracking-tight">
             Templates
           </h1>
           <p className="text-lg text-md-on-surface-variant">
@@ -144,7 +138,7 @@ export default function TemplatesPage() {
             >
               <FileText className="h-12 w-12 text-md-on-surface-variant" />
             </div>
-            <h3 className="text-xl font-bold text-md-on-surface mb-3 tracking-tight">
+            <h3 className="text-xl font-bold text-md-primary mb-3 tracking-tight">
               No Templates Yet
             </h3>
             <p className="text-base text-md-on-surface-variant mb-8 max-w-md mx-auto leading-relaxed">
@@ -160,7 +154,9 @@ export default function TemplatesPage() {
 
             template.moduleInstances.forEach((instance) => {
               const moduleDef = getModule(instance.moduleId);
-              if (moduleDef) moduleNames.push(moduleDef.name);
+              if (moduleDef && !moduleNames.includes(moduleDef.name)) {
+                moduleNames.push(moduleDef.name);
+              }
             });
 
             const visibleModules = moduleNames.slice(0, 6);
@@ -190,7 +186,7 @@ export default function TemplatesPage() {
                     <Trash2 className="h-4 w-4" />
                   </button>
 
-                  <h3 className="text-lg font-bold text-md-on-surface mb-3 group-hover:text-md-primary transition-smooth tracking-tight pr-20">
+                  <h3 className="text-lg font-bold text-md-primary mb-3 transition-smooth tracking-tight pr-20">
                     {template.name}
                   </h3>
 
@@ -201,15 +197,17 @@ export default function TemplatesPage() {
                   )}
 
                   {template.categories?.length > 0 && (
-                    <div className="mb-4">
-                      {template.categories.map((category) => (
-                        <span
-                          key={category}
-                          className="px-3 py-1 bg-md-primary/10 text-md-primary text-xs font-medium rounded-full mr-2 mb-2 inline-block"
-                        >
-                          {category}
-                        </span>
-                      ))}
+                    <div className="mb-5">
+                      <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">
+                        Categories
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {template.categories.map((category) => (
+                          <Chip key={category} size="sm">
+                            {category}
+                          </Chip>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -219,17 +217,12 @@ export default function TemplatesPage() {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {visibleModules.map((name) => (
-                        <span
-                          key={name}
-                          className="px-2.5 py-1 bg-md-surface-variant text-md-on-surface-variant rounded-full text-xs"
-                        >
+                        <Chip key={name} size="sm">
                           {name}
-                        </span>
+                        </Chip>
                       ))}
                       {remainingCount > 0 && (
-                        <span className="px-2.5 py-1 bg-md-surface-variant text-md-on-surface-variant rounded-full text-xs">
-                          + {remainingCount} more
-                        </span>
+                        <Chip size="sm">+ {remainingCount} more</Chip>
                       )}
                       {moduleNames.length === 0 && (
                         <span className="px-2.5 py-1 bg-md-error/10 text-destructive rounded-full text-xs">

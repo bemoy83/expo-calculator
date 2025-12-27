@@ -47,7 +47,7 @@ export function OperatorsCard({ onInsertOperator }: OperatorsCardProps) {
   const renderOperatorGroup = (title: string, operators: OperatorInfo[], buttonSize: 'sm' | 'md' | 'lg' = 'md') => {
     return (
       <div className="space-y-1.5">
-        <p className="text-[10px] font-semibold text-md-on-surface-variant uppercase tracking-wider">{title}</p>
+        <p className="text-[10px] font-semibold text-md-primary uppercase tracking-wider">{title}</p>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-1.5">
           {operators.map((op) => (
             <button

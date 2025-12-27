@@ -14,7 +14,7 @@ import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { QuoteModuleInstance, FieldType, CalculationModule, Field } from '@/lib/types';
 import { normalizeToBase, convertFromBase } from '@/lib/units';
-import { Plus, X, Download, Send, Trash2, Save, Package, Calculator, LayoutDashboard, Link2, Unlink, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react';
+import { Plus, X, Download, Send, Trash2, Save, Package, Calculator, LayoutDashboard, Link2, Unlink, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/Textarea';
 import { FieldHeader, FieldDescription } from '@/components/module-editor/FieldHeader';
 import {
@@ -30,153 +30,10 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-
-interface SortableModuleCardProps {
-  instance: QuoteModuleInstance;
-  module: CalculationModule;
-  isCollapsed: boolean;
-  onToggleCollapse: (id: string) => void;
-  onRemove: (id: string) => void;
-  onAddToQuote: (id: string) => void;
-  addedItems: Set<string>;
-  renderFieldInput: (instance: QuoteModuleInstance, field: Field) => React.ReactNode;
-}
-
-function SortableModuleCard({
-  instance,
-  module,
-  isCollapsed,
-  onToggleCollapse,
-  onRemove,
-  onAddToQuote,
-  addedItems,
-  renderFieldInput,
-}: SortableModuleCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: instance.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="bg-md-surface-container border border-md-outline rounded-xl overflow-hidden transition-smooth elevation-1"
-    >
-      {/* Module Header */}
-      <div className="flex items-center">
-        {/* Drag Handle - Left Side */}
-        <button
-          {...attributes}
-          {...listeners}
-          className="p-3 text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-inset transition-smooth"
-          aria-label={`Drag to reorder ${module.name}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-5 w-5" />
-        </button>
-
-        {/* Interactive Header Content */}
-        <div
-          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-lg"
-          onClick={() => onToggleCollapse(instance.id)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onToggleCollapse(instance.id);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-expanded={!isCollapsed}
-          aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} module ${module.name}`}
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-md-on-surface">
-                {module.name}
-              </span>
-              {module.category && (
-                <span className="px-2.5 py-0.5 bg-md-primary/10 text-md-primary rounded-full text-xs font-medium">
-                  {module.category}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm font-semibold text-success tabular-nums">
-              ${instance.calculatedCost.toFixed(2)}
-            </span>
-            {isCollapsed ? (
-              <ChevronDown className="h-5 w-5 text-md-on-surface-variant" />
-            ) : (
-              <ChevronUp className="h-5 w-5 text-md-on-surface-variant" />
-            )}
-            {/* Action Buttons - Right Aligned */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToQuote(instance.id);
-              }}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-md-primary text-md-on-primary hover:bg-md-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-offset-2 focus:ring-offset-md-surface"
-              aria-label={addedItems.has(instance.id) ? 'Added to quote' : 'Add to quote'}
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(instance.id);
-              }}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-md-error text-md-on-error hover:bg-md-error/90 transition-colors focus:outline-none focus:ring-2 focus:ring-md-error focus:ring-offset-2 focus:ring-offset-md-surface"
-              aria-label="Remove module"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Module Content */}
-      {!isCollapsed && (
-        <div className="px-4 pb-6">
-          {module.description && (
-            <p className="text-sm text-md-on-surface-variant mb-5">{module.description}</p>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 items-start">
-            {module.fields.map((field) => (
-              <div key={field.id} className="flex flex-col">
-                {renderFieldInput(instance, field)}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between pt-5 border-t border-border">
-            <span className="text-sm font-semibold text-md-on-surface-variant uppercase tracking-wide">Module Cost</span>
-            <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
-              ${instance.calculatedCost.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+import { SortableModuleCard } from '@/components/SortableModuleCard';
+import { Chip } from '@/components/ui/Chip';
 
 export default function QuotesPage() {
   const modules = useModulesStore((state) => state.modules);
@@ -1224,28 +1081,24 @@ export default function QuotesPage() {
               {allCategories.length > 0 && (
                 <div className="mb-4 pb-4 border-b border-border">
                   <div className="flex flex-wrap gap-2">
-                    <button
+                    <Chip
+                      as="button"
+                      size="sm"
+                      variant={selectedCategory === null ? 'selected' : 'default'}
                       onClick={() => setSelectedCategory(null)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
-                        selectedCategory === null
-                          ? 'bg-md-primary text-md-on-primary'
-                          : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
-                      }`}
                     >
                       All
-                    </button>
+                    </Chip>
                     {allCategories.map((category) => (
-                      <button
+                      <Chip
                         key={category}
+                        as="button"
+                        size="sm"
+                        variant={selectedCategory === category ? 'selected' : 'default'}
                         onClick={() => setSelectedCategory(category)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
-                          selectedCategory === category
-                            ? 'bg-md-primary text-md-on-primary'
-                            : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
-                        }`}
                       >
                         {category}
-                      </button>
+                      </Chip>
                     ))}
                   </div>
                 </div>
@@ -1253,7 +1106,7 @@ export default function QuotesPage() {
 
               {/* Single Modules Section */}
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-md-on-surface mb-3">Single Modules</h4>
+                <h4 className="text-sm font-semibold text-md-primary mb-3">Single Modules</h4>
                 {filteredModules.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {filteredModules.map((module) => (
@@ -1265,9 +1118,9 @@ export default function QuotesPage() {
                     <Plus className="h-4 w-4 mr-2 shrink-0" />
                         <span className="truncate flex-1 text-left">{module.name}</span>
                         {module.category && (
-                          <span className="ml-2 px-2 py-0.5 bg-md-primary/20 text-md-primary text-xs rounded-full shrink-0">
+                          <Chip size="sm" className="ml-2 shrink-0">
                             {module.category}
-                          </span>
+                          </Chip>
                         )}
                   </button>
                 ))}
@@ -1282,7 +1135,7 @@ export default function QuotesPage() {
               {/* Module Templates Section */}
               {templates.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-md-on-surface mb-3">Module Templates</h4>
+                  <h4 className="text-sm font-semibold text-md-primary mb-3">Module Templates</h4>
                   {filteredTemplates.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {filteredTemplates.map((template) => (
@@ -1369,7 +1222,7 @@ export default function QuotesPage() {
 
                 return (
                     <SortableModuleCard
-                    key={instance.id} 
+                      key={instance.id} 
                       instance={instance}
                       module={moduleDef}
                       isCollapsed={isModuleCollapsed(instance.id)}
@@ -1384,6 +1237,8 @@ export default function QuotesPage() {
                         }}
                       addedItems={addedItems}
                       renderFieldInput={renderFieldInput}
+                      gridClassName="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 items-start"
+                      borderClassName="border-border"
                     />
                 );
               })}
@@ -1393,15 +1248,17 @@ export default function QuotesPage() {
         </div>
 
         <div className="lg:col-span-1">
-          <Card elevation={2} className="sticky top-[88px] z-40">
-            <h3 className="text-lg font-bold text-md-on-surface mb-5 tracking-tight">Quote Summary</h3>
-            
+          <Card 
+            elevation={1} 
+            className="sticky top-[88px] z-40" 
+            title="Quote Summary"
+          >
             <div className="space-y-5">
               {/* Financial Breakdown */}
               <div className="space-y-3">
                 {/* Subtotal Row */}
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-label-foreground shrink-0">Subtotal</label>
+                  <label className="text-sm text-md-on-surface-variant shrink-0">Subtotal</label>
                   <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                     <span className="font-semibold text-md-on-surface tabular-nums text-sm">
                       ${currentQuote.subtotal.toFixed(2)}
@@ -1411,7 +1268,7 @@ export default function QuotesPage() {
 
                 {/* Markup % Input */}
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-label-foreground shrink-0">Markup (%)</label>
+                  <label className="text-sm text-md-on-surface-variant shrink-0">Markup (%)</label>
                   <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                     <input
                       type="number"
@@ -1430,7 +1287,7 @@ export default function QuotesPage() {
                 {/* Markup Amount Display (only if markup > 0) */}
                 {(currentQuote.markupPercent ?? 0) > 0 && (
                   <div className="flex items-center justify-between gap-3">
-                    <label className="text-sm text-label-foreground shrink-0">Markup</label>
+                    <label className="text-sm text-md-on-surface-variant shrink-0">Markup</label>
                     <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                       <span className="font-semibold text-md-on-surface tabular-nums text-sm">
                         ${(currentQuote.markupAmount ?? 0).toFixed(2)}
@@ -1441,7 +1298,7 @@ export default function QuotesPage() {
 
                 {/* Tax Rate % Input */}
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-label-foreground shrink-0">Tax Rate (%)</label>
+                  <label className="text-sm text-md-on-surface-variant shrink-0">Tax Rate (%)</label>
                   <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                     <input
                       type="number"
@@ -1461,7 +1318,7 @@ export default function QuotesPage() {
                 {/* Tax Amount Display (only if tax rate > 0) */}
                 {(currentQuote.taxRate ?? 0) > 0 && (
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-label-foreground shrink-0">Tax</label>
+                  <label className="text-sm text-md-on-surface-variant shrink-0">Tax</label>
                   <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                     <span className="font-semibold text-md-on-surface tabular-nums text-sm">
                       ${currentQuote.taxAmount.toFixed(2)}
@@ -1483,7 +1340,7 @@ export default function QuotesPage() {
 
               {/* Line Items */}
               <div className="pt-5 border-t border-border">
-                <h4 className="text-sm font-semibold text-md-on-surface mb-3">Line Items</h4>
+                <h4 className="text-sm font-semibold text-md-primary mb-3">Line Items</h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
                   {currentQuote.lineItems.map((item) => (
                     <div
@@ -1550,7 +1407,7 @@ export default function QuotesPage() {
         <div className="fixed inset-0 bg-overlay/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-md-on-surface">Save as Template</h3>
+              <h3 className="text-lg font-semibold text-md-primary">Save as Template</h3>
               <button
                 onClick={() => {
                   setShowSaveTemplateModal(false);

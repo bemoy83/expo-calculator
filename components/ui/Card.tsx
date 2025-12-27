@@ -1,6 +1,12 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
+// Shared card styling constants
+export const CARD_BACKGROUND = 'bg-md-surface-container';
+export const CARD_BORDER = 'border border-md-outline';
+export const CARD_ROUNDED = 'rounded-extra-large';
+export const CARD_BASE_CLASSES = `${CARD_BACKGROUND} ${CARD_BORDER} ${CARD_ROUNDED} transition-all relative`;
+
 interface CardProps {
   children: React.ReactNode;
   className?: string;
@@ -20,7 +26,8 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div className={cn(
-      'bg-md-surface-container border border-md-outline rounded-xl p-6 transition-all relative',
+      CARD_BASE_CLASSES,
+      'p-6',
       `elevation-${elevation}`, // Apply MD3 elevation utility
       interactive && 'hover-overlay',
       className

@@ -115,7 +115,7 @@ export const ToolsCard = React.memo(function ToolsCard({
       {/* Field Variables Section */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold text-md-on-surface-variant uppercase tracking-wider">Field Variables</h4>
+          <h4 className="text-xs font-semibold text-md-primary uppercase tracking-wider">Field Variables</h4>
           <span className="text-[10px] text-md-on-surface-variant">
             {usedFields}/{allFields.length}
           </span>
@@ -199,7 +199,7 @@ export const ToolsCard = React.memo(function ToolsCard({
       {/* Material Fields Section */}
       {filteredFieldVariables.filter(v => v.type === 'material').length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-md-on-surface-variant uppercase tracking-wider">Material Fields</h4>
+          <h4 className="text-xs font-semibold text-md-primary uppercase tracking-wider">Material Fields</h4>
           <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-1.5">
             {filteredFieldVariables
               .filter(v => v.type === 'material')
@@ -233,7 +233,7 @@ export const ToolsCard = React.memo(function ToolsCard({
       {/* Material Catalog Section */}
       {filteredMaterialVariables.length > 0 ? (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-md-on-surface-variant uppercase tracking-wider">Material Catalog</h4>
+          <h4 className="text-xs font-semibold text-md-primary uppercase tracking-wider">Material Catalog</h4>
           <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-1.5">
             {filteredMaterialVariables.map((mat) => {
               const isMaterialInFormula = isVariableInFormula(mat.name, formula);
