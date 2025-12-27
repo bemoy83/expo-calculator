@@ -167,7 +167,7 @@ function SortableFieldItem({
                 {field.label || 'Unnamed Field'}
               </span>
               {field.variableName && (
-                <code className="px-2.5 py-0.5 bg-md-primary text-md-primary-foreground rounded-full text-xs font-mono">
+                <code className="px-2.5 py-0.5 bg-md-primary text-md-on-primary rounded-full text-xs font-mono">
                   {field.variableName}
                 </code>
               )}
@@ -1515,7 +1515,7 @@ export default function ModulesPage() {
                         onClick={() => setFormData({ ...formData, category: cat })}
                         className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                           formData.category === cat
-                            ? 'bg-md-primary text-md-primary-foreground elevation-1'
+                            ? 'bg-md-primary text-md-on-primary elevation-1'
                             : 'bg-md-surface-variant text-md-on-surface-variant hover:bg-md-surface-variant/80 hover:text-md-on-surface border border-border'
                         }`}
                       >
@@ -1732,7 +1732,7 @@ export default function ModulesPage() {
                                 "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
                                 showCheckmark 
                                   ? "border-success bg-success hover:bg-success/90 text-success-foreground" 
-                                  : "bg-md-primary text-md-primary-foreground hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
+                                  : "bg-md-primary text-md-on-primary hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
                               )}
                             >
                               {showCheckmark && (
@@ -1780,7 +1780,7 @@ export default function ModulesPage() {
                                         "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
                                           isPropertyInFormula
                                             ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                          : "bg-md-primary text-md-primary-foreground hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
+                                          : "bg-md-primary text-md-on-primary hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
                                         )}
                                       >
                                         {isPropertyInFormula && (
@@ -1863,7 +1863,7 @@ export default function ModulesPage() {
                                 "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
                                 isMaterialInFormula
                                   ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                  : "bg-md-primary text-md-primary-foreground hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
+                                  : "bg-md-primary text-md-on-primary hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
                               )}
                             >
                               {isMaterialInFormula && (
@@ -2036,7 +2036,7 @@ export default function ModulesPage() {
                               className={cn(
                                 "w-full px-3 py-2 text-left flex items-center gap-2 transition-colors",
                                 isSelected
-                                  ? "bg-md-primary text-md-primary-foreground"
+                                  ? "bg-md-primary text-md-on-primary"
                                   : "hover:bg-md-surface-variant"
                               )}
                             >

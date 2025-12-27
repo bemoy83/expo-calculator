@@ -1428,7 +1428,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                     onClick={() => setSelectedCategory(null)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
                       selectedCategory === null
-                        ? 'bg-accent text-md-primary-foreground'
+                        ? 'bg-accent text-md-on-primary'
                         : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
                     }`}
                   >
@@ -1440,7 +1440,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                       onClick={() => setSelectedCategory(category)}
                       className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
                         selectedCategory === category
-                          ? 'bg-accent text-md-primary-foreground'
+                          ? 'bg-accent text-md-on-primary'
                           : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
                       }`}
                     >
@@ -1463,7 +1463,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                         handleAddModule(module.id);
                         setShowAddModule(false);
                       }}
-                      className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-accent text-md-primary-foreground focus:ring-accent elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
+                      className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-accent text-md-on-primary focus:ring-accent elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
                     >
                       <Plus className="h-4 w-4 mr-2 shrink-0" />
                       <span className="truncate flex-1 text-left">{module.name}</span>
