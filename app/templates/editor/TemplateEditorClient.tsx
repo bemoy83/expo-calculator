@@ -17,7 +17,7 @@ import { evaluateFormula } from '@/lib/formula-evaluator';
 import { generateId } from '@/lib/utils';
 import { canLinkFields, resolveFieldLinks } from '@/lib/utils/field-linking';
 import { Plus, X, Trash2, ChevronDown, ChevronUp, GripVertical, AlertCircle, Link2, Unlink, CheckCircle2 } from 'lucide-react';
-import { FieldHeader } from '@/components/module-editor/FieldHeader';
+import { FieldHeader, FieldDescription } from '@/components/module-editor/FieldHeader';
 import {
   DndContext,
   closestCenter,
@@ -676,99 +676,6 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
     closeLinkUI(instanceId, fieldName);
   }, [unlinkField, closeLinkUI]);
 
-  // Helper to generate unique template name
-  const generateUniqueTemplateName = useCallback((baseName: string): string => {
-    const allTemplates = useTemplatesStore.getState().templates;
-    const existingNames = allTemplates.map(t => t.name.toLowerCase());
-    
-    // Check if base name is unique
-    if (!existingNames.includes(baseName.toLowerCase())) {
-      return baseName;
-    }
-    
-    // Try " (Copy)"
-    let candidate = `${baseName} (Copy)`;
-    if (!existingNames.includes(candidate.toLowerCase())) {
-      return candidate;
-    }
-    
-    // Try " (Copy 2)", " (Copy 3)", etc.
-    let counter = 2;
-    do {
-      candidate = `${baseName} (Copy ${counter})`;
-      counter++;
-    } while (existingNames.includes(candidate.toLowerCase()));
-    
-    return candidate;
-  }, []);
-
-  // Save As New Template
-  const handleSaveAsNew = useCallback(() => {
-    if (!template) return;
-
-    // Build a map of instance IDs to indices for link conversion
-    const instanceIdToIndex = new Map<string, number>();
-    workspaceModules.forEach((instance, index) => {
-      instanceIdToIndex.set(instance.id, index);
-    });
-
-    // Convert workspaceModules back to template format
-    // Convert field links from instance IDs to index-based format
-    const moduleInstances = workspaceModules.map((instance) => {
-      const convertedLinks: Record<string, { moduleInstanceId: string; fieldVariableName: string }> = {};
-      
-      if (instance.fieldLinks) {
-        Object.entries(instance.fieldLinks).forEach(([fieldName, link]) => {
-          const targetIndex = instanceIdToIndex.get(link.moduleInstanceId);
-          if (targetIndex !== undefined) {
-            // Convert to index-based format for template storage
-            convertedLinks[fieldName] = {
-              moduleInstanceId: `__index_${targetIndex}__`,
-              fieldVariableName: link.fieldVariableName,
-            };
-          }
-        });
-      }
-
-      return {
-        moduleId: instance.moduleId,
-        fieldLinks: Object.keys(convertedLinks).length > 0 ? convertedLinks : undefined,
-      };
-    });
-
-    // Derive categories from module definitions
-    const categories = Array.from(
-      new Set(
-        workspaceModules
-          .map((instance) => {
-            const moduleDef = modules.find((m) => m.id === instance.moduleId);
-            return moduleDef?.category;
-          })
-          .filter(Boolean) as string[]
-      )
-    );
-
-    // Generate unique name
-    const baseName = templateName.trim() || template.name;
-    const uniqueName = generateUniqueTemplateName(baseName);
-
-    // Create new template and get the created template immediately
-    const addTemplate = useTemplatesStore.getState().addTemplate;
-    const newTemplate = addTemplate({
-      name: uniqueName,
-      description: templateDescription.trim() || template.description || undefined,
-      moduleInstances,
-      categories,
-    });
-
-    // Show success message
-    setSaveSuccessMessage(uniqueName);
-    setTimeout(() => setSaveSuccessMessage(null), 3000);
-
-    // Navigate to new template editor immediately
-    router.push(`/templates/editor?id=${newTemplate.id}`);
-  }, [template, templateName, templateDescription, workspaceModules, modules, generateUniqueTemplateName, router, templateId]);
-
   // Save template
   const handleSaveTemplate = () => {
     if (!template) return;
@@ -868,27 +775,33 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               unit={field.unit}
               unitSymbol={field.unitSymbol}
               required={field.required}
-              description={field.description}
               showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
             />
             
-            <Input
-              type="number"
-              value={isNaN(displayValue) ? '' : displayValue.toString()}
-              onChange={(e) => {
-                if (isLinked) return; // Prevent changes when linked
-                const inputValue = e.target.value === '' ? '' : Number(e.target.value) || 0;
-                // Convert to base unit if field has unitSymbol
-                const baseValue = field.unitSymbol && typeof inputValue === 'number'
-                  ? normalizeToBase(inputValue, field.unitSymbol)
-                  : inputValue;
-                updateFieldValue(instance.id, field.variableName, baseValue);
-              }}
-              required={field.required}
-              disabled={isLinked}
-            />
+            {/* Fixed height container for input to ensure alignment */}
+            <div className="h-[46px] flex items-center">
+              <Input
+                type="number"
+                value={isNaN(displayValue) ? '' : displayValue.toString()}
+                onChange={(e) => {
+                  if (isLinked) return; // Prevent changes when linked
+                  const inputValue = e.target.value === '' ? '' : Number(e.target.value) || 0;
+                  // Convert to base unit if field has unitSymbol
+                  const baseValue = field.unitSymbol && typeof inputValue === 'number'
+                    ? normalizeToBase(inputValue, field.unitSymbol)
+                    : inputValue;
+                  updateFieldValue(instance.id, field.variableName, baseValue);
+                }}
+                required={field.required}
+                disabled={isLinked}
+                className="w-full"
+              />
+            </div>
+            
+            {/* Description below input */}
+            <FieldDescription description={field.description} />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -945,21 +858,26 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               unit={field.unit}
               unitSymbol={field.unitSymbol}
               required={field.required}
-              description={field.description}
               showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
             />
             
-            <Checkbox
-              label=""
-              checked={Boolean(value)}
-              onChange={(e) => {
-                if (isLinked) return; // Prevent changes when linked
-                updateFieldValue(instance.id, field.variableName, e.target.checked);
-              }}
-              disabled={isLinked}
-            />
+            {/* Fixed height container for checkbox to ensure alignment */}
+            <div className="h-[46px] flex items-center">
+              <Checkbox
+                label=""
+                checked={Boolean(value)}
+                onChange={(e) => {
+                  if (isLinked) return; // Prevent changes when linked
+                  updateFieldValue(instance.id, field.variableName, e.target.checked);
+                }}
+                disabled={isLinked}
+              />
+            </div>
+            
+            {/* Description below input */}
+            <FieldDescription description={field.description} />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -1048,38 +966,44 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 unit={field.unit}
                 unitSymbol={field.unitSymbol}
                 required={field.required}
-                description={field.description}
                 showLink={canLink}
                 isLinked={isLinked}
                 onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
               />
               
-              <Select
-                label=""
-                value={currentDisplayValue}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  const selectedDisplay = e.target.value;
-                  // Extract numeric value from display string (e.g., "40 cm" -> 40)
-                  const match = selectedDisplay.match(/^([\d.]+)/);
-                  if (match && field.unitSymbol) {
-                    const numValue = Number(match[1]);
-                    if (!isNaN(numValue)) {
-                      // Convert to base unit and store as number
-                      const baseValue = normalizeToBase(numValue, field.unitSymbol);
-                      updateFieldValue(instance.id, field.variableName, baseValue);
+              {/* Fixed height container for select to ensure alignment */}
+              <div className="h-[46px] flex items-center">
+                <Select
+                  label=""
+                  value={currentDisplayValue}
+                  onChange={(e) => {
+                    if (isLinked) return; // Prevent changes when linked
+                    const selectedDisplay = e.target.value;
+                    // Extract numeric value from display string (e.g., "40 cm" -> 40)
+                    const match = selectedDisplay.match(/^([\d.]+)/);
+                    if (match && field.unitSymbol) {
+                      const numValue = Number(match[1]);
+                      if (!isNaN(numValue)) {
+                        // Convert to base unit and store as number
+                        const baseValue = normalizeToBase(numValue, field.unitSymbol);
+                        updateFieldValue(instance.id, field.variableName, baseValue);
+                      }
                     }
-                  }
-                }}
-                options={[
-                  { value: '', label: 'Select...' },
-                  ...displayOptions.map((displayOpt) => ({
-                    value: displayOpt,
-                    label: displayOpt,
-                  })),
-                ]}
-                disabled={isLinked}
-              />
+                  }}
+                  options={[
+                    { value: '', label: 'Select...' },
+                    ...displayOptions.map((displayOpt) => ({
+                      value: displayOpt,
+                      label: displayOpt,
+                    })),
+                  ]}
+                  disabled={isLinked}
+                  className="w-full"
+                />
+              </div>
+              
+              {/* Description below input */}
+              <FieldDescription description={field.description} />
               
               {/* Linked state UI */}
               {isLinked && (() => {
@@ -1135,25 +1059,31 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                 unit={field.unit}
                 unitSymbol={field.unitSymbol}
                 required={field.required}
-                description={field.description}
                 showLink={canLink}
                 isLinked={isLinked}
                 onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
               />
             
-            <Select
-              label=""
-              value={value?.toString() || ''}
-              onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                updateFieldValue(instance.id, field.variableName, e.target.value);
-              }}
-              options={[
-                { value: '', label: 'Select...' },
-                ...options.map((opt) => ({ value: opt, label: opt })),
-              ]}
-              disabled={isLinked}
-            />
+            {/* Fixed height container for select to ensure alignment */}
+            <div className="h-[46px] flex items-center">
+              <Select
+                label=""
+                value={value?.toString() || ''}
+                onChange={(e) => {
+                    if (isLinked) return; // Prevent changes when linked
+                  updateFieldValue(instance.id, field.variableName, e.target.value);
+                }}
+                options={[
+                  { value: '', label: 'Select...' },
+                  ...options.map((opt) => ({ value: opt, label: opt })),
+                ]}
+                disabled={isLinked}
+                className="w-full"
+              />
+            </div>
+            
+            {/* Description below input */}
+            <FieldDescription description={field.description} />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -1217,22 +1147,27 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               unit={field.unit}
               unitSymbol={field.unitSymbol}
               required={field.required}
-              description={field.description}
             />
-            <Select
-              label=""
-              value={value?.toString() || ''}
-              onChange={(e) => {
-                updateFieldValue(instance.id, field.variableName, e.target.value);
-              }}
-              options={[
-                { value: '', label: 'Select a material...' },
-                ...sortedMaterials.map((mat) => ({
-                  value: mat.variableName,
-                  label: `${mat.name} - $${mat.price.toFixed(2)}/${mat.unit}`,
-                })),
-              ]}
-            />
+            {/* Fixed height container for select to ensure alignment */}
+            <div className="h-[46px] flex items-center">
+              <Select
+                label=""
+                value={value?.toString() || ''}
+                onChange={(e) => {
+                  updateFieldValue(instance.id, field.variableName, e.target.value);
+                }}
+                options={[
+                  { value: '', label: 'Select a material...' },
+                  ...sortedMaterials.map((mat) => ({
+                    value: mat.variableName,
+                    label: `${mat.name} - $${mat.price.toFixed(2)}/${mat.unit}`,
+                  })),
+                ]}
+                className="w-full"
+              />
+            </div>
+            {/* Description below input */}
+            <FieldDescription description={field.description} />
             {materialCategory && sortedMaterials.length === 0 && (
               <p className="text-xs text-md-on-surface-variant mt-1">
                 No materials available in category &quot;{materialCategory}&quot;.
@@ -1251,22 +1186,28 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
               unit={field.unit}
               unitSymbol={field.unitSymbol}
               required={field.required}
-              description={field.description}
               showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
             />
             
-            <Input
-              label=""
-              value={value?.toString() || ''}
-              onChange={(e) => {
-                if (isLinked) return; // Prevent changes when linked
-                updateFieldValue(instance.id, field.variableName, e.target.value);
-              }}
-              required={field.required}
-              disabled={isLinked}
-            />
+            {/* Fixed height container for input to ensure alignment */}
+            <div className="h-[46px] flex items-center">
+              <Input
+                label=""
+                value={value?.toString() || ''}
+                onChange={(e) => {
+                  if (isLinked) return; // Prevent changes when linked
+                  updateFieldValue(instance.id, field.variableName, e.target.value);
+                }}
+                required={field.required}
+                disabled={isLinked}
+                className="w-full"
+              />
+            </div>
+            
+            {/* Description below input */}
+            <FieldDescription description={field.description} />
             
             {/* Linked state UI */}
             {isLinked && (() => {
@@ -1595,9 +1536,6 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={handleCancel} className="rounded-full">
               Cancel
-            </Button>
-            <Button variant="secondary" onClick={handleSaveAsNew} className="rounded-full">
-              Save As New Template
             </Button>
             <Button onClick={handleSaveTemplate} className="rounded-full">
               Save Template
