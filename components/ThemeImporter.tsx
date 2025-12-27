@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useThemeImporter } from '@/hooks/use-theme-importer';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -10,6 +10,7 @@ import type { MaterialThemeBuilderJSON } from '@/lib/themes/types';
 export function ThemeImporter() {
   const [themeName, setThemeName] = useState('');
   const [jsonText, setJsonText] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     importTheme,
     error,
@@ -43,6 +44,10 @@ export function ThemeImporter() {
       alert('Failed to read file');
     };
     reader.readAsText(file);
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
   
   const handleJsonPaste = () => {
@@ -79,18 +84,17 @@ export function ThemeImporter() {
           </div>
           
           <div className="flex gap-2">
-            <label className="flex-1">
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <Button type="button" className="w-full">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload JSON File
-              </Button>
-            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button type="button" className="w-full" onClick={handleUploadClick}>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload JSON File
+            </Button>
           </div>
           
           <div className="space-y-2">

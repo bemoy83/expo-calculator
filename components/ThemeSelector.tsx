@@ -154,7 +154,7 @@ export function ThemeSelector() {
           tabIndex={-1}
         >
           <div className="bg-md-surface-container border border-md-outline rounded-xl elevation-24 max-w-2xl w-full max-h-[90vh] flex flex-col my-auto">
-            <div className="sticky top-0 bg-md-surface-container border-b border-md-outline px-6 py-4 flex items-center justify-between shrink-0 z-10">
+          <div className="sticky top-0 border-b border-md-outline px-6 py-4 flex items-center justify-between shrink-0 z-10">
               <h2 className="text-xl font-bold text-md-on-surface">Theme Settings</h2>
               <button
                 onClick={() => setShowImporter(false)}
@@ -181,6 +181,7 @@ export function ThemeSelector() {
 function ThemeImporterContent({ onClose }: { onClose: () => void }) {
   const [themeName, setThemeName] = useState('');
   const [jsonText, setJsonText] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     importTheme,
     error,
@@ -213,6 +214,10 @@ function ThemeImporterContent({ onClose }: { onClose: () => void }) {
       alert('Failed to read file');
     };
     reader.readAsText(file);
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleJsonPaste = () => {
@@ -251,18 +256,17 @@ function ThemeImporterContent({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="flex gap-2">
-            <label className="flex-1">
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <Button type="button" className="w-full">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload JSON File
-              </Button>
-            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button type="button" className="w-full" onClick={handleUploadClick}>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload JSON File
+            </Button>
           </div>
 
           <div className="space-y-2">
