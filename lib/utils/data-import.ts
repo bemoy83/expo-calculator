@@ -1,0 +1,277 @@
+import { CalculationModule, Material, ModuleTemplate } from '../types';
+import { useModulesStore } from '../stores/modules-store';
+import { useMaterialsStore } from '../stores/materials-store';
+import { useCategoriesStore } from '../stores/categories-store';
+import { useTemplatesStore } from '../stores/templates-store';
+import type { ExportedData } from './data-export';
+
+export interface ImportOptions {
+  mode: 'replace' | 'merge';
+}
+
+export interface ImportResult {
+  success: boolean;
+  modulesAdded: number;
+  materialsAdded: number;
+  categoriesAdded: number;
+  templatesAdded: number;
+  errors?: string[];
+}
+
+/**
+ * Validate imported data structure
+ */
+export function validateImportedData(json: unknown): json is ExportedData {
+  if (!json || typeof json !== 'object') {
+    return false;
+  }
+
+  const data = json as Record<string, unknown>;
+
+  // Check required top-level keys
+  if (
+    typeof data.version !== 'string' ||
+    typeof data.exportedAt !== 'string' ||
+    !Array.isArray(data.modules) ||
+    !Array.isArray(data.materials) ||
+    !Array.isArray(data.customCategories) ||
+    !Array.isArray(data.templates)
+  ) {
+    return false;
+  }
+
+  // Validate modules structure
+  for (const module of data.modules) {
+    if (
+      typeof module !== 'object' ||
+      typeof (module as CalculationModule).id !== 'string' ||
+      typeof (module as CalculationModule).name !== 'string' ||
+      !Array.isArray((module as CalculationModule).fields) ||
+      typeof (module as CalculationModule).formula !== 'string'
+    ) {
+      return false;
+    }
+  }
+
+  // Validate materials structure
+  for (const material of data.materials) {
+    if (
+      typeof material !== 'object' ||
+      typeof (material as Material).id !== 'string' ||
+      typeof (material as Material).name !== 'string' ||
+      typeof (material as Material).variableName !== 'string' ||
+      typeof (material as Material).price !== 'number'
+    ) {
+      return false;
+    }
+  }
+
+  // Validate categories (should be strings)
+  for (const category of data.customCategories) {
+    if (typeof category !== 'string') {
+      return false;
+    }
+  }
+
+  // Validate templates structure
+  for (const template of data.templates) {
+    if (
+      typeof template !== 'object' ||
+      typeof (template as ModuleTemplate).id !== 'string' ||
+      typeof (template as ModuleTemplate).name !== 'string' ||
+      !Array.isArray((template as ModuleTemplate).moduleInstances)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Import data with replace or merge mode
+ */
+export function importData(
+  data: ExportedData,
+  options: ImportOptions
+): ImportResult {
+  const errors: string[] = [];
+  let modulesAdded = 0;
+  let materialsAdded = 0;
+  let categoriesAdded = 0;
+  let templatesAdded = 0;
+
+  try {
+    if (options.mode === 'replace') {
+      // Clear all stores
+      useModulesStore.setState({ modules: [] });
+      useMaterialsStore.setState({ materials: [] });
+      useCategoriesStore.setState({ customCategories: [] });
+      useTemplatesStore.setState({ templates: [] });
+    }
+
+    // Import modules
+    if (options.mode === 'replace') {
+      // In replace mode, add all modules
+      data.modules.forEach((module) => {
+        try {
+          useModulesStore.getState().addModule({
+            name: module.name,
+            description: module.description,
+            category: module.category,
+            fields: module.fields,
+            formula: module.formula,
+          });
+          modulesAdded++;
+        } catch (err) {
+          errors.push(`Failed to import module "${module.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      });
+    } else {
+      // Merge mode: skip duplicates by name (case-insensitive)
+      const existingModules = useModulesStore.getState().modules;
+      const existingNames = new Set(existingModules.map((m) => m.name.toLowerCase()));
+
+      data.modules.forEach((module) => {
+        if (!existingNames.has(module.name.toLowerCase())) {
+          try {
+            useModulesStore.getState().addModule({
+              name: module.name,
+              description: module.description,
+              category: module.category,
+              fields: module.fields,
+              formula: module.formula,
+            });
+            modulesAdded++;
+          } catch (err) {
+            errors.push(`Failed to import module "${module.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+          }
+        }
+      });
+    }
+
+    // Import materials
+    if (options.mode === 'replace') {
+      // In replace mode, add all materials
+      data.materials.forEach((material) => {
+        try {
+          useMaterialsStore.getState().addMaterial({
+            name: material.name,
+            category: material.category,
+            unit: material.unit,
+            price: material.price,
+            variableName: material.variableName,
+            sku: material.sku,
+            supplier: material.supplier,
+            description: material.description,
+            properties: material.properties,
+          });
+          materialsAdded++;
+        } catch (err) {
+          errors.push(`Failed to import material "${material.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      });
+    } else {
+      // Merge mode: skip duplicates by variableName (unique identifier)
+      const existingMaterials = useMaterialsStore.getState().materials;
+      const existingVariableNames = new Set(existingMaterials.map((m) => m.variableName));
+
+      data.materials.forEach((material) => {
+        if (!existingVariableNames.has(material.variableName)) {
+          try {
+            useMaterialsStore.getState().addMaterial({
+              name: material.name,
+              category: material.category,
+              unit: material.unit,
+              price: material.price,
+              variableName: material.variableName,
+              sku: material.sku,
+              supplier: material.supplier,
+              description: material.description,
+              properties: material.properties,
+            });
+            materialsAdded++;
+          } catch (err) {
+            errors.push(`Failed to import material "${material.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+          }
+        }
+      });
+    }
+
+    // Import categories
+    const existingCategories = useCategoriesStore.getState().customCategories;
+    const existingCategoriesSet = new Set(existingCategories);
+
+    data.customCategories.forEach((category) => {
+      if (!existingCategoriesSet.has(category)) {
+        try {
+          useCategoriesStore.getState().addCategory(category);
+          categoriesAdded++;
+        } catch (err) {
+          errors.push(`Failed to import category "${category}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      }
+    });
+
+    // Import templates
+    if (options.mode === 'replace') {
+      // In replace mode, add all templates
+      data.templates.forEach((template) => {
+        try {
+          useTemplatesStore.getState().addTemplate({
+            name: template.name,
+            description: template.description,
+            moduleInstances: template.moduleInstances,
+            categories: template.categories,
+            moduleVersion: template.moduleVersion,
+            createdFromQuoteId: template.createdFromQuoteId,
+          });
+          templatesAdded++;
+        } catch (err) {
+          errors.push(`Failed to import template "${template.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      });
+    } else {
+      // Merge mode: skip duplicates by name (case-insensitive)
+      const existingTemplates = useTemplatesStore.getState().templates;
+      const existingNames = new Set(existingTemplates.map((t) => t.name.toLowerCase()));
+
+      data.templates.forEach((template) => {
+        if (!existingNames.has(template.name.toLowerCase())) {
+          try {
+            useTemplatesStore.getState().addTemplate({
+              name: template.name,
+              description: template.description,
+              moduleInstances: template.moduleInstances,
+              categories: template.categories,
+              moduleVersion: template.moduleVersion,
+              createdFromQuoteId: template.createdFromQuoteId,
+            });
+            templatesAdded++;
+          } catch (err) {
+            errors.push(`Failed to import template "${template.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+          }
+        }
+      });
+    }
+
+    return {
+      success: errors.length === 0,
+      modulesAdded,
+      materialsAdded,
+      categoriesAdded,
+      templatesAdded,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      modulesAdded,
+      materialsAdded,
+      categoriesAdded,
+      templatesAdded,
+      errors: [err instanceof Error ? err.message : 'Unknown error during import'],
+    };
+  }
+}
+
