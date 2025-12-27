@@ -28,14 +28,13 @@ export function validateImportedData(json: unknown): json is ExportedData {
 
   const data = json as Record<string, unknown>;
 
-  // Check required top-level keys
+  // Check required top-level keys (templates optional for backward compatibility)
   if (
     typeof data.version !== 'string' ||
     typeof data.exportedAt !== 'string' ||
     !Array.isArray(data.modules) ||
     !Array.isArray(data.materials) ||
-    !Array.isArray(data.customCategories) ||
-    !Array.isArray(data.templates)
+    !Array.isArray(data.customCategories)
   ) {
     return false;
   }
@@ -73,15 +72,20 @@ export function validateImportedData(json: unknown): json is ExportedData {
     }
   }
 
-  // Validate templates structure
-  for (const template of data.templates) {
-    if (
-      typeof template !== 'object' ||
-      typeof (template as ModuleTemplate).id !== 'string' ||
-      typeof (template as ModuleTemplate).name !== 'string' ||
-      !Array.isArray((template as ModuleTemplate).moduleInstances)
-    ) {
+  // Validate templates structure (if present, but templates are not imported)
+  if (data.templates !== undefined) {
+    if (!Array.isArray(data.templates)) {
       return false;
+    }
+    for (const template of data.templates) {
+      if (
+        typeof template !== 'object' ||
+        typeof (template as ModuleTemplate).id !== 'string' ||
+        typeof (template as ModuleTemplate).name !== 'string' ||
+        !Array.isArray((template as ModuleTemplate).moduleInstances)
+      ) {
+        return false;
+      }
     }
   }
 
@@ -213,47 +217,9 @@ export function importData(
       }
     });
 
-    // Import templates
-    if (options.mode === 'replace') {
-      // In replace mode, add all templates
-      data.templates.forEach((template) => {
-        try {
-          useTemplatesStore.getState().addTemplate({
-            name: template.name,
-            description: template.description,
-            moduleInstances: template.moduleInstances,
-            categories: template.categories,
-            moduleVersion: template.moduleVersion,
-            createdFromQuoteId: template.createdFromQuoteId,
-          });
-          templatesAdded++;
-        } catch (err) {
-          errors.push(`Failed to import template "${template.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
-        }
-      });
-    } else {
-      // Merge mode: skip duplicates by name (case-insensitive)
-      const existingTemplates = useTemplatesStore.getState().templates;
-      const existingNames = new Set(existingTemplates.map((t) => t.name.toLowerCase()));
-
-      data.templates.forEach((template) => {
-        if (!existingNames.has(template.name.toLowerCase())) {
-          try {
-            useTemplatesStore.getState().addTemplate({
-              name: template.name,
-              description: template.description,
-              moduleInstances: template.moduleInstances,
-              categories: template.categories,
-              moduleVersion: template.moduleVersion,
-              createdFromQuoteId: template.createdFromQuoteId,
-            });
-            templatesAdded++;
-          } catch (err) {
-            errors.push(`Failed to import template "${template.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
-          }
-        }
-      });
-    }
+    // Templates are not imported because they reference module IDs which get regenerated on import
+    // This would break template functionality. Templates must be recreated manually after importing modules.
+    // templatesAdded remains 0
 
     return {
       success: errors.length === 0,

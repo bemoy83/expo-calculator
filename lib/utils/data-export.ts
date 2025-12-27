@@ -10,20 +10,19 @@ export interface ExportedData {
   modules: CalculationModule[];
   materials: Material[];
   customCategories: string[];
-  templates: ModuleTemplate[];
+  templates?: ModuleTemplate[]; // Optional for backward compatibility, but not exported/imported
 }
 
 const EXPORT_VERSION = '1.0.0';
 
 /**
- * Export all application data (Modules, Materials, Categories, Templates)
- * Excludes Quotes as per user requirement
+ * Export all application data (Modules, Materials, Categories)
+ * Excludes Templates (module ID references break on import) and Quotes
  */
 export function exportAllData(): ExportedData {
   const modules = useModulesStore.getState().modules;
   const materials = useMaterialsStore.getState().materials;
   const customCategories = useCategoriesStore.getState().customCategories;
-  const templates = useTemplatesStore.getState().templates;
 
   return {
     version: EXPORT_VERSION,
@@ -31,7 +30,6 @@ export function exportAllData(): ExportedData {
     modules,
     materials,
     customCategories,
-    templates,
   };
 }
 

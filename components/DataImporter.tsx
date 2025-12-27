@@ -109,7 +109,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
           <div className="flex-1">
             <h4 className="font-semibold text-md-error mb-1">Replace All Data?</h4>
             <p className="text-sm text-md-on-error-container">
-              This will delete all existing modules, materials, categories, and templates, then import the new data. This action cannot be undone.
+              This will delete all existing modules, materials, and categories, then import the new data. This action cannot be undone.
             </p>
           </div>
         </div>
@@ -136,7 +136,6 @@ export function DataImporter({ onClose }: DataImporterProps) {
               <p>• {importResult.modulesAdded} module{importResult.modulesAdded !== 1 ? 's' : ''} imported</p>
               <p>• {importResult.materialsAdded} material{importResult.materialsAdded !== 1 ? 's' : ''} imported</p>
               <p>• {importResult.categoriesAdded} categor{importResult.categoriesAdded !== 1 ? 'ies' : 'y'} imported</p>
-              <p>• {importResult.templatesAdded} template{importResult.templatesAdded !== 1 ? 's' : ''} imported</p>
             </div>
           </div>
         </div>
@@ -154,7 +153,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
       <div>
         <h3 className="text-lg font-semibold mb-2 text-md-on-surface">Import Data</h3>
         <p className="text-sm text-md-on-surface-variant mb-4">
-          Import modules, materials, categories, and templates from an exported JSON file.
+          Import modules, materials, and categories from an exported JSON file. Note: Templates are not imported as they reference module IDs that change during import.
         </p>
 
         <div className="space-y-4">
@@ -246,9 +245,9 @@ export function DataImporter({ onClose }: DataImporterProps) {
                 <li key={idx}>{err}</li>
               ))}
             </ul>
-            {importResult.modulesAdded > 0 || importResult.materialsAdded > 0 || importResult.categoriesAdded > 0 || importResult.templatesAdded > 0 && (
+            {(importResult.modulesAdded > 0 || importResult.materialsAdded > 0 || importResult.categoriesAdded > 0) && (
               <p className="mt-2 text-xs">
-                Partial import: {importResult.modulesAdded} modules, {importResult.materialsAdded} materials, {importResult.categoriesAdded} categories, {importResult.templatesAdded} templates imported.
+                Partial import: {importResult.modulesAdded} modules, {importResult.materialsAdded} materials, {importResult.categoriesAdded} categories imported.
               </p>
             )}
           </div>
