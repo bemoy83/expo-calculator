@@ -41,13 +41,13 @@ export function validateImportedData(json: unknown): json is ExportedData {
   }
 
   // Validate modules structure
-  for (const module of data.modules) {
+  for (const mod of data.modules) {
     if (
-      typeof module !== 'object' ||
-      typeof (module as CalculationModule).id !== 'string' ||
-      typeof (module as CalculationModule).name !== 'string' ||
-      !Array.isArray((module as CalculationModule).fields) ||
-      typeof (module as CalculationModule).formula !== 'string'
+      typeof mod !== 'object' ||
+      typeof (mod as CalculationModule).id !== 'string' ||
+      typeof (mod as CalculationModule).name !== 'string' ||
+      !Array.isArray((mod as CalculationModule).fields) ||
+      typeof (mod as CalculationModule).formula !== 'string'
     ) {
       return false;
     }
@@ -113,18 +113,18 @@ export function importData(
     // Import modules
     if (options.mode === 'replace') {
       // In replace mode, add all modules
-      data.modules.forEach((module) => {
+      data.modules.forEach((mod) => {
         try {
           useModulesStore.getState().addModule({
-            name: module.name,
-            description: module.description,
-            category: module.category,
-            fields: module.fields,
-            formula: module.formula,
+            name: mod.name,
+            description: mod.description,
+            category: mod.category,
+            fields: mod.fields,
+            formula: mod.formula,
           });
           modulesAdded++;
         } catch (err) {
-          errors.push(`Failed to import module "${module.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+          errors.push(`Failed to import module "${mod.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       });
     } else {
@@ -132,19 +132,19 @@ export function importData(
       const existingModules = useModulesStore.getState().modules;
       const existingNames = new Set(existingModules.map((m) => m.name.toLowerCase()));
 
-      data.modules.forEach((module) => {
-        if (!existingNames.has(module.name.toLowerCase())) {
+      data.modules.forEach((mod) => {
+        if (!existingNames.has(mod.name.toLowerCase())) {
           try {
             useModulesStore.getState().addModule({
-              name: module.name,
-              description: module.description,
-              category: module.category,
-              fields: module.fields,
-              formula: module.formula,
+              name: mod.name,
+              description: mod.description,
+              category: mod.category,
+              fields: mod.fields,
+              formula: mod.formula,
             });
             modulesAdded++;
           } catch (err) {
-            errors.push(`Failed to import module "${module.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+            errors.push(`Failed to import module "${mod.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
           }
         }
       });
