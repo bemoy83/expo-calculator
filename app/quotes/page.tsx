@@ -16,6 +16,7 @@ import { QuoteModuleInstance, FieldType, CalculationModule, Field } from '@/lib/
 import { normalizeToBase, convertFromBase } from '@/lib/units';
 import { Plus, X, Download, Send, Trash2, Save, Package, Calculator, LayoutDashboard, Link2, Unlink, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react';
 import { Textarea } from '@/components/ui/Textarea';
+import { FieldHeader } from '@/components/module-editor/FieldHeader';
 import {
   DndContext,
   closestCenter,
@@ -157,9 +158,9 @@ function SortableModuleCard({
             <p className="text-sm text-md-on-surface-variant mb-5">{module.description}</p>
           )}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 items-start">
             {module.fields.map((field) => (
-              <div key={field.id}>
+              <div key={field.id} className="flex flex-col">
                 {renderFieldInput(instance, field)}
               </div>
             ))}
@@ -515,31 +516,17 @@ export default function QuotesPage() {
         
         return (
           <div>
-            {/* Custom label with Link button */}
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-label-foreground">
-                  {formatLabel(field.label, field.unit, field.unitSymbol)}
-                  {field.required && <span className="text-destructive ml-1">*</span>}
-                </label>
-                {field.description && (
-                  <p className="text-xs text-md-on-surface-variant mt-0.5">
-                    {field.description}
-                  </p>
-                )}
-              </div>
-              {canLink && !isLinked && (
-                <button
-                  type="button"
-                  onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
-                  title="Link this field to another module field"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  <span>Link</span>
-                </button>
-              )}
-            </div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              description={field.description}
+              canLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+              formatLabel={formatLabel}
+            />
             
             <div className={isLinked ? 'relative' : ''}>
           <Input
@@ -614,31 +601,17 @@ export default function QuotesPage() {
         
         return (
           <div>
-            {/* Custom label with Link button */}
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-label-foreground">
-                  {formatLabel(field.label, field.unit, field.unitSymbol)}
-                  {field.required && <span className="text-destructive ml-1">*</span>}
-                </label>
-                {field.description && (
-                  <p className="text-xs text-md-on-surface-variant mt-0.5">
-                    {field.description}
-                  </p>
-                )}
-              </div>
-              {canLink && !isLinked && (
-                <button
-                  type="button"
-                  onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
-                  title="Link this field to another module field"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  <span>Link</span>
-                </button>
-              )}
-            </div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              description={field.description}
+              canLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+              formatLabel={formatLabel}
+            />
             
             <div className={isLinked ? 'relative' : ''}>
           <Checkbox
@@ -741,24 +714,17 @@ export default function QuotesPage() {
           
           return (
             <div>
-              {/* Custom label with Link button */}
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-label-foreground">
-                  {formatLabel(field.label, field.unit, field.unitSymbol)}
-                  {field.required && <span className="text-destructive ml-1">*</span>}
-                </label>
-                {canLink && !isLinked && (
-                  <button
-                    type="button"
-                    onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                    className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
-                    title="Link this field to another module field"
-                  >
-                    <Link2 className="h-3.5 w-3.5" />
-                    <span>Link</span>
-                  </button>
-                )}
-              </div>
+              <FieldHeader
+                label={field.label}
+                unit={field.unit}
+                unitSymbol={field.unitSymbol}
+                required={field.required}
+                description={field.description}
+                canLink={canLink}
+                isLinked={isLinked}
+                onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+                formatLabel={formatLabel}
+              />
               
               <div className={isLinked ? 'relative' : ''}>
             <Select
@@ -850,31 +816,17 @@ export default function QuotesPage() {
         // String dropdown mode: original behavior (unchanged)
         return (
           <div>
-            {/* Custom label with Link button */}
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-label-foreground">
-                  {formatLabel(field.label, field.unit, field.unitSymbol)}
-                  {field.required && <span className="text-destructive ml-1">*</span>}
-                </label>
-                {field.description && (
-                  <p className="text-xs text-md-on-surface-variant mt-0.5">
-                    {field.description}
-                  </p>
-                )}
-              </div>
-              {canLink && !isLinked && (
-                <button
-                  type="button"
-                  onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
-                  title="Link this field to another module field"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  <span>Link</span>
-                </button>
-              )}
-            </div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              description={field.description}
+              canLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+              formatLabel={formatLabel}
+            />
             
             <div className={isLinked ? 'relative' : ''}>
           <Select
@@ -959,17 +911,14 @@ export default function QuotesPage() {
         
         return (
           <div>
-            <div className="mb-1.5">
-              <label className="block text-sm font-medium text-label-foreground">
-                {formatLabel(field.label, field.unit, field.unitSymbol)}
-                {field.required && <span className="text-destructive ml-1">*</span>}
-              </label>
-              {field.description && (
-                <p className="text-xs text-md-on-surface-variant mt-0.5">
-                  {field.description}
-                </p>
-              )}
-            </div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              description={field.description}
+              formatLabel={formatLabel}
+            />
             <Select
               label=""
               value={value?.toString() || ''}
@@ -996,31 +945,17 @@ export default function QuotesPage() {
         
         return (
           <div>
-            {/* Custom label with Link button */}
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-label-foreground">
-                  {formatLabel(field.label, field.unit, field.unitSymbol)}
-                  {field.required && <span className="text-destructive ml-1">*</span>}
-                </label>
-                {field.description && (
-                  <p className="text-xs text-md-on-surface-variant mt-0.5">
-                    {field.description}
-                  </p>
-                )}
-              </div>
-              {canLink && !isLinked && (
-                <button
-                  type="button"
-                  onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
-                  title="Link this field to another module field"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  <span>Link</span>
-                </button>
-              )}
-            </div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              description={field.description}
+              canLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+              formatLabel={formatLabel}
+            />
             
             <div className={isLinked ? 'relative' : ''}>
           <Input

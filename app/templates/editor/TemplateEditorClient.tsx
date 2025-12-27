@@ -17,6 +17,7 @@ import { evaluateFormula } from '@/lib/formula-evaluator';
 import { generateId } from '@/lib/utils';
 import { canLinkFields, resolveFieldLinks } from '@/lib/utils/field-linking';
 import { Plus, X, Trash2, ChevronDown, ChevronUp, GripVertical, AlertCircle, Link2, Unlink, CheckCircle2 } from 'lucide-react';
+import { FieldHeader } from '@/components/module-editor/FieldHeader';
 import {
   DndContext,
   closestCenter,
@@ -862,31 +863,17 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
         return (
           <div>
-            {/* Custom label with Link button */}
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-md-on-surface">
-              {formatLabel(field.label, field.unit, field.unitSymbol)}
-              {field.required && <span className="text-md-error ml-1">*</span>}
-            </label>
-            {field.description && (
-                  <p className="text-xs text-md-on-surface-variant mt-0.5">
-                {field.description}
-              </p>
-            )}
-              </div>
-              {canLink && !isLinked && (
-                <button
-                  type="button"
-                  onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
-                  title="Link this field to another module field"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  <span>Link</span>
-                </button>
-              )}
-            </div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              description={field.description}
+              canLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+              formatLabel={formatLabel}
+            />
             
             <div className={isLinked ? 'relative' : ''}>
             <Input
@@ -961,31 +948,17 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
         
         return (
           <div>
-            {/* Custom label with Link button */}
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-md-on-surface">
-              {formatLabel(field.label, field.unit, field.unitSymbol)}
-              {field.required && <span className="text-md-error ml-1">*</span>}
-            </label>
-            {field.description && (
-                  <p className="text-xs text-md-on-surface-variant mt-0.5">
-                {field.description}
-              </p>
-            )}
-              </div>
-              {canLink && !isLinked && (
-                <button
-                  type="button"
-                  onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
-                  title="Link this field to another module field"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  <span>Link</span>
-                </button>
-              )}
-            </div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              description={field.description}
+              canLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+              formatLabel={formatLabel}
+            />
             
             <div className={isLinked ? 'relative' : ''}>
             <Checkbox
@@ -1089,29 +1062,17 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
           return (
             <div>
-              {/* Custom label with Link button */}
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-md-on-surface">
-                {formatLabel(field.label, field.unit, field.unitSymbol)}
-                {field.required && <span className="text-md-error ml-1">*</span>}
-              </label>
-                {canLink && !isLinked && (
-                  <button
-                    type="button"
-                    onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                    className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
-                    title="Link this field to another module field"
-                  >
-                    <Link2 className="h-3.5 w-3.5" />
-                    <span>Link</span>
-                  </button>
-                )}
-              </div>
-              {field.description && (
-                <p className="text-xs text-md-on-surface-variant mb-1.5">
-                  {field.description}
-                </p>
-              )}
+              <FieldHeader
+                label={field.label}
+                unit={field.unit}
+                unitSymbol={field.unitSymbol}
+                required={field.required}
+                description={field.description}
+                canLink={canLink}
+                isLinked={isLinked}
+                onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+                formatLabel={formatLabel}
+              />
               
               <div className={isLinked ? 'relative' : ''}>
               <Select
@@ -1197,33 +1158,19 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
         }
 
         // String dropdown mode: original behavior
-        return (
-          <div>
-            {/* Custom label with Link button */}
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-md-on-surface">
-              {formatLabel(field.label, field.unit, field.unitSymbol)}
-              {field.required && <span className="text-md-error ml-1">*</span>}
-            </label>
-            {field.description && (
-                  <p className="text-xs text-md-on-surface-variant mt-0.5">
-                {field.description}
-              </p>
-            )}
-              </div>
-              {canLink && !isLinked && (
-                <button
-                  type="button"
-                  onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
-                  title="Link this field to another module field"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  <span>Link</span>
-                </button>
-              )}
-            </div>
+          return (
+            <div>
+              <FieldHeader
+                label={field.label}
+                unit={field.unit}
+                unitSymbol={field.unitSymbol}
+                required={field.required}
+                description={field.description}
+                canLink={canLink}
+                isLinked={isLinked}
+                onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+                formatLabel={formatLabel}
+              />
             
             <div className={isLinked ? 'relative' : ''}>
             <Select
@@ -1303,17 +1250,14 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
         return (
           <div>
-            <div className="mb-1.5">
-              <label className="block text-sm font-medium text-md-on-surface">
-                {formatLabel(field.label, field.unit, field.unitSymbol)}
-                {field.required && <span className="text-md-error ml-1">*</span>}
-              </label>
-              {field.description && (
-                <p className="text-xs text-md-on-surface-variant mt-0.5">
-                  {field.description}
-                </p>
-              )}
-            </div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              description={field.description}
+              formatLabel={formatLabel}
+            />
             <Select
               label=""
               value={value?.toString() || ''}
@@ -1341,31 +1285,17 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
         
         return (
           <div>
-            {/* Custom label with Link button */}
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-md-on-surface">
-              {formatLabel(field.label, field.unit, field.unitSymbol)}
-              {field.required && <span className="text-md-error ml-1">*</span>}
-            </label>
-            {field.description && (
-                  <p className="text-xs text-md-on-surface-variant mt-0.5">
-                {field.description}
-              </p>
-            )}
-              </div>
-              {canLink && !isLinked && (
-                <button
-                  type="button"
-                  onClick={() => toggleLinkUI(instance.id, field.variableName)}
-                  className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors p-1 -mr-1"
-                  title="Link this field to another module field"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  <span>Link</span>
-                </button>
-              )}
-            </div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              description={field.description}
+              canLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
+              formatLabel={formatLabel}
+            />
             
             <div className={isLinked ? 'relative' : ''}>
             <Input
