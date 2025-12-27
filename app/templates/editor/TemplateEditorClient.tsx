@@ -50,12 +50,17 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
   // Call all hooks before any conditional returns to ensure hooks order stability
   const router = useRouter();
   
-  // Handle new template mode - don't fetch template if id is 'new'
-  const template = templateId === 'new' ? null : useTemplatesStore((state) => state.getTemplate(templateId));
-  const updateTemplate = useTemplatesStore((state) => state.updateTemplate);
-  const addTemplate = useTemplatesStore((state) => state.addTemplate);
+  // Use object selector to get all template store functions (single subscription)
+  const { getTemplate, updateTemplate, addTemplate } = useTemplatesStore((state) => ({
+    getTemplate: state.getTemplate,
+    updateTemplate: state.updateTemplate,
+    addTemplate: state.addTemplate,
+  }));
   const modules = useModulesStore((state) => state.modules);
   const materials = useMaterialsStore((state) => state.materials);
+  
+  // Derive template after hooks are called unconditionally
+  const template = templateId === 'new' ? null : getTemplate(templateId);
 
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
