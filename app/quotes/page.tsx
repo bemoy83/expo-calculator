@@ -1717,7 +1717,7 @@ export default function QuotesPage() {
       )}
 
       {/* BOTTOM ACTION BAR */}
-      <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-panel/95 backdrop-blur-md border-t border-border px-4 py-4 z-40 elevation-2">
+      <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-md-surface-container-high/95 backdrop-blur-md border-t border-border px-4 py-4 z-40 elevation-2">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3">
           <Button 
             onClick={() => setShowSaveTemplateModal(true)}

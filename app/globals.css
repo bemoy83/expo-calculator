@@ -76,17 +76,10 @@
      Custom Tokens (Not in MD3 Spec)
      ============================================ */
   
-  --warning: 245 158 11;                      /* Custom warning color */
-  --success: 22 163 74;                       /* Custom success color */
+  --warning: 245 158 11;                      /* Custom warning color (no MD3 equivalent) */
+  --success: 22 163 74;                       /* Custom success color (no MD3 equivalent) */
   --success-foreground: 15 23 42;             /* Text on success background */
-  --disabled: 156 163 175;                    /* Custom disabled color */
-  --separator: var(--md-outline);             /* Separator color (maps to outline) */
-  --focus: var(--md-primary);                  /* Focus ring color (maps to primary) */
-  --overlay: 0 0 0;                           /* Overlay/scrim color */
-  --input-bg: 242 244 246;                    /* Input background - slightly darker than container */
-  --border: var(--md-outline);                /* Border color (maps to MD3 outline) */
-  --panel: var(--md-surface-container-high);  /* Panel background (maps to MD3 surface container high) */
-  --elevated: var(--md-surface-container-high); /* Elevated surface (maps to MD3 surface container high) */
+  --overlay: 0 0 0;                           /* Overlay/scrim color (convenience token) */
   
   /* Custom Border Radius (not in MD3 standard sizes) */
   --radius-sm: 6px;                           /* Between extra-small (4px) and small (8px) */
@@ -136,8 +129,8 @@
   --md-surface-container-highest: 45 45 45;     /* Highest - lightest */
   
   /* MD3 Outline System - Dark Mode */
-  --md-outline: 100 116 139;                   /* Outline color */
-  --md-outline-variant: 71 85 105;             /* Outline variant (darker) */
+  --md-outline: 255 255 255;                   /* White for dark mode (opacity applied via CSS) */
+  --md-outline-variant: 255 255 255;           /* White variant (lower opacity applied via CSS) */
   
   /* MD3 Shape System (same as light mode) */
   --md-shape-corner-none: 0px;
@@ -167,17 +160,10 @@
      Custom Tokens (Not in MD3 Spec)
      ============================================ */
   
-  --warning: 255 193 7;                        /* Custom warning color */
-  --success: 76 175 80;                        /* Custom success color */
+  --warning: 255 193 7;                        /* Custom warning color (no MD3 equivalent) */
+  --success: 76 175 80;                        /* Custom success color (no MD3 equivalent) */
   --success-foreground: 255 255 255;           /* Text on success background */
-  --disabled: 100 100 100;                     /* Custom disabled color */
-  --separator: var(--md-outline-variant);       /* Separator color (maps to outline-variant) */
-  --focus: var(--md-primary);                   /* Focus ring color (maps to primary) */
-  --overlay: 0 0 0;                            /* Overlay/scrim color */
-  --input-bg: 24 24 24;                        /* Input background - darker than container */
-  --border: var(--md-outline);                 /* Border color (maps to MD3 outline) */
-  --panel: var(--md-surface-container-high);   /* Panel background (maps to MD3 surface container high) */
-  --elevated: var(--md-surface-container-high); /* Elevated surface (maps to MD3 surface container high) */
+  --overlay: 0 0 0;                            /* Overlay/scrim color (convenience token) */
   
   /* Custom Border Radius (not in MD3 standard sizes) */
   --radius-sm: 6px;                            /* Between extra-small (4px) and small (8px) */
@@ -292,7 +278,27 @@
   /* Material Design dark theme border opacity */
   /* Override border color to use 12% opacity white in dark mode */
   .dark .border-border {
-    border-color: rgb(var(--md-outline) / 0.12);
+    border-color: rgb(255 255 255 / 0.12);
+  }
+  
+  /* Dark mode border utilities - MD3 compliant */
+  /* Standard MD3 dark mode borders use white at 12% opacity */
+  .dark .border-md-outline {
+    border-color: rgb(255 255 255 / 0.12);  /* 12% white - standard MD3 dark mode border */
+  }
+  
+  .dark .border-md-outline-variant {
+    border-color: rgb(255 255 255 / 0.08);   /* 8% white - subtle variant */
+  }
+  
+  /* Override opacity modifiers in dark mode for consistency */
+  /* Replace arbitrary opacity values with MD3-standard opacities */
+  .dark .border-md-outline\/50 {
+    border-color: rgb(255 255 255 / 0.12) !important;  /* Use standard 12% instead of 50% */
+  }
+  
+  .dark .border-md-outline\/30 {
+    border-color: rgb(255 255 255 / 0.08) !important;  /* Use variant opacity */
   }
   
   /* Subtle input borders - hairline 1px with appropriate opacity */
@@ -302,7 +308,7 @@
   }
   
   .dark .border-input {
-    border-color: rgb(var(--md-outline) / 0.15);
+    border-color: rgb(255 255 255 / 0.15);  /* 15% white for better input visibility */
   }
   
   /* Material Design elevation overlays for dark theme */
@@ -771,11 +777,22 @@
     /* Background change - use surface container for better contrast */
     background-color: rgb(var(--md-surface-container-low)) !important;
     
-    /* Border styling - use outline-variant with reduced opacity */
-    border-color: rgb(var(--md-outline-variant) / 0.5) !important;
+    /* Border styling - subtle border matching standard border opacity */
+    /* Light mode: use outline-variant at 12% opacity (subtle, MD3-compliant) */
+    border-color: rgb(var(--md-outline-variant) / 0.12) !important;
     
     /* Remove interactive states */
     pointer-events: none;
+  }
+  
+  /* Dark mode specific: even more subtle border for disabled */
+  .dark input.disabled-overlay:disabled,
+  .dark textarea.disabled-overlay:disabled,
+  .dark select.disabled-overlay:disabled,
+  .dark input.disabled-overlay[disabled],
+  .dark textarea.disabled-overlay[disabled],
+  .dark select.disabled-overlay[disabled] {
+    border-color: rgb(255 255 255 / 0.08) !important;  /* 8% white - more subtle than standard 12% */
   }
   
   /* Placeholder opacity */
@@ -800,7 +817,17 @@
       opacity: 0.38;
       /* Still apply background and border changes for visual differentiation */
       background-color: rgb(var(--md-surface-container-low)) !important;
-      border-color: rgb(var(--md-outline-variant) / 0.5) !important;
+      border-color: rgb(var(--md-outline-variant) / 0.12) !important;
+    }
+    
+    /* Dark mode fallback */
+    .dark input.disabled-overlay:disabled,
+    .dark textarea.disabled-overlay:disabled,
+    .dark select.disabled-overlay:disabled,
+    .dark input.disabled-overlay[disabled],
+    .dark textarea.disabled-overlay[disabled],
+    .dark select.disabled-overlay[disabled] {
+      border-color: rgb(255 255 255 / 0.08) !important;
     }
   }
   

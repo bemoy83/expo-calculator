@@ -69,15 +69,10 @@ const config: Config = {
           DEFAULT: "rgb(var(--success) / <alpha-value>)",
           foreground: "rgb(var(--success-foreground) / <alpha-value>)",
         },
-        disabled: "rgb(var(--disabled) / <alpha-value>)",
-        separator: "rgb(var(--separator) / <alpha-value>)",
-        focus: "rgb(var(--focus) / <alpha-value>)",
         overlay: "rgb(var(--overlay) / <alpha-value>)",
         input: {
-          bg: "rgb(var(--input-bg) / <alpha-value>)",
+          bg: "rgb(var(--md-surface-container-low) / <alpha-value>)",
         },
-        panel: "rgb(var(--panel) / <alpha-value>)",
-        elevated: "rgb(var(--elevated) / <alpha-value>)",
       },
       borderColor: {
         DEFAULT: "rgb(var(--md-outline) / <alpha-value>)",

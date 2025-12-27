@@ -36,7 +36,7 @@ export const Select: React.FC<SelectProps> = ({
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={errorId}
           className={cn(
-            'w-full pl-4 pr-10 py-2.5 bg-input-bg rounded-full border border-md-outline/50',
+            'w-full pl-4 pr-10 py-2.5 bg-md-surface-container-low rounded-full border border-md-outline/50',
             'text-md-on-surface appearance-none',
             'focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:border-md-primary',
             'transition-smooth',
