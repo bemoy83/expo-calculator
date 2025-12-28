@@ -1,7 +1,7 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
 
-interface ChipProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ChipProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode
   size?: 'sm' | 'md' | 'lg'
   variant?:
@@ -62,23 +62,40 @@ export const Chip: React.FC<ChipProps> = ({
   const isInteractive = typeof rest.onClick === 'function'
 const Component = isInteractive ? 'button' as const : 'div'
 
-return (
-  <Component
-    {...rest}
-    type={isInteractive ? 'button' : undefined}
-    className={cn(
-      'inline-flex items-center gap-1 select-none transition-smooth',
-      sizes[size],
-      variants[variant],
-      isInteractive && 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-md-primary/50',
-      className
-    )}
-  >
-    {leadingIcon && <span className="shrink-0">{leadingIcon}</span>}
-    <span className="truncate">{children}</span>
-    {trailingIcon && <span className="shrink-0">{trailingIcon}</span>}
-  </Component>
-)
+if (isInteractive) {
+    return (
+      <button
+        {...rest}
+        type="button"
+        className={cn(
+          'inline-flex items-center gap-1 select-none transition-smooth cursor-pointer focus:outline-none focus:ring-2 focus:ring-md-primary/50',
+          sizes[size],
+          variants[variant],
+          className
+        )}
+      >
+        {leadingIcon && <span className="shrink-0">{leadingIcon}</span>}
+        <span className="truncate">{children}</span>
+        {trailingIcon && <span className="shrink-0">{trailingIcon}</span>}
+      </button>
+    )
+  }
+  
+  return (
+    <div
+      {...rest}
+      className={cn(
+        'inline-flex items-center gap-1 select-none transition-smooth',
+        sizes[size],
+        variants[variant],
+        className
+      )}
+    >
+      {leadingIcon && <span className="shrink-0">{leadingIcon}</span>}
+      <span className="truncate">{children}</span>
+      {trailingIcon && <span className="shrink-0">{trailingIcon}</span>}
+    </div>
+  )  
 
 }
 

@@ -71,7 +71,6 @@ export function ModuleDetailsCard({
             {getAllCategories().map((cat) => (
               <Chip
                 key={cat}
-                as="button"
                 size="md"
                 variant={formData.category === cat ? 'selected' : 'outline'}
                 onClick={() => onFormDataChange({ category: cat })}
@@ -81,7 +80,6 @@ export function ModuleDetailsCard({
             ))}
             {!showAddCategory && (
               <Chip
-                as="button"
                 size="md"
                 variant="dashed"
                 onClick={() => setShowAddCategory(true)}
