@@ -1,25 +1,18 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/Textarea';
-import { Select } from '@/components/ui/Select';
-import { Checkbox } from '@/components/ui/Checkbox';
 import { Chip } from '@/components/ui/Chip';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useCategoriesStore } from '@/lib/stores/categories-store';
-import { CalculationModule, Field, FieldType, QuoteModuleInstance } from '@/lib/types';
-import { validateFormula, evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
-import { cn } from '@/lib/utils';
+import { CalculationModule, Field } from '@/lib/types';
 import { DragEndEvent } from '@dnd-kit/core';
 import { 
   Plus, 
   Trash2, 
-  Eye,
   Calculator
 } from 'lucide-react';
 import { FormulaBuilder } from '@/components/module-editor/FormulaBuilder';
@@ -62,7 +55,6 @@ export default function ModulesPage() {
   const {
     fields,
     expandedFields,
-    newlyAddedFieldId,
     addField,
     updateField,
     removeField,
@@ -153,7 +145,6 @@ export default function ModulesPage() {
 
   // Formula variables hook
   const {
-    escapeRegex,
     isVariableInFormula,
     isPropertyReferenceInFormula,
     getMaterialFieldProperties,
@@ -161,7 +152,6 @@ export default function ModulesPage() {
     availableMaterialVariables,
     collectAutocompleteCandidates,
     usedFields,
-    requiredFields,
     allFields,
   } = useFormulaVariables({
     fields,
@@ -169,6 +159,47 @@ export default function ModulesPage() {
     formula: formData.formula,
   });
 
+  // Helper function to initialize preview with default values
+  const initializePreview = () => {
+    const defaults: Record<string, string | number | boolean> = {};
+    fields.forEach((field) => {
+      if (field.variableName) {
+        if (field.defaultValue !== undefined) {
+          defaults[field.variableName] = field.defaultValue;
+        } else {
+          switch (field.type) {
+            case 'number':
+              defaults[field.variableName] = ''; // Empty, not 0
+              break;
+            case 'boolean':
+              defaults[field.variableName] = false;
+              break;
+            case 'dropdown':
+              defaults[field.variableName] = ''; // Empty - require selection
+              break;
+            case 'material':
+              // If category exists, preselect first matching material
+              const materials = useMaterialsStore.getState().materials;
+              let candidateMaterials = materials;
+              if (field.materialCategory && field.materialCategory.trim()) {
+                candidateMaterials = materials.filter(m => m.category === field.materialCategory);
+              }
+              if (candidateMaterials.length > 0) {
+                defaults[field.variableName] = candidateMaterials[0].variableName;
+              } else {
+                defaults[field.variableName] = '';
+              }
+              break;
+            case 'text':
+              defaults[field.variableName] = '';
+              break;
+          }
+        }
+      }
+    });
+    setPreviewFieldValues(defaults);
+    setShowPreview(true);
+  };
 
   const insertVariableAtCursor = (variableName: string) => {
     const textarea = formulaTextareaRef.current;
@@ -454,47 +485,7 @@ export default function ModulesPage() {
           fields={fields}
           formulaValidationValid={formulaValidation.valid}
           onAddField={addField}
-          onPreview={() => {
-            // Initialize preview with defaults
-            const defaults: Record<string, string | number | boolean> = {};
-            fields.forEach((field) => {
-              if (field.variableName) {
-                if (field.defaultValue !== undefined) {
-                  defaults[field.variableName] = field.defaultValue;
-                } else {
-                  switch (field.type) {
-                    case 'number':
-                      defaults[field.variableName] = ''; // Empty, not 0
-                      break;
-                    case 'boolean':
-                      defaults[field.variableName] = false;
-                      break;
-                    case 'dropdown':
-                      defaults[field.variableName] = ''; // Empty - require selection
-                      break;
-                    case 'material':
-                      // If category exists, preselect first matching material
-                      const materials = useMaterialsStore.getState().materials;
-                      let candidateMaterials = materials;
-                      if (field.materialCategory && field.materialCategory.trim()) {
-                        candidateMaterials = materials.filter(m => m.category === field.materialCategory);
-                      }
-                      if (candidateMaterials.length > 0) {
-                        defaults[field.variableName] = candidateMaterials[0].variableName;
-                      } else {
-                        defaults[field.variableName] = '';
-                      }
-                      break;
-                    case 'text':
-                      defaults[field.variableName] = '';
-                      break;
-                  }
-                }
-              }
-            });
-            setPreviewFieldValues(defaults);
-            setShowPreview(true);
-          }}
+          onPreview={initializePreview}
           onCancel={cancelEditing}
           onSubmit={handleSubmit}
         />
