@@ -1,69 +1,78 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
+import React from 'react'
+import { cn } from '@/lib/utils'
 
-interface ChipProps extends React.HTMLAttributes<HTMLSpanElement | HTMLButtonElement> {
-  children: React.ReactNode;
-  variant?: 'default' | 'selected' | 'outline' | 'dashed';
-  size?: 'sm' | 'md';
-  as?: 'span' | 'button';
-  onClick?: () => void;
+interface ChipProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode
+  size?: 'sm' | 'md' | 'lg'
+  variant?:
+  | 'default'
+  | 'selected'
+  | 'outline'
+  | 'dashed'
+  | 'primary'
+  | 'primaryTonal'
+  | 'error'
+  | 'errorTonal'
+  | 'ghost'
+  leadingIcon?: React.ReactNode
+  trailingIcon?: React.ReactNode
 }
 
 export const Chip: React.FC<ChipProps> = ({
   children,
+  size = 'md',
   variant = 'default',
-  size = 'sm',
-  as: Component = 'span',
+  leadingIcon,
+  trailingIcon,
   className,
-  onClick,
-  ...props
+  ...rest
 }) => {
-  const baseStyles = 'rounded-full font-medium transition-all inline-flex items-center';
-  
+  const sizes = {
+    sm: 'text-xs px-2.5 py-1 rounded-full',
+    md: 'text-sm px-3 py-1.5 rounded-full',
+    lg: 'text-base px-4 py-2 rounded-full'
+  }
+
   const variants = {
     default: 'bg-md-tertiary text-md-on-tertiary',
-    selected: 'bg-md-primary text-md-on-primary elevation-1',
-    outline: 'bg-md-tertiary text-md-on-tertiary border border-border',
-    dashed: 'bg-md-tertiary text-md-on-tertiary border border-border border-dashed',
-  };
-  
-  const sizes = {
-    sm: 'px-2.5 py-0.5 text-xs',
-    md: 'px-4 py-2.5 text-sm',
-  };
-  
-  const hoverStyles = Component === 'button' && variant === 'default' 
-    ? 'hover:bg-md-tertiary/80 hover:text-md-on-tertiary' 
-    : '';
-  
-  const classes = cn(
-    baseStyles,
-    variants[variant],
-    sizes[size],
-    hoverStyles,
-    className
-  );
-  
-  if (Component === 'button') {
-    return (
-      <button
-        type="button"
-        className={classes}
-        onClick={onClick}
-        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-      >
-        {children}
-      </button>
-    );
-  }
-  
-  return (
-    <span
-      className={classes}
-      {...(props as React.HTMLAttributes<HTMLSpanElement>)}
-    >
-      {children}
-    </span>
-  );
-};
 
+    // strong emphasis
+    primary: 'bg-md-primary text-md-on-primary',
+    error: 'bg-md-error text-md-on-error',
+
+    // md3 tonal emphasis
+    primaryTonal: 'bg-md-primary-container text-md-on-primary-container',
+    errorTonal: 'bg-md-error-container text-md-on-error-container',
+
+    // selection state
+    selected: 'bg-md-primary text-md-on-primary elevation-1',
+
+    // structural emphasis
+    outline:
+      'bg-md-surface-container-high text-md-on-surface border border-md-outline',
+    dashed:
+      'bg-md-surface-container-high text-md-on-surface border border-md-outline border-dashed',
+
+    // minimal
+    ghost:
+      'bg-transparent text-md-on-surface border border-transparent hover:bg-md-surface-variant/40'
+  }
+
+  return (
+    <div
+      {...rest}
+      className={cn(
+        'inline-flex items-center gap-1 select-none transition-smooth',
+        sizes[size],
+        variants[variant],
+        className
+      )}
+    >
+      {leadingIcon && <span className="shrink-0">{leadingIcon}</span>}
+      <span className="truncate">{children}</span>
+      {trailingIcon && <span className="shrink-0">{trailingIcon}</span>}
+    </div>
+  )
+}
+
+export default Chip

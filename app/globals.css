@@ -26,23 +26,23 @@
   --md-on-tertiary-container: 15 23 42;         /* Text/icon on tertiary container */
   
   /* MD3 Error Palette */
-  --md-error: 220 38 38;                       /* Error color */
+  --md-error: 116 0 6;                       /* Error color */
   --md-on-error: 255 255 255;                  /* Text/icon on error */
-  --md-error-container: 254 226 226;           /* Error container background */
-  --md-on-error-container: 127 29 29;          /* Text/icon on error container */
+  --md-error-container: 207 44 39;           /* Error container background */
+  --md-on-error-container: 255 255 255;          /* Text/icon on error container */
   
   /* MD3 Surface System */
-  --md-surface: 240 244 248;                   /* Base surface color */
-  --md-on-surface: 15 23 42;                    /* Text/icon on surface */
-  --md-surface-variant: 248 250 252;           /* Surface variant */
-  --md-on-surface-variant: 71 85 105;          /* Text/icon on surface variant */
+  --md-surface: 247 250 251;                   /* Base surface color */
+  --md-on-surface: 14 18 19;                    /* Text/icon on surface */
+  --md-surface-variant: 218 228 231;           /* Surface variant */
+  --md-on-surface-variant: 46 56 58;          /* Text/icon on surface variant */
   
   /* MD3 Surface Container Hierarchy */
-  --md-surface-container-lowest: 240 244 248;  /* Lowest - base background */
-  --md-surface-container-low: 248 250 252;      /* Low - muted surfaces */
-  --md-surface-container: 255 255 255;          /* Default - cards, containers */
-  --md-surface-container-high: 255 255 255;      /* High - elevated surfaces */
-  --md-surface-container-highest: 255 255 255;  /* Highest - pure white */
+  --md-surface-container-lowest: 255 255 255;
+  --md-surface-container-low: 241 244 245;
+  --md-surface-container: 230 232 234;
+  --md-surface-container-high: 218 221 222;
+  --md-surface-container-highest: 207 210 211;
   
   /* MD3 Outline System */
   --md-outline: 226 232 240;                   /* Outline color */
@@ -116,17 +116,17 @@
   --md-on-error-container: 255 218 218;         /* Light text on error container */
   
   /* MD3 Surface System - Dark Mode */
-  --md-surface: 18 18 18;                      /* Base surface - #121212 */
+  --md-surface: 16 20 21;                      /* Base surface - #121212 */
   --md-on-surface: 255 255 255;                 /* White text on surface */
-  --md-surface-variant: 23 23 23;              /* Surface variant */
-  --md-on-surface-variant: 200 200 200;        /* Text/icon on surface variant */
+  --md-surface-variant:63 72 75;              /* Surface variant */
+  --md-on-surface-variant: 212 222 225;        /* Text/icon on surface variant */
   
   /* MD3 Surface Container Hierarchy - Dark Mode */
-  --md-surface-container-lowest: 18 18 18;     /* Lowest - #121212 */
-  --md-surface-container-low: 23 23 23;        /* Low - #171717 */
-  --md-surface-container: 30 30 30;             /* Default - #1E1E1E */
-  --md-surface-container-high: 38 38 38;        /* High - slightly lighter */
-  --md-surface-container-highest: 45 45 45;     /* Highest - lightest */
+  --md-surface-container-lowest: 5 8 9;     /* Lowest - #121212 */
+  --md-surface-container-low: 26 30 31;        /* Low - #171717 */
+  --md-surface-container: 37 40 42;             /* Default - #1E1E1E */
+  --md-surface-container-high: 47 51 52;        /* High - slightly lighter */
+  --md-surface-container-highest: 58 62 63;     /* Highest - lightest */
   
   /* MD3 Outline System - Dark Mode */
   --md-outline: 255 255 255;                   /* White for dark mode (opacity applied via CSS) */
@@ -214,67 +214,6 @@
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  /* MD3 Elevation Utilities - Material Design 3 Elevation System */
-  /* Each elevation level has specific shadow values per MD3 specifications */
-  
-  .elevation-0 {
-    box-shadow: none;
-  }
-  
-  .elevation-1 {
-    box-shadow: 
-      0px 1px 2px rgba(0, 0, 0, 0.3),
-      0px 1px 3px rgba(0, 0, 0, 0.15);
-  }
-  
-  .elevation-2 {
-    box-shadow: 
-      0px 2px 6px rgba(0, 0, 0, 0.15),
-      0px 1px 2px rgba(0, 0, 0, 0.3);
-  }
-  
-  .elevation-3 {
-    box-shadow: 
-      0px 4px 8px rgba(0, 0, 0, 0.15),
-      0px 1px 3px rgba(0, 0, 0, 0.3);
-  }
-  
-  .elevation-4 {
-    box-shadow: 
-      0px 6px 10px rgba(0, 0, 0, 0.15),
-      0px 2px 4px rgba(0, 0, 0, 0.3);
-  }
-  
-  .elevation-5 {
-    box-shadow: 
-      0px 8px 12px rgba(0, 0, 0, 0.15),
-      0px 3px 5px rgba(0, 0, 0, 0.3);
-  }
-  
-  .elevation-8 {
-    box-shadow: 
-      0px 12px 16px rgba(0, 0, 0, 0.15),
-      0px 4px 8px rgba(0, 0, 0, 0.3);
-  }
-  
-  .elevation-12 {
-    box-shadow: 
-      0px 16px 24px rgba(0, 0, 0, 0.15),
-      0px 6px 12px rgba(0, 0, 0, 0.3);
-  }
-  
-  .elevation-16 {
-    box-shadow: 
-      0px 20px 32px rgba(0, 0, 0, 0.15),
-      0px 8px 16px rgba(0, 0, 0, 0.3);
-  }
-  
-  .elevation-24 {
-    box-shadow: 
-      0px 24px 40px rgba(0, 0, 0, 0.15),
-      0px 10px 20px rgba(0, 0, 0, 0.3);
-  }
-  
   /* Material Design dark theme border opacity */
   /* Override border color to use 12% opacity white in dark mode */
   .dark .border-border {
@@ -309,377 +248,6 @@
   
   .dark .border-input {
     border-color: rgb(255 255 255 / 0.15);  /* 15% white for better input visibility */
-  }
-  
-  /* Material Design elevation overlays for dark theme */
-  /* Elevated surfaces should be lighter via white overlays, not just shadows */
-  /* MD3 uses white overlays in dark mode to create elevation hierarchy */
-  
-  /* Elevation 0dp - No overlay */
-  .dark .elevation-0 {
-    position: relative;
-  }
-  
-  /* Elevation 1dp - 5% overlay */
-  .dark .elevation-1 {
-    position: relative;
-  }
-  
-  .dark .elevation-1::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-1));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Elevation 2dp - 7% overlay */
-  .dark .elevation-2 {
-    position: relative;
-  }
-  
-  .dark .elevation-2::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-2));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Elevation 3dp - 8% overlay */
-  .dark .elevation-3 {
-    position: relative;
-  }
-  
-  .dark .elevation-3::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-3));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Elevation 4dp - 9% overlay */
-  .dark .elevation-4 {
-    position: relative;
-  }
-  
-  .dark .elevation-4::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-4));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Elevation 5dp - 10% overlay */
-  .dark .elevation-5 {
-    position: relative;
-  }
-  
-  .dark .elevation-5::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-5));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Elevation 8dp - 12% overlay */
-  .dark .elevation-8 {
-    position: relative;
-  }
-  
-  .dark .elevation-8::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-8));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Elevation 12dp - 14% overlay */
-  .dark .elevation-12 {
-    position: relative;
-  }
-  
-  .dark .elevation-12::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-12));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Elevation 16dp - 15% overlay */
-  .dark .elevation-16 {
-    position: relative;
-  }
-  
-  .dark .elevation-16::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-16));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Elevation 24dp - 16% overlay */
-  .dark .elevation-24 {
-    position: relative;
-  }
-  
-  .dark .elevation-24::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-24));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Light mode elevation overlays - White overlays make surfaces lighter */
-  /* In light mode, higher elevation = whiter surface (closer to pure white) */
-  /* This creates visual hierarchy by making elevated surfaces appear brighter */
-  
-  .elevation-1 {
-    position: relative;
-  }
-  
-  .elevation-1::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-1));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .elevation-2 {
-    position: relative;
-  }
-  
-  .elevation-2::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-2));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .elevation-3 {
-    position: relative;
-  }
-  
-  .elevation-3::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-3));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .elevation-4 {
-    position: relative;
-  }
-  
-  .elevation-4::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-4));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .elevation-5 {
-    position: relative;
-  }
-  
-  .elevation-5::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-5));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .elevation-8 {
-    position: relative;
-  }
-  
-  .elevation-8::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-8));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .elevation-12 {
-    position: relative;
-  }
-  
-  .elevation-12::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-12));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .elevation-16 {
-    position: relative;
-  }
-  
-  .elevation-16::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-16));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  .elevation-24 {
-    position: relative;
-  }
-  
-  .elevation-24::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, var(--md-elevation-overlay-24));
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  
-  /* Ensure content is above elevation overlays */
-  .elevation-0 > *,
-  .elevation-1 > *,
-  .elevation-2 > *,
-  .elevation-3 > *,
-  .elevation-4 > *,
-  .elevation-5 > *,
-  .elevation-8 > *,
-  .elevation-12 > *,
-  .elevation-16 > *,
-  .elevation-24 > * {
-    position: relative;
-    z-index: 1;
-  }
-  
-  /* Preserve explicit positioning when combined with elevation */
-  /* This ensures sticky/fixed/absolute positioning works with elevation overlays */
-  /* Light mode positioning preservation */
-  .elevation-0.sticky,
-  .elevation-1.sticky,
-  .elevation-2.sticky,
-  .elevation-3.sticky,
-  .elevation-4.sticky,
-  .elevation-5.sticky,
-  .elevation-8.sticky,
-  .elevation-12.sticky,
-  .elevation-16.sticky,
-  .elevation-24.sticky {
-    position: sticky;
-  }
-  
-  .elevation-0.fixed,
-  .elevation-1.fixed,
-  .elevation-2.fixed,
-  .elevation-3.fixed,
-  .elevation-4.fixed,
-  .elevation-5.fixed,
-  .elevation-8.fixed,
-  .elevation-12.fixed,
-  .elevation-16.fixed,
-  .elevation-24.fixed {
-    position: fixed;
-  }
-  
-  .elevation-0.absolute,
-  .elevation-1.absolute,
-  .elevation-2.absolute,
-  .elevation-3.absolute,
-  .elevation-4.absolute,
-  .elevation-5.absolute,
-  .elevation-8.absolute,
-  .elevation-12.absolute,
-  .elevation-16.absolute,
-  .elevation-24.absolute {
-    position: absolute;
-  }
-  
-  /* Dark mode positioning preservation */
-  .dark .elevation-0.sticky,
-  .dark .elevation-1.sticky,
-  .dark .elevation-2.sticky,
-  .dark .elevation-3.sticky,
-  .dark .elevation-4.sticky,
-  .dark .elevation-5.sticky,
-  .dark .elevation-8.sticky,
-  .dark .elevation-12.sticky,
-  .dark .elevation-16.sticky,
-  .dark .elevation-24.sticky {
-    position: sticky;
-  }
-  
-  .dark .elevation-0.fixed,
-  .dark .elevation-1.fixed,
-  .dark .elevation-2.fixed,
-  .dark .elevation-3.fixed,
-  .dark .elevation-4.fixed,
-  .dark .elevation-5.fixed,
-  .dark .elevation-8.fixed,
-  .dark .elevation-12.fixed,
-  .dark .elevation-16.fixed,
-  .dark .elevation-24.fixed {
-    position: fixed;
-  }
-  
-  .dark .elevation-0.absolute,
-  .dark .elevation-1.absolute,
-  .dark .elevation-2.absolute,
-  .dark .elevation-3.absolute,
-  .dark .elevation-4.absolute,
-  .dark .elevation-5.absolute,
-  .dark .elevation-8.absolute,
-  .dark .elevation-12.absolute,
-  .dark .elevation-16.absolute,
-  .dark .elevation-24.absolute {
-    position: absolute;
   }
   
   /* Material Design hover overlay system */
@@ -840,3 +408,145 @@
   }
 }
 
+/* =====================================================
+   MD3 Elevation Utilities
+   - Shadow + Overlay unified
+   - Outside Tailwind @layer utilities
+   - Safe / deterministic / future-proof
+   ===================================================== */
+
+/* ---------------------------
+   SHADOW TOKENS (easy tuning)
+   --------------------------- */
+   :root {
+    --shadow-0: none;
+  
+    --shadow-1: 0px 6px 12px rgba(0, 0, 0, 0.10),
+                0px 2px 4px rgba(0, 0, 0, 0.06);
+  
+    --shadow-2: 0px 10px 20px rgba(0, 0, 0, 0.12),
+                0px 4px 6px rgba(0, 0, 0, 0.06);
+  
+    --shadow-3: 0px 14px 28px rgba(0, 0, 0, 0.14),
+                0px 6px 10px rgba(0, 0, 0, 0.08);
+  
+    --shadow-4: 0px 18px 36px rgba(0, 0, 0, 0.16),
+                0px 8px 14px rgba(0, 0, 0, 0.10);
+  
+    --shadow-5: 0px 24px 48px rgba(0, 0, 0, 0.18),
+                0px 10px 18px rgba(0, 0, 0, 0.10);
+  
+    --shadow-8: 0px 36px 60px rgba(0, 0, 0, 0.20),
+                0px 14px 28px rgba(0, 0, 0, 0.12);
+  
+    --shadow-12: 0px 48px 80px rgba(0, 0, 0, 0.22),
+                 0px 18px 36px rgba(0, 0, 0, 0.14);
+  
+    --shadow-16: 0px 60px 100px rgba(0, 0, 0, 0.24),
+                 0px 22px 44px rgba(0, 0, 0, 0.16);
+  
+    --shadow-24: 0px 80px 140px rgba(0, 0, 0, 0.26),
+                 0px 30px 60px rgba(0, 0, 0, 0.18);
+  }
+  
+  /* ---------------------------
+     BASE MECHANICS
+     --------------------------- */
+   /* only add positioning when the element is NOT already positioned */
+.dark [class^="elevation-"]:not(.absolute):not(.fixed):not(.sticky),
+.dark [class*=" elevation-"]:not(.absolute):not(.fixed):not(.sticky) {
+  position: relative;
+}
+
+     
+     [class^="elevation-"]::before,
+     [class*=" elevation-"]::before {
+       content: "";
+       position: absolute;
+       inset: 0;
+       border-radius: inherit;
+       pointer-events: none;
+       z-index: 1;
+     }
+  
+  /* ---------------------------
+     SHADOW APPLICATION
+     --------------------------- */
+  .elevation-0  { box-shadow: var(--shadow-0)  !important; }
+  .elevation-1  { box-shadow: var(--shadow-1)  !important; }
+  .elevation-2  { box-shadow: var(--shadow-2)  !important; }
+  .elevation-3  { box-shadow: var(--shadow-3)  !important; }
+  .elevation-4  { box-shadow: var(--shadow-4)  !important; }
+  .elevation-5  { box-shadow: var(--shadow-5)  !important; }
+  .elevation-8  { box-shadow: var(--shadow-8)  !important; }
+  .elevation-12 { box-shadow: var(--shadow-12) !important; }
+  .elevation-16 { box-shadow: var(--shadow-16) !important; }
+  .elevation-24 { box-shadow: var(--shadow-24) !important; }
+  
+  /* ---------------------------
+     DARK MODE OVERLAY TOKENS
+     (MD3 perceptual elevation)
+     --------------------------- */
+  /*:root {
+    --overlay-1:  0.05;
+    --overlay-2:  0.07;
+    --overlay-3:  0.08;
+    --overlay-4:  0.09;
+    --overlay-5:  0.10;
+    --overlay-8:  0.12;
+    --overlay-12: 0.14;
+    --overlay-16: 0.16;
+    --overlay-24: 0.18;
+  }
+  
+  /* overlay base */
+  /*.dark [class^="elevation-"]::before,
+  .dark [class*=" elevation-"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  /* overlay opacity per level */
+  /*.dark .elevation-1::before  { background: rgba(255,255,255,var(--overlay-1)); }
+  .dark .elevation-2::before  { background: rgba(255,255,255,var(--overlay-2)); }
+  .dark .elevation-3::before  { background: rgba(255,255,255,var(--overlay-3)); }
+  .dark .elevation-4::before  { background: rgba(255,255,255,var(--overlay-4)); }
+  .dark .elevation-5::before  { background: rgba(255,255,255,var(--overlay-5)); }
+  .dark .elevation-8::before  { background: rgba(255,255,255,var(--overlay-8)); }
+  .dark .elevation-12::before { background: rgba(255,255,255,var(--overlay-12)); }
+  .dark .elevation-16::before { background: rgba(255,255,255,var(--overlay-16)); }
+  .dark .elevation-24::before { background: rgba(255,255,255,var(--overlay-24)); }
+  
+  /* ---------------------------
+     POSITION SAFETY (keep)
+     --------------------------- */
+  .elevation-0.sticky,
+  .elevation-1.sticky,
+  .elevation-2.sticky,
+  .elevation-3.sticky,
+  .elevation-4.sticky,
+  .elevation-5.sticky,
+  .elevation-8.sticky,
+  .elevation-12.sticky,
+  .elevation-16.sticky,
+  .elevation-24.sticky {
+    position: sticky;
+  }
+  
+  .elevation-0.fixed,
+  .elevation-1.fixed,
+  .elevation-2.fixed,
+  .elevation-3.fixed,
+  .elevation-4.fixed,
+  .elevation-5.fixed,
+  .elevation-8.fixed,
+  .elevation-12.fixed,
+  .elevation-16.fixed,
+  .elevation-24.fixed {
+    position: fixed;
+  }
+  

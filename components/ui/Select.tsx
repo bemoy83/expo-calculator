@@ -36,14 +36,22 @@ export const Select: React.FC<SelectProps> = ({
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={errorId}
           className={cn(
-            'w-full pl-4 pr-10 py-2.5 bg-md-surface-container-low rounded-full border border-md-outline/50',
-            'text-md-on-surface appearance-none',
+            // Base
+            'w-full text-md-on-surface-variant appearance-none transition-smooth',
+            'bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-full px-4 py-2.5',
+          
+            // Focus ring like Input
             'focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:border-md-primary',
-            'transition-smooth',
+          
+            // Disabled
             'disabled-overlay disabled:cursor-not-allowed',
+          
+            // Error
             error && 'focus:ring-md-error/50 border-md-error/50',
+          
             className
           )}
+          
           {...props}
         >
           {options.map((option) => (

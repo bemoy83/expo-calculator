@@ -5,7 +5,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Field, FieldType } from '@/lib/types';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
-import { CARD_BACKGROUND, CARD_BORDER, CARD_ROUNDED } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -85,10 +85,10 @@ export function SortableFieldItem({
   };
 
   return (
-    <div
-      ref={combinedRef}
-      style={style}
-      className={`${CARD_BACKGROUND} ${CARD_BORDER} ${CARD_ROUNDED} overflow-hidden transition-smooth elevation-1`}
+    <Card
+    ref={combinedRef}
+    style={style}
+    variant="default"  
     >
       {/* Field Header */}
       <div className="flex items-center">
@@ -96,7 +96,7 @@ export function SortableFieldItem({
         <button
           {...attributes}
           {...listeners}
-          className="p-3 text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-inset transition-smooth"
+          className="p-2 text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none transition-smooth"
           aria-label={`Drag to reorder ${field.label || 'field'}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -124,17 +124,17 @@ export function SortableFieldItem({
                 {field.label || 'Unnamed Field'}
               </span>
               {field.variableName && (
-                <code className="px-2.5 py-0.5 bg-md-primary text-md-on-primary rounded-full text-xs font-mono">
-                  {field.variableName}
-                </code>
+                <Chip size="sm" variant="primary" className="font-mono">
+                {field.variableName}
+              </Chip>
               )}
-              <Chip size="sm" variant="outline" className="capitalize">
+              <Chip size="sm" variant="default" className="capitalize">
                 {field.type}
               </Chip>
               {field.required && (
-                <span className="px-2.5 py-0.5 bg-md-error text-md-on-error rounded-full text-xs font-medium">
-                  Required
-                </span>
+                <Chip size="sm" variant="error">
+                Required
+              </Chip>
               )}
             </div>
             {field.description && (
@@ -145,12 +145,12 @@ export function SortableFieldItem({
           </div>
           <div className="flex items-center space-x-1 ml-4 shrink-0">
             <button
-              type="button"
+              /*type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleExpanded(field.id);
-              }}
-              className="p-2 text-md-on-surface-variant hover:text-md-on-surface hover-overlay rounded-extra-large transition-smooth active:scale-95 relative"
+              }} */
+              className="p-2 text-md-on-surface-variant"
               aria-label={isExpanded ? 'Collapse field' : 'Expand field'}
             >
               {isExpanded ? (
@@ -167,7 +167,7 @@ export function SortableFieldItem({
                   onRemoveField(field.id);
                 }
               }}
-              className="p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 rounded-full transition-smooth active:scale-95"
+              className="p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error-container/10 rounded-full transition-smooth active:scale-95"
               aria-label="Remove field"
             >
               <Trash2 className="h-4 w-4" />
@@ -178,7 +178,7 @@ export function SortableFieldItem({
 
       {/* Expanded Field Form */}
       {isExpanded && (
-        <div className="p-5 border-t border-border space-y-4">
+        <div className="p-4 border-t border-border space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="Field Label"
@@ -355,7 +355,7 @@ export function SortableFieldItem({
           />
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 

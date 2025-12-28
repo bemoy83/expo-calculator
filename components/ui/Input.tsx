@@ -36,7 +36,7 @@ export const Input: React.FC<InputProps> = ({
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={errorId}
         className={cn(
-          'w-full text-md-on-surface placeholder-md-on-surface-variant transition-smooth',
+          'w-full text-md-on-surface-variant placeholder-md-on-surface-variant transition-smooth',
           'disabled-overlay disabled:cursor-not-allowed',
           isUnderline
             ? [
@@ -49,7 +49,7 @@ export const Input: React.FC<InputProps> = ({
                 error && '!border-md-error focus:!border-md-error hover:!border-md-error',
               ]
             : [
-                'px-4 py-2.5 bg-md-surface-container-low rounded-full border border-md-outline/50',
+                'px-4 py-2.5 bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-full',
                 'focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:border-md-primary',
                 error && 'focus:ring-md-error/50 border-md-error/50',
               ],

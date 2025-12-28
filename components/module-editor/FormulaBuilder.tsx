@@ -130,7 +130,7 @@ export function FormulaBuilder({
   fields,
 }: FormulaBuilderProps) {
   return (
-    <Card title="Formula Builder" elevation={2} className="sticky top-[88px]">
+    <Card title="Formula Builder" className="sticky top-[88px]">
       <div className="space-y-6">
         {/* Available Variables */}
         {availableFieldVariables.length > 0 && (
