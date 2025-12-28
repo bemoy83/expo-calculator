@@ -149,7 +149,7 @@ function SortableFieldItem({
 
         {/* Field Content */}
         <div
-          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-lg"
+          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-extra-large"
           onClick={() => onToggleExpanded(field.id)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -194,7 +194,7 @@ function SortableFieldItem({
                 e.stopPropagation();
                 onToggleExpanded(field.id);
               }}
-              className="p-2 text-md-on-surface-variant hover:text-md-on-surface hover-overlay rounded-lg transition-smooth active:scale-95 relative"
+              className="p-2 text-md-on-surface-variant hover:text-md-on-surface hover-overlay rounded-extra-large transition-smooth active:scale-95 relative"
               aria-label={isExpanded ? 'Collapse field' : 'Expand field'}
             >
               {isExpanded ? (
@@ -211,7 +211,7 @@ function SortableFieldItem({
                   onRemoveField(field.id);
                 }
               }}
-              className="p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 rounded-lg transition-smooth active:scale-95"
+              className="p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 rounded-full transition-smooth active:scale-95"
               aria-label="Remove field"
             >
               <Trash2 className="h-4 w-4" />
@@ -2077,7 +2077,7 @@ export default function ModulesPage() {
                   <summary className="cursor-pointer text-sm font-semibold text-md-on-surface-variant hover:text-md-on-surface transition-colors">
                     Formula debug (detected variables)
                   </summary>
-                  <div className="mt-3 space-y-3 p-3 bg-md-surface-variant/30 rounded-lg border border-border">
+                  <div className="mt-3 space-y-3 p-3 bg-md-surface-variant/30 rounded-extra-large border border-border">
                     {(() => {
                       const debugInfo = analyzeFormulaVariables(
                         formData.formula,
@@ -2795,7 +2795,7 @@ export default function ModulesPage() {
                       deleteModule(module.id);
                     }
                   }}
-                  className="absolute top-4 right-4 p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 rounded-lg transition-smooth active:scale-95 z-10"
+                  className="absolute top-4 right-4 p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 rounded-full transition-smooth active:scale-95 z-10"
                   aria-label="Delete module"
                 >
                   <Trash2 className="h-4 w-4" />
