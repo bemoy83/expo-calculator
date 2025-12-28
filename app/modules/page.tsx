@@ -15,30 +15,19 @@ import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { CalculationModule, Field, FieldType, QuoteModuleInstance } from '@/lib/types';
 import { validateFormula, evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { cn } from '@/lib/utils';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { DragEndEvent } from '@dnd-kit/core';
 import { 
   Plus, 
   Trash2, 
   Eye,
   Calculator
 } from 'lucide-react';
-import { SortableFieldItem } from '@/components/module-editor/SortableFieldItem';
 import { FormulaBuilder } from '@/components/module-editor/FormulaBuilder';
 import { ModulePreview } from '@/components/module-editor/ModulePreview';
+import { ModuleDetailsCard } from '@/components/module-editor/ModuleDetailsCard';
+import { FieldsManager } from '@/components/module-editor/FieldsManager';
+import { ModuleEditorHeader } from '@/components/module-editor/ModuleEditorHeader';
+import { ModuleEditorActions } from '@/components/module-editor/ModuleEditorActions';
 import { useFormulaValidation } from '@/hooks/use-formula-validation';
 import { usePreviewCost } from '@/hooks/use-preview-cost';
 import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
@@ -96,9 +85,6 @@ export default function ModulesPage() {
     fields,
     materials,
   });
-  // Category management state
-  const [showAddCategory, setShowAddCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
   // Preview state
   const [showPreview, setShowPreview] = useState(false);
   const [previewFieldValues, setPreviewFieldValues] = useState<Record<string, string | number | boolean>>({});
@@ -150,28 +136,6 @@ export default function ModulesPage() {
     setErrors({});
     setFieldErrors({});
   };
-
-  /**
-   * Drag-and-Drop Implementation
-   * 
-   * Uses @dnd-kit library for robust drag-and-drop functionality:
-   * - @dnd-kit/core: Core drag-and-drop functionality
-   * - @dnd-kit/sortable: Sortable list components
-   * - @dnd-kit/utilities: CSS transform utilities
-   * 
-   * Field Order Persistence:
-   * - Field order is stored in the fields array state
-   * - When fields are reordered via drag-and-drop, the array is reordered using arrayMove()
-   * - All field data (id, label, variableName, type, etc.) is preserved during reorder
-   * - Formula variable mapping remains intact because variable names don't change
-   * - Order persists when module is saved (fields array order is saved as-is)
-   */
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   // Handle drag end event - reorder fields array
   const handleDragEnd = (event: DragEndEvent) => {
@@ -392,179 +356,32 @@ export default function ModulesPage() {
   if (editingModuleId) {
     return (
       <Layout>
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">
-            {editingModuleId === 'new' ? 'Create Module' : 'Edit Module'}
-          </h1>
-          <p className="text-lg text-md-on-surface-variant">Define → Configure → Calculate</p>
-        </div>
+        <ModuleEditorHeader editingModuleId={editingModuleId} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
           {/* LEFT COLUMN */}
           <div className="lg:col-span-2 space-y-6">
             {/* MODULE DETAILS PANEL */}
-            <Card title="Module Details">
-              <div className="space-y-4">
-                <Input
-                  label="Module Name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  error={errors.name}
-                  placeholder="e.g., Floor Area Calculator"
-                />
-                <Textarea
-                  label="Description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  placeholder="Describe what this module calculates..."
-                />
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-3">
-                    Category
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {getAllCategories().map((cat) => (
-                      <Chip
-                        key={cat}
-                        as="button"
-                        size="md"
-                        variant={formData.category === cat ? 'selected' : 'outline'}
-                        onClick={() => setFormData({ ...formData, category: cat })}
-                      >
-                        {cat}
-                      </Chip>
-                    ))}
-                    {!showAddCategory && (
-                      <Chip
-                        as="button"
-                        size="md"
-                        variant="dashed"
-                        onClick={() => setShowAddCategory(true)}
-                      >
-                        <Plus className="h-4 w-4 inline mr-1" />
-                        Add Category
-                      </Chip>
-                    )}
-                  </div>
-                  {showAddCategory && (
-                    <div className="flex gap-2 items-center">
-                      <Input
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        placeholder="Enter category name"
-                        className="flex-1"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (newCategoryName.trim()) {
-                              addCategory(newCategoryName.trim());
-                              setFormData({ ...formData, category: newCategoryName.trim() });
-                              setNewCategoryName('');
-                              setShowAddCategory(false);
-                            }
-                          } else if (e.key === 'Escape') {
-                            setShowAddCategory(false);
-                            setNewCategoryName('');
-                          }
-                        }}
-                        autoFocus
-                      />
-                      <Button
-                        onClick={() => {
-                          if (newCategoryName.trim()) {
-                            addCategory(newCategoryName.trim());
-                            setFormData({ ...formData, category: newCategoryName.trim() });
-                            setNewCategoryName('');
-                            setShowAddCategory(false);
-                          }
-                        }}
-                        disabled={!newCategoryName.trim()}
-                        size="sm"
-                        className="rounded-full"
-                      >
-                        Add
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setShowAddCategory(false);
-                          setNewCategoryName('');
-                        }}
-                        variant="ghost"
-                        size="sm"
-                        className="rounded-full"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
-                  {formData.category && (
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, category: '' })}
-                      className="mt-2 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors"
-                    >
-                      Clear category
-                    </button>
-                  )}
-                </div>
-              </div>
-            </Card>
+            <ModuleDetailsCard
+              formData={formData}
+              errors={errors}
+              onFormDataChange={(updates) => setFormData({ ...formData, ...updates })}
+              getAllCategories={getAllCategories}
+              addCategory={addCategory}
+            />
 
             {/* INPUT FIELDS MANAGER */}
-            <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Input Fields</h2>
-              </div>
-
-              {fields.length === 0 ? (
-                <Card>
-                  <div className="text-center py-6">
-                    <p className="text-sm text-md-on-surface-variant mb-3">
-                      Fields define the inputs required for your calculation formula. Each field becomes a variable you can use in your formula.
-                    </p>
-                    <Button size="sm" onClick={addField} className="rounded-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Field
-                    </Button>
-                  </div>
-                </Card>
-              ) : (
-                <>
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext
-                      items={fields.map((f) => f.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div className="space-y-3">
-                        {fields.map((field, index) => {
-                          const isExpanded = expandedFields.has(field.id);
-                          const fieldError = fieldErrors[field.id] || {};
-
-                          return (
-                            <SortableFieldItem
-                              key={field.id}
-                              field={field}
-                              isExpanded={isExpanded}
-                              fieldError={fieldError}
-                              onToggleExpanded={toggleFieldExpanded}
-                              onUpdateField={updateField}
-                              onRemoveField={removeField}
-                              fieldRef={(el) => setFieldRef(field.id, el)}
-                            />
-                          );
-                        })}
-                      </div>
-                    </SortableContext>
-                  </DndContext>
-                  
-                </>
-              )}
-            </div>
+            <FieldsManager
+              fields={fields}
+              expandedFields={expandedFields}
+              fieldErrors={fieldErrors}
+              onToggleExpanded={toggleFieldExpanded}
+              onUpdateField={updateField}
+              onRemoveField={removeField}
+              onDragEnd={handleDragEnd}
+              onAddField={addField}
+              setFieldRef={setFieldRef}
+            />
           </div>
 
           {/* RIGHT COLUMN - FORMULA BUILDER */}
@@ -632,71 +449,55 @@ export default function ModulesPage() {
         )}
 
         {/* BOTTOM ACTION BAR */}
-        <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-md-surface-container-high/95 backdrop-blur-md border-t border-border px-4 py-4 z-40 elevation-2">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
-            <Button onClick={addField} className="rounded-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Field
-            </Button>
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="secondary"
-                onClick={() => {
-                  // Initialize preview with defaults
-                  const defaults: Record<string, string | number | boolean> = {};
-                  fields.forEach((field) => {
-                    if (field.variableName) {
-                      if (field.defaultValue !== undefined) {
-                        defaults[field.variableName] = field.defaultValue;
-                      } else {
-                        switch (field.type) {
-                          case 'number':
-                            defaults[field.variableName] = ''; // Empty, not 0
-                            break;
-                          case 'boolean':
-                            defaults[field.variableName] = false;
-                            break;
-                          case 'dropdown':
-                            defaults[field.variableName] = ''; // Empty - require selection
-                            break;
-                          case 'material':
-                            // If category exists, preselect first matching material
-                            const materials = useMaterialsStore.getState().materials;
-                            let candidateMaterials = materials;
-                            if (field.materialCategory && field.materialCategory.trim()) {
-                              candidateMaterials = materials.filter(m => m.category === field.materialCategory);
-                            }
-                            if (candidateMaterials.length > 0) {
-                              defaults[field.variableName] = candidateMaterials[0].variableName;
-                            } else {
-                              defaults[field.variableName] = '';
-                            }
-                            break;
-                          case 'text':
-                            defaults[field.variableName] = '';
-                            break;
-                        }
+        <ModuleEditorActions
+          editingModuleId={editingModuleId}
+          fields={fields}
+          formulaValidationValid={formulaValidation.valid}
+          onAddField={addField}
+          onPreview={() => {
+            // Initialize preview with defaults
+            const defaults: Record<string, string | number | boolean> = {};
+            fields.forEach((field) => {
+              if (field.variableName) {
+                if (field.defaultValue !== undefined) {
+                  defaults[field.variableName] = field.defaultValue;
+                } else {
+                  switch (field.type) {
+                    case 'number':
+                      defaults[field.variableName] = ''; // Empty, not 0
+                      break;
+                    case 'boolean':
+                      defaults[field.variableName] = false;
+                      break;
+                    case 'dropdown':
+                      defaults[field.variableName] = ''; // Empty - require selection
+                      break;
+                    case 'material':
+                      // If category exists, preselect first matching material
+                      const materials = useMaterialsStore.getState().materials;
+                      let candidateMaterials = materials;
+                      if (field.materialCategory && field.materialCategory.trim()) {
+                        candidateMaterials = materials.filter(m => m.category === field.materialCategory);
                       }
-                    }
-                  });
-                  setPreviewFieldValues(defaults);
-                  setShowPreview(true);
-                }}
-                disabled={!formulaValidation.valid || fields.length === 0}
-                className="rounded-full"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-            <Button variant="ghost" onClick={cancelEditing} className="rounded-full">
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} className="rounded-full">
-              {editingModuleId === 'new' ? 'Create' : 'Update'} Module
-            </Button>
-            </div>
-          </div>
-        </div>
+                      if (candidateMaterials.length > 0) {
+                        defaults[field.variableName] = candidateMaterials[0].variableName;
+                      } else {
+                        defaults[field.variableName] = '';
+                      }
+                      break;
+                    case 'text':
+                      defaults[field.variableName] = '';
+                      break;
+                  }
+                }
+              }
+            });
+            setPreviewFieldValues(defaults);
+            setShowPreview(true);
+          }}
+          onCancel={cancelEditing}
+          onSubmit={handleSubmit}
+        />
       </Layout>
     );
   }
