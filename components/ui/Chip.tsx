@@ -27,6 +27,7 @@ export const Chip: React.FC<ChipProps> = ({
   className,
   ...rest
 }) => {
+
   const sizes = {
     sm: 'text-xs px-2.5 py-1 rounded-full',
     md: 'text-sm px-3 py-1.5 rounded-full',
@@ -58,21 +59,27 @@ export const Chip: React.FC<ChipProps> = ({
       'bg-transparent text-md-on-surface border border-transparent hover:bg-md-surface-variant/40'
   }
 
-  return (
-    <div
-      {...rest}
-      className={cn(
-        'inline-flex items-center gap-1 select-none transition-smooth',
-        sizes[size],
-        variants[variant],
-        className
-      )}
-    >
-      {leadingIcon && <span className="shrink-0">{leadingIcon}</span>}
-      <span className="truncate">{children}</span>
-      {trailingIcon && <span className="shrink-0">{trailingIcon}</span>}
-    </div>
-  )
+  const isInteractive = typeof rest.onClick === 'function'
+const Component = isInteractive ? 'button' as const : 'div'
+
+return (
+  <Component
+    {...rest}
+    type={isInteractive ? 'button' : undefined}
+    className={cn(
+      'inline-flex items-center gap-1 select-none transition-smooth',
+      sizes[size],
+      variants[variant],
+      isInteractive && 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-md-primary/50',
+      className
+    )}
+  >
+    {leadingIcon && <span className="shrink-0">{leadingIcon}</span>}
+    <span className="truncate">{children}</span>
+    {trailingIcon && <span className="shrink-0">{trailingIcon}</span>}
+  </Component>
+)
+
 }
 
 export default Chip

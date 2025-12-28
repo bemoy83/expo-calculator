@@ -1082,7 +1082,6 @@ export default function QuotesPage() {
                 <div className="mb-4 pb-4 border-b border-border">
                   <div className="flex flex-wrap gap-2">
                     <Chip
-                      as="button"
                       size="sm"
                       variant={selectedCategory === null ? 'selected' : 'default'}
                       onClick={() => setSelectedCategory(null)}
@@ -1092,7 +1091,6 @@ export default function QuotesPage() {
                     {allCategories.map((category) => (
                       <Chip
                         key={category}
-                        as="button"
                         size="sm"
                         variant={selectedCategory === category ? 'selected' : 'default'}
                         onClick={() => setSelectedCategory(category)}
