@@ -31,7 +31,7 @@ const customRoundingFunctions = {
     }
     return Math.round(x);
   },
-  
+
   /**
    * Round to specified decimal places
    * round(x, decimals) → rounds x to 'decimals' decimal places
@@ -46,7 +46,7 @@ const customRoundingFunctions = {
     const factor = Math.pow(10, Math.round(decimals));
     return Math.round(x * factor) / factor;
   },
-  
+
   /**
    * Round up to next integer
    * ceil(x) → rounds x up
@@ -57,7 +57,7 @@ const customRoundingFunctions = {
     }
     return Math.ceil(x);
   },
-  
+
   /**
    * Round down to previous integer
    * floor(x) → rounds x down
@@ -76,10 +76,10 @@ const customRoundingFunctions = {
  */
 function createMathInstance() {
   const math = create(all);
-  
+
   // Override round to handle both 1 and 2 argument cases with better error handling
   math.import({
-    round: function(...args: any[]) {
+    round: function (...args: any[]) {
       if (args.length === 0) {
         throw new Error('round() requires at least 1 argument');
       }
@@ -102,7 +102,7 @@ function createMathInstance() {
       }
       return customRoundingFunctions.roundDecimals(x, decimals);
     },
-    ceil: function(x: any) {
+    ceil: function (x: any) {
       if (arguments.length !== 1) {
         throw new Error('ceil() expects exactly 1 argument');
       }
@@ -111,7 +111,7 @@ function createMathInstance() {
       }
       return customRoundingFunctions.ceil(x);
     },
-    floor: function(x: any) {
+    floor: function (x: any) {
       if (arguments.length !== 1) {
         throw new Error('floor() expects exactly 1 argument');
       }
@@ -121,7 +121,7 @@ function createMathInstance() {
       return customRoundingFunctions.floor(x);
     },
   }, { override: true });
-  
+
   return math;
 }
 
@@ -135,7 +135,7 @@ function parsePropertyReferences(formula: string): Array<{ baseVar: string; prop
   const propertyRefRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
   const matches: Array<{ baseVar: string; propertyName: string; fullMatch: string; isFieldProperty?: boolean }> = [];
   let match;
-  
+
   while ((match = propertyRefRegex.exec(formula)) !== null) {
     matches.push({
       baseVar: match[1],
@@ -143,7 +143,7 @@ function parsePropertyReferences(formula: string): Array<{ baseVar: string; prop
       fullMatch: match[0],
     });
   }
-  
+
   return matches;
 }
 
@@ -194,12 +194,12 @@ function resolveMaterialProperty(
   if (!material || !material.properties) {
     return null;
   }
-  
+
   const property = material.properties.find((p) => p.name === propertyName);
   if (!property) {
     return null;
   }
-  
+
   // Convert property value to number based on type
   let numValue: number;
   if (property.type === 'number') {
@@ -224,7 +224,7 @@ function resolveMaterialProperty(
   } else {
     return null;
   }
-  
+
   return numValue;
 }
 
@@ -240,12 +240,12 @@ function getMaterialPropertyUnitCategory(
   if (!material || !material.properties) {
     return undefined;
   }
-  
+
   const property = material.properties.find((p) => p.name === propertyName);
   if (!property) {
     return undefined;
   }
-  
+
   // Use unitCategory if available, otherwise infer from unitSymbol
   if (property.unitCategory) {
     return property.unitCategory;
@@ -253,7 +253,7 @@ function getMaterialPropertyUnitCategory(
   if (property.unitSymbol) {
     return getUnitCategory(property.unitSymbol);
   }
-  
+
   return undefined;
 }
 
@@ -268,22 +268,22 @@ function resolveFieldProperty(
   context: EvaluationContext
 ): number {
   const fieldValue = context.fieldValues[fieldVar];
-  
+
   // Check if field value is a material selection (string matching material variableName)
   if (typeof fieldValue !== 'string') {
     throw new Error(`Field "${fieldVar}" is not a material field or no material is selected`);
   }
-  
+
   const material = context.materials.find((m) => m.variableName === fieldValue);
   if (!material) {
     throw new Error(`No material selected for field "${fieldVar}"`);
   }
-  
+
   const propertyValue = resolveMaterialProperty(fieldValue, propertyName, context.materials);
   if (propertyValue === null) {
     throw new Error(`Property "${propertyName}" not found on selected material "${material.name}" for field "${fieldVar}"`);
   }
-  
+
   return propertyValue;
 }
 
@@ -296,11 +296,11 @@ function getFieldPropertyUnitCategory(
   context: EvaluationContext
 ): UnitCategory | undefined {
   const fieldValue = context.fieldValues[fieldVar];
-  
+
   if (typeof fieldValue !== 'string') {
     return undefined;
   }
-  
+
   return getMaterialPropertyUnitCategory(fieldValue, propertyName, context.materials);
 }
 
@@ -315,7 +315,7 @@ function getFieldUnitCategory(
   if (!field) {
     return undefined;
   }
-  
+
   // Use unitCategory if available, otherwise infer from unitSymbol
   if (field.unitCategory) {
     return field.unitCategory;
@@ -323,7 +323,7 @@ function getFieldUnitCategory(
   if (field.unitSymbol) {
     return getUnitCategory(field.unitSymbol);
   }
-  
+
   return undefined;
 }
 
@@ -352,7 +352,7 @@ export function evaluateFormula(
 ): number {
   try {
     let processedFormula = formula;
-    
+
     // STEP 1: Replace field property references FIRST (e.g., wallboard.width)
     // This must happen BEFORE replacing field variables to avoid conflicts
     const fieldVariableNames = Object.keys(context.fieldValues);
@@ -368,7 +368,7 @@ export function evaluateFormula(
         throw error;
       }
     }
-    
+
     // STEP 2: Replace field variable values
     // Material fields: When a field value is a string matching a material's variableName,
     // it is automatically resolved to that material's price for formula evaluation.
@@ -376,11 +376,11 @@ export function evaluateFormula(
     // then 'material' in the formula will be replaced with '1.00'.
     for (const [varName, value] of Object.entries(context.fieldValues)) {
       let numValue: number;
-      
+
       // Handle boolean values
       if (typeof value === 'boolean') {
         numValue = value ? 1 : 0;
-      } 
+      }
       // Handle material selections: if value is a string that matches a material variable name, resolve to price
       else if (typeof value === 'string') {
         const material = context.materials.find((m) => m.variableName === value);
@@ -391,12 +391,12 @@ export function evaluateFormula(
           // Try to convert to number (for numeric text fields)
           numValue = Number(value);
         }
-      } 
+      }
       // Handle numeric values
       else {
         numValue = Number(value);
       }
-      
+
       // Only replace if we have a valid number
       if (!isNaN(numValue) && isFinite(numValue)) {
         // Replace variable name with value (using word boundaries to avoid partial matches)
@@ -404,7 +404,7 @@ export function evaluateFormula(
         processedFormula = processedFormula.replace(regex, numValue.toString());
       }
     }
-    
+
     // STEP 3: Replace material property references (e.g., mat_plank.length)
     // This must happen BEFORE replacing material variables to avoid conflicts
     const materialPropertyRefs = parseMaterialPropertyReferences(processedFormula);
@@ -423,7 +423,7 @@ export function evaluateFormula(
         }
       }
     }
-    
+
     // STEP 4: Replace material variable values
     // Property references have already been replaced, so we can safely replace all material variables
     // The regex won't match property references since they've been converted to numbers
@@ -431,18 +431,18 @@ export function evaluateFormula(
       const regex = new RegExp(`\\b${escapeRegex(material.variableName)}\\b`, 'g');
       processedFormula = processedFormula.replace(regex, material.price.toString());
     }
-    
+
     // Check for unreplaced variables (identifiers that aren't math functions)
     // Note: We need to exclude property references that were already processed
     const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\b/g;
     const mathFunctions = ['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor'];
     const matches = processedFormula.match(variableRegex);
     const unreplacedVars: string[] = [];
-    
+
     // Track which variables were used in property references (to avoid false positives)
     const fieldVarsInPropertyRefs = new Set(fieldPropertyRefs.map(ref => ref.fieldVar));
     const materialVarsInPropertyRefs = new Set(materialPropertyRefs.map(ref => ref.materialVar));
-    
+
     if (matches) {
       for (const match of matches) {
         // Skip if it's a number
@@ -459,11 +459,11 @@ export function evaluateFormula(
         unreplacedVars.push(match);
       }
     }
-    
+
     if (unreplacedVars.length > 0) {
       throw new Error(`Missing values for variables: ${unreplacedVars.join(', ')}`);
     }
-    
+
     // Evaluate the formula using our custom math instance
     let result: any;
     try {
@@ -472,20 +472,20 @@ export function evaluateFormula(
       // If mathjs throws an error, provide more context
       throw new Error(`Formula evaluation failed: ${evalError.message || 'Invalid expression'}`);
     }
-    
+
     // Check if result is a valid number
     if (typeof result !== 'number') {
       throw new Error(`Formula returned non-numeric result: ${typeof result}`);
     }
-    
+
     if (isNaN(result)) {
       throw new Error('Formula evaluated to NaN (Not a Number)');
     }
-    
+
     if (!isFinite(result)) {
       throw new Error(`Formula evaluated to ${result > 0 ? 'positive' : 'negative'} infinity`);
     }
-    
+
     return result;
   } catch (error: any) {
     // Re-throw with better error message
@@ -524,7 +524,7 @@ function validateUnitCompatibility(
 ): string | null {
   // Collect unit categories for all variables/properties
   const variableUnits = new Map<string, UnitCategory>();
-  
+
   // Track field property references
   for (const ref of fieldPropertyRefs) {
     // Find the field to get material category
@@ -535,7 +535,7 @@ function validateUnitCompatibility(
       if (field.materialCategory && field.materialCategory.trim()) {
         candidateMaterials = materials.filter(m => m.category === field.materialCategory);
       }
-      
+
       for (const material of candidateMaterials) {
         const property = material.properties?.find(p => p.name === ref.propertyName);
         if (property) {
@@ -548,7 +548,7 @@ function validateUnitCompatibility(
       }
     }
   }
-  
+
   // Track material property references
   for (const ref of materialPropertyRefs) {
     const material = materials.find(m => m.variableName === ref.materialVar);
@@ -562,12 +562,12 @@ function validateUnitCompatibility(
       }
     }
   }
-  
+
   // Track field variables
   for (const varName of availableVariables) {
     const field = fields?.find(f => f.variableName === varName);
     if (field && (
-      field.type === 'number' || 
+      field.type === 'number' ||
       (field.type === 'dropdown' && field.dropdownMode === 'numeric')
     )) {
       const unitCat = field.unitCategory || (field.unitSymbol ? getUnitCategory(field.unitSymbol) : undefined);
@@ -576,7 +576,7 @@ function validateUnitCompatibility(
       }
     }
   }
-  
+
   // Phase 1: Simple pattern-based validation
   // Check for addition/subtraction of incompatible units
   // Pattern: variable1 + variable2 or variable1 - variable2
@@ -587,7 +587,7 @@ function validateUnitCompatibility(
     const var2 = match[3];
     const unit1 = variableUnits.get(var1);
     const unit2 = variableUnits.get(var2);
-    
+
     // If both have units and they're different (and not unitless), error
     if (unit1 && unit2 && unit1 !== unit2) {
       // Allow unitless (count/percentage) to be added/subtracted with anything
@@ -596,7 +596,7 @@ function validateUnitCompatibility(
       }
     }
   }
-  
+
   // Check division rules
   // Pattern: variable1 / variable2
   const divPattern = /([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\s*\/\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)/g;
@@ -605,7 +605,7 @@ function validateUnitCompatibility(
     const var2 = match[2];
     const unit1 = variableUnits.get(var1);
     const unit2 = variableUnits.get(var2);
-    
+
     if (unit1 && unit2) {
       const resultUnit = divideUnits(unit1, unit2);
       if (resultUnit === null) {
@@ -621,7 +621,7 @@ function validateUnitCompatibility(
       }
     }
   }
-  
+
   return null;
 }
 
@@ -632,7 +632,7 @@ function translateParserError(errorMessage: string, formula: string): string {
   // Extract character position if available
   const charMatch = errorMessage.match(/\(char (\d+)\)/);
   const charPos = charMatch ? parseInt(charMatch[1], 10) : null;
-  
+
   // Get context around the error position
   let context = '';
   if (charPos !== null && charPos < formula.length) {
@@ -643,12 +643,12 @@ function translateParserError(errorMessage: string, formula: string): string {
     const after = formula.substring(charPos + 1, end);
     context = ` near "${before}${at}${after}"`;
   }
-  
+
   // Common error patterns and their translations
   if (errorMessage.includes('Unexpected part')) {
     const partMatch = errorMessage.match(/Unexpected part "([^"]+)"/);
     const part = partMatch ? partMatch[1] : 'character';
-    
+
     // Check for common issues
     if (part === '1' || part.match(/^\d+$/)) {
       return `Syntax error${context}: Unexpected number. Check for missing operators (+, -, *, /) between values.`;
@@ -661,15 +661,15 @@ function translateParserError(errorMessage: string, formula: string): string {
     }
     return `Syntax error${context}: Unexpected "${part}". Check your formula syntax.`;
   }
-  
+
   if (errorMessage.includes('Unexpected end of expression')) {
     return `Formula is incomplete${context}. Check for missing values or operators at the end.`;
   }
-  
+
   if (errorMessage.includes('Unexpected operator')) {
     return `Syntax error${context}: Unexpected operator. Check for missing values before or after operators.`;
   }
-  
+
   if (errorMessage.includes('Parenthesis')) {
     if (errorMessage.includes('missing')) {
       return `Missing closing parenthesis${context}. Check that all opening parentheses "(" have matching closing ones ")".`;
@@ -678,17 +678,17 @@ function translateParserError(errorMessage: string, formula: string): string {
       return `Unexpected closing parenthesis${context}. Check for extra ")" or missing opening "(".`;
     }
   }
-  
+
   if (errorMessage.includes('Function') && errorMessage.includes('not found')) {
     const funcMatch = errorMessage.match(/Function "([^"]+)" not found/);
     const funcName = funcMatch ? funcMatch[1] : 'function';
     return `Unknown function "${funcName}". Available functions: round, ceil, floor, sqrt, abs, max, min, sin, cos, tan, log, exp.`;
   }
-  
+
   if (errorMessage.includes('Undefined variable')) {
     return errorMessage; // Already user-friendly
   }
-  
+
   // For other errors, provide a helpful message with context
   return `Formula syntax error${context}: ${errorMessage}. Check that your formula uses valid operators (+, -, *, /) and proper parentheses.`;
 }
@@ -712,7 +712,7 @@ export function validateFormula(
         // Field not found in definitions - might be a regular variable, skip for now
         continue;
       }
-      
+
       // Check if field is a material field
       if (field.type !== 'material') {
         return {
@@ -720,19 +720,19 @@ export function validateFormula(
           error: `Field "${ref.fieldVar}" is not a material field, cannot access properties`
         };
       }
-      
+
       // Check if property exists on at least one material in the allowed category
       let candidateMaterials = materials;
       if (field.materialCategory && field.materialCategory.trim()) {
         candidateMaterials = materials.filter(m => m.category === field.materialCategory);
       }
-      
-      const hasProperty = candidateMaterials.some(material => 
+
+      const hasProperty = candidateMaterials.some(material =>
         material.properties && material.properties.some(p => p.name === ref.propertyName)
       );
-      
+
       if (!hasProperty) {
-        const categoryMsg = field.materialCategory 
+        const categoryMsg = field.materialCategory
           ? ` in category "${field.materialCategory}"`
           : '';
         return {
@@ -741,7 +741,7 @@ export function validateFormula(
         };
       }
     }
-    
+
     // Then, check material property references (e.g., mat_mdf.width)
     const materialPropertyRefs = parseMaterialPropertyReferences(formula);
     for (const ref of materialPropertyRefs) {
@@ -749,7 +749,7 @@ export function validateFormula(
       if (fieldPropertyRefs.some(fpr => fpr.fullMatch === ref.fullMatch)) {
         continue;
       }
-      
+
       const material = materials.find((m) => m.variableName === ref.materialVar);
       if (!material) {
         return {
@@ -757,7 +757,7 @@ export function validateFormula(
           error: `Material variable "${ref.materialVar}" not found`
         };
       }
-      
+
       if (!material.properties || !material.properties.find(p => p.name === ref.propertyName)) {
         return {
           valid: false,
@@ -765,12 +765,12 @@ export function validateFormula(
         };
       }
     }
-    
+
     // Check for undefined variables (excluding property references)
     // First, collect all property reference parts that should NOT be treated as standalone variables
     const propertyParts = new Set<string>();
     const propertyBases = new Set<string>();
-    
+
     // Collect property parts (the part after the dot) from all property references
     for (const ref of fieldPropertyRefs) {
       propertyParts.add(ref.propertyName);
@@ -783,11 +783,11 @@ export function validateFormula(
         propertyBases.add(ref.materialVar);
       }
     }
-    
+
     // Now parse identifiers, excluding those that are property parts
     const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
     const matches = formula.match(variableRegex);
-    
+
     if (matches) {
       const allAvailableVars = [
         ...availableVariables,
@@ -797,22 +797,22 @@ export function validateFormula(
         // Rounding functions
         'round', 'ceil', 'floor'
       ];
-      
+
       // Track which full property references exist (e.g., "wallboard.width")
       const allPropertyRefs = new Set([
         ...fieldPropertyRefs.map(ref => ref.fullMatch),
         ...materialPropertyRefs.map(ref => ref.fullMatch)
       ]);
-      
+
       for (const match of matches) {
         // Skip if it's a number
         if (!isNaN(Number(match))) continue;
-        
+
         // Skip if it's a math function or constant
         if (['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor'].includes(match)) {
           continue;
         }
-        
+
         // Skip if this identifier is part of a property reference (e.g., "wallboard" or "width" in "wallboard.width")
         // We need to check if this match appears as part of any property reference
         let isPartOfPropertyRef = false;
@@ -827,11 +827,11 @@ export function validateFormula(
             }
           }
         }
-        
+
         if (isPartOfPropertyRef) {
           continue;
         }
-        
+
         // Check if this is a valid variable
         if (!allAvailableVars.includes(match)) {
           return {
@@ -841,12 +841,12 @@ export function validateFormula(
         }
       }
     }
-    
+
     // Test evaluation with dummy values
     const testContext: EvaluationContext = {
       fieldValues: {},
-      materials: materials.map(m => ({ 
-        ...m, 
+      materials: materials.map(m => ({
+        ...m,
         price: 1,
         properties: m.properties?.map(p => ({
           ...p,
@@ -854,10 +854,10 @@ export function validateFormula(
         }))
       }))
     };
-    
+
     // Replace all variables with 1 for syntax check
     let testFormula = formula;
-    
+
     // Replace property references first
     for (const ref of fieldPropertyRefs) {
       const regex = new RegExp(`\\b${escapeRegex(ref.fullMatch)}\\b`, 'g');
@@ -870,7 +870,7 @@ export function validateFormula(
         testFormula = testFormula.replace(regex, '1');
       }
     }
-    
+
     // Replace regular variables
     const allVars = [...availableVariables, ...materials.map(m => m.variableName)];
     for (const varName of allVars) {
@@ -880,7 +880,7 @@ export function validateFormula(
       const regex = new RegExp(`\\b${escapeRegex(varName)}\\b`, 'g');
       testFormula = testFormula.replace(regex, '1');
     }
-    
+
     // Phase 1: Unit compatibility validation
     const unitValidationError = validateUnitCompatibility(
       formula,
@@ -896,16 +896,16 @@ export function validateFormula(
         error: unitValidationError
       };
     }
-    
+
     // Use our custom math instance for validation
     mathInstance.evaluate(testFormula);
-    
+
     return { valid: true };
   } catch (error: any) {
     // Translate technical parser errors into user-friendly messages
     const errorMessage = error.message || 'Invalid formula syntax';
     const translatedError = translateParserError(errorMessage, formula);
-    
+
     return {
       valid: false,
       error: translatedError
@@ -925,60 +925,60 @@ export function analyzeFormulaVariables(
   fields?: Array<{ variableName: string; type: string; materialCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>
 ): FormulaDebugInfo {
   const mathFunctionsList = ['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor'];
-  
+
   // Parse property references using same logic as validateFormula
   const fieldPropertyRefs = parseFieldPropertyReferences(formula, availableVariables);
   const materialPropertyRefs = parseMaterialPropertyReferences(formula);
-  
+
   // Filter out material property refs that were already handled as field property refs
-  const filteredMaterialPropertyRefs = materialPropertyRefs.filter(ref => 
+  const filteredMaterialPropertyRefs = materialPropertyRefs.filter(ref =>
     !fieldPropertyRefs.some(fpr => fpr.fullMatch === ref.fullMatch)
   );
-  
+
   // Format property references for debug output
   const fieldPropertyRefsFormatted = fieldPropertyRefs.map(ref => ({
     full: ref.fullMatch,
     fieldVar: ref.fieldVar,
     property: ref.propertyName,
   }));
-  
+
   const materialPropertyRefsFormatted = filteredMaterialPropertyRefs.map(ref => ({
     full: ref.fullMatch,
     materialVar: ref.materialVar,
     property: ref.propertyName,
   }));
-  
+
   // Parse all identifiers using same regex as validation
   const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
   const matches = formula.match(variableRegex) || [];
-  
+
   // Track which full property references exist
   const allPropertyRefs = new Set([
     ...fieldPropertyRefs.map(ref => ref.fullMatch),
     ...filteredMaterialPropertyRefs.map(ref => ref.fullMatch)
   ]);
-  
+
   // Collect all available variables
   const allAvailableVars = [
     ...availableVariables,
     ...materials.map(m => m.variableName),
     ...mathFunctionsList
   ];
-  
+
   const variables: string[] = [];
   const mathFunctions: string[] = [];
   const unknownVariables: string[] = [];
-  
+
   for (const match of matches) {
     // Skip if it's a number
     if (!isNaN(Number(match))) continue;
-    
+
     // Check if it's a math function
     if (mathFunctionsList.includes(match)) {
       mathFunctions.push(match);
       continue;
     }
-    
+
     // Skip if this identifier is part of a property reference
     // Only skip the property part (after dot), not the base part
     let isPartOfPropertyRef = false;
@@ -990,11 +990,11 @@ export function analyzeFormulaVariables(
         break;
       }
     }
-    
+
     if (isPartOfPropertyRef) {
       continue;
     }
-    
+
     // Check if it's a known variable
     if (allAvailableVars.includes(match)) {
       variables.push(match);
@@ -1002,7 +1002,7 @@ export function analyzeFormulaVariables(
       unknownVariables.push(match);
     }
   }
-  
+
   return {
     fieldPropertyRefs: fieldPropertyRefsFormatted,
     materialPropertyRefs: materialPropertyRefsFormatted,
@@ -1015,4 +1015,3 @@ export function analyzeFormulaVariables(
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-

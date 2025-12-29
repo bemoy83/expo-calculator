@@ -35,26 +35,32 @@ export function useFormulaVariables({
   materials,
   formula,
 }: UseFormulaVariablesProps) {
-  // Helper function to escape regex special characters
-  const escapeRegex = useCallback((str: string): string => {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }, []);
 
-  // Helper function to check if a variable is present in the formula using word boundaries
-  const isVariableInFormula = useCallback((variableName: string, formulaText: string): boolean => {
-    if (!formulaText || !variableName) return false;
-    // Use word boundaries to avoid partial matches (e.g., "width" in "widths")
-    const regex = new RegExp(`\\b${escapeRegex(variableName)}\\b`);
-    return regex.test(formulaText);
-  }, [escapeRegex]);
+  const getFormulaTokens = (formulaText: string): string[] => {
+    // Matches identifiers like: width, sheet.width, area1, sheet_width, etc.
+    return formulaText.match(/[A-Za-z0-9_.]+/g) ?? [];
+  };
 
-  // Helper function to check if a material property reference is in the formula
-  const isPropertyReferenceInFormula = useCallback((materialVar: string, propertyName: string, formulaText: string): boolean => {
-    if (!formulaText || !materialVar || !propertyName) return false;
-    const propertyRef = `${materialVar}.${propertyName}`;
-    const regex = new RegExp(`\\b${escapeRegex(propertyRef)}\\b`);
-    return regex.test(formulaText);
-  }, [escapeRegex]);
+  const isVariableInFormula = useCallback(
+    (variableName: string, formulaText: string): boolean => {
+      if (!formulaText || !variableName) return false;
+
+      const tokens = getFormulaTokens(formulaText);
+      return tokens.includes(variableName);
+    },
+    []
+  );
+
+  const isPropertyReferenceInFormula = useCallback(
+    (materialVar: string, propertyName: string, formulaText: string): boolean => {
+      if (!formulaText || !materialVar || !propertyName) return false;
+
+      const propertyRef = `${materialVar}.${propertyName}`;
+      const tokens = getFormulaTokens(formulaText);
+      return tokens.includes(propertyRef);
+    },
+    []
+  );
 
   // Get available properties for material fields
   const getMaterialFieldProperties = useCallback((fieldVar: string) => {
@@ -222,7 +228,6 @@ export function useFormulaVariables({
 
   return {
     // Helper functions
-    escapeRegex,
     isVariableInFormula,
     isPropertyReferenceInFormula,
     getMaterialFieldProperties,

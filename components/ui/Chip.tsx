@@ -14,6 +14,7 @@ interface ChipProps extends React.HTMLAttributes<HTMLElement> {
   | 'error'
   | 'errorTonal'
   | 'ghost'
+  | 'success'
   leadingIcon?: React.ReactNode
   trailingIcon?: React.ReactNode
 }
@@ -40,6 +41,7 @@ export const Chip: React.FC<ChipProps> = ({
     // strong emphasis
     primary: 'bg-md-primary text-md-on-primary',
     error: 'bg-md-error text-md-on-error',
+    success: 'bg-success text-md-on-primary-container',
 
     // md3 tonal emphasis
     primaryTonal: 'bg-md-primary-container text-md-on-primary-container',
@@ -59,26 +61,31 @@ export const Chip: React.FC<ChipProps> = ({
       'bg-transparent text-md-on-surface border border-transparent hover:bg-md-surface-variant/40'
   }
 
+
   const isInteractive = typeof rest.onClick === 'function'
 const Component = isInteractive ? 'button' as const : 'div'
 
 if (isInteractive) {
-    return (
-      <button
-        {...rest}
-        type="button"
-        className={cn(
-          'inline-flex items-center gap-1 select-none transition-smooth cursor-pointer focus:outline-none focus:ring-2 focus:ring-md-primary/50',
-          sizes[size],
-          variants[variant],
-          className
-        )}
-      >
-        {leadingIcon && <span className="shrink-0">{leadingIcon}</span>}
-        <span className="truncate">{children}</span>
-        {trailingIcon && <span className="shrink-0">{trailingIcon}</span>}
-      </button>
-    )
+  return (
+    <button
+      {...rest}
+      type="button"
+      className={cn(
+        'inline-flex items-center gap-1 select-none transition-smooth cursor-pointer',
+        'focus:outline-none focus:ring-2 focus:ring-md-primary/50',
+        // interaction motion
+        'active:scale-[0.96] hover:elevation-2 active:elevation-1',
+        sizes[size],
+        variants[variant],
+        className
+      )}
+    >
+      {leadingIcon && <span className="shrink-0">{leadingIcon}</span>}
+      <span className="truncate">{children}</span>
+      {trailingIcon && <span className="shrink-0">{trailingIcon}</span>}
+    </button>
+  )
+
   }
   
   return (

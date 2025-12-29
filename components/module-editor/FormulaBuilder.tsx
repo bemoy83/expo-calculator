@@ -13,6 +13,8 @@ import {
   XCircle,
   Calculator
 } from 'lucide-react';
+import Chip from '../ui/Chip';
+import { FormulaExpandableVariable } from "@/components/formula/FormulaExpandableVariable";
 
 interface VariableInfo {
   name: string;
@@ -156,7 +158,7 @@ export function FormulaBuilder({
               )}
             </button>
             {fieldVariablesExpanded && (
-              <div 
+              <div
                 className="grid gap-3"
                 style={{
                   gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))'
@@ -165,98 +167,28 @@ export function FormulaBuilder({
                 {availableFieldVariables.map((varInfo) => {
                   const isInFormula = isVariableInFormula(varInfo.name, formula);
                   const showCheckmark = isInFormula;
-                  const isMaterialField = varInfo.type === 'material';
-                  const fieldProperties = isMaterialField ? getMaterialFieldProperties(varInfo.name) : [];
-                  const hasProperties = fieldProperties.length > 0;
-                  const isExpanded = expandedField === varInfo.name;
 
-                  const handleToggleExpand = (e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    onSetExpandedField(isExpanded ? null : varInfo.name);
-                  };
-
-                  const handleFieldClick = (e: React.MouseEvent) => {
-                    if (!hasProperties) {
-                      insertVariableAtCursor(varInfo.name);
-                    } else {
-                      // If expandable, clicking the button inserts the variable
-                      // Expansion is handled by the chevron button
-                      insertVariableAtCursor(varInfo.name);
-                    }
-                  };
-                  
                   return (
-                    <div key={varInfo.name} className="space-y-2 min-w-0">
-                      <button
-                        type="button"
-                        onClick={handleFieldClick}
-                        aria-label={`Insert variable ${varInfo.name} (${varInfo.label}, ${varInfo.type})${showCheckmark ? ' - already in formula' : ''}`}
-                        title={`${varInfo.label} (${varInfo.type})${isMaterialField ? ' - unit price' : ''}`}
-                        className={cn(
-                          "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
-                          showCheckmark 
-                            ? "border-success bg-success hover:bg-success/90 text-success-foreground" 
-                            : "bg-md-primary text-md-on-primary hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
-                        )}
-                      >
-                        {showCheckmark && (
-                          <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
-                        )}
-                        <span className="truncate min-w-0 flex-1 text-center">{varInfo.name}</span>
-                        {isMaterialField && (
-                          <span className="text-[10px] opacity-75 shrink-0">(price)</span>
-                        )}
-                        {hasProperties && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleExpand(e);
-                            }}
-                            className="py-0.5 pl-2 pr-2 dark:text-black text-white hover:opacity-80 transition-opacity shrink-0 -mx-3"
-                            aria-label={isExpanded ? `Collapse ${varInfo.name}` : `Expand ${varInfo.name}`}
-                            aria-expanded={isExpanded}
-                          >
-                            {isExpanded ? (
-                              <ChevronDown className="h-3 w-3" />
-                            ) : (
-                              <ChevronRight className="h-3 w-3" />
-                            )}
-                          </button>
-                        )}
-                      </button>
-                      {hasProperties && isExpanded && (
-                        <div className="space-y-1.5 pt-1.5 ml-4">
-                          {fieldProperties.map((prop) => {
-                            const propertyRef = `${varInfo.name}.${prop.name}`;
-                            const isPropertyInFormula = isPropertyReferenceInFormula(varInfo.name, prop.name, formula);
-                            const unitDisplay = prop.unitSymbol || prop.unit || '';
-                            const propertyLabel = unitDisplay ? `${prop.name} (${unitDisplay})` : prop.name;
-                            
-                            return (
-                              <button
-                                key={prop.name}
-                                type="button"
-                                onClick={() => insertVariableAtCursor(propertyRef)}
-                                aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
-                                title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
-                                className={cn(
-                                  "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
-                                  isPropertyInFormula
-                                    ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                    : "bg-md-primary text-md-on-primary hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
-                                )}
-                              >
-                                {isPropertyInFormula && (
-                                  <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
-                                )}
-                                <span className="truncate min-w-0 flex-1 text-center">{propertyLabel}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    <FormulaExpandableVariable
+                      key={varInfo.name}
+                      label={varInfo.name}
+                      value={varInfo.name}
+                      isUsed={showCheckmark}
+                      onInsert={insertVariableAtCursor}
+                      properties={getMaterialFieldProperties(varInfo.name).map((prop) => {
+                        const propertyRef = `${varInfo.name}.${prop.name}`;
+                        const unitDisplay = prop.unitSymbol || prop.unit || '';
+                        const propertyLabel = unitDisplay
+                          ? `${prop.name} (${unitDisplay})`
+                          : prop.name;
+
+                        return {
+                          label: propertyLabel,
+                          value: propertyRef,
+                          isUsed: isPropertyReferenceInFormula(varInfo.name, prop.name, formula),
+                        };
+                      })}
+                    />
                   );
                 })}
               </div>
@@ -290,84 +222,45 @@ export function FormulaBuilder({
               </p>
             )}
             {materialVariablesExpanded && (
-              <div 
+              <div
                 className="grid gap-3"
                 style={{
                   gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))'
                 }}
               >
+                {availableMaterialVariables.map((mat) => {
+                  const isMaterialInFormula = isVariableInFormula(mat.name, formula);
+
                   return (
-                    <div key={mat.name} className="space-y-2 min-w-0">
-                      <button
-                        type="button"
-                        onClick={handleMaterialClick}
-                        aria-label={`Insert material variable ${mat.name} (${mat.label} - $${mat.price.toFixed(2)} per ${mat.unit})`}
-                        title={`${mat.label} - $${mat.price.toFixed(2)}/${mat.unit}`}
-                        className={cn(
-                          "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
-                          isMaterialInFormula
-                            ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                            : "bg-md-primary text-md-on-primary hover:bg-md-surface-variant hover:text-md-primary border-accent hover:border-border"
-                        )}
-                      >
-                        {isMaterialInFormula && (
-                          <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
-                        )}
-                        <span className="truncate min-w-0 flex-1 text-center">{mat.name}</span>
-                        {hasProperties && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleExpand(e);
-                            }}
-                            className="py-0.5 pl-2 pr-2 dark:text-black text-white hover:opacity-80 transition-opacity shrink-0 -mx-3"
-                            aria-label={isExpanded ? `Collapse ${mat.name}` : `Expand ${mat.name}`}
-                            aria-expanded={isExpanded}
-                          >
-                            {isExpanded ? (
-                              <ChevronDown className="h-3 w-3" />
-                            ) : (
-                              <ChevronRight className="h-3 w-3" />
-                            )}
-                          </button>
-                        )}
-                      </button>
-                      {hasProperties && isExpanded && (
-                        <div className="space-y-1.5 pt-1.5 ml-4">
-                          {mat.properties.map((prop) => {
-                            const propertyRef = `${mat.name}.${prop.name}`;
-                            const isPropertyInFormula = isPropertyReferenceInFormula(mat.name, prop.name, formula);
-                            const unitDisplay = prop.unitSymbol || prop.unit || '';
-                            const propertyLabel = unitDisplay ? `${prop.name} (${unitDisplay})` : prop.name;
-                            
-                            return (
-                              <button
-                                key={prop.id}
-                                type="button"
-                                onClick={() => insertVariableAtCursor(propertyRef)}
-                                aria-label={`Insert property ${propertyRef} (${prop.name}${unitDisplay ? `, ${unitDisplay}` : ''})`}
-                                title={`${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''} (${prop.type})`}
-                                className={cn(
-                                  "w-full px-3 py-1.5 border rounded-full text-xs font-mono transition-smooth focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:ring-offset-2 focus:ring-offset-md-surface active:scale-95 elevation-1 hover-glow flex items-center gap-1.5 min-w-0 relative",
-                                  isPropertyInFormula
-                                    ? "border-success bg-success hover:bg-success/90 text-success-foreground"
-                                    : "bg-md-surface-variant text-foreground hover:bg-md-surface-variant/80 border border-border hover:border-accent/50"
-                                )}
-                              >
-                                {isPropertyInFormula && (
-                                  <CheckCircle2 className="h-3 w-3 text-success-foreground shrink-0" aria-hidden="true" />
-                                )}
-                                <span className="truncate min-w-0 flex-1 text-center">{propertyLabel}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    <FormulaExpandableVariable
+                      key={mat.name}
+                      label={mat.name}
+                      value={mat.name}
+                      isUsed={isMaterialInFormula}
+                      onInsert={insertVariableAtCursor}
+                      properties={(mat.properties ?? []).map((prop) => {
+                        const propertyRef = `${mat.name}.${prop.name}`;
+                        const unitDisplay = prop.unitSymbol || prop.unit || '';
+                        const propertyLabel = unitDisplay
+                          ? `${prop.name} (${unitDisplay})`
+                          : prop.name;
+
+                        return {
+                          key: prop.id || prop.name,
+                          label: propertyLabel,
+                          value: propertyRef,
+                          isUsed: isPropertyReferenceInFormula(
+                            mat.name,
+                            prop.name,
+                            formula
+                          ),
+                        };
+                      })}
+                    />
                   );
                 })}
               </div>
+
             )}
           </div>
         )}
@@ -400,6 +293,7 @@ export function FormulaBuilder({
           </div>
           <div className="relative">
             <Textarea
+              autoGrow={true}
               ref={formulaTextareaRef}
               id="formula-input"
               value={formula}
@@ -446,7 +340,7 @@ export function FormulaBuilder({
               error={formulaError || formulaValidation.error}
               placeholder="e.g., width * height * mat_plank.length * quantity"
               rows={6}
-              className={`font-mono text-sm ${
+              className={`font-mono text-sm text-md-primary ${
                 formulaValidation.valid && formula
                   ? 'border-success/50 focus:ring-success/50'
                   : formula && !formulaValidation.valid
@@ -522,7 +416,7 @@ export function FormulaBuilder({
           <summary className="cursor-pointer text-sm font-semibold text-md-on-surface-variant hover:text-md-on-surface transition-colors">
             Formula debug (detected variables)
           </summary>
-          <div className="mt-3 space-y-3 p-3 bg-md-surface-variant/30 rounded-extra-large border border-border">
+          <div className="mt-3 space-y-3 p-3">
             {(() => {
               const debugInfo = analyzeFormulaVariables(
                 formula,
@@ -545,12 +439,9 @@ export function FormulaBuilder({
                     {debugInfo.variables.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {debugInfo.variables.map((varName: string) => (
-                          <code
-                            key={varName}
-                            className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-md-primary"
-                          >
+                          <Chip size="sm" variant="primary" className="font-mono text-xs">
                             {varName}
-                          </code>
+                          </Chip>
                         ))}
                       </div>
                     ) : (
@@ -566,12 +457,9 @@ export function FormulaBuilder({
                     {debugInfo.unknownVariables.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {debugInfo.unknownVariables.map((varName: string) => (
-                          <code
-                            key={varName}
-                            className="px-2 py-1 bg-md-error/10 border border-destructive/30 rounded text-xs font-mono text-md-error"
-                          >
+                          <Chip size="sm" variant="error" className="font-mono text-xs">
                             {varName}
-                          </code>
+                          </Chip>
                         ))}
                       </div>
                     ) : (
@@ -587,13 +475,15 @@ export function FormulaBuilder({
                     {debugInfo.fieldPropertyRefs.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {debugInfo.fieldPropertyRefs.map((ref: { full: string; fieldVar: string; property: string }, idx: number) => (
-                          <code
+                          <Chip
                             key={`${ref.full}-${idx}`}
-                            className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-md-primary"
+                            size="sm"
+                            variant="default"
+                            className="font-mono text-xs"
                             title={`${ref.fieldVar}.${ref.property}`}
                           >
                             {ref.full}
-                          </code>
+                          </Chip>
                         ))}
                       </div>
                     ) : (
@@ -609,13 +499,15 @@ export function FormulaBuilder({
                     {debugInfo.materialPropertyRefs.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {debugInfo.materialPropertyRefs.map((ref: { full: string; materialVar: string; property: string }, idx: number) => (
-                          <code
+                          <Chip
                             key={`${ref.full}-${idx}`}
-                            className="px-2 py-1 bg-background border border-border rounded text-xs font-mono text-md-primary"
+                            size="sm"
+                            variant="default"
+                            className="font-mono text-xs"
                             title={`${ref.materialVar}.${ref.property}`}
                           >
                             {ref.full}
-                          </code>
+                          </Chip>
                         ))}
                       </div>
                     ) : (
@@ -631,12 +523,9 @@ export function FormulaBuilder({
                       </h5>
                       <div className="flex flex-wrap gap-1.5">
                         {debugInfo.mathFunctions.map((funcName: string) => (
-                          <code
-                            key={funcName}
-                            className="px-2 py-1 bg-md-surface-variant border border-border rounded text-xs font-mono text-md-on-surface-variant"
-                          >
+                          <Chip size="sm" variant="outline" className="font-mono text-xs">
                             {funcName}
-                          </code>
+                          </Chip>
                         ))}
                       </div>
                     </div>

@@ -571,11 +571,11 @@ export default function ModulesPage() {
               <div className="mb-4">
                 <p className="text-xs text-md-on-surface-variant mb-1">Formula:</p>
                 <Textarea
-    value={module.formula}
-    readOnly
-    rows={3}
-    className="text-sm text-md-primary cursor-default"
-  />
+                autoGrow={true}
+                value={module.formula}
+                readOnly
+                className="text-xs text-md-primary font-mono cursor-default"
+              />
               </div>
             </Card>
             </div>
