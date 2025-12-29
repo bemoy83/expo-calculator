@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
+import { Textarea } from '@/components/ui/Textarea';
+
 import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { CalculationModule, Field } from '@/lib/types';
 import { DragEndEvent } from '@dnd-kit/core';
@@ -539,7 +541,7 @@ export default function ModulesPage() {
                       deleteModule(module.id);
                     }
                   }}
-                  className="absolute top-4 right-4 p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 rounded-full transition-smooth active:scale-95 z-10"
+                  className="absolute top-0 right-0 p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error-container/10 rounded-full transition-smooth active:scale-95 z-10"
                   aria-label="Delete module"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -568,9 +570,12 @@ export default function ModulesPage() {
               </div>
               <div className="mb-4">
                 <p className="text-xs text-md-on-surface-variant mb-1">Formula:</p>
-                <code className="block px-3 py-2 bg-md-surface-variant rounded text-sm text-md-primary break-all">
-                  {module.formula}
-                </code>
+                <Textarea
+    value={module.formula}
+    readOnly
+    rows={3}
+    className="text-sm text-md-primary cursor-default"
+  />
               </div>
             </Card>
             </div>
