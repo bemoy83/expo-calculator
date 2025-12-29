@@ -439,7 +439,7 @@ export function FormulaBuilder({
                     {debugInfo.variables.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {debugInfo.variables.map((varName: string) => (
-                          <Chip size="sm" variant="primary" className="font-mono text-xs">
+                          <Chip key={varName} size="sm" variant="primary" className="font-mono text-xs">
                             {varName}
                           </Chip>
                         ))}
@@ -457,7 +457,7 @@ export function FormulaBuilder({
                     {debugInfo.unknownVariables.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {debugInfo.unknownVariables.map((varName: string) => (
-                          <Chip size="sm" variant="error" className="font-mono text-xs">
+                          <Chip key={varName} size="sm" variant="error" className="font-mono text-xs">
                             {varName}
                           </Chip>
                         ))}
@@ -523,7 +523,7 @@ export function FormulaBuilder({
                       </h5>
                       <div className="flex flex-wrap gap-1.5">
                         {debugInfo.mathFunctions.map((funcName: string) => (
-                          <Chip size="sm" variant="outline" className="font-mono text-xs">
+                          <Chip key={funcName} size="sm" variant="outline" className="font-mono text-xs">
                             {funcName}
                           </Chip>
                         ))}
