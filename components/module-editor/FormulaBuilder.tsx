@@ -296,26 +296,6 @@ export function FormulaBuilder({
                   gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))'
                 }}
               >
-                {availableMaterialVariables.map((mat) => {
-                  const isMaterialInFormula = isVariableInFormula(mat.name, formula);
-                  const hasProperties = mat.properties && mat.properties.length > 0;
-                  const isExpanded = expandedMaterial === mat.name;
-
-                  const handleToggleExpand = (e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    onSetExpandedMaterial(isExpanded ? null : mat.name);
-                  };
-
-                  const handleMaterialClick = (e: React.MouseEvent) => {
-                    if (!hasProperties) {
-                      insertVariableAtCursor(mat.name);
-                    } else {
-                      // If expandable, clicking the button inserts the variable
-                      // Expansion is handled by the chevron button
-                      insertVariableAtCursor(mat.name);
-                    }
-                  };
-
                   return (
                     <div key={mat.name} className="space-y-2 min-w-0">
                       <button
