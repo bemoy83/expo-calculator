@@ -5,10 +5,14 @@
  * In a production environment, these would be run with a testing framework like Jest.
  */
 
-import { evaluateFormula } from './formula-evaluator';
+import { evaluateFormula, type EvaluationContext } from './formula-evaluator';
 
 // Test helper function
-function testFormula(formula: string, expected: number, context = { fieldValues: {}, materials: [] }) {
+function testFormula(
+  formula: string,
+  expected: number,
+  context: EvaluationContext = { fieldValues: {}, materials: [] }
+) {
   try {
     const result = evaluateFormula(formula, context);
     const passed = Math.abs(result - expected) < 0.0001; // Allow for floating point precision
@@ -122,5 +126,101 @@ testFormula(
   }
 );
 
-console.log('\n=== Tests Complete ===');
+console.log('\n=== Material Selector With Property Overlap ===');
+testFormula(
+  'material.width + material',
+  7,
+  {
+    fieldValues: {
+      material: 'mat_board', // material field selects the material
+    },
+    materials: [
+      {
+        id: 'mat1',
+        name: 'Board',
+        category: 'wood',
+        unit: 'ea',
+        price: 5,
+        variableName: 'mat_board',
+        sku: '',
+        supplier: '',
+        description: '',
+        properties: [
+          {
+            id: 'prop1',
+            name: 'width',
+            type: 'number',
+            value: 2,
+          },
+        ],
+        createdAt: '',
+        updatedAt: '',
+      },
+    ],
+  }
+);
 
+console.log('\n=== Boolean and String Property Conversion ===');
+testFormula(
+  'mat_panel.flag + mat_panel.depth',
+  6, // flag -> 1, depth -> 5 after string-to-number
+  {
+    fieldValues: {},
+    materials: [
+      {
+        id: 'mat2',
+        name: 'Panel',
+        category: 'wood',
+        unit: 'ea',
+        price: 10,
+        variableName: 'mat_panel',
+        sku: '',
+        supplier: '',
+        description: '',
+        properties: [
+          {
+            id: 'propFlag',
+            name: 'flag',
+            type: 'boolean',
+            value: true,
+          },
+          {
+            id: 'propDepth',
+            name: 'depth',
+            type: 'string',
+            value: '5',
+          },
+        ],
+        createdAt: '',
+        updatedAt: '',
+      },
+    ],
+  }
+);
+
+console.log('\n=== Missing Property Falls Back To Price ===');
+testFormula(
+  'mat_generic.missing',
+  9, // falls back to material price when property not found
+  {
+    fieldValues: {},
+    materials: [
+      {
+        id: 'mat3',
+        name: 'Generic',
+        category: 'misc',
+        unit: 'ea',
+        price: 9,
+        variableName: 'mat_generic',
+        sku: '',
+        supplier: '',
+        description: '',
+        properties: [],
+        createdAt: '',
+        updatedAt: '',
+      },
+    ],
+  }
+);
+
+console.log('\n=== Tests Complete ===');
