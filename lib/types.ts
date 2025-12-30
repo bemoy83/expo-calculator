@@ -1,6 +1,6 @@
 export type FieldType = 'number' | 'dropdown' | 'text' | 'boolean' | 'material';
 
-export type MaterialPropertyType = 'number' | 'string' | 'boolean';
+export type MaterialPropertyType = 'number' | 'string' | 'boolean' | 'price';
 
 export interface MaterialProperty {
   id: string;
@@ -126,4 +126,3 @@ export interface ModuleTemplate {
   createdAt: string;
   updatedAt: string;
 }
-

@@ -219,7 +219,7 @@ export default function MaterialsPage() {
     let storedValue: number | undefined;
     let unitCategory: MaterialProperty['unitCategory'];
     
-    if (newProperty.type === 'number') {
+    if (newProperty.type === 'number' || newProperty.type === 'price') {
       const rawValue = Number(newProperty.value) || 0;
       value = rawValue;
       
@@ -260,7 +260,7 @@ export default function MaterialsPage() {
         const updated = { ...p, ...updates };
         
         // If updating a number property with unitSymbol, normalize to base
-        if (updated.type === 'number' && typeof updated.value === 'number') {
+        if ((updated.type === 'number' || updated.type === 'price') && typeof updated.value === 'number') {
           if (updated.unitSymbol) {
             updated.storedValue = normalizeToBase(updated.value, updated.unitSymbol);
             updated.unitCategory = getUnitCategory(updated.unitSymbol);
@@ -637,6 +637,7 @@ export default function MaterialsPage() {
                                     }
                                     options={[
                                       { value: 'number', label: 'Number' },
+                                      { value: 'price', label: 'Price' },
                                       { value: 'string', label: 'String' },
                                       { value: 'boolean', label: 'Boolean' },
                                     ]}
@@ -652,7 +653,7 @@ export default function MaterialsPage() {
                                         unitSymbol,
                                         unitCategory,
                                       };
-                                      if (prop.type === 'number' && typeof prop.value === 'number' && unitSymbol) {
+                                      if ((prop.type === 'number' || prop.type === 'price') && typeof prop.value === 'number' && unitSymbol) {
                                         updates.storedValue = normalizeToBase(prop.value, unitSymbol);
                                       }
                                       updateProperty(prop.id, updates);
@@ -668,7 +669,7 @@ export default function MaterialsPage() {
                                   />
                                 </div>
                                 <div>
-                                  {prop.type === 'number' && (
+                                  {(prop.type === 'number' || prop.type === 'price') && (
                                     <Input
                                       label="Value"
                                       type="number"
@@ -806,6 +807,7 @@ export default function MaterialsPage() {
                           }
                           options={[
                             { value: 'number', label: 'Number' },
+                            { value: 'price', label: 'Price' },
                             { value: 'string', label: 'String' },
                             { value: 'boolean', label: 'Boolean' },
                           ]}
@@ -828,7 +830,7 @@ export default function MaterialsPage() {
                         />
                       </div>
                       <div>
-                        {newProperty.type === 'number' && (
+                        {(newProperty.type === 'number' || newProperty.type === 'price') && (
                           <Input
                             label="Value"
                             type="number"

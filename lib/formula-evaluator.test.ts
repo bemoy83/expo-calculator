@@ -223,4 +223,46 @@ testFormula(
   }
 );
 
+console.log('\n=== Unit-Aware Price Per Length ===');
+testFormula(
+  'mat_beam.price_per_length * 4.8',
+  30, // price_per_length should be 30/4.8 = 6.25
+  {
+    fieldValues: {},
+    materials: [
+      {
+        id: 'mat4',
+        name: 'Beam',
+        category: 'wood',
+        unit: 'ea',
+        price: 30,
+        variableName: 'mat_beam',
+        sku: '',
+        supplier: '',
+        description: '',
+        properties: [
+          {
+            id: 'propLen',
+            name: 'length',
+            type: 'number',
+            value: 4.8,
+            unitSymbol: 'm',
+            unitCategory: 'length',
+          },
+          {
+            id: 'propPricePerLen',
+            name: 'price_per_length',
+            type: 'price',
+            value: 6.25,
+            unitSymbol: 'm',
+            unitCategory: 'length',
+          },
+        ],
+        createdAt: '',
+        updatedAt: '',
+      },
+    ],
+  }
+);
+
 console.log('\n=== Tests Complete ===');

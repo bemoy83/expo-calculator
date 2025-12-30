@@ -241,37 +241,7 @@ function resolveMaterialProperty(
     return null;
   }
 
-  const property = material.properties.find((p) => p.name === propertyName);
-  if (!property) {
-    return null;
-  }
-
-  // Convert property value to number based on type
-  let numValue: number;
-  if (property.type === 'number') {
-    // Use storedValue (canonical) if available, otherwise migrate from value
-    if (property.storedValue !== undefined) {
-      numValue = property.storedValue;
-    } else {
-      // Migration: convert value to base unit if unitSymbol exists
-      const rawValue = typeof property.value === 'number' ? property.value : Number(property.value) || 0;
-      if (property.unitSymbol) {
-        numValue = normalizeToBase(rawValue, property.unitSymbol);
-      } else {
-        numValue = rawValue;
-      }
-    }
-  } else if (property.type === 'boolean') {
-    numValue = property.value === true || property.value === 'true' ? 1 : 0;
-  } else if (property.type === 'string') {
-    // Attempt numeric conversion for string properties
-    const rawValue = Number(property.value);
-    numValue = !isNaN(rawValue) && isFinite(rawValue) ? rawValue : 0;
-  } else {
-    return null;
-  }
-
-  return numValue;
+  return getMaterialPropertyValueFromMaterial(material, propertyName);
 }
 
 /**
@@ -301,6 +271,39 @@ function getMaterialPropertyUnitCategory(
   }
 
   return undefined;
+}
+
+function getMaterialPropertyValueFromMaterial(
+  material: Material,
+  propertyName: string
+): number | null {
+  if (!material.properties) {
+    return null;
+  }
+
+  const property = material.properties.find((p) => p.name === propertyName);
+  if (!property) {
+    return null;
+  }
+
+  if (property.type === 'number' || property.type === 'price') {
+    if (property.storedValue !== undefined) {
+      return property.storedValue;
+    }
+    const rawValue = typeof property.value === 'number' ? property.value : Number(property.value) || 0;
+    return property.unitSymbol ? normalizeToBase(rawValue, property.unitSymbol) : rawValue;
+  }
+
+  if (property.type === 'boolean') {
+    return property.value === true || property.value === 'true' ? 1 : 0;
+  }
+
+  if (property.type === 'string') {
+    const rawValue = Number(property.value);
+    return !isNaN(rawValue) && isFinite(rawValue) ? rawValue : 0;
+  }
+
+  return null;
 }
 
 /**

@@ -243,4 +243,3 @@ export function useFormulaVariables({
     allFields: availableFieldVariables, // Alias for compatibility
   };
 }
-
