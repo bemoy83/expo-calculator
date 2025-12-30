@@ -20,7 +20,7 @@ import { FieldHeader, FieldDescription } from '@/components/module-editor/FieldH
 import { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Chip } from '@/components/ui/Chip';
-import { AddModuleCard } from '@/components/quotes/AddModuleCard';
+import { ModulePickerCard } from '@/components/shared/ModulePickerCard';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
 import { WorkspaceModulesList } from '@/components/quotes/WorkspaceModulesList';
 
@@ -1049,7 +1049,7 @@ export default function QuotesPage() {
 
           {/* Add Module Card */}
           {showAddModule && (
-            <AddModuleCard
+            <ModulePickerCard
               show={showAddModule}
               allCategories={allCategories}
               selectedCategory={selectedCategory}

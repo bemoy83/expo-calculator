@@ -7,38 +7,40 @@ import { Chip } from "@/components/ui/Chip";
 import { Plus, Package, LayoutDashboard } from "lucide-react";
 import { CalculationModule, ModuleTemplate } from "@/lib/types";
 
-interface AddModuleCardProps {
+interface ModulePickerCardProps {
+  title?: string;
   show: boolean;
   allCategories: string[];
   selectedCategory: string | null;
   onSelectCategory: (category: string | null) => void;
   filteredModules: CalculationModule[];
-  filteredTemplates: ModuleTemplate[];
+  filteredTemplates?: ModuleTemplate[]; // optional, only shown if provided
   modulesCount: number;
-  templatesCount: number;
+  templatesCount?: number;
   onAddModule: (moduleId: string) => void;
-  onApplyTemplate: (templateId: string) => void;
+  onApplyTemplate?: (templateId: string) => void;
   onClose: () => void;
 }
 
-export function AddModuleCard({
+export function ModulePickerCard({
+  title = "Select Module to Add",
   show,
   allCategories,
   selectedCategory,
   onSelectCategory,
   filteredModules,
-  filteredTemplates,
+  filteredTemplates = [],
   modulesCount,
-  templatesCount,
+  templatesCount = 0,
   onAddModule,
   onApplyTemplate,
   onClose,
-}: AddModuleCardProps) {
+}: ModulePickerCardProps) {
   if (!show) return null;
 
   return (
     <Card
-      title="Select Module to Add"
+      title={title}
       actions={
         <Button
           variant="ghost"
@@ -105,7 +107,7 @@ export function AddModuleCard({
         )}
       </div>
 
-      {templatesCount > 0 && (
+      {onApplyTemplate && templatesCount > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-md-primary mb-3">
             Module Templates
@@ -137,7 +139,7 @@ export function AddModuleCard({
         </div>
       )}
 
-      {modulesCount === 0 && templatesCount === 0 && (
+      {modulesCount === 0 && (!onApplyTemplate || templatesCount === 0) && (
         <div className="text-center py-8">
           <LayoutDashboard className="h-10 w-10 text-md-on-surface-variant mx-auto mb-3 opacity-50" />
           <p className="text-sm text-md-on-surface-variant">No modules available.</p>

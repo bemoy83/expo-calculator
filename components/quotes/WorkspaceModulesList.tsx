@@ -1,8 +1,20 @@
 "use client";
 
 import React from "react";
-import { DndContext, DragEndEvent, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter } from "@dnd-kit/core";
-import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CalculationModule, QuoteModuleInstance } from "@/lib/types";
 import { SortableModuleCard } from "@/components/SortableModuleCard";
 
@@ -12,8 +24,8 @@ interface WorkspaceModulesListProps {
   collapsedModules: Set<string>;
   onToggleCollapse: (id: string) => void;
   onRemoveModule: (id: string) => void;
-  onAddLineItem: (id: string) => void;
-  addedItems: Set<string>;
+  onAddLineItem?: (id: string) => void;
+  addedItems?: Set<string>;
   onDragEnd: (event: DragEndEvent) => void;
   renderFieldInput: (instance: QuoteModuleInstance, field: any) => React.ReactNode;
 }
@@ -53,7 +65,7 @@ export function WorkspaceModulesList({
               isCollapsed={collapsedModules.has(instance.id)}
               onToggleCollapse={onToggleCollapse}
               onRemove={onRemoveModule}
-              onAddToQuote={(id) => onAddLineItem(id)}
+              onAddToQuote={onAddLineItem}
               addedItems={addedItems}
               renderFieldInput={renderFieldInput}
               gridClassName="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 items-start"

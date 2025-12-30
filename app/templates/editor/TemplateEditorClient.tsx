@@ -14,25 +14,12 @@ import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { QuoteModuleInstance, FieldType, Field } from '@/lib/types';
 import { normalizeToBase, convertFromBase } from '@/lib/units';
 import { Plus, X, Trash2, AlertCircle, Link2, Unlink, CheckCircle2 } from 'lucide-react';
-import { FieldHeader, FieldDescription } from '@/components/module-editor/FieldHeader';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-
-import { SortableModuleCard } from '@/components/SortableModuleCard';
+import { DragEndEvent } from '@dnd-kit/core';
 import { Textarea } from '@/components/ui/Textarea';
 import { useTemplateEditor } from '@/hooks/use-template-editor';
+import { ModulePickerCard } from '@/components/shared/ModulePickerCard';
+import { WorkspaceModulesList } from '@/components/quotes/WorkspaceModulesList';
+import { ModuleFieldInput } from '@/components/shared/ModuleFieldInput';
 interface TemplateEditorClientProps {
   templateId: string;
 }
@@ -109,18 +96,6 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
     });
   }, []);
 
-  // Drag and drop - optimized with activation constraints and proper collision detection
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // Require 8px movement before drag starts (prevents accidental drags)
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   // Memoize sortable items array to prevent unnecessary re-renders
   const sortableItems = useMemo(
     () => workspaceModules.map(m => m.id),
@@ -129,7 +104,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    reorderModules(String(active.id), over ? String(over.id) : null, sortableItems);
+    reorderModules(String(active.id), over ? String(over.id) : null, workspaceModules.map(m => m.id));
   };
 
   // Helper functions for link UI
@@ -836,76 +811,20 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
       <div className="space-y-5 pb-24">
         {/* Add Module Card */}
         {showAddModule && (
-          <Card
+          <ModulePickerCard
+            show={showAddModule}
             title="Select Module to Add"
-            actions={
-              <Button variant="ghost" size="sm" onClick={() => setShowAddModule(false)} className="rounded-full">
-                Cancel
-              </Button>
-            }
-          >
-            {/* Category Filter Bar */}
-            {usedCategories.length > 0 && (
-              <div className="mb-4 pb-4 border-b border-border">
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setSelectedCategory(null)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
-                      selectedCategory === null
-                      ? 'bg-accent text-md-on-primary'
-                        : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
-                    }`}
-                  >
-                    All
-                  </button>
-                  {usedCategories.map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
-                        selectedCategory === category
-                          ? 'bg-accent text-md-on-primary'
-                          : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Single Modules Section */}
-            <div>
-              <h4 className="text-sm font-semibold text-card-foreground mb-3">Single Modules</h4>
-              {filteredModules.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {filteredModules.map((module) => (
-                    <button
-                      key={module.id}
-                      onClick={() => {
-                        handleAddModule(module.id);
-                        setShowAddModule(false);
-                      }}
-                      className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-accent text-md-on-primary focus:ring-accent elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
-                    >
-                      <Plus className="h-4 w-4 mr-2 shrink-0" />
-                      <span className="truncate flex-1 text-left">{module.name}</span>
-                      {module.category && (
-                        <span className="ml-2 px-2 py-0.5 bg-accent/20 text-md-primary text-xs rounded-full shrink-0">
-                          {module.category}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-md-on-surface-variant">
-                  {selectedCategory ? `No modules in "${selectedCategory}" category.` : 'No modules available.'}
-                </p>
-              )}
-            </div>
-          </Card>
+            allCategories={usedCategories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            filteredModules={filteredModules}
+            modulesCount={modules.length}
+            onAddModule={(id) => {
+              handleAddModule(id);
+              setShowAddModule(false);
+            }}
+            onClose={() => setShowAddModule(false)}
+          />
         )}
 
         {/* Empty State Card */}
@@ -945,54 +864,15 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
         {/* Module Cards */}
         {workspaceModules.length > 0 && (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
+          <WorkspaceModulesList
+            modules={modules}
+            workspaceModules={workspaceModules}
+            collapsedModules={collapsedModules}
+            onToggleCollapse={toggleModuleCollapse}
+            onRemoveModule={handleRemoveModule}
             onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={sortableItems}
-              strategy={verticalListSortingStrategy}
-            >
-              {workspaceModules.map((instance) => {
-                const moduleDef = modules.find((m) => m.id === instance.moduleId);
-                if (!moduleDef) {
-                  // Module deleted - show warning badge
-                  return (
-                    <Card key={instance.id} className="border-destructive">
-                      <div className="flex items-center gap-2 p-4">
-                        <AlertCircle className="h-5 w-5 text-md-error" />
-                        <span className="text-sm text-md-error">
-                          Module no longer exists
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveModule(instance.id)}
-                          className="ml-auto"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </Card>
-                  );
-                }
-
-                return (
-                  <SortableModuleCard
-                    key={instance.id}
-                    instance={instance}
-                    module={moduleDef}
-                    isCollapsed={collapsedModules.has(instance.id)}
-                    onToggleCollapse={toggleModuleCollapse}
-                    onRemove={handleRemoveModule}
-                    renderFieldInput={renderFieldInput}
-                    borderClassName="border-md-outline"
-                  />
-                );
-              })}
-            </SortableContext>
-          </DndContext>
+            renderFieldInput={renderFieldInput}
+          />
         )}
       </div>
 
