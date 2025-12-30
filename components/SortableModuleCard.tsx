@@ -2,10 +2,10 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronDown, ChevronUp, GripVertical, Trash2, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft, GripVertical, Trash2, Plus } from 'lucide-react';
 import { QuoteModuleInstance, CalculationModule, Field } from '@/lib/types';
 import { Chip } from '@/components/ui/Chip';
-import { CARD_BACKGROUND, CARD_BORDER, CARD_ROUNDED } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 
 interface SortableModuleCardProps {
   instance: QuoteModuleInstance;
@@ -52,10 +52,10 @@ export function SortableModuleCard({
   };
 
   return (
-    <div
+    <Card
       ref={setNodeRef}
       style={style}
-      className={`${CARD_BACKGROUND} ${CARD_BORDER} ${CARD_ROUNDED} overflow-hidden transition-smooth elevation-1`}
+      variant="default"
     >
       {/* Module Header */}
       <div className="flex items-center">
@@ -63,7 +63,7 @@ export function SortableModuleCard({
         <button
           {...attributes}
           {...listeners}
-          className="p-3 text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-inset transition-smooth"
+          className="text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none transition-smooth"
           aria-label={`Drag to reorder ${module.name}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -102,9 +102,9 @@ export function SortableModuleCard({
               ${instance.calculatedCost.toFixed(2)}
             </span>
             {isCollapsed ? (
-              <ChevronDown className="h-5 w-5 text-md-on-surface-variant" />
+              <ChevronRight className="h-5 w-5 text-md-on-surface-variant" />
             ) : (
-              <ChevronUp className="h-5 w-5 text-md-on-surface-variant" />
+                <ChevronDown className="h-5 w-5 text-md-on-surface-variant" />
             )}
             {/* Action Buttons - Right Aligned */}
             {onAddToQuote && addedItems && (
@@ -156,7 +156,7 @@ export function SortableModuleCard({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 

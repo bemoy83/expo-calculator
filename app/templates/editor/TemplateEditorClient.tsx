@@ -1265,7 +1265,7 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
                     onClick={() => setSelectedCategory(null)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
                       selectedCategory === null
-                        ? 'bg-accent text-md-on-primary'
+                      ? 'bg-accent text-md-on-primary'
                         : 'bg-muted text-md-on-surface-variant hover:bg-muted/80'
                     }`}
                   >

@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { Chip } from '@/components/ui/Chip';
 import { labelToVariableName } from '@/lib/utils';
 import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
-import { ChevronUp, ChevronDown, Trash2, GripVertical } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Trash2, GripVertical } from 'lucide-react';
 
 interface SortableFieldItemProps {
   field: Field;
@@ -96,7 +96,7 @@ export function SortableFieldItem({
         <button
           {...attributes}
           {...listeners}
-          className="p-2 text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none transition-smooth"
+          className="text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none transition-smooth"
           aria-label={`Drag to reorder ${field.label || 'field'}`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -144,21 +144,11 @@ export function SortableFieldItem({
             )}
           </div>
           <div className="flex items-center space-x-1 ml-4 shrink-0">
-            <button
-              /*type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleExpanded(field.id);
-              }} */
-              className="p-2 text-md-on-surface-variant"
-              aria-label={isExpanded ? 'Collapse field' : 'Expand field'}
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
             <button
               type="button"
               onClick={(e) => {

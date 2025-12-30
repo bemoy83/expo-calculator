@@ -13,6 +13,7 @@ import { Material, MaterialProperty, MaterialPropertyType, COMMON_MATERIAL_PROPE
 import { labelToVariableName, generateId } from '@/lib/utils';
 import { getAllUnitSymbols, getUnitCategory, normalizeToBase, convertFromBase } from '@/lib/units';
 import { Plus, Edit2, Trash2, X, Search, Package } from 'lucide-react';
+import { PropertyForm } from '@/components/materials/PropertyForm';
 
 /**
  * Materials Manager Page
@@ -449,7 +450,7 @@ export default function MaterialsPage() {
                     <div className="flex items-start gap-1 shrink-0">
                       <button
                         onClick={() => openEditor(material)}
-                        className="p-2 text-md-on-surface-variant hover:text-md-primary hover:bg-md-surface-variant rounded-lg transition-colors"
+                        className="p-2 text-md-on-surface-variant hover:text-md-primary hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
                         aria-label={`Edit material: ${material.name}`}
                       >
                         <Edit2 className="h-4 w-4" aria-hidden="true" />
@@ -463,7 +464,7 @@ export default function MaterialsPage() {
                             }
                           }
                         }}
-                        className="p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-surface-variant rounded-lg transition-colors"
+                        className="p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
                         aria-label={`Delete material: ${material.name}`}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -567,13 +568,13 @@ export default function MaterialsPage() {
                 {/* Properties Section */}
                 <div className="pt-4 border-t border-border">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-md-primary">Properties</label>
+                    <label className="text-md font-semibold text-md-primary">Properties</label>
                     <span className="text-xs text-md-on-surface-variant">
                       {properties.length} {properties.length === 1 ? 'property' : 'properties'}
                     </span>
                   </div>
                   <p className="text-xs text-md-on-surface-variant mb-4">
-                    Add material properties (dimensions, density, etc.) that can be referenced in formulas using dot notation (e.g., <code className="text-md-primary">mat_plank.length</code>).
+                    Add material properties (dimensions, density, etc.) that can be referenced in formulas using dot notation (e.g., <code className="text-md-primary">mdf_sheet_width</code>).
                   </p>
 
                   {/* Quick Add Common Properties */}
@@ -581,23 +582,23 @@ export default function MaterialsPage() {
                     <p className="text-xs text-md-on-surface-variant mb-2">Quick add:</p>
                     <div className="flex flex-wrap gap-2">
                       {COMMON_MATERIAL_PROPERTIES.map((propName) => {
-                        const exists = properties.some((p) => p.name.toLowerCase() === propName.toLowerCase());
+                        const exists = properties.some(
+                          (p) => p.name.toLowerCase() === propName.toLowerCase()
+                        );
+
                         return (
-                          <button
+                          <Chip
                             key={propName}
-                            type="button"
-                            onClick={() => quickAddProperty(propName)}
+                            size="sm"
+                            variant={exists ? "ghost" : "primaryTonal"}
                             disabled={exists}
-                            className={`px-2.5 py-1 text-xs rounded-full border transition-smooth ${
-                              exists
-                                ? 'border-muted text-md-on-surface-variant cursor-not-allowed opacity-50'
-                                : 'border-accent text-md-primary hover:bg-md-primary/10'
-                            }`}
+                            onClick={() => !exists && quickAddProperty(propName)}
                           >
                             {propName}
-                          </button>
+                          </Chip>
                         );
                       })}
+
                     </div>
                   </div>
 
@@ -607,136 +608,68 @@ export default function MaterialsPage() {
                       {properties.map((prop) => (
                         <div
                           key={prop.id}
-                          className="flex items-start gap-2 p-3 bg-md-surface-variant/50 rounded-lg border border-border"
+                          className="flex items-start gap-2 p-3 bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-2xl"
                         >
                           <div className="flex-1 min-w-0">
                             {editingPropertyId === prop.id ? (
-                              <div className="space-y-2">
-                                <Input
-                                  label="Property Name"
-                                  value={prop.name}
-                                  onChange={(e) => updateProperty(prop.id, { name: e.target.value })}
-                                  error={propertyErrors[prop.id]}
-                                  placeholder="e.g., length"
-                                  className="text-sm"
-                                />
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Select
-                                    label="Type"
-                                    value={prop.type}
-                                    onChange={(e) =>
-                                      updateProperty(prop.id, {
-                                        type: e.target.value as MaterialPropertyType,
-                                        value:
-                                          e.target.value === 'number'
-                                            ? 0
-                                            : e.target.value === 'boolean'
-                                            ? false
-                                            : '',
-                                      })
+                              <PropertyForm
+                                property={prop}
+                                propertyData={{
+                                  name: prop.name,
+                                  type: prop.type,
+                                  value: prop.value,
+                                  unitSymbol: prop.unitSymbol,
+                                }}
+                                error={propertyErrors[prop.id]}
+                                onChange={(updates) => {
+                                  // Handle unit conversion for number/price types
+                                  if ((prop.type === 'number' || prop.type === 'price') && typeof updates.value === 'number') {
+                                    const unitSymbol = updates.unitSymbol !== undefined ? updates.unitSymbol : prop.unitSymbol;
+                                    const finalValue = updates.value !== undefined ? updates.value : prop.value as number;
+                                    const finalUpdates: Partial<MaterialProperty> = { ...updates };
+
+                                    if (unitSymbol) {
+                                      finalUpdates.storedValue = normalizeToBase(finalValue, unitSymbol);
+                                      finalUpdates.unitCategory = getUnitCategory(unitSymbol);
+                                    } else {
+                                      finalUpdates.storedValue = finalValue;
                                     }
-                                    options={[
-                                      { value: 'number', label: 'Number' },
-                                      { value: 'price', label: 'Price' },
-                                      { value: 'string', label: 'String' },
-                                      { value: 'boolean', label: 'Boolean' },
-                                    ]}
-                                  />
-                                  <Select
-                                    label="Unit (optional)"
-                                    value={prop.unitSymbol || ''}
-                                    onChange={(e) => {
-                                      const unitSymbol = e.target.value || undefined;
-                                      const unitCategory = unitSymbol ? getUnitCategory(unitSymbol) : undefined;
-                                      // If updating unitSymbol, also update storedValue if it's a number property
-                                      let updates: Partial<MaterialProperty> = {
-                                        unitSymbol,
-                                        unitCategory,
-                                      };
-                                      if ((prop.type === 'number' || prop.type === 'price') && typeof prop.value === 'number' && unitSymbol) {
-                                        updates.storedValue = normalizeToBase(prop.value, unitSymbol);
+
+                                    // If unitSymbol changed, also update it
+                                    if (updates.unitSymbol !== undefined) {
+                                      finalUpdates.unitSymbol = updates.unitSymbol;
+                                      if (updates.unitSymbol) {
+                                        finalUpdates.unitCategory = getUnitCategory(updates.unitSymbol);
                                       }
-                                      updateProperty(prop.id, updates);
-                                    }}
-                                    options={[
-                                      { value: '', label: 'None (unitless)' },
-                                      ...getAllUnitSymbols().map(symbol => ({
-                                        value: symbol,
-                                        label: `${symbol}${getUnitCategory(symbol) ? ` (${getUnitCategory(symbol)})` : ''}`,
-                                      })),
-                                    ]}
-                                    className="text-sm"
-                                  />
-                                </div>
-                                <div>
-                                  {(prop.type === 'number' || prop.type === 'price') && (
-                                    <Input
-                                      label="Value"
-                                      type="number"
-                                      value={
-                                        typeof prop.value === 'number'
-                                          ? prop.unitSymbol && prop.storedValue !== undefined
-                                            ? convertFromBase(prop.storedValue, prop.unitSymbol)
-                                            : prop.value
-                                          : ''
+                                    }
+
+                                    updateProperty(prop.id, finalUpdates);
+                                  } else {
+                                    // For non-number types or when value isn't being updated
+                                    const finalUpdates: Partial<MaterialProperty> = { ...updates };
+                                    if (updates.unitSymbol !== undefined) {
+                                      finalUpdates.unitSymbol = updates.unitSymbol;
+                                      if (updates.unitSymbol) {
+                                        finalUpdates.unitCategory = getUnitCategory(updates.unitSymbol);
                                       }
-                                      onChange={(e) => {
-                                        const rawValue = Number(e.target.value) || 0;
-                                        const updates: Partial<MaterialProperty> = { value: rawValue };
-                                        if (prop.unitSymbol) {
-                                          updates.storedValue = normalizeToBase(rawValue, prop.unitSymbol);
-                                        } else {
-                                          updates.storedValue = rawValue;
-                                        }
-                                        updateProperty(prop.id, updates);
-                                      }}
-                                      className="text-sm"
-                                    />
-                                  )}
-                                  {prop.type === 'boolean' && (
-                                    <Select
-                                      label="Value"
-                                      value={prop.value === true || prop.value === 'true' ? 'true' : 'false'}
-                                      onChange={(e) =>
-                                        updateProperty(prop.id, { value: e.target.value === 'true' })
-                                      }
-                                      options={[
-                                        { value: 'true', label: 'True' },
-                                        { value: 'false', label: 'False' },
-                                      ]}
-                                    />
-                                  )}
-                                  {prop.type === 'string' && (
-                                    <Input
-                                      label="Value"
-                                      value={typeof prop.value === 'string' ? prop.value : ''}
-                                      onChange={(e) => updateProperty(prop.id, { value: e.target.value })}
-                                      className="text-sm"
-                                    />
-                                  )}
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => setEditingPropertyId(null)}
-                                    className="flex-1"
-                                  >
-                                    Done
-                                  </Button>
-                                </div>
-                              </div>
+                                    }
+                                    updateProperty(prop.id, finalUpdates);
+                                  }
+                                }}
+                                onSubmit={() => setEditingPropertyId(null)}
+                                onCancel={() => setEditingPropertyId(null)}
+                                mode="edit"
+                              />
                             ) : (
                               <div className="flex items-center justify-between">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <code className="px-2 py-0.5 bg-background border border-border rounded text-xs font-mono text-md-primary">
+                                      <Chip size="sm" variant="primary">
                                       {prop.name}
-                                    </code>
-                                    <span className="px-2 py-0.5 bg-md-surface-variant text-md-on-surface-variant rounded text-xs capitalize">
+                                      </Chip>
+                                      <Chip size="sm" variant="default">
                                       {prop.type}
-                                    </span>
+                                      </Chip>
                                     {prop.unitSymbol && (
                                       <span className="text-xs text-md-on-surface-variant">({prop.unitSymbol})</span>
                                     )}
@@ -758,18 +691,18 @@ export default function MaterialsPage() {
                                   <button
                                     type="button"
                                     onClick={() => setEditingPropertyId(prop.id)}
-                                    className="p-1.5 text-md-on-surface-variant hover:text-md-primary hover:bg-md-surface-variant rounded transition-colors"
+                                      className="p-2 text-md-on-surface-variant hover:text-md-primary hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
                                     aria-label="Edit property"
                                   >
-                                    <Edit2 className="h-3.5 w-3.5" />
+                                      <Edit2 className="h-4 w-4" />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => removeProperty(prop.id)}
-                                    className="p-1.5 text-md-on-surface-variant hover:text-destructive hover:bg-md-surface-variant rounded transition-colors"
+                                      className="p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
                                     aria-label="Remove property"
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                      <Trash2 className="h-4 w-4" />
                                   </button>
                                 </div>
                               </div>
@@ -781,95 +714,37 @@ export default function MaterialsPage() {
                   )}
 
                   {/* Add New Property Form */}
-                  <div className="p-3 bg-md-surface-variant/30 rounded-lg border border-border">
-                    <div className="space-y-2">
-                      <Input
-                        label="Property Name"
-                        value={newProperty.name}
-                        onChange={(e) => {
-                          setNewProperty({ ...newProperty, name: e.target.value });
+                  <div className="space-y-4">
+                    <PropertyForm
+                      property={null}
+                      propertyData={{
+                        name: newProperty.name,
+                        type: newProperty.type,
+                        value: newProperty.value,
+                        unitSymbol: newProperty.unitSymbol,
+                      }}
+                      error={propertyErrors.new}
+                      onChange={(updates) => {
+                        const updatedProperty = { ...newProperty };
+                        if (updates.name !== undefined) {
+                          updatedProperty.name = updates.name;
                           setPropertyErrors({});
-                        }}
-                        error={propertyErrors.new}
-                        placeholder="e.g., length"
-                        className="text-sm"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <Select
-                          label="Type"
-                          value={newProperty.type}
-                          onChange={(e) =>
-                            setNewProperty({
-                              ...newProperty,
-                              type: e.target.value as MaterialPropertyType,
-                              value: '',
-                            })
-                          }
-                          options={[
-                            { value: 'number', label: 'Number' },
-                            { value: 'price', label: 'Price' },
-                            { value: 'string', label: 'String' },
-                            { value: 'boolean', label: 'Boolean' },
-                          ]}
-                        />
-                        <Select
-                          label="Unit (optional)"
-                          value={newProperty.unitSymbol || ''}
-                          onChange={(e) => {
-                            const unitSymbol = e.target.value || undefined;
-                            setNewProperty({ ...newProperty, unitSymbol });
-                          }}
-                          options={[
-                            { value: '', label: 'None (unitless)' },
-                            ...getAllUnitSymbols().map(symbol => ({
-                              value: symbol,
-                              label: `${symbol}${getUnitCategory(symbol) ? ` (${getUnitCategory(symbol)})` : ''}`,
-                            })),
-                          ]}
-                          className="text-sm"
-                        />
-                      </div>
-                      <div>
-                        {(newProperty.type === 'number' || newProperty.type === 'price') && (
-                          <Input
-                            label="Value"
-                            type="number"
-                            value={newProperty.value}
-                            onChange={(e) => setNewProperty({ ...newProperty, value: e.target.value })}
-                            className="text-sm"
-                          />
-                        )}
-                        {newProperty.type === 'boolean' && (
-                          <Select
-                            label="Value"
-                            value={newProperty.value}
-                            onChange={(e) => setNewProperty({ ...newProperty, value: e.target.value })}
-                            options={[
-                              { value: 'true', label: 'True' },
-                              { value: 'false', label: 'False' },
-                            ]}
-                          />
-                        )}
-                        {newProperty.type === 'string' && (
-                          <Input
-                            label="Value"
-                            value={newProperty.value}
-                            onChange={(e) => setNewProperty({ ...newProperty, value: e.target.value })}
-                            className="text-sm"
-                          />
-                        )}
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={addProperty}
-                        className="w-full"
-                        disabled={!newProperty.name.trim()}
-                      >
-                        <Plus className="h-3.5 w-3.5 mr-1.5" />
-                        Add Property
-                      </Button>
-                    </div>
+                        }
+                        if (updates.type !== undefined) {
+                          updatedProperty.type = updates.type;
+                        }
+                        if (updates.value !== undefined) {
+                          // Convert to string for newProperty state
+                          updatedProperty.value = String(updates.value);
+                        }
+                        if (updates.unitSymbol !== undefined) {
+                          updatedProperty.unitSymbol = updates.unitSymbol;
+                        }
+                        setNewProperty(updatedProperty);
+                      }}
+                      onSubmit={addProperty}
+                      mode="create"
+                    />
                   </div>
                 </div>
 

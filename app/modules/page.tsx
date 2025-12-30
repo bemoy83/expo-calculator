@@ -541,7 +541,7 @@ export default function ModulesPage() {
                       deleteModule(module.id);
                     }
                   }}
-                  className="absolute top-0 right-0 p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error-container/10 rounded-full transition-smooth active:scale-95 z-10"
+                  className="absolute top-0 right-0 p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
                   aria-label="Delete module"
                 >
                   <Trash2 className="h-4 w-4" />
