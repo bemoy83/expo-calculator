@@ -88,6 +88,39 @@ try {
   console.log(`✓ floor() with 2 arguments correctly throws: ${error.message}`);
 }
 
-console.log('\n=== Tests Complete ===');
+console.log('\n=== Overlapping Names Regression ===');
+testFormula(
+  'mat_board.width + width',
+  7,
+  {
+    fieldValues: {
+      width: 2, // standalone field variable with same name as material property
+    },
+    materials: [
+      {
+        id: 'mat1',
+        name: 'Board',
+        category: 'wood',
+        unit: 'ea',
+        price: 5,
+        variableName: 'mat_board',
+        sku: '',
+        supplier: '',
+        description: '',
+        properties: [
+          {
+            id: 'prop1',
+            name: 'width',
+            type: 'number',
+            value: 5,
+          },
+        ],
+        createdAt: '',
+        updatedAt: '',
+      },
+    ],
+  }
+);
 
+console.log('\n=== Tests Complete ===');
 

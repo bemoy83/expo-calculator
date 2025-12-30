@@ -6,7 +6,6 @@ import { FormulaVariableToken } from "./FormulaVariableToken";
 import {
     ChevronRight,
 } from 'lucide-react';
-import Chip from "../ui/Chip";
 
 export interface FormulaExpandableVariableProps {
     label: string;                    // Display name (ex: "material")

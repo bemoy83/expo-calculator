@@ -127,6 +127,52 @@ function createMathInstance() {
 
 const mathInstance = createMathInstance();
 
+type IdentifierToken = {
+  text: string;
+  base: string;
+  property?: string;
+  hasDot: boolean;
+};
+
+const IDENTIFIER_REGEX = /[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?/g;
+const MATH_FUNCTIONS = new Set(['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor']);
+
+/**
+ * Tokenizes identifiers in a string and applies a replacement handler.
+ * Returns the rebuilt string with replacements applied.
+ */
+function replaceIdentifiers(
+  input: string,
+  handler: (token: IdentifierToken) => string | null | undefined
+): string {
+  let result = '';
+  let lastIndex = 0;
+  IDENTIFIER_REGEX.lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = IDENTIFIER_REGEX.exec(input)) !== null) {
+    const tokenText = match[0];
+    const hasDot = tokenText.includes('.');
+    const [base, property] = tokenText.split('.');
+    const token: IdentifierToken = {
+      text: tokenText,
+      base,
+      property,
+      hasDot,
+    };
+
+    result += input.slice(lastIndex, match.index);
+
+    const replacement = handler(token);
+    result += replacement !== null && replacement !== undefined ? replacement : tokenText;
+
+    lastIndex = IDENTIFIER_REGEX.lastIndex;
+  }
+
+  result += input.slice(lastIndex);
+  return result;
+}
+
 /**
  * Parses all property references in dot notation (e.g., mat_plank.length, wallboard.width)
  * Returns an array of { baseVar, propertyName, fullMatch, isFieldProperty } objects
@@ -357,85 +403,101 @@ export function evaluateFormula(
     // This must happen BEFORE replacing field variables to avoid conflicts
     const fieldVariableNames = Object.keys(context.fieldValues);
     const fieldPropertyRefs = parseFieldPropertyReferences(processedFormula, fieldVariableNames);
+    const fieldPropertyValueMap = new Map<string, string>();
     for (const ref of fieldPropertyRefs) {
-      try {
-        const propertyValue = resolveFieldProperty(ref.fieldVar, ref.propertyName, context);
-        // Replace the full property reference with its numeric value
-        const regex = new RegExp(`\\b${escapeRegex(ref.fullMatch)}\\b`, 'g');
-        processedFormula = processedFormula.replace(regex, propertyValue.toString());
-      } catch (error: any) {
-        // Re-throw field property errors with clear messages
-        throw error;
-      }
+      const propertyValue = resolveFieldProperty(ref.fieldVar, ref.propertyName, context);
+      fieldPropertyValueMap.set(ref.fullMatch, propertyValue.toString());
     }
+    processedFormula = replaceIdentifiers(processedFormula, (token) => {
+      if (token.hasDot && fieldPropertyValueMap.has(token.text)) {
+        return fieldPropertyValueMap.get(token.text);
+      }
+      return null;
+    });
 
     // STEP 2: Replace field variable values
     // Material fields: When a field value is a string matching a material's variableName,
     // it is automatically resolved to that material's price for formula evaluation.
     // Example: If field 'material' has value 'mat_kvirke_48x98', and that material's price is 1.00,
     // then 'material' in the formula will be replaced with '1.00'.
+    const fieldValueMap = new Map<string, number>();
     for (const [varName, value] of Object.entries(context.fieldValues)) {
       let numValue: number;
 
-      // Handle boolean values
       if (typeof value === 'boolean') {
         numValue = value ? 1 : 0;
-      }
-      // Handle material selections: if value is a string that matches a material variable name, resolve to price
-      else if (typeof value === 'string') {
+      } else if (typeof value === 'string') {
         const material = context.materials.find((m) => m.variableName === value);
         if (material) {
-          // This is a material selection - use the material's price
           numValue = material.price;
         } else {
-          // Try to convert to number (for numeric text fields)
           numValue = Number(value);
         }
-      }
-      // Handle numeric values
-      else {
+      } else {
         numValue = Number(value);
       }
 
-      // Only replace if we have a valid number
       if (!isNaN(numValue) && isFinite(numValue)) {
-        // Replace variable name with value (using word boundaries to avoid partial matches)
-        const regex = new RegExp(`\\b${escapeRegex(varName)}\\b`, 'g');
-        processedFormula = processedFormula.replace(regex, numValue.toString());
+        fieldValueMap.set(varName, numValue);
       }
     }
 
+    processedFormula = replaceIdentifiers(processedFormula, (token) => {
+      if (token.hasDot) return null; // Don't touch property references here
+      if (MATH_FUNCTIONS.has(token.text)) return null;
+      if (fieldValueMap.has(token.text)) {
+        return fieldValueMap.get(token.text)?.toString();
+      }
+      return null;
+    });
+
     // STEP 3: Replace material property references (e.g., mat_plank.length)
     // This must happen BEFORE replacing material variables to avoid conflicts
-    const materialPropertyRefs = parseMaterialPropertyReferences(processedFormula);
+    const materialPropertyRefs = parseMaterialPropertyReferences(formula);
+    const fieldPropertyFullMatches = new Set(fieldPropertyRefs.map(ref => ref.fullMatch));
+    const materialPropertyValueMap = new Map<string, string>();
     for (const ref of materialPropertyRefs) {
+      // Skip if already handled as a field property ref
+      if (fieldPropertyFullMatches.has(ref.fullMatch)) continue;
+
       const propertyValue = resolveMaterialProperty(ref.materialVar, ref.propertyName, context.materials);
       if (propertyValue !== null) {
-        // Replace the full property reference with its numeric value
-        const regex = new RegExp(`\\b${escapeRegex(ref.fullMatch)}\\b`, 'g');
-        processedFormula = processedFormula.replace(regex, propertyValue.toString());
+        materialPropertyValueMap.set(ref.fullMatch, propertyValue.toString());
       } else {
-        // Property not found - fall back to material price if material exists
         const material = context.materials.find((m) => m.variableName === ref.materialVar);
         if (material) {
-          const regex = new RegExp(`\\b${escapeRegex(ref.fullMatch)}\\b`, 'g');
-          processedFormula = processedFormula.replace(regex, material.price.toString());
+          materialPropertyValueMap.set(ref.fullMatch, material.price.toString());
         }
       }
     }
+
+    processedFormula = replaceIdentifiers(processedFormula, (token) => {
+      if (token.hasDot && materialPropertyValueMap.has(token.text)) {
+        return materialPropertyValueMap.get(token.text);
+      }
+      return null;
+    });
 
     // STEP 4: Replace material variable values
     // Property references have already been replaced, so we can safely replace all material variables
     // The regex won't match property references since they've been converted to numbers
+    const materialValueMap = new Map<string, string>();
     for (const material of context.materials) {
-      const regex = new RegExp(`\\b${escapeRegex(material.variableName)}\\b`, 'g');
-      processedFormula = processedFormula.replace(regex, material.price.toString());
+      materialValueMap.set(material.variableName, material.price.toString());
     }
+
+    processedFormula = replaceIdentifiers(processedFormula, (token) => {
+      if (token.hasDot) return null;
+      if (MATH_FUNCTIONS.has(token.text)) return null;
+      if (materialValueMap.has(token.text)) {
+        return materialValueMap.get(token.text);
+      }
+      return null;
+    });
 
     // Check for unreplaced variables (identifiers that aren't math functions)
     // Note: We need to exclude property references that were already processed
     const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\b/g;
-    const mathFunctions = ['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor'];
     const matches = processedFormula.match(variableRegex);
     const unreplacedVars: string[] = [];
 
@@ -448,7 +510,7 @@ export function evaluateFormula(
         // Skip if it's a number
         if (!isNaN(Number(match))) continue;
         // Skip if it's a math function
-        if (mathFunctions.includes(match)) continue;
+        if (MATH_FUNCTIONS.has(match)) continue;
         // Skip if it's a property reference (already processed)
         if (match.includes('.')) continue;
         // Skip field variables that were used in property references

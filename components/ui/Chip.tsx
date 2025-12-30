@@ -17,6 +17,7 @@ interface ChipProps extends React.HTMLAttributes<HTMLElement> {
   | 'success'
   leadingIcon?: React.ReactNode
   trailingIcon?: React.ReactNode
+  disabled?: boolean
 }
 
 export const Chip: React.FC<ChipProps> = ({
@@ -26,6 +27,7 @@ export const Chip: React.FC<ChipProps> = ({
   leadingIcon,
   trailingIcon,
   className,
+  disabled,
   ...rest
 }) => {
 
@@ -70,6 +72,7 @@ if (isInteractive) {
     <button
       {...rest}
       type="button"
+      disabled={disabled}
       className={cn(
         'inline-flex items-center gap-1 select-none transition-smooth cursor-pointer',
         'focus:outline-none focus:ring-2 focus:ring-md-primary/50',
@@ -77,6 +80,7 @@ if (isInteractive) {
         'active:scale-[0.96] hover:elevation-2 active:elevation-1',
         sizes[size],
         variants[variant],
+        disabled && 'opacity-60 cursor-not-allowed active:scale-100 hover:elevation-0',
         className
       )}
     >
@@ -95,6 +99,7 @@ if (isInteractive) {
         'inline-flex items-center gap-1 select-none transition-smooth',
         sizes[size],
         variants[variant],
+        disabled && 'opacity-60',
         className
       )}
     >
