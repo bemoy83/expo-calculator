@@ -14,26 +14,15 @@ import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { QuoteModuleInstance, FieldType, CalculationModule, Field } from '@/lib/types';
 import { normalizeToBase, convertFromBase } from '@/lib/units';
-import { Plus, X, Download, Send, Trash2, Save, Package, Calculator, LayoutDashboard, Link2, Unlink, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, X, Download, Save, Package, Calculator, LayoutDashboard, Link2, Unlink, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/Textarea';
 import { FieldHeader, FieldDescription } from '@/components/module-editor/FieldHeader';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { SortableModuleCard } from '@/components/SortableModuleCard';
+import { DragEndEvent } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Chip } from '@/components/ui/Chip';
+import { AddModuleCard } from '@/components/quotes/AddModuleCard';
+import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
+import { WorkspaceModulesList } from '@/components/quotes/WorkspaceModulesList';
 
 export default function QuotesPage() {
   const modules = useModulesStore((state) => state.modules);
@@ -143,14 +132,6 @@ export default function QuotesPage() {
   const filteredTemplates = selectedCategory === null
     ? templates
     : templates.filter(t => t.categories.includes(selectedCategory));
-
-  // Drag and drop setup
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -1068,104 +1049,19 @@ export default function QuotesPage() {
 
           {/* Add Module Card */}
           {showAddModule && (
-            <Card 
-              title="Select Module to Add"
-              actions={
-                <Button variant="ghost" size="sm" onClick={() => setShowAddModule(false)} className="rounded-full">
-                  Cancel
-                </Button>
-              }
-              className=""
-            >
-              {/* Category Filter Bar */}
-              {allCategories.length > 0 && (
-                <div className="mb-4 pb-4 border-b border-border">
-                  <div className="flex flex-wrap gap-2">
-                    <Chip
-                      size="sm"
-                      variant={selectedCategory === null ? 'selected' : 'default'}
-                      onClick={() => setSelectedCategory(null)}
-                    >
-                      All
-                    </Chip>
-                    {allCategories.map((category) => (
-                      <Chip
-                        key={category}
-                        size="sm"
-                        variant={selectedCategory === category ? 'selected' : 'default'}
-                        onClick={() => setSelectedCategory(category)}
-                      >
-                        {category}
-                      </Chip>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Single Modules Section */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-md-primary mb-3">Single Modules</h4>
-                {filteredModules.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {filteredModules.map((module) => (
-                  <button
-                    key={module.id}
-                    onClick={() => handleAddModule(module.id)}
-                    className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-on-primary focus:ring-md-primary elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2 shrink-0" />
-                        <span className="truncate flex-1 text-left">{module.name}</span>
-                        {module.category && (
-                          <Chip size="sm" className="ml-2 shrink-0">
-                            {module.category}
-                          </Chip>
-                        )}
-                  </button>
-                ))}
-              </div>
-                ) : (
-                  <p className="text-sm text-md-on-surface-variant">
-                    {selectedCategory ? `No modules in "${selectedCategory}" category.` : 'No modules available.'}
-                  </p>
-                )}
-              </div>
-
-              {/* Module Templates Section */}
-              {templates.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-md-primary mb-3">Module Templates</h4>
-                  {filteredTemplates.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {filteredTemplates.map((template) => (
-                        <button
-                          key={template.id}
-                          onClick={() => handleApplyTemplate(template.id)}
-                          className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-on-primary focus:ring-md-primary elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
-                        >
-                          <Package className="h-4 w-4 mr-2 shrink-0" />
-                          <span className="truncate flex-1 text-left">{template.name}</span>
-                          <span className="ml-2 px-2 py-0.5 bg-md-primary/20 text-md-primary text-xs rounded-full shrink-0">
-                            {template.moduleInstances.length} {template.moduleInstances.length === 1 ? 'module' : 'modules'}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-md-on-surface-variant">
-                      {selectedCategory ? `No templates in "${selectedCategory}" category.` : 'No templates available.'}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {modules.length === 0 && templates.length === 0 && (
-                <div className="text-center py-8">
-                  <LayoutDashboard className="h-10 w-10 text-md-on-surface-variant mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-md-on-surface-variant">No modules available.</p>
-                  <p className="text-xs text-md-on-surface-variant mt-1">Create modules first to add them to quotes.</p>
-                </div>
-              )}
-            </Card>
+            <AddModuleCard
+              show={showAddModule}
+              allCategories={allCategories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              filteredModules={filteredModules}
+              filteredTemplates={filteredTemplates}
+              modulesCount={modules.length}
+              templatesCount={templates.length}
+              onAddModule={handleAddModule}
+              onApplyTemplate={handleApplyTemplate}
+              onClose={() => setShowAddModule(false)}
+            />
           )}
 
           {/* Empty State Card */}
@@ -1205,198 +1101,33 @@ export default function QuotesPage() {
 
           {/* Module Cards */}
           {currentQuote.workspaceModules.length > 0 && (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
+            <WorkspaceModulesList
+              modules={modules}
+              workspaceModules={currentQuote.workspaceModules}
+              collapsedModules={collapsedModules}
+              onToggleCollapse={toggleModuleCollapse}
+              onRemoveModule={removeWorkspaceModule}
+              onAddLineItem={(id) => {
+                addLineItem(id);
+                setAddedItems(new Set([...addedItems, id]));
+                setTimeout(() => {
+                  setAddedItems(new Set());
+                }, 2000);
+              }}
+              addedItems={addedItems}
               onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={currentQuote.workspaceModules.map(m => m.id)}
-                strategy={verticalListSortingStrategy}
-              >
-              {currentQuote.workspaceModules.map((instance) => {
-                  const moduleDef = modules.find((m) => m.id === instance.moduleId);
-                  if (!moduleDef) return null;
-
-                return (
-                    <SortableModuleCard
-                      key={instance.id} 
-                      instance={instance}
-                      module={moduleDef}
-                      isCollapsed={isModuleCollapsed(instance.id)}
-                      onToggleCollapse={toggleModuleCollapse}
-                      onRemove={removeWorkspaceModule}
-                      onAddToQuote={(id) => {
-                        addLineItem(id);
-                        setAddedItems(new Set([...addedItems, id]));
-                          setTimeout(() => {
-                            setAddedItems(new Set());
-                          }, 2000);
-                        }}
-                      addedItems={addedItems}
-                      renderFieldInput={renderFieldInput}
-                      gridClassName="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 items-start"
-                      borderClassName="border-border"
-                    />
-                );
-              })}
-              </SortableContext>
-            </DndContext>
+              renderFieldInput={renderFieldInput}
+            />
           )}
         </div>
 
         <div className="lg:col-span-1">
-          <Card 
-            elevation={1} 
-            className="sticky top-[88px] z-40" 
-            title="Quote Summary"
-          >
-            <div className="space-y-5">
-              {/* Financial Breakdown */}
-              <div className="space-y-3">
-                {/* Subtotal Row */}
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-md-on-surface-variant shrink-0">Subtotal</label>
-                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                    <span className="font-semibold text-md-on-surface tabular-nums text-sm">
-                      ${currentQuote.subtotal.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Markup % Input */}
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-md-on-surface-variant shrink-0">Markup (%)</label>
-                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      value={Math.round(currentQuote.markupPercent ?? 0).toString()}
-                      onChange={(e) => {
-                        const percent = Math.round(Number(e.target.value) || 0);
-                        setMarkupPercent(Math.max(0, percent));
-                      }}
-                      className="w-full text-right font-semibold text-md-on-surface tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
-                    />
-                  </div>
-                </div>
-
-                {/* Markup Amount Display (only if markup > 0) */}
-                {(currentQuote.markupPercent ?? 0) > 0 && (
-                  <div className="flex items-center justify-between gap-3">
-                    <label className="text-sm text-md-on-surface-variant shrink-0">Markup</label>
-                    <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                      <span className="font-semibold text-md-on-surface tabular-nums text-sm">
-                        ${(currentQuote.markupAmount ?? 0).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tax Rate % Input */}
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-md-on-surface-variant shrink-0">Tax Rate (%)</label>
-                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                    <input
-                      type="number"
-                      step="1"
-                      min="0"
-                      max="100"
-                      value={Math.round(currentQuote.taxRate * 100).toString()}
-                      onChange={(e) => {
-                        const rate = Math.round(Number(e.target.value) || 0) / 100;
-                        setTaxRate(Math.max(0, Math.min(1, rate)));
-                      }}
-                      className="w-full text-right font-semibold text-md-on-surface tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
-                    />
-                  </div>
-                </div>
-
-                {/* Tax Amount Display (only if tax rate > 0) */}
-                {(currentQuote.taxRate ?? 0) > 0 && (
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-md-on-surface-variant shrink-0">Tax</label>
-                  <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-                    <span className="font-semibold text-md-on-surface tabular-nums text-sm">
-                      ${currentQuote.taxAmount.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-                )}
-              </div>
-
-              {/* Total */}
-              <div className="pt-4 border-t border-border">
-                <div className="flex justify-between items-baseline p-4 -mx-2">
-                  <span className="text-base font-bold text-md-on-surface">Total</span>
-                  <span className="text-3xl font-bold text-md-primary tabular-nums tracking-tight">
-                    ${currentQuote.total.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Line Items */}
-              <div className="pt-5 border-t border-border">
-                <h4 className="text-sm font-semibold text-md-primary mb-3">Line Items</h4>
-                <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
-                  {currentQuote.lineItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="group flex items-start justify-between gap-3 p-3 rounded-lg transition-smooth"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-md-on-surface text-sm mb-0.5 truncate">
-                          {item.moduleName}
-                        </div>
-                        <div className="text-md-on-surface-variant text-xs truncate">
-                          {item.fieldSummary}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="font-semibold text-md-on-surface text-sm tabular-nums">
-                          ${item.cost.toFixed(2)}
-                        </span>
-                        <button
-                          onClick={() => removeLineItem(item.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-md-error/10 rounded-md text-destructive"
-                          title="Remove item"
-                          aria-label={`Remove line item: ${item.moduleName}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {currentQuote.lineItems.length === 0 && (
-                    <div className="text-center py-8">
-                      <Calculator className="h-8 w-8 text-md-on-surface-variant mx-auto mb-2 opacity-50" />
-                      <p className="text-xs text-md-on-surface-variant">
-                        No items in quote yet.
-                      </p>
-                      <p className="text-xs text-md-on-surface-variant mt-1">
-                        Configure modules and click &quot;Add to Quote&quot;
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="pt-5 border-t border-border">
-                <Button
-                  variant="primary"
-                  className="w-full rounded-full"
-                  onClick={() => {
-                    alert('Send Quote functionality would integrate with your email/CRM system.');
-                  }}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Quote
-                </Button>
-              </div>
-            </div>
-          </Card>
+          <QuoteSummaryCard
+            quote={currentQuote}
+            setMarkupPercent={setMarkupPercent}
+            setTaxRate={setTaxRate}
+            removeLineItem={removeLineItem}
+          />
         </div>
       </div>
 
