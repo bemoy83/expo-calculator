@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/Card';
@@ -11,11 +11,8 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
-import { QuoteModuleInstance, FieldType, CalculationModule, Field } from '@/lib/types';
+import { QuoteModuleInstance, FieldType, Field } from '@/lib/types';
 import { normalizeToBase, convertFromBase } from '@/lib/units';
-import { evaluateFormula } from '@/lib/formula-evaluator';
-import { generateId } from '@/lib/utils';
-import { canLinkFields, resolveFieldLinks } from '@/lib/utils/field-linking';
 import { Plus, X, Trash2, AlertCircle, Link2, Unlink, CheckCircle2 } from 'lucide-react';
 import { FieldHeader, FieldDescription } from '@/components/module-editor/FieldHeader';
 import {
@@ -28,24 +25,19 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { SortableModuleCard } from '@/components/SortableModuleCard';
 
+import { SortableModuleCard } from '@/components/SortableModuleCard';
+import { Textarea } from '@/components/ui/Textarea';
+import { useTemplateEditor } from '@/hooks/use-template-editor';
 interface TemplateEditorClientProps {
   templateId: string;
 }
 
 export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   // ⚠️ ALL HOOKS MUST BE CALLED UNCONDITIONALLY ⚠️
   // Call all hooks before any conditional returns to ensure hooks order stability
   const router = useRouter();
@@ -62,9 +54,32 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
   // Derive template after hooks are called unconditionally
   const template = templateId === 'new' ? null : getTemplate(templateId);
 
-  const [templateName, setTemplateName] = useState('');
-  const [templateDescription, setTemplateDescription] = useState('');
-  const [workspaceModules, setWorkspaceModules] = useState<QuoteModuleInstance[]>([]);
+  const {
+    templateName,
+    setTemplateName,
+    templateDescription,
+    setTemplateDescription,
+    workspaceModules,
+    addModuleInstance,
+    removeModuleInstance,
+    reorderModules,
+    updateFieldValue,
+    isFieldLinked,
+    getResolvedValue,
+    isLinkBroken,
+    getLinkDisplayName,
+    buildLinkOptions,
+    getCurrentLinkValue,
+    linkField: linkFieldFromHook,
+    unlinkField,
+    serializeForSave,
+  } = useTemplateEditor({
+    templateId,
+    template: template || null,
+    modules,
+    materials,
+  });
+
   const [collapsedModules, setCollapsedModules] = useState<Set<string>>(new Set());
   const [showAddModule, setShowAddModule] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -73,242 +88,13 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
   // Success toast state
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
 
-  // Recalculate module costs
-  const recalculateModules = useCallback((modulesToRecalc: QuoteModuleInstance[]) => {
-    // Resolve field links first
-    const resolvedValues = resolveFieldLinks(modulesToRecalc);
-    
-    const updated = modulesToRecalc.map((instance) => {
-      const moduleDef = modules.find((m) => m.id === instance.moduleId);
-      if (!moduleDef) return instance;
-
-      try {
-        // Use resolved values (handles linked fields)
-        const resolved = resolvedValues[instance.id] || instance.fieldValues;
-        const result = evaluateFormula(moduleDef.formula, {
-          fieldValues: resolved,
-          materials,
-          fields: moduleDef.fields.map(f => ({
-            variableName: f.variableName,
-            type: f.type,
-            materialCategory: f.materialCategory,
-          })),
-        });
-
-        return {
-          ...instance,
-          calculatedCost: result,
-        };
-      } catch (error) {
-        return {
-          ...instance,
-          calculatedCost: 0,
-        };
-      }
-    });
-
-    setWorkspaceModules(updated);
-  }, [modules, materials]);
-
-  // Initialize template data
-  useEffect(() => {
-    // Handle new template mode
-    if (templateId === 'new') {
-      setTemplateName('');
-      setTemplateDescription('');
-      setWorkspaceModules([]);
-      return;
-    }
-
-    if (!template) {
-      router.push('/templates');
-      return;
-    }
-
-    setTemplateName(template.name);
-    setTemplateDescription(template.description || '');
-
-    // Convert template.moduleInstances to QuoteModuleInstance[]
-    // Convert field links from index-based format to new instance IDs
-    const initialModules: QuoteModuleInstance[] = [];
-    const instanceIdMap = new Map<number, string>(); // Map template index -> new instance ID
-    
-    // First pass: create all instances and build ID map
-    template.moduleInstances.forEach((instance, index) => {
-      const moduleDef = modules.find(m => m.id === instance.moduleId);
-      if (!moduleDef) {
-        // Module deleted - skip with warning
-        return;
-      }
-
-      // Initialize field values with defaults
-      const fieldValues: Record<string, string | number | boolean> = {};
-      moduleDef.fields.forEach((field) => {
-        if (field.variableName) {
-          if (field.defaultValue !== undefined) {
-            fieldValues[field.variableName] = field.defaultValue;
-          } else {
-            switch (field.type) {
-              case 'number':
-                fieldValues[field.variableName] = '';
-                break;
-              case 'boolean':
-                fieldValues[field.variableName] = false;
-                break;
-              case 'dropdown':
-                fieldValues[field.variableName] = '';
-                break;
-              case 'material':
-                // If category exists, preselect first matching material
-                let candidateMaterials = materials;
-                if (field.materialCategory && field.materialCategory.trim()) {
-                  candidateMaterials = materials.filter(m => m.category === field.materialCategory);
-                }
-                if (candidateMaterials.length > 0) {
-                  fieldValues[field.variableName] = candidateMaterials[0].variableName;
-                } else {
-                  fieldValues[field.variableName] = '';
-                }
-                break;
-              case 'text':
-                fieldValues[field.variableName] = '';
-                break;
-            }
-          }
-        }
-      });
-
-      const newInstanceId = generateId();
-      instanceIdMap.set(index, newInstanceId);
-
-      initialModules.push({
-        id: newInstanceId,
-        moduleId: instance.moduleId,
-        fieldValues,
-        fieldLinks: {}, // Will be populated in second pass
-        calculatedCost: 0,
-      });
-    });
-
-    // Second pass: restore field links by converting index-based format to instance IDs
-    template.moduleInstances.forEach((templateInstance, sourceIndex) => {
-      const sourceInstanceId = instanceIdMap.get(sourceIndex);
-      if (!sourceInstanceId || !templateInstance.fieldLinks) return;
-
-      const sourceInstance = initialModules.find(m => m.id === sourceInstanceId);
-      if (!sourceInstance) return;
-
-      const restoredLinks: Record<string, { moduleInstanceId: string; fieldVariableName: string }> = {};
-
-      Object.entries(templateInstance.fieldLinks).forEach(([fieldName, link]) => {
-        // Check if link uses index-based format
-        if (link.moduleInstanceId.startsWith('__index_')) {
-          const indexStr = link.moduleInstanceId.replace('__index_', '').replace('__', '');
-          const targetIndex = parseInt(indexStr, 10);
-          if (!isNaN(targetIndex) && targetIndex >= 0 && targetIndex < template.moduleInstances.length) {
-            const targetInstanceId = instanceIdMap.get(targetIndex);
-            if (targetInstanceId) {
-              restoredLinks[fieldName] = {
-                moduleInstanceId: targetInstanceId,
-                fieldVariableName: link.fieldVariableName,
-              };
-            }
-          }
-        }
-      });
-
-      if (Object.keys(restoredLinks).length > 0) {
-        sourceInstance.fieldLinks = restoredLinks;
-      }
-    });
-
-    setWorkspaceModules(initialModules);
-    recalculateModules(initialModules);
-  }, [template, templateId, modules, materials, router, recalculateModules]);
-
-  // Update field value
-  const updateFieldValue = useCallback((instanceId: string, fieldName: string, value: string | number | boolean) => {
-    setWorkspaceModules((prev) => {
-      const updated = prev.map((instance) =>
-        instance.id === instanceId
-          ? {
-              ...instance,
-              fieldValues: {
-                ...instance.fieldValues,
-                [fieldName]: value,
-              },
-            }
-          : instance
-      );
-      recalculateModules(updated);
-      return updated;
-    });
-  }, [recalculateModules]);
-
-  // Add module
   const handleAddModule = useCallback((moduleId: string) => {
-    const moduleDef = modules.find((m) => m.id === moduleId);
-    if (!moduleDef) return;
+    addModuleInstance(moduleId);
+  }, [addModuleInstance]);
 
-    // Initialize field values with defaults
-    const fieldValues: Record<string, string | number | boolean> = {};
-    moduleDef.fields.forEach((field) => {
-      if (field.variableName) {
-        if (field.defaultValue !== undefined) {
-          fieldValues[field.variableName] = field.defaultValue;
-        } else {
-          switch (field.type) {
-            case 'number':
-              fieldValues[field.variableName] = '';
-              break;
-            case 'boolean':
-              fieldValues[field.variableName] = false;
-              break;
-            case 'dropdown':
-              fieldValues[field.variableName] = '';
-              break;
-            case 'material':
-              let candidateMaterials = materials;
-              if (field.materialCategory && field.materialCategory.trim()) {
-                candidateMaterials = materials.filter(m => m.category === field.materialCategory);
-              }
-              if (candidateMaterials.length > 0) {
-                fieldValues[field.variableName] = candidateMaterials[0].variableName;
-              } else {
-                fieldValues[field.variableName] = '';
-              }
-              break;
-            case 'text':
-              fieldValues[field.variableName] = '';
-              break;
-          }
-        }
-      }
-    });
-
-    const newInstance: QuoteModuleInstance = {
-      id: generateId(),
-      moduleId,
-      fieldValues,
-      fieldLinks: {},
-      calculatedCost: 0,
-    };
-
-    setWorkspaceModules((prev) => {
-      const updated = [...prev, newInstance];
-      recalculateModules(updated);
-      return updated;
-    });
-  }, [modules, materials, recalculateModules]);
-
-  // Remove module
   const handleRemoveModule = useCallback((instanceId: string) => {
-    setWorkspaceModules((prev) => {
-      const updated = prev.filter((m) => m.id !== instanceId);
-      recalculateModules(updated);
-      return updated;
-    });
-  }, [recalculateModules]);
+    removeModuleInstance(instanceId);
+  }, [removeModuleInstance]);
 
   // Toggle collapse
   const toggleModuleCollapse = useCallback((instanceId: string) => {
@@ -343,165 +129,10 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
-    // Validate drag end conditions
-    if (!over || active.id === over.id) return;
-
-    // Find indices with validation
-    const oldIndex = workspaceModules.findIndex((m) => m.id === active.id);
-    const newIndex = workspaceModules.findIndex((m) => m.id === over.id);
-    
-    // Only proceed if both indices are valid
-    if (oldIndex === -1 || newIndex === -1) return;
-    
-    // Reorder modules
-    const reordered = arrayMove(workspaceModules, oldIndex, newIndex);
-    
-    // Recalculate will update state with reordered array and recalculated costs
-    // This avoids double state updates
-    recalculateModules(reordered);
+    reorderModules(String(active.id), over ? String(over.id) : null, sortableItems);
   };
 
-  // Link management functions
-  const linkField = useCallback((instanceId: string, fieldName: string, targetInstanceId: string, targetFieldName: string) => {
-    // Validate the link
-    const validation = canLinkFields(workspaceModules, modules, instanceId, fieldName, targetInstanceId, targetFieldName);
-    if (!validation.valid) {
-      return validation;
-    }
-
-    // Update the field link
-    setWorkspaceModules((prev) => {
-      const updated = prev.map((instance) =>
-        instance.id === instanceId
-          ? {
-              ...instance,
-              fieldLinks: {
-                ...(instance.fieldLinks || {}),
-                [fieldName]: {
-                  moduleInstanceId: targetInstanceId,
-                  fieldVariableName: targetFieldName,
-                },
-              },
-            }
-          : instance
-      );
-      recalculateModules(updated);
-      return updated;
-    });
-
-    return { valid: true };
-  }, [workspaceModules, modules, recalculateModules]);
-
-  const unlinkField = useCallback((instanceId: string, fieldName: string) => {
-    setWorkspaceModules((prev) => {
-      const updated = prev.map((instance) =>
-        instance.id === instanceId
-          ? {
-              ...instance,
-              fieldLinks: (() => {
-                const links = { ...(instance.fieldLinks || {}) };
-                delete links[fieldName];
-                return Object.keys(links).length > 0 ? links : undefined;
-              })(),
-            }
-          : instance
-      );
-      recalculateModules(updated);
-      return updated;
-    });
-  }, [recalculateModules]);
-
   // Helper functions for link UI
-  const isFieldLinked = useCallback((instance: QuoteModuleInstance, fieldName: string): boolean => {
-    return !!(instance.fieldLinks && instance.fieldLinks[fieldName]);
-  }, []);
-
-  const getResolvedValue = useCallback((instance: QuoteModuleInstance, fieldName: string): any => {
-    const link = instance.fieldLinks?.[fieldName];
-    if (!link) return instance.fieldValues[fieldName];
-    
-    const targetInstance = workspaceModules.find((m) => m.id === link.moduleInstanceId);
-    if (!targetInstance) return instance.fieldValues[fieldName];
-    
-    return targetInstance.fieldValues[link.fieldVariableName];
-  }, [workspaceModules]);
-
-  const isLinkBroken = useCallback((instance: QuoteModuleInstance, fieldName: string): boolean => {
-    const link = instance.fieldLinks?.[fieldName];
-    if (!link) return false;
-    
-    const targetInstance = workspaceModules.find((m) => m.id === link.moduleInstanceId);
-    if (!targetInstance) return true;
-    
-    const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
-    if (!targetModule) return true;
-    
-    const targetField = targetModule.fields.find((f) => f.variableName === link.fieldVariableName);
-    if (!targetField) return true;
-    
-    return false;
-  }, [workspaceModules, modules]);
-
-  const getLinkDisplayName = useCallback((instance: QuoteModuleInstance, fieldName: string): string => {
-    const link = instance.fieldLinks?.[fieldName];
-    if (!link) return '';
-    
-    const targetInstance = workspaceModules.find((m) => m.id === link.moduleInstanceId);
-    if (!targetInstance) return 'source unavailable';
-    
-    const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
-    if (!targetModule) return 'source unavailable';
-    
-    const targetField = targetModule.fields.find((f) => f.variableName === link.fieldVariableName);
-    if (!targetField) return 'source unavailable';
-    
-    return `${targetModule.name} — ${targetField.label}`;
-  }, [workspaceModules, modules]);
-
-  const buildLinkOptions = useCallback((instance: QuoteModuleInstance, field: { variableName: string; type: FieldType }) => {
-    const options: Array<{ value: string; label: string }> = [
-      { value: 'none', label: 'None' },
-    ];
-    
-    // Group by module
-    workspaceModules.forEach((otherInstance) => {
-      if (otherInstance.id === instance.id) return; // Skip self
-      
-      const otherModule = modules.find((m) => m.id === otherInstance.moduleId);
-      if (!otherModule) return;
-      
-      // Add separator
-      options.push({ value: `sep-${otherInstance.id}`, label: `--- ${otherModule.name} ---` });
-      
-      // Add fields from this module (only compatible ones)
-      otherModule.fields.forEach((otherField) => {
-        // Skip material fields (cannot be linked per spec)
-        if (otherField.type === 'material') return;
-        
-        // Skip self-link
-        if (otherInstance.id === instance.id && otherField.variableName === field.variableName) return;
-        
-        // Check compatibility - only add compatible options
-        const validation = canLinkFields(workspaceModules, modules, instance.id, field.variableName, otherInstance.id, otherField.variableName);
-        if (validation.valid) {
-          options.push({
-            value: `${otherInstance.id}.${otherField.variableName}`,
-            label: otherField.label,
-          });
-        }
-      });
-    });
-    
-    return options;
-  }, [workspaceModules, modules]);
-
-  const getCurrentLinkValue = useCallback((instance: QuoteModuleInstance, fieldName: string): string => {
-    const link = instance.fieldLinks?.[fieldName];
-    if (!link) return 'none';
-    return `${link.moduleInstanceId}.${link.fieldVariableName}`;
-  }, []);
-
   // Helper to toggle link UI expansion
   const toggleLinkUI = useCallback((instanceId: string, fieldName: string) => {
     setLinkUIOpen((prev) => ({
@@ -546,14 +177,14 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
     const [targetInstanceId, targetFieldName] = value.split('.');
     if (!targetInstanceId || !targetFieldName) return;
     
-    const result = linkField(instance.id, fieldName, targetInstanceId, targetFieldName);
+    const result = linkFieldFromHook(instance.id, fieldName, targetInstanceId, targetFieldName);
     if (!result.valid && result.error) {
       alert(result.error);
     } else {
       // Collapse UI after successful linking
       closeLinkUI(instance.id, fieldName);
     }
-  }, [linkField, unlinkField, closeLinkUI]);
+  }, [linkFieldFromHook, unlinkField, closeLinkUI]);
 
   // Helper to handle unlink
   const handleUnlink = useCallback((instanceId: string, fieldName: string) => {
@@ -563,65 +194,26 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
   // Save template
   const handleSaveTemplate = () => {
-    // Build a map of instance IDs to indices for link conversion
-    const instanceIdToIndex = new Map<string, number>();
-    workspaceModules.forEach((instance, index) => {
-      instanceIdToIndex.set(instance.id, index);
-    });
-
-    // Convert workspaceModules back to template format
-    // Convert field links from instance IDs to index-based format
-    const moduleInstances = workspaceModules.map((instance) => {
-      const convertedLinks: Record<string, { moduleInstanceId: string; fieldVariableName: string }> = {};
-      
-      if (instance.fieldLinks) {
-        Object.entries(instance.fieldLinks).forEach(([fieldName, link]) => {
-          const targetIndex = instanceIdToIndex.get(link.moduleInstanceId);
-          if (targetIndex !== undefined) {
-            // Convert to index-based format for template storage
-            convertedLinks[fieldName] = {
-              moduleInstanceId: `__index_${targetIndex}__`,
-              fieldVariableName: link.fieldVariableName,
-            };
-          }
-        });
-      }
-
-      return {
-        moduleId: instance.moduleId,
-        fieldLinks: Object.keys(convertedLinks).length > 0 ? convertedLinks : undefined,
-      };
-    });
-
-    // Derive categories from module definitions
-    const categories = Array.from(
-      new Set(
-        workspaceModules
-          .map((instance) => {
-            const moduleDef = modules.find((m) => m.id === instance.moduleId);
-            return moduleDef?.category;
-          })
-          .filter(Boolean) as string[]
-      )
-    );
+    const payload = serializeForSave();
 
     // Create new template or update existing
     if (templateId === 'new') {
       addTemplate({
-        name: templateName.trim() || 'New Template',
-        description: templateDescription.trim() || undefined,
-        moduleInstances,
-        categories,
+        name: payload.name || 'New Template',
+        description: payload.description,
+        moduleInstances: payload.moduleInstances,
+        categories: payload.categories,
       });
     } else if (template) {
       updateTemplate(templateId, {
-        name: templateName.trim(),
-        description: templateDescription.trim() || undefined,
-        moduleInstances,
-        categories,
+        name: payload.name,
+        description: payload.description,
+        moduleInstances: payload.moduleInstances,
+        categories: payload.categories,
       });
     }
 
+    setSaveSuccessMessage(payload.name || 'New Template');
     router.push('/templates');
   };
 
@@ -1166,12 +758,6 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
   ]);
 
   // ⚠️ ALL HOOKS MUST BE ABOVE THIS LINE ⚠️
-  // Prevent hydration mismatch - return null until client mount
-  // This must be AFTER all hooks are called
-  if (!mounted) {
-    return null;
-  }
-
   // Early return AFTER all hooks to ensure hooks order stability
   // Allow 'new' template mode, but redirect if templateId is invalid (not 'new' and template doesn't exist)
   if (templateId !== 'new' && !template) {
@@ -1223,11 +809,12 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
             onChange={(e) => setTemplateName(e.target.value)}
             placeholder="Enter template name"
           />
-          <Input
+          <Textarea
             label="Description (optional)"
             value={templateDescription}
             onChange={(e) => setTemplateDescription(e.target.value)}
             placeholder="Enter template description"
+            rows={3}
           />
         </div>
       </Card>
@@ -1443,4 +1030,3 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
     </Layout>
   );
 }
-

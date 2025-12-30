@@ -57,7 +57,7 @@ export function ModuleDetailsCard({
           placeholder="e.g., Floor Area Calculator"
         />
         <Textarea
-          label="Description"
+          label="Description (optional)"
           value={formData.description}
           onChange={(e) => onFormDataChange({ description: e.target.value })}
           rows={3}
