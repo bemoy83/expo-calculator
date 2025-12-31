@@ -1,19 +1,16 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Checkbox } from '@/components/ui/Checkbox';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
-import { QuoteModuleInstance, FieldType, Field } from '@/lib/types';
-import { normalizeToBase, convertFromBase } from '@/lib/units';
-import { Plus, X, Trash2, AlertCircle, Link2, Unlink, CheckCircle2 } from 'lucide-react';
+import { QuoteModuleInstance, Field } from '@/lib/types';
+import { Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { DragEndEvent } from '@dnd-kit/core';
 import { Textarea } from '@/components/ui/Textarea';
 import { useTemplateEditor } from '@/hooks/use-template-editor';
@@ -95,12 +92,6 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
       return next;
     });
   }, []);
-
-  // Memoize sortable items array to prevent unnecessary re-renders
-  const sortableItems = useMemo(
-    () => workspaceModules.map(m => m.id),
-    [workspaceModules]
-  );
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -197,540 +188,57 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
     router.push('/templates');
   };
 
-  // Render field input (with linking UI - Phase 2)
-  const renderFieldInput = useCallback((
-    instance: QuoteModuleInstance,
-    field: Field
-  ) => {
-    const isLinked = isFieldLinked(instance, field.variableName);
-    const displayValue = isLinked ? getResolvedValue(instance, field.variableName) : instance.fieldValues[field.variableName];
-    const value = displayValue;
+  const renderFieldInput = useCallback(
+    (instance: QuoteModuleInstance, field: Field) => {
+      const isLinked = isFieldLinked(instance, field.variableName);
+      const displayValue = isLinked
+        ? getResolvedValue(instance, field.variableName)
+        : instance.fieldValues[field.variableName];
 
-    // Material fields cannot be linked (per spec)
-    const canLink = field.type !== 'material';
-
-    const formatLabel = (label: string, unit?: string, unitSymbol?: string) => {
-      if (unitSymbol) return `${label} (${unitSymbol})`;
-      if (unit) return `${label} (${unit})`;
-      return label;
-    };
-
-    switch (field.type) {
-      case 'number': {
-        // For unit-aware fields, convert from base to display unit for input
-        // Store values are always base-normalized
-        let displayValue: number;
-        if (field.unitSymbol && typeof value === 'number') {
-          displayValue = convertFromBase(value, field.unitSymbol);
-        } else {
-          displayValue = typeof value === 'number' ? value : (value === '' ? 0 : Number(value) || 0);
-        }
-        
-        const linkUIOpenForField = isLinkUIOpen(instance.id, field.variableName);
-
-        return (
-          <div>
-            <FieldHeader
-              label={field.label}
-              unit={field.unit}
-              unitSymbol={field.unitSymbol}
-              required={field.required}
-              showLink={canLink}
-              isLinked={isLinked}
-              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-            />
-            
-            {/* Fixed height container for input to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Input
-                type="number"
-                value={isNaN(displayValue) ? '' : displayValue.toString()}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  const inputValue = e.target.value === '' ? '' : Number(e.target.value) || 0;
-                  // Convert to base unit if field has unitSymbol
-                  const baseValue = field.unitSymbol && typeof inputValue === 'number'
-                    ? normalizeToBase(inputValue, field.unitSymbol)
-                    : inputValue;
-                  updateFieldValue(instance.id, field.variableName, baseValue);
-                }}
-                required={field.required}
-                disabled={isLinked}
-                className="w-full"
-              />
-            </div>
-            
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            
-            {/* Linked state UI */}
-            {isLinked && (() => {
-              const broken = isLinkBroken(instance, field.variableName);
-              return (
-                <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
-                  {broken ? (
-                    <X className="h-3.5 w-3.5 text-md-error shrink-0" />
-                  ) : (
-                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
-                  )}
-                  <span className={`text-xs flex-1 ${
-                    broken ? 'text-md-error' : 'text-md-primary'
-                  }`}>
-                    {broken 
-                      ? 'Link broken: source unavailable'
-                      : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                    }
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
-                  >
-                    <Unlink className="h-3 w-3 mr-1" />
-                    {broken ? 'Remove Link' : 'Unlink'}
-                  </Button>
-                </div>
-              );
-            })()}
-            
-            {/* Link dropdown (only when expanded and not linked) */}
-            {canLink && !isLinked && linkUIOpenForField && (
-              <div className="mt-2">
-                <Select
-                  label="Link value from"
-                  value={getCurrentLinkValue(instance, field.variableName)}
-                  onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                  options={buildLinkOptions(instance, field)}
-                />
-              </div>
-            )}
-          </div>
-        );
-      }
-      case 'boolean': {
-        const linkUIOpenForBoolean = isLinkUIOpen(instance.id, field.variableName);
-        
-        return (
-          <div>
-            <FieldHeader
-              label={field.label}
-              unit={field.unit}
-              unitSymbol={field.unitSymbol}
-              required={field.required}
-              showLink={canLink}
-              isLinked={isLinked}
-              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-            />
-            
-            {/* Fixed height container for checkbox to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Checkbox
-                label=""
-                checked={Boolean(value)}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  updateFieldValue(instance.id, field.variableName, e.target.checked);
-                }}
-                disabled={isLinked}
-              />
-            </div>
-            
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            
-            {/* Linked state UI */}
-            {isLinked && (() => {
-              const broken = isLinkBroken(instance, field.variableName);
-              return (
-                <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
-                  {broken ? (
-                    <X className="h-3.5 w-3.5 text-md-error shrink-0" />
-                  ) : (
-                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
-                  )}
-                  <span className={`text-xs flex-1 ${
-                    broken ? 'text-md-error' : 'text-md-primary'
-                  }`}>
-                    {broken 
-                      ? 'Link broken: source unavailable'
-                      : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                    }
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
-                  >
-                    <Unlink className="h-3 w-3 mr-1" />
-                    {broken ? 'Remove Link' : 'Unlink'}
-                  </Button>
-          </div>
-        );
-            })()}
-            
-            {/* Link dropdown (only when expanded and not linked) */}
-            {canLink && !isLinked && linkUIOpenForBoolean && (
-              <div className="mt-2">
-                <Select
-                  label="Link value from"
-                  value={getCurrentLinkValue(instance, field.variableName)}
-                  onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                  options={buildLinkOptions(instance, field)}
-                />
-              </div>
-            )}
-          </div>
-        );
-      }
-      case 'dropdown': {
-        const options = field.options || [];
-        const linkUIOpenForDropdown = isLinkUIOpen(instance.id, field.variableName);
-
-        // Numeric dropdown mode: treat options as numeric values with units
-        if (field.dropdownMode === 'numeric' && field.unitSymbol) {
-          // Create display labels with units appended
-          const displayOptions = options.map(opt => {
-            const numValue = Number(opt.trim());
-            if (!isNaN(numValue)) {
-              return `${opt.trim()} ${field.unitSymbol}`;
+      const linkProps =
+        field.type !== 'material'
+          ? {
+              canLink: true,
+              isLinked,
+              isLinkBroken: isLinkBroken(instance, field.variableName),
+              linkDisplayName: getLinkDisplayName(instance, field.variableName),
+              linkUIOpen: isLinkUIOpen(instance.id, field.variableName),
+              currentLinkValue: getCurrentLinkValue(instance, field.variableName),
+              linkOptions: buildLinkOptions(instance, field),
+              onToggleLink: () => toggleLinkUI(instance.id, field.variableName),
+              onLinkChange: (value: string) => handleLinkChange(instance, field.variableName, value),
+              onUnlink: () => handleUnlink(instance.id, field.variableName),
             }
-            return opt; // Fallback for non-numeric options
-          });
+          : undefined;
 
-          // Find current selection by matching base-normalized value
-          let currentDisplayValue = '';
-          if (typeof value === 'number') {
-            // Convert stored base value back to display unit
-            const displayValue = convertFromBase(value, field.unitSymbol);
-            // Find matching option (with tolerance for floating point)
-            const matchingIndex = options.findIndex(opt => {
-              const optNum = Number(opt.trim());
-              return !isNaN(optNum) && Math.abs(optNum - displayValue) < 0.0001;
-            });
-            if (matchingIndex >= 0) {
-              currentDisplayValue = displayOptions[matchingIndex];
-            } else {
-              // Format the value if no exact match
-              currentDisplayValue = `${displayValue} ${field.unitSymbol}`;
-            }
-          } else {
-            currentDisplayValue = value?.toString() || '';
-          }
-
-          return (
-            <div>
-              <FieldHeader
-                label={field.label}
-                unit={field.unit}
-                unitSymbol={field.unitSymbol}
-                required={field.required}
-                showLink={canLink}
-                isLinked={isLinked}
-                onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              />
-              
-              {/* Fixed height container for select to ensure alignment */}
-              <div className="h-[46px] flex items-center">
-                <Select
-                  label=""
-                  value={currentDisplayValue}
-                  onChange={(e) => {
-                    if (isLinked) return; // Prevent changes when linked
-                    const selectedDisplay = e.target.value;
-                    // Extract numeric value from display string (e.g., "40 cm" -> 40)
-                    const match = selectedDisplay.match(/^([\d.]+)/);
-                    if (match && field.unitSymbol) {
-                      const numValue = Number(match[1]);
-                      if (!isNaN(numValue)) {
-                        // Convert to base unit and store as number
-                        const baseValue = normalizeToBase(numValue, field.unitSymbol);
-                        updateFieldValue(instance.id, field.variableName, baseValue);
-                      }
-                    }
-                  }}
-                  options={[
-                    { value: '', label: 'Select...' },
-                    ...displayOptions.map((displayOpt) => ({
-                      value: displayOpt,
-                      label: displayOpt,
-                    })),
-                  ]}
-                  disabled={isLinked}
-                  className="w-full"
-                />
-              </div>
-              
-              {/* Description below input */}
-              <FieldDescription description={field.description} />
-              
-              {/* Linked state UI */}
-              {isLinked && (() => {
-                const broken = isLinkBroken(instance, field.variableName);
-                return (
-                  <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
-                    {broken ? (
-                      <X className="h-3.5 w-3.5 text-md-error shrink-0" />
-                    ) : (
-                      <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
-                    )}
-                    <span className={`text-xs flex-1 ${
-                      broken ? 'text-md-error' : 'text-md-primary'
-                    }`}>
-                      {broken 
-                        ? 'Link broken: source unavailable'
-                        : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                      }
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleUnlink(instance.id, field.variableName)}
-                      className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
-                    >
-                      <Unlink className="h-3 w-3 mr-1" />
-                      {broken ? 'Remove Link' : 'Unlink'}
-                    </Button>
-                  </div>
-                );
-              })()}
-              
-              {/* Link dropdown (only when expanded and not linked) */}
-              {canLink && !isLinked && linkUIOpenForDropdown && (
-                <div className="mt-2">
-                  <Select
-                    label="Link value from"
-                    value={getCurrentLinkValue(instance, field.variableName)}
-                    onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                    options={buildLinkOptions(instance, field)}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        }
-
-        // String dropdown mode: original behavior
-          return (
-            <div>
-              <FieldHeader
-                label={field.label}
-                unit={field.unit}
-                unitSymbol={field.unitSymbol}
-                required={field.required}
-                showLink={canLink}
-                isLinked={isLinked}
-                onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              />
-            
-            {/* Fixed height container for select to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Select
-                label=""
-                value={value?.toString() || ''}
-                onChange={(e) => {
-                    if (isLinked) return; // Prevent changes when linked
-                  updateFieldValue(instance.id, field.variableName, e.target.value);
-                }}
-                options={[
-                  { value: '', label: 'Select...' },
-                  ...options.map((opt) => ({ value: opt, label: opt })),
-                ]}
-                disabled={isLinked}
-                className="w-full"
-              />
-            </div>
-            
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            
-            {/* Linked state UI */}
-            {isLinked && (() => {
-              const broken = isLinkBroken(instance, field.variableName);
-              return (
-                <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
-                  {broken ? (
-                    <X className="h-3.5 w-3.5 text-md-error shrink-0" />
-                  ) : (
-                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
-                  )}
-                  <span className={`text-xs flex-1 ${
-                    broken ? 'text-md-error' : 'text-md-primary'
-                  }`}>
-                    {broken 
-                      ? 'Link broken: source unavailable'
-                      : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                    }
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
-                  >
-                    <Unlink className="h-3 w-3 mr-1" />
-                    {broken ? 'Remove Link' : 'Unlink'}
-                  </Button>
-                </div>
-              );
-            })()}
-            
-            {/* Link dropdown (only when expanded and not linked) */}
-            {canLink && !isLinked && linkUIOpenForDropdown && (
-              <div className="mt-2">
-                <Select
-                  label="Link value from"
-                  value={getCurrentLinkValue(instance, field.variableName)}
-                  onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                  options={buildLinkOptions(instance, field)}
-                />
-              </div>
-            )}
-          </div>
-        );
-      }
-      case 'material': {
-        const materialCategory = field.materialCategory;
-        let availableMaterials = materials;
-
-        if (materialCategory && materialCategory.trim()) {
-          availableMaterials = materials.filter((mat) => mat.category === materialCategory);
-        }
-
-        const sortedMaterials = availableMaterials.sort((a, b) => a.name.localeCompare(b.name));
-
-        return (
-          <div>
-            <FieldHeader
-              label={field.label}
-              unit={field.unit}
-              unitSymbol={field.unitSymbol}
-              required={field.required}
-            />
-            {/* Fixed height container for select to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Select
-                label=""
-                value={value?.toString() || ''}
-                onChange={(e) => {
-                  updateFieldValue(instance.id, field.variableName, e.target.value);
-                }}
-                options={[
-                  { value: '', label: 'Select a material...' },
-                  ...sortedMaterials.map((mat) => ({
-                    value: mat.variableName,
-                    label: `${mat.name} - $${mat.price.toFixed(2)}/${mat.unit}`,
-                  })),
-                ]}
-                className="w-full"
-              />
-            </div>
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            {materialCategory && sortedMaterials.length === 0 && (
-              <p className="text-xs text-md-on-surface-variant mt-1">
-                No materials available in category &quot;{materialCategory}&quot;.
-              </p>
-            )}
-          </div>
-        );
-      }
-      case 'text': {
-        const linkUIOpenForText = isLinkUIOpen(instance.id, field.variableName);
-        
-        return (
-          <div>
-            <FieldHeader
-              label={field.label}
-              unit={field.unit}
-              unitSymbol={field.unitSymbol}
-              required={field.required}
-              showLink={canLink}
-              isLinked={isLinked}
-              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-            />
-            
-            {/* Fixed height container for input to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Input
-                label=""
-                value={value?.toString() || ''}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  updateFieldValue(instance.id, field.variableName, e.target.value);
-                }}
-                required={field.required}
-                disabled={isLinked}
-                className="w-full"
-              />
-            </div>
-            
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            
-            {/* Linked state UI */}
-            {isLinked && (() => {
-              const broken = isLinkBroken(instance, field.variableName);
-              return (
-                <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
-                  {broken ? (
-                    <X className="h-3.5 w-3.5 text-md-error shrink-0" />
-                  ) : (
-                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
-                  )}
-                  <span className={`text-xs flex-1 ${
-                    broken ? 'text-md-error' : 'text-md-primary'
-                  }`}>
-                    {broken 
-                      ? 'Link broken: source unavailable'
-                      : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                    }
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface"
-                  >
-                    <Unlink className="h-3 w-3 mr-1" />
-                    {broken ? 'Remove Link' : 'Unlink'}
-                  </Button>
-          </div>
-        );
-            })()}
-            
-            {/* Link dropdown (only when expanded and not linked) */}
-            {canLink && !isLinked && linkUIOpenForText && (
-              <div className="mt-2">
-                <Select
-                  label="Link value from"
-                  value={getCurrentLinkValue(instance, field.variableName)}
-                  onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                  options={buildLinkOptions(instance, field)}
-                />
-              </div>
-            )}
-          </div>
-        );
-      }
-      default:
-        return null;
-    }
-  }, [
-    materials,
-    updateFieldValue,
-    isFieldLinked,
-    getResolvedValue,
-    isLinkBroken,
-    getLinkDisplayName,
-    buildLinkOptions,
-    getCurrentLinkValue,
-    toggleLinkUI,
-    isLinkUIOpen,
-    handleLinkChange,
-    handleUnlink,
-  ]);
+      return (
+        <ModuleFieldInput
+          field={field}
+          value={displayValue}
+          materials={materials}
+          onChange={(val) => {
+            if (linkProps?.isLinked) return;
+            updateFieldValue(instance.id, field.variableName, val);
+          }}
+          linkProps={linkProps}
+        />
+      );
+    },
+    [
+      buildLinkOptions,
+      getCurrentLinkValue,
+      getLinkDisplayName,
+      getResolvedValue,
+      handleLinkChange,
+      handleUnlink,
+      isFieldLinked,
+      isLinkBroken,
+      isLinkUIOpen,
+      materials,
+      toggleLinkUI,
+      updateFieldValue,
+    ]
+  );
 
   // ⚠️ ALL HOOKS MUST BE ABOVE THIS LINE ⚠️
   // Early return AFTER all hooks to ensure hooks order stability

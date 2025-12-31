@@ -1,28 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Checkbox } from '@/components/ui/Checkbox';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useCategoriesStore } from '@/lib/stores/categories-store';
-import { QuoteModuleInstance, FieldType, CalculationModule, Field } from '@/lib/types';
-import { normalizeToBase, convertFromBase } from '@/lib/units';
-import { Plus, X, Download, Save, Package, Calculator, LayoutDashboard, Link2, Unlink, CheckCircle2, AlertCircle } from 'lucide-react';
+import { QuoteModuleInstance, FieldType, Field } from '@/lib/types';
+import { Plus, Download, Save, Package, Calculator, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/Textarea';
-import { FieldHeader, FieldDescription } from '@/components/module-editor/FieldHeader';
 import { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Chip } from '@/components/ui/Chip';
 import { ModulePickerCard } from '@/components/shared/ModulePickerCard';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
 import { WorkspaceModulesList } from '@/components/quotes/WorkspaceModulesList';
+import { ModuleFieldInput } from '@/components/shared/ModuleFieldInput';
 
 export default function QuotesPage() {
   const modules = useModulesStore((state) => state.modules);
@@ -147,100 +144,99 @@ export default function QuotesPage() {
     }
   };
 
-  // Helper to format label with unit
-  const formatLabel = (label: string, unit?: string, unitSymbol?: string) => {
-    const displayUnit = unitSymbol || unit;
-    return displayUnit ? `${label} (${displayUnit})` : label;
-  };
-
   // Helper to check if field is linked
-  const isFieldLinked = (instance: QuoteModuleInstance, fieldName: string): boolean => {
+  const isFieldLinked = useCallback((instance: QuoteModuleInstance, fieldName: string): boolean => {
     return !!(instance.fieldLinks && instance.fieldLinks[fieldName]);
-  };
+  }, []);
 
   // Helper to get current link value for dropdown
-  const getCurrentLinkValue = (instance: QuoteModuleInstance, fieldName: string): string => {
-    const link = instance.fieldLinks?.[fieldName];
-    if (!link) return 'none';
-    return `${link.moduleInstanceId}.${link.fieldVariableName}`;
-  };
+  const getCurrentLinkValue = useCallback(
+    (instance: QuoteModuleInstance, fieldName: string): string => {
+      const link = instance.fieldLinks?.[fieldName];
+      if (!link) return 'none';
+      return `${link.moduleInstanceId}.${link.fieldVariableName}`;
+    },
+    []
+  );
 
   // Helper to check if link is broken
-  const isLinkBroken = (instance: QuoteModuleInstance, fieldName: string): boolean => {
-    const link = instance.fieldLinks?.[fieldName];
-    if (!link) return false;
-    
-    const targetInstance = currentQuote?.workspaceModules.find((m) => m.id === link.moduleInstanceId);
-    if (!targetInstance) return true;
-    
-    const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
-    if (!targetModule) return true;
-    
-    const targetField = targetModule.fields.find((f) => f.variableName === link.fieldVariableName);
-    if (!targetField) return true;
-    
-    return false;
-  };
+  const isLinkBroken = useCallback(
+    (instance: QuoteModuleInstance, fieldName: string): boolean => {
+      const link = instance.fieldLinks?.[fieldName];
+      if (!link) return false;
+
+      const targetInstance = currentQuote?.workspaceModules.find((m) => m.id === link.moduleInstanceId);
+      if (!targetInstance) return true;
+
+      const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
+      if (!targetModule) return true;
+
+      const targetField = targetModule.fields.find((f) => f.variableName === link.fieldVariableName);
+      if (!targetField) return true;
+
+      return false;
+    },
+    [currentQuote?.workspaceModules, modules]
+  );
 
   // Helper to get link display name
-  const getLinkDisplayName = (instance: QuoteModuleInstance, fieldName: string): string => {
-    const link = instance.fieldLinks?.[fieldName];
-    if (!link) return '';
-    
-    const targetInstance = currentQuote?.workspaceModules.find((m) => m.id === link.moduleInstanceId);
-    if (!targetInstance) return 'source unavailable';
-    
-    const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
-    if (!targetModule) return 'source unavailable';
-    
-    const targetField = targetModule.fields.find((f) => f.variableName === link.fieldVariableName);
-    if (!targetField) return 'source unavailable';
-    
-    return `${targetModule.name} — ${targetField.label}`;
-  };
+  const getLinkDisplayName = useCallback(
+    (instance: QuoteModuleInstance, fieldName: string): string => {
+      const link = instance.fieldLinks?.[fieldName];
+      if (!link) return '';
+
+      const targetInstance = currentQuote?.workspaceModules.find((m) => m.id === link.moduleInstanceId);
+      if (!targetInstance) return 'source unavailable';
+
+      const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
+      if (!targetModule) return 'source unavailable';
+
+      const targetField = targetModule.fields.find((f) => f.variableName === link.fieldVariableName);
+      if (!targetField) return 'source unavailable';
+
+      return `${targetModule.name} — ${targetField.label}`;
+    },
+    [currentQuote?.workspaceModules, modules]
+  );
 
   // Helper to build link options for dropdown
-  const buildLinkOptions = (instance: QuoteModuleInstance, field: { variableName: string; type: FieldType }) => {
-    if (!currentQuote) return [{ value: 'none', label: 'None' }];
-    
-    const options: Array<{ value: string; label: string }> = [
-      { value: 'none', label: 'None' },
-    ];
-    
-    // Group by module
-    currentQuote.workspaceModules.forEach((otherInstance) => {
-      if (otherInstance.id === instance.id) return; // Skip self
-      
-      const otherModule = modules.find((m) => m.id === otherInstance.moduleId);
-      if (!otherModule) return;
-      
-      // Add separator
-      options.push({ value: `sep-${otherInstance.id}`, label: `--- ${otherModule.name} ---` });
-      
-      // Add fields from this module (only compatible ones)
-      otherModule.fields.forEach((otherField) => {
-        // Skip material fields (cannot be linked per spec)
-        if (otherField.type === 'material') return;
-        
-        // Skip self-link
-        if (otherInstance.id === instance.id && otherField.variableName === field.variableName) return;
-        
-        // Check compatibility - only add compatible options
-        const validation = canLinkFields(instance.id, field.variableName, otherInstance.id, otherField.variableName);
-        if (validation.valid) {
-          options.push({
-            value: `${otherInstance.id}.${otherField.variableName}`,
-            label: otherField.label,
-          });
-        }
+  const buildLinkOptions = useCallback(
+    (instance: QuoteModuleInstance, field: { variableName: string; type: FieldType }) => {
+      if (!currentQuote) return [{ value: 'none', label: 'None' }];
+
+      const options: Array<{ value: string; label: string }> = [
+        { value: 'none', label: 'None' },
+      ];
+
+      currentQuote.workspaceModules.forEach((otherInstance) => {
+        if (otherInstance.id === instance.id) return;
+
+        const otherModule = modules.find((m) => m.id === otherInstance.moduleId);
+        if (!otherModule) return;
+
+        options.push({ value: `sep-${otherInstance.id}`, label: `--- ${otherModule.name} ---` });
+
+        otherModule.fields.forEach((otherField) => {
+          if (otherField.type === 'material') return;
+          if (otherInstance.id === instance.id && otherField.variableName === field.variableName) return;
+
+          const validation = canLinkFields(instance.id, field.variableName, otherInstance.id, otherField.variableName);
+          if (validation.valid) {
+            options.push({
+              value: `${otherInstance.id}.${otherField.variableName}`,
+              label: otherField.label,
+            });
+          }
+        });
       });
-    });
-    
-    return options;
-  };
+
+      return options;
+    },
+    [canLinkFields, currentQuote, modules]
+  );
 
   // Helper to toggle link UI expansion
-  const toggleLinkUI = (instanceId: string, fieldName: string) => {
+  const toggleLinkUI = useCallback((instanceId: string, fieldName: string) => {
     setLinkUIOpen((prev) => ({
       ...prev,
       [instanceId]: {
@@ -248,15 +244,18 @@ export default function QuotesPage() {
         [fieldName]: !prev[instanceId]?.[fieldName],
       },
     }));
-  };
+  }, []);
 
   // Helper to check if link UI is open
-  const isLinkUIOpen = (instanceId: string, fieldName: string): boolean => {
-    return !!(linkUIOpen[instanceId]?.[fieldName]);
-  };
+  const isLinkUIOpen = useCallback(
+    (instanceId: string, fieldName: string): boolean => {
+      return !!(linkUIOpen[instanceId]?.[fieldName]);
+    },
+    [linkUIOpen]
+  );
 
   // Helper to close link UI
-  const closeLinkUI = (instanceId: string, fieldName: string) => {
+  const closeLinkUI = useCallback((instanceId: string, fieldName: string) => {
     setLinkUIOpen((prev) => {
       const updated = { ...prev };
       if (updated[instanceId]) {
@@ -270,33 +269,38 @@ export default function QuotesPage() {
       }
       return updated;
     });
-  };
+  }, []);
 
   // Helper to handle link change
-  const handleLinkChange = (instance: QuoteModuleInstance, fieldName: string, value: string) => {
-    if (value === 'none') {
-      unlinkField(instance.id, fieldName);
-      closeLinkUI(instance.id, fieldName);
-      return;
-    }
-    
-    const [targetInstanceId, targetFieldName] = value.split('.');
-    if (!targetInstanceId || !targetFieldName) return;
-    
-    const result = linkField(instance.id, fieldName, targetInstanceId, targetFieldName);
-    if (!result.valid && result.error) {
-      alert(result.error);
-    } else {
-      // Collapse UI after successful linking
-      closeLinkUI(instance.id, fieldName);
-    }
-  };
+  const handleLinkChange = useCallback(
+    (instance: QuoteModuleInstance, fieldName: string, value: string) => {
+      if (value === 'none') {
+        unlinkField(instance.id, fieldName);
+        closeLinkUI(instance.id, fieldName);
+        return;
+      }
+
+      const [targetInstanceId, targetFieldName] = value.split('.');
+      if (!targetInstanceId || !targetFieldName) return;
+
+      const result = linkField(instance.id, fieldName, targetInstanceId, targetFieldName);
+      if (!result.valid && result.error) {
+        alert(result.error);
+      } else {
+        closeLinkUI(instance.id, fieldName);
+      }
+    },
+    [closeLinkUI, linkField, unlinkField]
+  );
 
   // Helper to handle unlink
-  const handleUnlink = (instanceId: string, fieldName: string) => {
-    unlinkField(instanceId, fieldName);
-    closeLinkUI(instanceId, fieldName);
-  };
+  const handleUnlink = useCallback(
+    (instanceId: string, fieldName: string) => {
+      unlinkField(instanceId, fieldName);
+      closeLinkUI(instanceId, fieldName);
+    },
+    [closeLinkUI, unlinkField]
+  );
 
   // Helper to toggle module collapse
   const toggleModuleCollapse = (instanceId: string) => {
@@ -317,537 +321,70 @@ export default function QuotesPage() {
   };
 
   // Helper to get resolved value for display (when linked)
-  const getResolvedValue = (instance: QuoteModuleInstance, fieldName: string): any => {
-    const link = instance.fieldLinks?.[fieldName];
-    if (!link) return instance.fieldValues[fieldName];
-    
-    const targetInstance = currentQuote?.workspaceModules.find((m) => m.id === link.moduleInstanceId);
-    if (!targetInstance) return instance.fieldValues[fieldName];
-    
-    return targetInstance.fieldValues[link.fieldVariableName];
-  };
+  const getResolvedValue = useCallback(
+    (instance: QuoteModuleInstance, fieldName: string): any => {
+      const link = instance.fieldLinks?.[fieldName];
+      if (!link) return instance.fieldValues[fieldName];
 
-  const renderFieldInput = (
-    instance: QuoteModuleInstance,
-    field: { id: string; label: string; type: FieldType; variableName: string; options?: string[]; dropdownMode?: 'numeric' | 'string'; required?: boolean; materialCategory?: string; unit?: string; unitSymbol?: string; unitCategory?: string; description?: string }
-  ) => {
-    const isLinked = isFieldLinked(instance, field.variableName);
-    const displayValue = isLinked ? getResolvedValue(instance, field.variableName) : instance.fieldValues[field.variableName];
-    const value = displayValue;
-    const moduleDef = modules.find((m) => m.id === instance.moduleId);
-    
-    // Material fields cannot be linked (per spec)
-    const canLink = field.type !== 'material';
+      const targetInstance = currentQuote?.workspaceModules.find((m) => m.id === link.moduleInstanceId);
+      if (!targetInstance) return instance.fieldValues[fieldName];
 
-    switch (field.type) {
-      case 'number': {
-        // For unit-aware fields, convert from base to display unit for input
-        // Store values are always base-normalized
-        let displayValue: number;
-        if (field.unitSymbol && typeof value === 'number') {
-          displayValue = convertFromBase(value, field.unitSymbol);
-        } else {
-          displayValue = typeof value === 'number' ? value : 0;
-        }
-        
-        const linkUIOpenForField = isLinkUIOpen(instance.id, field.variableName);
-        
-        return (
-          <div>
-            <FieldHeader
-              label={field.label}
-              unit={field.unit}
-              unitSymbol={field.unitSymbol}
-              required={field.required}
-              showLink={canLink}
-              isLinked={isLinked}
-              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-            />
-            
-            {/* Fixed height container for input to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Input
-                type="number"
-                value={displayValue.toString()}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  const inputValue = Number(e.target.value) || 0;
-                  // Convert to base unit if field has unitSymbol
-                  const baseValue = field.unitSymbol 
-                    ? normalizeToBase(inputValue, field.unitSymbol)
-                    : inputValue;
-                  updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
-                }}
-                required={field.required}
-                disabled={isLinked}
-                className="w-full"
-              />
-            </div>
-            
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            
-            {/* Linked state UI */}
-            {isLinked && (() => {
-              const broken = isLinkBroken(instance, field.variableName);
-              return (
-                <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
-                  {broken ? (
-                    <X className="h-3.5 w-3.5 text-destructive shrink-0" />
-                  ) : (
-                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
-                  )}
-                  <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-md-primary'
-                  }`}>
-                    {broken 
-                      ? 'Link broken: source unavailable'
-                      : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                    }
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-md-on-surface-variant hover:text-foreground"
-                  >
-                    <Unlink className="h-3 w-3 mr-1" />
-                    {broken ? 'Remove Link' : 'Unlink'}
-                  </Button>
-                </div>
-              );
-            })()}
-            
-            {/* Link dropdown (only when expanded and not linked) */}
-            {canLink && !isLinked && linkUIOpenForField && (
-              <div className="mt-2">
-                <Select
-                  label="Link value from"
-                  value={getCurrentLinkValue(instance, field.variableName)}
-                  onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                  options={buildLinkOptions(instance, field)}
-                />
-              </div>
-            )}
-          </div>
-        );
-      }
-      case 'boolean':
-        const linkUIOpenForBoolean = isLinkUIOpen(instance.id, field.variableName);
-        
-        return (
-          <div>
-            <FieldHeader
-              label={field.label}
-              unit={field.unit}
-              unitSymbol={field.unitSymbol}
-              required={field.required}
-              showLink={canLink}
-              isLinked={isLinked}
-              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-            />
-            
-            {/* Fixed height container for checkbox to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Checkbox
-                label=""
-                checked={Boolean(value)}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.checked);
-                }}
-                disabled={isLinked}
-              />
-            </div>
-            
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            
-            {/* Linked state UI */}
-            {isLinked && (() => {
-              const broken = isLinkBroken(instance, field.variableName);
-              return (
-                <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
-                  {broken ? (
-                    <X className="h-3.5 w-3.5 text-destructive shrink-0" />
-                  ) : (
-                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
-                  )}
-                  <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-md-primary'
-                  }`}>
-                    {broken 
-                      ? 'Link broken: source unavailable'
-                      : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                    }
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-md-on-surface-variant hover:text-foreground"
-                  >
-                    <Unlink className="h-3 w-3 mr-1" />
-                    {broken ? 'Remove Link' : 'Unlink'}
-                  </Button>
-                </div>
-              );
-            })()}
-            
-            {/* Link dropdown (only when expanded and not linked) */}
-            {canLink && !isLinked && linkUIOpenForBoolean && (
-              <div className="mt-2">
-                <Select
-                  label="Link value from"
-                  value={getCurrentLinkValue(instance, field.variableName)}
-                  onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                  options={buildLinkOptions(instance, field)}
-                />
-              </div>
-            )}
-          </div>
-        );
-      case 'dropdown': {
-        const options = field.options || [];
-        const linkUIOpenForDropdown = isLinkUIOpen(instance.id, field.variableName);
-        
-        // Numeric dropdown mode: treat options as numeric values with units
-        if (field.dropdownMode === 'numeric' && field.unitSymbol) {
-          // Create display labels with units appended
-          const displayOptions = options.map(opt => {
-            const numValue = Number(opt.trim());
-            if (!isNaN(numValue)) {
-              return `${opt.trim()} ${field.unitSymbol}`;
+      return targetInstance.fieldValues[link.fieldVariableName];
+    },
+    [currentQuote?.workspaceModules]
+  );
+
+  const renderFieldInput = useCallback(
+    (instance: QuoteModuleInstance, field: Field) => {
+      const isLinkedToValue = isFieldLinked(instance, field.variableName);
+      const displayValue = isLinkedToValue
+        ? getResolvedValue(instance, field.variableName)
+        : instance.fieldValues[field.variableName];
+
+      const linkProps =
+        field.type !== 'material'
+          ? {
+              canLink: true,
+              isLinked: isLinkedToValue,
+              isLinkBroken: isLinkBroken(instance, field.variableName),
+              linkDisplayName: getLinkDisplayName(instance, field.variableName),
+              linkUIOpen: isLinkUIOpen(instance.id, field.variableName),
+              currentLinkValue: getCurrentLinkValue(instance, field.variableName),
+              linkOptions: buildLinkOptions(instance, field),
+              onToggleLink: () => toggleLinkUI(instance.id, field.variableName),
+              onLinkChange: (value: string) => handleLinkChange(instance, field.variableName, value),
+              onUnlink: () => handleUnlink(instance.id, field.variableName),
             }
-            return opt; // Fallback for non-numeric options
-          });
-          
-          // Find current selection by matching base-normalized value
-          let currentDisplayValue = '';
-          if (typeof value === 'number') {
-            // Convert stored base value back to display unit
-            const displayValue = convertFromBase(value, field.unitSymbol);
-            // Find matching option (with tolerance for floating point)
-            const matchingIndex = options.findIndex(opt => {
-              const optNum = Number(opt.trim());
-              return !isNaN(optNum) && Math.abs(optNum - displayValue) < 0.0001;
-            });
-            if (matchingIndex >= 0) {
-              currentDisplayValue = displayOptions[matchingIndex];
-            } else {
-              // Format the value if no exact match
-              currentDisplayValue = `${displayValue} ${field.unitSymbol}`;
-            }
-          } else {
-            currentDisplayValue = value?.toString() || '';
-          }
-          
-          return (
-            <div>
-              <FieldHeader
-                label={field.label}
-                unit={field.unit}
-                unitSymbol={field.unitSymbol}
-                required={field.required}
-                showLink={canLink}
-                isLinked={isLinked}
-                onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-              />
-              
-              {/* Fixed height container for select to ensure alignment */}
-              <div className="h-[46px] flex items-center">
-                <Select
-                  label=""
-                  value={currentDisplayValue}
-                  onChange={(e) => {
-                    if (isLinked) return; // Prevent changes when linked
-                    const selectedDisplay = e.target.value;
-                    // Extract numeric value from display string (e.g., "40 cm" -> 40)
-                    const match = selectedDisplay.match(/^([\d.]+)/);
-                    if (match && field.unitSymbol) {
-                      const numValue = Number(match[1]);
-                      if (!isNaN(numValue)) {
-                        // Convert to base unit and store as number
-                        const baseValue = normalizeToBase(numValue, field.unitSymbol);
-                        updateWorkspaceModuleFieldValue(instance.id, field.variableName, baseValue);
-                      }
-                    }
-                  }}
-                  options={[
-                    { value: '', label: 'Select...' },
-                    ...displayOptions.map((displayOpt) => ({
-                      value: displayOpt,
-                      label: displayOpt,
-                    })),
-                  ]}
-                  disabled={isLinked}
-                  className="w-full"
-                />
-              </div>
-              
-              {/* Description below input */}
-              <FieldDescription description={field.description} />
-              
-              {/* Linked state UI */}
-              {isLinked && (() => {
-                const broken = isLinkBroken(instance, field.variableName);
-                return (
-                  <div className={`mt-2 flex items-center gap-2 p-2 rounded-md border ${
-                    broken 
-                      ? 'bg-md-error/10 border-destructive/30' 
-                      : 'bg-muted/30 border-border/50'
-                  }`}>
-                    {broken ? (
-                      <X className="h-3.5 w-3.5 text-destructive shrink-0" />
-                    ) : (
-                      <Link2 className="h-3.5 w-3.5 text-md-on-surface-variant shrink-0" />
-                    )}
-                    <span className={`text-xs flex-1 ${
-                      broken ? 'text-destructive' : 'text-md-on-surface-variant'
-                    }`}>
-                      {broken 
-                        ? 'Link broken: source unavailable'
-                        : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                      }
-                    </span>
-                    <Button
-                      size="sm"
-                      variant={broken ? 'danger' : 'secondary'}
-                      onClick={() => handleUnlink(instance.id, field.variableName)}
-                      className="h-6 text-xs"
-                    >
-                      <Unlink className="h-3 w-3 mr-1" />
-                      {broken ? 'Remove Link' : 'Unlink'}
-                    </Button>
-                  </div>
-                );
-              })()}
-              
-              {/* Link dropdown (only when expanded and not linked) */}
-              {canLink && !isLinked && linkUIOpenForDropdown && (
-                <div className="mt-2">
-                  <Select
-                    label="Link value from"
-                    value={getCurrentLinkValue(instance, field.variableName)}
-                    onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                    options={buildLinkOptions(instance, field)}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        }
-        
-        // String dropdown mode: original behavior (unchanged)
-        return (
-          <div>
-            <FieldHeader
-              label={field.label}
-              unit={field.unit}
-              unitSymbol={field.unitSymbol}
-              required={field.required}
-              showLink={canLink}
-              isLinked={isLinked}
-              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-            />
-            
-            {/* Fixed height container for select to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Select
-                label=""
-                value={value?.toString() || ''}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value);
-                }}
-                options={[
-                  { value: '', label: 'Select...' },
-                  ...options.map((opt) => ({ value: opt, label: opt })),
-                ]}
-                disabled={isLinked}
-                className="w-full"
-              />
-            </div>
-            
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            
-            {/* Linked state UI */}
-            {isLinked && (() => {
-              const broken = isLinkBroken(instance, field.variableName);
-              return (
-                <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
-                  {broken ? (
-                    <X className="h-3.5 w-3.5 text-destructive shrink-0" />
-                  ) : (
-                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
-                  )}
-                  <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-md-primary'
-                  }`}>
-                    {broken 
-                      ? 'Link broken: source unavailable'
-                      : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                    }
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-md-on-surface-variant hover:text-foreground"
-                  >
-                    <Unlink className="h-3 w-3 mr-1" />
-                    {broken ? 'Remove Link' : 'Unlink'}
-                  </Button>
-                </div>
-              );
-            })()}
-            
-            {/* Link dropdown (only when expanded and not linked) */}
-            {canLink && !isLinked && linkUIOpenForDropdown && (
-              <div className="mt-2">
-                <Select
-                  label="Link value from"
-                  value={getCurrentLinkValue(instance, field.variableName)}
-                  onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                  options={buildLinkOptions(instance, field)}
-                />
-              </div>
-            )}
-          </div>
-        );
-      }
-      case 'material':
-        // Material picker: show materials with display name, price, and unit
-        // Filter by materialCategory if specified on the field
-        // materialCategory allows module authors to limit material choices to a specific category
-        // (e.g., only "Lumber" materials for a framing module)
-        const materialCategory = field.materialCategory;
-        let availableMaterials = materials;
-        
-        if (materialCategory && materialCategory.trim()) {
-          availableMaterials = materials.filter((mat) => mat.category === materialCategory);
-        }
-        
-        // Sort materials alphabetically
-        const sortedMaterials = availableMaterials.sort((a, b) => a.name.localeCompare(b.name));
-        
-        return (
-          <div>
-            <FieldHeader
-              label={field.label}
-              unit={field.unit}
-              unitSymbol={field.unitSymbol}
-              required={field.required}
-            />
-            {/* Fixed height container for select to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Select
-                label=""
-                value={value?.toString() || ''}
-                onChange={(e) =>
-                  updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value)
-                }
-                options={[
-                  { value: '', label: 'Select a material...' },
-                  ...sortedMaterials.map((mat) => ({
-                    value: mat.variableName,
-                    label: `${mat.name} - $${mat.price.toFixed(2)}/${mat.unit}`,
-                  })),
-                ]}
-                className="w-full"
-              />
-            </div>
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            {materialCategory && sortedMaterials.length === 0 && (
-              <p className="text-xs text-md-on-surface-variant mt-1">
-                No materials available in category &quot;{materialCategory}&quot;. Please add materials or adjust the field&apos;s category.
-              </p>
-            )}
-          </div>
-        );
-      case 'text':
-        const linkUIOpenForText = isLinkUIOpen(instance.id, field.variableName);
-        
-        return (
-          <div>
-            <FieldHeader
-              label={field.label}
-              unit={field.unit}
-              unitSymbol={field.unitSymbol}
-              required={field.required}
-              showLink={canLink}
-              isLinked={isLinked}
-              onLinkClick={() => toggleLinkUI(instance.id, field.variableName)}
-            />
-            
-            {/* Fixed height container for input to ensure alignment */}
-            <div className="h-[46px] flex items-center">
-              <Input
-                label=""
-                value={value?.toString() || ''}
-                onChange={(e) => {
-                  if (isLinked) return; // Prevent changes when linked
-                  updateWorkspaceModuleFieldValue(instance.id, field.variableName, e.target.value);
-                }}
-                required={field.required}
-                disabled={isLinked}
-                className="w-full"
-              />
-            </div>
-            
-            {/* Description below input */}
-            <FieldDescription description={field.description} />
-            
-            {/* Linked state UI */}
-            {isLinked && (() => {
-              const broken = isLinkBroken(instance, field.variableName);
-              return (
-                <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
-                  {broken ? (
-                    <X className="h-3.5 w-3.5 text-destructive shrink-0" />
-                  ) : (
-                    <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
-                  )}
-                  <span className={`text-xs flex-1 ${
-                    broken ? 'text-destructive' : 'text-md-primary'
-                  }`}>
-                    {broken 
-                      ? 'Link broken: source unavailable'
-                      : `Linked to: ${getLinkDisplayName(instance, field.variableName)}`
-                    }
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleUnlink(instance.id, field.variableName)}
-                    className="h-6 text-xs text-md-on-surface-variant hover:text-foreground"
-                  >
-                    <Unlink className="h-3 w-3 mr-1" />
-                    {broken ? 'Remove Link' : 'Unlink'}
-                  </Button>
-                </div>
-              );
-            })()}
-            
-            {/* Link dropdown (only when expanded and not linked) */}
-            {canLink && !isLinked && linkUIOpenForText && (
-              <div className="mt-2">
-                <Select
-                  label="Link value from"
-                  value={getCurrentLinkValue(instance, field.variableName)}
-                  onChange={(e) => handleLinkChange(instance, field.variableName, e.target.value)}
-                  options={buildLinkOptions(instance, field)}
-                />
-              </div>
-            )}
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+          : undefined;
+
+      return (
+        <ModuleFieldInput
+          field={field}
+          value={displayValue}
+          materials={materials}
+          onChange={(val) => {
+            if (linkProps?.isLinked) return;
+            updateWorkspaceModuleFieldValue(instance.id, field.variableName, val);
+          }}
+          linkProps={linkProps}
+        />
+      );
+    },
+    [
+      buildLinkOptions,
+      getCurrentLinkValue,
+      getLinkDisplayName,
+      getResolvedValue,
+      handleLinkChange,
+      handleUnlink,
+      isFieldLinked,
+      isLinkBroken,
+      isLinkUIOpen,
+      materials,
+      toggleLinkUI,
+      updateWorkspaceModuleFieldValue,
+    ]
+  );
 
   const handleExport = () => {
     if (!currentQuote) return;

@@ -552,9 +552,15 @@ export default function ModulesPage() {
                 </h3>
               {module.category && (
                 <div className="mb-3">
+                    <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">
+                      Categories
+                    </p>
                   <Chip size="sm">{module.category}</Chip>
                 </div>
               )}
+                <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">
+                  Description
+                </p>
               <p className="text-sm text-md-on-surface-variant mb-4 line-clamp-2">
                 {module.description || 'No description'}
               </p>
