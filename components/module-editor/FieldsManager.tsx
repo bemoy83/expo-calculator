@@ -1,24 +1,11 @@
 'use client';
 
-import { DragEndEvent } from '@dnd-kit/core';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SortableFieldItem } from '@/components/module-editor/SortableFieldItem';
 import { Field } from '@/lib/types';
 import { Plus } from 'lucide-react';
+import { SortableList } from '@/components/shared/SortableList';
 
 interface FieldsManagerProps {
   fields: Field[];
@@ -27,7 +14,7 @@ interface FieldsManagerProps {
   onToggleExpanded: (fieldId: string) => void;
   onUpdateField: (id: string, updates: Partial<Field>) => void;
   onRemoveField: (id: string) => void;
-  onDragEnd: (event: DragEndEvent) => void;
+  onReorder: (oldIndex: number, newIndex: number) => void;
   onAddField: () => void;
   setFieldRef: (id: string, element: HTMLDivElement | null) => void;
 }
@@ -39,17 +26,10 @@ export function FieldsManager({
   onToggleExpanded,
   onUpdateField,
   onRemoveField,
-  onDragEnd,
+  onReorder,
   onAddField,
   setFieldRef,
 }: FieldsManagerProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -69,41 +49,32 @@ export function FieldsManager({
           </div>
         </Card>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext
-            items={fields.map((f) => f.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="space-y-3">
-              {fields.map((field) => {
-                const isExpanded = expandedFields.has(field.id);
-                const fieldError = fieldErrors[field.id] || {};
+        <SortableList
+          items={fields}
+          onReorder={onReorder}
+          className="flex flex-col gap-3"
+          renderItem={(field) => {
+            const isExpanded = expandedFields.has(field.id);
+            const fieldError = fieldErrors[field.id] || {};
 
-                return (
-                  <SortableFieldItem
-                    key={field.id}
-                    field={field}
-                    isExpanded={isExpanded}
-                    fieldError={fieldError}
-                    onToggleExpanded={onToggleExpanded}
-                    onUpdateField={onUpdateField}
-                    onRemoveField={onRemoveField}
-                    fieldRef={(el) => setFieldRef(field.id, el)}
-                  />
-                );
-              })}
-            </div>
-          </SortableContext>
-        </DndContext>
+            return (
+              <SortableFieldItem
+                key={field.id}
+                field={field}
+                isExpanded={isExpanded}
+                fieldError={fieldError}
+                onToggleExpanded={onToggleExpanded}
+                onUpdateField={onUpdateField}
+                onRemoveField={onRemoveField}
+                fieldRef={(el) => setFieldRef(field.id, el)}
+              />
+            );
+          }}
+        />
       )}
     </div>
   );
 }
-
 
 
 

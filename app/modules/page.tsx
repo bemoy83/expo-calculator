@@ -11,7 +11,6 @@ import { Textarea } from '@/components/ui/Textarea';
 
 import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { CalculationModule, Field } from '@/lib/types';
-import { DragEndEvent } from '@dnd-kit/core';
 import { 
   Plus, 
   Trash2, 
@@ -131,18 +130,11 @@ export default function ModulesPage() {
     setFieldErrors({});
   };
 
-  // Handle drag end event - reorder fields array
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id) {
-      const oldIndex = fields.findIndex((item) => item.id === active.id);
-      const newIndex = fields.findIndex((item) => item.id === over.id);
-      
-      if (oldIndex !== -1 && newIndex !== -1) {
-        reorderFields(oldIndex, newIndex);
-      }
-    }
+  // Handle reorder event - reorder fields array
+  const handleReorderFields = (oldIndex: number, newIndex: number) => {
+    if (oldIndex === newIndex) return;
+    if (oldIndex < 0 || newIndex < 0) return;
+    reorderFields(oldIndex, newIndex);
   };
 
   // Formula variables hook
@@ -411,7 +403,7 @@ export default function ModulesPage() {
               onToggleExpanded={toggleFieldExpanded}
               onUpdateField={updateField}
               onRemoveField={removeField}
-              onDragEnd={handleDragEnd}
+              onReorder={handleReorderFields}
               onAddField={addField}
               setFieldRef={setFieldRef}
             />

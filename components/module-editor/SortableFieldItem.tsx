@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Field, FieldType } from '@/lib/types';
@@ -74,15 +74,17 @@ export function SortableFieldItem({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 30 : 'auto',
   };
 
   // Combine sortable ref with field ref for scrolling
-  const combinedRef = (el: HTMLDivElement | null) => {
+  // Memoize to prevent ref callback from being recreated during drag operations
+  const combinedRef = useCallback((el: HTMLDivElement | null) => {
     setNodeRef(el);
     if (fieldRef) {
       fieldRef(el);
     }
-  };
+  }, [setNodeRef, fieldRef]);
 
   return (
     <Card
@@ -348,7 +350,6 @@ export function SortableFieldItem({
     </Card>
   );
 }
-
 
 
 

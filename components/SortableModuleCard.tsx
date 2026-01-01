@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft, GripVertical, Trash2, Plus } from 'lucide-react';
@@ -49,11 +50,18 @@ export function SortableModuleCard({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 40 : 'auto',
   };
+
+  // Memoize ref callback to prevent re-creation during drag operations
+  // This ensures stable ref handling and prevents visual jumps
+  const stableRef = useCallback((el: HTMLDivElement | null) => {
+    setNodeRef(el);
+  }, [setNodeRef]);
 
   return (
     <Card
-      ref={setNodeRef}
+      ref={stableRef}
       style={style}
       variant="default"
     >
@@ -159,4 +167,3 @@ export function SortableModuleCard({
     </Card>
   );
 }
-

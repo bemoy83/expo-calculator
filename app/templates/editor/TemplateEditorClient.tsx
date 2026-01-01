@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/Card';
@@ -11,11 +11,10 @@ import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { QuoteModuleInstance, Field } from '@/lib/types';
 import { Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { DragEndEvent } from '@dnd-kit/core';
 import { Textarea } from '@/components/ui/Textarea';
 import { useTemplateEditor } from '@/hooks/use-template-editor';
 import { ModulePickerCard } from '@/components/shared/ModulePickerCard';
-import { WorkspaceModulesList } from '@/components/quotes/WorkspaceModulesList';
+import { ModulesManager } from '@/components/module-editor/ModulesManager';
 import { ModuleFieldInput } from '@/components/shared/ModuleFieldInput';
 interface TemplateEditorClientProps {
   templateId: string;
@@ -26,6 +25,9 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
   // Call all hooks before any conditional returns to ensure hooks order stability
   const router = useRouter();
   
+  // ⭐ Prevent hydration mismatch
+  const [hydrated, setHydrated] = useState(false);
+
   // Use object selector to get all template store functions (single subscription)
   const { getTemplate, updateTemplate, addTemplate } = useTemplatesStore((state) => ({
     getTemplate: state.getTemplate,
@@ -35,6 +37,10 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
   const modules = useModulesStore((state) => state.modules);
   const materials = useMaterialsStore((state) => state.materials);
   
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   // Derive template after hooks are called unconditionally
   const template = templateId === 'new' ? null : getTemplate(templateId);
 
@@ -93,9 +99,8 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
     });
   }, []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    reorderModules(String(active.id), over ? String(over.id) : null, workspaceModules.map(m => m.id));
+  const handleReorder = (oldIndex: number, newIndex: number) => {
+    reorderModules(oldIndex, newIndex);
   };
 
   // Helper functions for link UI
@@ -242,6 +247,9 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
 
   // ⚠️ ALL HOOKS MUST BE ABOVE THIS LINE ⚠️
   // Early return AFTER all hooks to ensure hooks order stability
+  // Prevent hydration mismatch - return null until client mount
+  if (!hydrated) return null;
+
   // Allow 'new' template mode, but redirect if templateId is invalid (not 'new' and template doesn't exist)
   if (templateId !== 'new' && !template) {
     return (
@@ -335,53 +343,17 @@ export function TemplateEditorClient({ templateId }: TemplateEditorClientProps) 
           />
         )}
 
-        {/* Empty State Card */}
-        {!showAddModule && workspaceModules.length === 0 && (
-          <Card>
-            <div className="text-center py-20">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted elevation-1 mb-5">
-                <Plus className="h-10 w-10 text-md-on-surface-variant" />
-              </div>
-              <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">No modules in template</h4>
-              <p className="text-base text-md-on-surface-variant max-w-md mx-auto leading-relaxed mb-5">
-                Click &quot;Add Module&quot; to add modules to this template.
-              </p>
-              <Button
-                onClick={() => setShowAddModule(true)}
-                className="rounded-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Module
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Add Module Button Card */}
-        {!showAddModule && workspaceModules.length > 0 && (
-          <Card>
-            <Button
-              onClick={() => setShowAddModule(true)}
-              className="rounded-full w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Module
-            </Button>
-          </Card>
-        )}
-
-        {/* Module Cards */}
-        {workspaceModules.length > 0 && (
-          <WorkspaceModulesList
-            modules={modules}
-            workspaceModules={workspaceModules}
-            collapsedModules={collapsedModules}
-            onToggleCollapse={toggleModuleCollapse}
-            onRemoveModule={handleRemoveModule}
-            onDragEnd={handleDragEnd}
-            renderFieldInput={renderFieldInput}
-          />
-        )}
+        {/* Modules Manager */}
+        <ModulesManager
+          modules={modules}
+          workspaceModules={workspaceModules}
+          collapsedModules={collapsedModules}
+          onToggleCollapse={toggleModuleCollapse}
+          onRemoveModule={handleRemoveModule}
+          onReorder={handleReorder}
+          onAddModule={() => setShowAddModule(true)}
+          renderFieldInput={renderFieldInput}
+        />
       </div>
 
       {/* Save Success Toast */}

@@ -13,8 +13,6 @@ import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { QuoteModuleInstance, FieldType, Field } from '@/lib/types';
 import { Plus, Download, Save, Package, Calculator, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/Textarea';
-import { DragEndEvent } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
 import { Chip } from '@/components/ui/Chip';
 import { ModulePickerCard } from '@/components/shared/ModulePickerCard';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
@@ -130,18 +128,15 @@ export default function QuotesPage() {
     ? templates
     : templates.filter(t => t.categories.includes(selectedCategory));
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id && currentQuote) {
-      const oldIndex = currentQuote.workspaceModules.findIndex((m) => m.id === active.id);
-      const newIndex = currentQuote.workspaceModules.findIndex((m) => m.id === over.id);
-      
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const reordered = arrayMove(currentQuote.workspaceModules, oldIndex, newIndex);
-        reorderWorkspaceModules(reordered);
-      }
-    }
+  const handleReorder = (oldIndex: number, newIndex: number) => {
+    if (!currentQuote) return;
+    if (oldIndex === newIndex) return;
+    const items = currentQuote.workspaceModules;
+    if (!items[oldIndex] || !items[newIndex]) return;
+    const reordered = [...items];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    reorderWorkspaceModules(reordered);
   };
 
   // Helper to check if field is linked
@@ -652,7 +647,7 @@ export default function QuotesPage() {
                 }, 2000);
               }}
               addedItems={addedItems}
-              onDragEnd={handleDragEnd}
+              onReorder={handleReorder}
               renderFieldInput={renderFieldInput}
             />
           )}

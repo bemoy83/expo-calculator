@@ -91,11 +91,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const handleThemeToggle = () => {
-    const isDark = resolvedTheme === 'dark' || theme === 'dark';
+    const isDark = (resolvedTheme ?? theme ?? 'dark') === 'dark';
     setTheme(isDark ? 'light' : 'dark');
   };
 
-  const isDark = resolvedTheme === 'dark' || theme === 'dark';
+  // Use safe defaults to prevent hydration mismatch
+  // resolvedTheme can be undefined on server but have a value on client
+  const isDark = (resolvedTheme ?? theme ?? 'dark') === 'dark';
 
   return (
     <div className="min-h-screen bg-md-surface text-md-on-surface">

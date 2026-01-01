@@ -13,7 +13,6 @@ import {
 import { normalizeToBase } from "@/lib/units";
 import { generateId } from "@/lib/utils";
 import { canLinkFields, resolveFieldLinks } from "@/lib/utils/field-linking";
-import { arrayMove } from "@dnd-kit/sortable";
 
 interface UseTemplateEditorOptions {
   templateId: string;
@@ -250,15 +249,15 @@ export function useTemplateEditor({
   );
 
   const reorderModules = useCallback(
-    (activeId: string, overId: string | null, items: string[]) => {
-      if (!overId || activeId === overId) return;
-      const oldIndex = items.indexOf(activeId);
-      const newIndex = items.indexOf(overId);
-      if (oldIndex === -1 || newIndex === -1) return;
+    (oldIndex: number, newIndex: number) => {
+      if (oldIndex === newIndex) return;
+      if (oldIndex < 0 || newIndex < 0) return;
       setWorkspaceModules((prev) => {
-        const reordered = arrayMove(prev, oldIndex, newIndex);
+        const updated = [...prev];
+        const [moved] = updated.splice(oldIndex, 1);
+        updated.splice(newIndex, 0, moved);
         // costs unchanged by order, so no recalc
-        return reordered;
+        return updated;
       });
     },
     []
