@@ -28,15 +28,16 @@ export function WorkspaceModulesList({
   onReorder,
   renderFieldInput,
 }: WorkspaceModulesListProps) {
-  if (workspaceModules.length === 0) return null;
-
   // Memoize module lookups to prevent unnecessary re-renders during drag operations
   // This ensures stable references and prevents visual jumps when reordering
+  // Must be called before any early returns to comply with React Hooks rules
   const moduleMap = useMemo(() => {
     const map = new Map<string, CalculationModule>();
     modules.forEach((m) => map.set(m.id, m));
     return map;
   }, [modules]);
+
+  if (workspaceModules.length === 0) return null;
 
   return (
     <SortableList
