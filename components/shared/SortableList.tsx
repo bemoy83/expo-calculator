@@ -57,9 +57,7 @@ export function SortableList<T extends { id: UniqueIdentifier }>({
     >
       <SortableContext items={items.map((item) => item.id)} strategy={strategy}>
         <div className={className}>
-          {items.map((item) => (
-            <div key={item.id}>{renderItem(item)}</div>
-          ))}
+          {items.map((item) => renderItem(item))}
         </div>
       </SortableContext>
 

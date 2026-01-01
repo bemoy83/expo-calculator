@@ -116,8 +116,10 @@ export interface ModuleTemplate {
   name: string;
   description?: string;
   moduleInstances: Array<{
+    id?: string; // Instance ID (new format, optional for legacy compatibility)
     moduleId: string;
-    fieldLinks?: Record<string, FieldLink>; // Preserved field links only
+    fieldValues?: Record<string, string | number | boolean>; // Field values (new format, optional for legacy compatibility)
+    fieldLinks?: Record<string, FieldLink>; // Preserved field links
   }>;
   categories: string[]; // Derived from module categories
   // Future-safe fields (not used in MVP but stored for schema evolution)

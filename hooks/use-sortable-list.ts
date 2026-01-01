@@ -66,7 +66,11 @@ export function useSortableList<T extends UniqueIdentifier>({
       const newIndex = currentItems.findIndex((id) => id === over.id);
 
       if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-        onReorder(oldIndex, newIndex);
+        // Use requestAnimationFrame to ensure @dnd-kit has cleared transforms
+        // before state update, preventing visual jump
+        requestAnimationFrame(() => {
+          onReorder(oldIndex, newIndex);
+        });
       }
     },
     [onReorder]

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { evaluateFormula } from "@/lib/formula-evaluator";
+import { resolveFieldLinks } from "@/lib/utils/field-linking";
 import {
   CalculationModule,
   Field,
@@ -12,7 +13,7 @@ import {
 } from "@/lib/types";
 import { normalizeToBase } from "@/lib/units";
 import { generateId } from "@/lib/utils";
-import { canLinkFields, resolveFieldLinks } from "@/lib/utils/field-linking";
+import { canLinkFields } from "@/lib/utils/field-linking";
 
 interface UseTemplateEditorOptions {
   templateId: string;
@@ -77,11 +78,19 @@ export function useTemplateEditor({
     QuoteModuleInstance[]
   >([]);
 
-  const recalculateModules = useCallback(
-    (modulesToRecalc: QuoteModuleInstance[]) => {
-      const resolvedValues = resolveFieldLinks(modulesToRecalc);
+  // Track the last initialized templateId and template to prevent duplicate initialization
+  const initializedTemplateIdRef = useRef<string | null>(null);
+  const initializedTemplateRef = useRef<ModuleTemplate | null>(null);
 
-      const updated = modulesToRecalc.map((instance) => {
+  // Recalculate all module costs - follows quotes store pattern
+  // Always reads latest state and recalculates, avoiding stale closure issues
+  const recalculateModules = useCallback(() => {
+    setWorkspaceModules((prev) => {
+      if (prev.length === 0) return prev;
+
+      const resolvedValues = resolveFieldLinks(prev);
+
+      const updated = prev.map((instance) => {
         const moduleDef = modules.find((m) => m.id === instance.moduleId);
         if (!moduleDef) return instance;
 
@@ -109,84 +118,159 @@ export function useTemplateEditor({
         }
       });
 
-      setWorkspaceModules(updated);
-    },
-    [materials, modules]
-  );
+      return updated;
+    });
+  }, [materials, modules]);
 
   // Initialize from template or defaults
   useEffect(() => {
     if (templateId === "new") {
-      setTemplateName("");
-      setTemplateDescription("");
-      setWorkspaceModules([]);
+      // Reset for new template
+      if (initializedTemplateIdRef.current !== "new") {
+        setTemplateName("");
+        setTemplateDescription("");
+        setWorkspaceModules([]);
+        initializedTemplateIdRef.current = "new";
+        initializedTemplateRef.current = null;
+      }
       return;
     }
 
     if (!template) return;
 
+    // Prevent duplicate initialization - check if we've already initialized for this template
+    const templateChanged =
+      initializedTemplateIdRef.current !== templateId ||
+      initializedTemplateRef.current !== template;
+
+    if (!templateChanged) {
+      return;
+    }
+
+    // Mark this template as initialized
+    initializedTemplateIdRef.current = templateId;
+    initializedTemplateRef.current = template;
+
     setTemplateName(template.name);
     setTemplateDescription(template.description || "");
 
     const initialModules: QuoteModuleInstance[] = [];
-    const instanceIdMap = new Map<number, string>();
+    const instanceIdMap = new Map<string | number, string>(); // Map old indices or IDs to new IDs
 
-    // First pass: create instances
+    // Single pass: create instances with ID-based links
     template.moduleInstances.forEach((instance, index) => {
       const moduleDef = modules.find((m) => m.id === instance.moduleId);
       if (!moduleDef) return;
 
-      const fieldValues = getDefaultFieldValues(moduleDef.fields, materials);
-      const newInstanceId = generateId();
-      instanceIdMap.set(index, newInstanceId);
+      // Use saved instance ID if available (type-safe access)
+      const savedInstance = instance as any; // Template instances may have id/fieldValues from serializeForSave
+      const instanceId = savedInstance.id || generateId();
+      instanceIdMap.set(index, instanceId); // Map index for migration
+      if (savedInstance.id) {
+        instanceIdMap.set(savedInstance.id, instanceId); // Map ID to itself
+      }
+
+      // Use saved field values if available, otherwise use defaults
+      const fieldValues = savedInstance.fieldValues
+        ? { ...getDefaultFieldValues(moduleDef.fields, materials), ...savedInstance.fieldValues }
+        : getDefaultFieldValues(moduleDef.fields, materials);
+
+      // Migrate field links: convert __index_* format to ID-based (one-time migration)
+      let fieldLinks: Record<string, { moduleInstanceId: string; fieldVariableName: string }> | undefined;
+      if (instance.fieldLinks && Object.keys(instance.fieldLinks).length > 0) {
+        const migratedLinks: Record<string, { moduleInstanceId: string; fieldVariableName: string }> = {};
+
+        Object.entries(instance.fieldLinks).forEach(([fieldName, link]) => {
+          if (link.moduleInstanceId.startsWith("__index_")) {
+            // OLD FORMAT: Migrate from index-based to ID-based
+            const targetIndex = Number(
+              link.moduleInstanceId.replace("__index_", "").replace("__", "")
+            );
+            // We'll resolve this in a second pass since we need all instances created first
+            migratedLinks[fieldName] = {
+              moduleInstanceId: `__MIGRATE_INDEX_${targetIndex}__`,
+              fieldVariableName: link.fieldVariableName,
+            };
+          } else {
+            // NEW FORMAT: Already ID-based, use as-is
+            migratedLinks[fieldName] = link;
+          }
+        });
+
+        fieldLinks = Object.keys(migratedLinks).length > 0 ? migratedLinks : undefined;
+      }
 
       initialModules.push({
-        id: newInstanceId,
+        id: instanceId,
         moduleId: instance.moduleId,
         fieldValues,
-        fieldLinks: {},
+        fieldLinks: fieldLinks || {},
         calculatedCost: 0,
       });
     });
 
-    // Second pass: restore links
-    template.moduleInstances.forEach((templateInstance, sourceIndex) => {
-      const sourceInstanceId = instanceIdMap.get(sourceIndex);
-      if (!sourceInstanceId || !templateInstance.fieldLinks) return;
+    // Second pass: Resolve migrated index-based links
+    initialModules.forEach((instance) => {
+      if (!instance.fieldLinks) return;
 
-      const sourceInstance = initialModules.find(
-        (m) => m.id === sourceInstanceId
-      );
-      if (!sourceInstance) return;
+      const resolvedLinks: Record<string, { moduleInstanceId: string; fieldVariableName: string }> = {};
+      let needsResolution = false;
 
-      const restoredLinks: Record<
-        string,
-        { moduleInstanceId: string; fieldVariableName: string }
-      > = {};
-
-      Object.entries(templateInstance.fieldLinks).forEach(([fieldName, link]) => {
-        if (link.moduleInstanceId.startsWith("__index_")) {
+      Object.entries(instance.fieldLinks).forEach(([fieldName, link]) => {
+        if (link.moduleInstanceId.startsWith("__MIGRATE_INDEX_")) {
+          needsResolution = true;
           const targetIndex = Number(
-            link.moduleInstanceId.replace("__index_", "").replace("__", "")
+            link.moduleInstanceId.replace("__MIGRATE_INDEX_", "").replace("__", "")
           );
           const targetInstanceId = instanceIdMap.get(targetIndex);
           if (targetInstanceId) {
-            restoredLinks[fieldName] = {
+            resolvedLinks[fieldName] = {
               moduleInstanceId: targetInstanceId,
               fieldVariableName: link.fieldVariableName,
             };
           }
+        } else {
+          resolvedLinks[fieldName] = link;
         }
       });
 
-      if (Object.keys(restoredLinks).length > 0) {
-        sourceInstance.fieldLinks = restoredLinks;
+      if (needsResolution) {
+        instance.fieldLinks = Object.keys(resolvedLinks).length > 0 ? resolvedLinks : undefined;
       }
     });
 
-    setWorkspaceModules(initialModules);
-    recalculateModules(initialModules);
-  }, [materials, modules, recalculateModules, template, templateId]);
+    // Calculate costs for initial modules
+    const resolvedValues = resolveFieldLinks(initialModules);
+    const modulesWithCosts = initialModules.map((instance) => {
+      const moduleDef = modules.find((m) => m.id === instance.moduleId);
+      if (!moduleDef) return instance;
+
+      try {
+        const resolved = resolvedValues[instance.id] || instance.fieldValues;
+        const result = evaluateFormula(moduleDef.formula, {
+          fieldValues: resolved,
+          materials,
+          fields: moduleDef.fields.map((f) => ({
+            variableName: f.variableName,
+            type: f.type,
+            materialCategory: f.materialCategory,
+          })),
+        });
+
+        return {
+          ...instance,
+          calculatedCost: result,
+        };
+      } catch {
+        return {
+          ...instance,
+          calculatedCost: 0,
+        };
+      }
+    });
+
+    setWorkspaceModules(modulesWithCosts);
+  }, [templateId, template?.id, modules, materials]); // Include modules/materials for initialization, but ref prevents duplicates
 
   const updateFieldValue = useCallback(
     (
@@ -195,7 +279,7 @@ export function useTemplateEditor({
       value: string | number | boolean
     ) => {
       setWorkspaceModules((prev) => {
-        const updated = prev.map((instance) =>
+        return prev.map((instance) =>
           instance.id === instanceId
             ? {
                 ...instance,
@@ -206,9 +290,9 @@ export function useTemplateEditor({
               }
             : instance
         );
-        recalculateModules(updated);
-        return updated;
       });
+      // Recalculate after updating (separate call, like quotes store)
+      recalculateModules();
     },
     [recalculateModules]
   );
@@ -220,6 +304,7 @@ export function useTemplateEditor({
 
       const fieldValues = getDefaultFieldValues(moduleDef.fields, materials);
 
+      // Create instance with cost 0, then recalculate (follows quotes store pattern)
       const newInstance: QuoteModuleInstance = {
         id: generateId(),
         moduleId,
@@ -228,22 +313,18 @@ export function useTemplateEditor({
         calculatedCost: 0,
       };
 
-      setWorkspaceModules((prev) => {
-        const updated = [...prev, newInstance];
-        recalculateModules(updated);
-        return updated;
-      });
+      setWorkspaceModules((prev) => [...prev, newInstance]);
+      // Recalculate after adding (separate call, like quotes store)
+      recalculateModules();
     },
     [materials, modules, recalculateModules]
   );
 
   const removeModuleInstance = useCallback(
     (instanceId: string) => {
-      setWorkspaceModules((prev) => {
-        const updated = prev.filter((m) => m.id !== instanceId);
-        recalculateModules(updated);
-        return updated;
-      });
+      setWorkspaceModules((prev) => prev.filter((m) => m.id !== instanceId));
+      // Recalculate after removing (separate call, like quotes store)
+      recalculateModules();
     },
     [recalculateModules]
   );
@@ -283,7 +364,7 @@ export function useTemplateEditor({
       }
 
       setWorkspaceModules((prev) => {
-        const updated = prev.map((instance) =>
+        return prev.map((instance) =>
           instance.id === instanceId
             ? {
                 ...instance,
@@ -297,9 +378,9 @@ export function useTemplateEditor({
               }
             : instance
         );
-        recalculateModules(updated);
-        return updated;
       });
+      // Recalculate after linking (separate call, like quotes store)
+      recalculateModules();
 
       return { valid: true };
     },
@@ -309,7 +390,7 @@ export function useTemplateEditor({
   const unlinkField = useCallback(
     (instanceId: string, fieldName: string) => {
       setWorkspaceModules((prev) => {
-        const updated = prev.map((instance) =>
+        return prev.map((instance) =>
           instance.id === instanceId
             ? {
                 ...instance,
@@ -321,9 +402,9 @@ export function useTemplateEditor({
               }
             : instance
         );
-        recalculateModules(updated);
-        return updated;
       });
+      // Recalculate after unlinking (separate call, like quotes store)
+      recalculateModules();
     },
     [recalculateModules]
   );
@@ -447,33 +528,15 @@ export function useTemplateEditor({
   );
 
   const serializeForSave = useCallback(() => {
-    const instanceIdToIndex = new Map<string, number>();
-    workspaceModules.forEach((instance, index) => {
-      instanceIdToIndex.set(instance.id, index);
-    });
-
+    // NEW: Serialize with instance IDs preserved (not converted to indices)
     const moduleInstances = workspaceModules.map((instance) => {
-      const convertedLinks: Record<
-        string,
-        { moduleInstanceId: string; fieldVariableName: string }
-      > = {};
-
-      if (instance.fieldLinks) {
-        Object.entries(instance.fieldLinks).forEach(([fieldName, link]) => {
-          const targetIndex = instanceIdToIndex.get(link.moduleInstanceId);
-          if (targetIndex !== undefined) {
-            convertedLinks[fieldName] = {
-              moduleInstanceId: `__index_${targetIndex}__`,
-              fieldVariableName: link.fieldVariableName,
-            };
-          }
-        });
-      }
-
       return {
+        id: instance.id, // Preserve instance ID
         moduleId: instance.moduleId,
-        fieldLinks:
-          Object.keys(convertedLinks).length > 0 ? convertedLinks : undefined,
+        fieldValues: instance.fieldValues, // Save field values
+        fieldLinks: instance.fieldLinks && Object.keys(instance.fieldLinks).length > 0
+          ? instance.fieldLinks // Keep ID-based links as-is
+          : undefined,
       };
     });
 

@@ -72,7 +72,7 @@ export function SortableFieldItem({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? 'none' : (transform ? transition : 'none'),
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 30 : 'auto',
   };

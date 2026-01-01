@@ -1,246 +1,222 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { Layout } from '@/components/Layout';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { NotificationToast } from '@/components/shared/NotificationToast';
+import { ActionIconButton } from '@/components/shared/ActionIconButton';
+import { SectionHeading } from '@/components/shared/SectionHeading';
 import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
 import { Button } from '@/components/ui/Button';
+import { Chip } from '@/components/ui/Chip';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
-import { Trash2, FileText, Copy, CheckCircle2, Plus } from 'lucide-react';
+import { FileText, Plus, Copy, Trash2 } from 'lucide-react';
+import type { ModuleTemplate } from '@/lib/types';
+import { TemplateEditorView } from './TemplateEditorView';
 
 export default function TemplatesPage() {
-  // ⚠️ ALL HOOKS MUST BE CALLED UNCONDITIONALLY ⚠️
-  // Call all hooks before any conditional returns to ensure hooks order stability
   const templates = useTemplatesStore((state) => state.templates);
   const deleteTemplate = useTemplatesStore((state) => state.deleteTemplate);
   const addTemplate = useTemplatesStore((state) => state.addTemplate);
   const getTemplate = useTemplatesStore((state) => state.getTemplate);
-  const getModule = useModulesStore((state) => state.getModule);
-  const router = useRouter();
+  const modules = useModulesStore((state) => state.modules);
 
-  // ⭐ Prevent hydration mismatch
-  const [hydrated, setHydrated] = useState(false);
-  // Success toast state
-  const [duplicateSuccessMessage, setDuplicateSuccessMessage] = useState<string | null>(null);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [duplicateSuccess, setDuplicateSuccess] = useState<string | null>(null);
 
-  useEffect(() => setHydrated(true), []);
+  // View toggle - single-page pattern (list ↔ editor)
+  if (editingTemplateId) {
+    return (
+      <TemplateEditorView
+        templateId={editingTemplateId}
+        onClose={() => setEditingTemplateId(null)}
+      />
+    );
+  }
 
-  // Prevent hydration mismatch - return null until client mount
-  // This must be AFTER all hooks are called
-  if (!hydrated) return null;
+  // Helper function to get module names from template
+  const getModuleNames = (template: ModuleTemplate): string[] => {
+    return template.moduleInstances
+      .map((instance) => {
+        const foundModule = modules.find((m) => m.id === instance.moduleId);
+        return foundModule?.name || 'Unknown Module';
+      })
+      .filter((name, index, self) => self.indexOf(name) === index); // Remove duplicates
+  };
 
-  // Helper to generate unique template name
+  // Smart duplication with unique naming
+  const handleDuplicate = (templateId: string) => {
+    const template = getTemplate(templateId);
+    if (!template) return;
+
+    const uniqueName = generateUniqueTemplateName(template.name);
+    const { id, createdAt, updatedAt, ...templateData } = template;
+    const newTemplate = addTemplate({
+      ...templateData,
+      name: uniqueName,
+    });
+
+    setDuplicateSuccess(uniqueName);
+    setTimeout(() => setDuplicateSuccess(null), 3000);
+  };
+
   const generateUniqueTemplateName = (baseName: string): string => {
-    const existingNames = templates.map(t => t.name.toLowerCase());
-    
-    // Check if base name is unique
+    const existingNames = templates.map((t) => t.name.toLowerCase());
+
     if (!existingNames.includes(baseName.toLowerCase())) {
       return baseName;
     }
-    
-    // Try " (Copy)"
+
     let candidate = `${baseName} (Copy)`;
     if (!existingNames.includes(candidate.toLowerCase())) {
       return candidate;
     }
-    
-    // Try " (Copy 2)", " (Copy 3)", etc.
+
     let counter = 2;
     do {
       candidate = `${baseName} (Copy ${counter})`;
       counter++;
     } while (existingNames.includes(candidate.toLowerCase()));
-    
+
     return candidate;
-  };
-
-  const handleDelete = (id: string, name: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm(`Are you sure you want to delete template "${name}"?`)) {
-      deleteTemplate(id);
-    }
-  };
-
-  const handleCreateTemplate = () => {
-    // Navigate to editor with 'new' identifier instead of creating immediately
-    // Template will only be created when user clicks Save
-    router.push('/templates/editor?id=new');
-  };
-
-  const handleDuplicate = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const template = getTemplate(id);
-    if (!template) return;
-
-    // Generate unique name
-    const uniqueName = generateUniqueTemplateName(template.name);
-
-    // Create duplicate and get the new template immediately
-    const store = useTemplatesStore.getState();
-    const newTemplate = store.addTemplate({
-      name: uniqueName,
-      description: template.description,
-      moduleInstances: template.moduleInstances,
-      categories: template.categories,
-    });
-
-    // Show success message
-    setDuplicateSuccessMessage(uniqueName);
-    setTimeout(() => setDuplicateSuccessMessage(null), 3000);
-
-    // Navigate to new template editor immediately
-    router.push(`/templates/editor?id=${newTemplate.id}`);
-  };
-
-  const handleCardClick = (id: string) => {
-    router.push(`/templates/editor?id=${id}`);
   };
 
   return (
     <Layout>
-      {/* Duplicate Success Toast */}
-      {duplicateSuccessMessage && (
-        <div className="fixed bottom-24 right-4 z-50">
-          <Card className="bg-success/10 border-success/30">
-            <div className="flex items-center gap-2 p-3">
-              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-              <p className="text-sm text-success">
-                Template &apos;{duplicateSuccessMessage}&apos; created successfully
-              </p>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-md-primary mb-2 tracking-tight">
-            Templates
-          </h1>
-          <p className="text-lg text-md-on-surface-variant">
-            Manage reusable module combinations and field links
-          </p>
-        </div>
-        <Button onClick={handleCreateTemplate} className="rounded-full">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Template
-        </Button>
-      </div>
+      <PageHeader
+        title="Templates"
+        subtitle="Manage reusable module combinations and field links"
+        actions={
+          <Button onClick={() => setEditingTemplateId('new')} className="rounded-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Template
+          </Button>
+        }
+      />
 
       {templates.length === 0 ? (
-        <Card>
-          <div className="text-center py-24">
-            <div
-              className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-md-surface-variant elevation-4 mb-6"
-              aria-hidden="true"
-            >
-              <FileText className="h-12 w-12 text-md-on-surface-variant" />
-            </div>
-            <h3 className="text-xl font-bold text-md-primary mb-3 tracking-tight">
-              No Templates Yet
-            </h3>
-            <p className="text-base text-md-on-surface-variant mb-8 max-w-md mx-auto leading-relaxed">
-              Create templates from your Quote Builder workspace to save module combinations and field links for reuse.
-            </p>
-          </div>
-        </Card>
+        <EmptyState
+          icon={FileText}
+          title="No Templates Yet"
+          description="Create templates from your Quote Builder workspace to save module combinations and field links for reuse."
+          actions={
+            <Button onClick={() => setEditingTemplateId('new')} className="rounded-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Template
+            </Button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {templates.map((template) => {
-            const moduleNames: string[] = [];
-            const moduleCount = template.moduleInstances.length;
-
-            template.moduleInstances.forEach((instance) => {
-              const moduleDef = getModule(instance.moduleId);
-              if (moduleDef && !moduleNames.includes(moduleDef.name)) {
-                moduleNames.push(moduleDef.name);
-              }
-            });
-
-            const visibleModules = moduleNames.slice(0, 6);
-            const remainingCount = moduleNames.length - 6;
-
-            return (
-              <div
-                key={template.id}
-                className="hover:border-accent/30 transition-smooth cursor-pointer group relative"
-                onClick={() => handleCardClick(template.id)}
-              >
-                <Card className="h-full hover:border-accent/30">
-                  <button
-                    type="button"
-                    onClick={(e) => handleDuplicate(template.id, e)}
-                    className="absolute top-4 right-12 p-2 text-md-on-surface-variant hover:text-md-primary hover:bg-md-primary/10 rounded-lg transition-smooth active:scale-95 z-10"
-                    aria-label="Duplicate template"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handleDelete(template.id, template.name, e)}
-                    className="absolute top-4 right-4 p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-error/10 rounded-lg transition-smooth active:scale-95 z-10"
-                    aria-label="Delete template"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-
-                  <h3 className="text-lg font-bold text-md-primary mb-3 transition-smooth tracking-tight pr-20">
-                    {template.name}
-                  </h3>
-
-                  {template.description && (
-                    <p className="text-sm text-md-on-surface-variant mb-4 line-clamp-2">
-                      {template.description}
-                    </p>
-                  )}
-
-                  {template.categories?.length > 0 && (
-                    <div className="mb-5">
-                      <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">
-                        Categories
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {template.categories.map((category) => (
-                          <Chip key={category} size="sm">
-                            {category}
-                          </Chip>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mb-5">
-                    <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">
-                      Modules
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {visibleModules.map((name) => (
-                        <Chip key={name} size="sm">
-                          {name}
-                        </Chip>
-                      ))}
-                      {remainingCount > 0 && (
-                        <Chip size="sm">+ {remainingCount} more</Chip>
-                      )}
-                      {moduleNames.length === 0 && (
-                        <span className="px-2.5 py-1 bg-md-error/10 text-destructive rounded-full text-xs">
-                          No modules found
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-md-on-surface-variant">
-                    {moduleCount} {moduleCount === 1 ? 'module' : 'modules'}
-                  </div>
-                </Card>
-              </div>
-            );
-          })}
+          {templates.map((template) => (
+            <TemplateCard
+              key={template.id}
+              template={template}
+              moduleNames={getModuleNames(template)}
+              onEdit={() => setEditingTemplateId(template.id)}
+              onDuplicate={() => handleDuplicate(template.id)}
+              onDelete={() => deleteTemplate(template.id)}
+            />
+          ))}
         </div>
       )}
+
+      <NotificationToast
+        message={`Template '${duplicateSuccess}' created successfully`}
+        variant="success"
+        isVisible={!!duplicateSuccess}
+        onDismiss={() => setDuplicateSuccess(null)}
+        autoHideDuration={3000}
+      />
     </Layout>
+  );
+}
+
+interface TemplateCardProps {
+  template: ModuleTemplate;
+  moduleNames: string[];
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}
+
+function TemplateCard({ template, moduleNames, onEdit, onDuplicate, onDelete }: TemplateCardProps) {
+  const visibleModules = moduleNames.slice(0, 6);
+  const remainingCount = moduleNames.length - 6;
+
+  return (
+    <div onClick={onEdit}>
+      <Card className="h-full hover:border-accent/30 cursor-pointer relative">
+        {/* Action Buttons */}
+        <div className="absolute top-4 right-4 flex gap-1">
+          <ActionIconButton
+            icon={Copy}
+            actionType="duplicate"
+            onAction={onDuplicate}
+            ariaLabel={`Duplicate ${template.name}`}
+          />
+          <ActionIconButton
+            icon={Trash2}
+            actionType="delete"
+            onAction={onDelete}
+            ariaLabel={`Delete ${template.name}`}
+            confirmationMessage={`Delete "${template.name}"?`}
+          />
+        </div>
+
+        {/* Template Info */}
+        <h3 className="text-lg font-bold text-md-primary mb-3 pr-20">
+          {template.name}
+        </h3>
+
+        {/* Description */}
+        {template.description && (
+          <div className="mb-4">
+            <SectionHeading spacing="small">Description</SectionHeading>
+            <p className="text-sm text-md-on-surface-variant line-clamp-2">
+              {template.description}
+            </p>
+          </div>
+        )}
+
+        {/* Categories */}
+        {template.categories && template.categories.length > 0 && (
+          <div className="mb-4">
+            <SectionHeading spacing="small">Categories</SectionHeading>
+            <div className="flex flex-wrap gap-2">
+              {template.categories.map((category) => (
+                <Chip key={category} size="sm">
+                  {category}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Modules */}
+        <div className="mb-5">
+          <SectionHeading spacing="small">Modules</SectionHeading>
+          <div className="flex flex-wrap gap-2">
+            {visibleModules.map((name) => (
+              <Chip key={name} size="sm">
+                {name}
+              </Chip>
+            ))}
+            {remainingCount > 0 && (
+              <Chip size="sm" variant="outline">
+                + {remainingCount} more
+              </Chip>
+            )}
+          </div>
+        </div>
+
+        <p className="text-xs text-md-on-surface-variant">
+          {template.moduleInstances.length}{' '}
+          {template.moduleInstances.length === 1 ? 'module' : 'modules'}
+        </p>
+      </Card>
+    </div>
   );
 }

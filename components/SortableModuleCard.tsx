@@ -48,7 +48,7 @@ export function SortableModuleCard({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? 'none' : (transform ? transition : 'none'),
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 40 : 'auto',
   };
@@ -110,9 +110,9 @@ export function SortableModuleCard({
               ${instance.calculatedCost.toFixed(2)}
             </span>
             {isCollapsed ? (
-              <ChevronRight className="h-5 w-5 text-md-on-surface-variant" />
+              <ChevronRight className="h-4 w-4" />
             ) : (
-                <ChevronDown className="h-5 w-5 text-md-on-surface-variant" />
+                <ChevronDown className="h-4 w-4" />
             )}
             {/* Action Buttons - Right Aligned */}
             {onAddToQuote && addedItems && (
@@ -130,9 +130,11 @@ export function SortableModuleCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onRemove(instance.id);
+                if (confirm(`Remove ${module.name} from quote?`)) {
+                  onRemove(instance.id);
+                }
               }}
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-md-error text-md-on-error hover:bg-md-error/90 transition-colors focus:outline-none focus:ring-2 focus:ring-md-error focus:ring-offset-2 focus:ring-offset-md-surface"
+              className="p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error-container/10 rounded-full transition-smooth active:scale-95 focus:outline-none"
               aria-label="Remove module"
             >
               <Trash2 className="h-4 w-4" />

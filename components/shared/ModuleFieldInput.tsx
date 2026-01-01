@@ -35,7 +35,7 @@ interface ModuleFieldInputProps {
 export function ModuleFieldInput({
   field,
   value,
-  materials,
+  materials = [],
   onChange,
   linkProps,
 }: ModuleFieldInputProps) {
@@ -275,11 +275,12 @@ export function ModuleFieldInput({
     }
     case "material": {
       const materialCategory = field.materialCategory;
-      let availableMaterials = materials;
-      if (materialCategory && materialCategory.trim()) {
-        availableMaterials = materials.filter((mat) => mat.category === materialCategory);
-      }
-      const sortedMaterials = availableMaterials.sort((a, b) => a.name.localeCompare(b.name));
+      const allMaterials = materials ?? [];
+      const filteredMaterials =
+        materialCategory && materialCategory.trim()
+          ? allMaterials.filter((mat) => mat.category === materialCategory)
+          : allMaterials;
+      const sortedMaterials = [...filteredMaterials].sort((a, b) => a.name.localeCompare(b.name));
 
       return (
         <div>

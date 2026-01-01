@@ -90,11 +90,6 @@ export function ModulePickerCard({
               >
                 <Plus className="h-4 w-4 mr-2 shrink-0" />
                 <span className="truncate flex-1 text-left">{module.name}</span>
-                {module.category && (
-                  <Chip size="sm" className="ml-2 shrink-0">
-                    {module.category}
-                  </Chip>
-                )}
               </button>
             ))}
           </div>

@@ -64,8 +64,7 @@ A professional web application for building multi-module construction cost estim
   - `/` - Dashboard with overview cards
   - `/materials` - Materials catalog management
   - `/modules` - Calculation module editor
-  - `/templates` - Template management
-  - `/templates/editor` - Template editor with module instances
+  - `/templates` - Template management (single-page toggle: list ↔ editor)
   - `/quotes` - Quote builder
 
 **Component Structure:**
@@ -90,6 +89,7 @@ A professional web application for building multi-module construction cost estim
 - `use-formula-variables.ts` - Variable extraction and autocomplete
 - `use-formula-autocomplete.ts` - Formula editor autocomplete
 - `use-preview-cost.ts` - Cost preview calculations
+- `use-quote-field-linking.ts` - Field linking logic for quote builder
 - `use-sortable-list.ts` - Drag-and-drop list management
 - `use-template-editor.ts` - Template editor state management
 - `use-theme-importer.ts` - Theme import/export functionality

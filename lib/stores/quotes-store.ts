@@ -717,36 +717,17 @@ export const useQuotesStore = create<QuotesStore>()(
         if (!current || current.workspaceModules.length === 0) {
           return null;
         }
-        
-        // Create a map of instance ID -> index for link restoration
-        const instanceIdToIndex = new Map<string, number>();
-        current.workspaceModules.forEach((instance, index) => {
-          instanceIdToIndex.set(instance.id, index);
-        });
-        
-        // Extract module IDs and field links from workspaceModules
-        // Convert instance IDs in links to module indices for reliable restoration
+
+        // Serialize module instances with new ID-based format
+        // This matches the template editor's serializeForSave format
         const moduleInstances = current.workspaceModules.map(instance => {
-          const convertedLinks: Record<string, FieldLink> = {};
-          
-          if (instance.fieldLinks) {
-            Object.entries(instance.fieldLinks).forEach(([fieldName, link]) => {
-              const targetIndex = instanceIdToIndex.get(link.moduleInstanceId);
-              if (targetIndex !== undefined) {
-                // Store link with module index instead of instance ID
-                // We'll use a special format: store targetIndex as a string in moduleInstanceId field
-                // This is a workaround since FieldLink expects moduleInstanceId
-                convertedLinks[fieldName] = {
-                  moduleInstanceId: `__index_${targetIndex}__`, // Special marker for index-based links
-                  fieldVariableName: link.fieldVariableName,
-                };
-              }
-            });
-          }
-          
           return {
+            id: instance.id, // Preserve instance ID for stable references
             moduleId: instance.moduleId,
-            fieldLinks: Object.keys(convertedLinks).length > 0 ? convertedLinks : undefined,
+            fieldValues: { ...instance.fieldValues }, // Save field values
+            fieldLinks: instance.fieldLinks && Object.keys(instance.fieldLinks).length > 0
+              ? { ...instance.fieldLinks } // Keep ID-based links as-is
+              : undefined,
           };
         });
         
@@ -839,11 +820,11 @@ export const useQuotesStore = create<QuotesStore>()(
             // Restore field links
             if (templateInstance.fieldLinks) {
               Object.entries(templateInstance.fieldLinks).forEach(([fieldName, link]) => {
-                // Check if link uses index-based format (from our template creation)
+                // Check link format and find target index
                 let targetIndex: number | undefined;
-                
+
                 if (link.moduleInstanceId.startsWith('__index_')) {
-                  // Extract index from special format
+                  // OLD FORMAT: Index-based (from legacy createTemplateFromWorkspace)
                   const indexStr = link.moduleInstanceId.replace('__index_', '').replace('__', '');
                   const parsedIndex = parseInt(indexStr, 10);
                   if (isNaN(parsedIndex)) {
@@ -852,10 +833,16 @@ export const useQuotesStore = create<QuotesStore>()(
                   }
                   targetIndex = parsedIndex;
                 } else {
-                  // Legacy format: try to find by instance ID (won't work but try anyway)
-                  // This handles old templates that might have instance IDs
-                  warnings.push(`Link from "${fieldName}" uses legacy format and may not restore correctly`);
-                  return;
+                  // NEW FORMAT: ID-based (from template editor)
+                  // Find which template instance has this ID
+                  const targetTemplateIndex = template.moduleInstances.findIndex(
+                    (inst: any) => inst.id === link.moduleInstanceId
+                  );
+                  if (targetTemplateIndex === -1) {
+                    warnings.push(`Link from "${fieldName}" could not be restored: target instance not found in template`);
+                    return;
+                  }
+                  targetIndex = targetTemplateIndex;
                 }
                 
                 if (targetIndex === undefined || targetIndex < 0 || targetIndex >= template.moduleInstances.length) {

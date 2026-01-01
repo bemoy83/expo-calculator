@@ -2,22 +2,29 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
-import { useCategoriesStore } from '@/lib/stores/categories-store';
-import { QuoteModuleInstance, FieldType, Field } from '@/lib/types';
-import { Plus, Download, Save, Package, Calculator, CheckCircle2, AlertCircle, X } from 'lucide-react';
-import { Textarea } from '@/components/ui/Textarea';
-import { Chip } from '@/components/ui/Chip';
+import { QuoteModuleInstance, Field } from '@/lib/types';
+import { Plus, Download, Save, Calculator, CheckCircle2, X } from 'lucide-react';
+// Shared components
+import { PageHeader } from '@/components/shared/PageHeader';
+import { AlertBanner } from '@/components/shared/AlertBanner';
+import { ModalDialog } from '@/components/shared/ModalDialog';
+import { NotificationToast } from '@/components/shared/NotificationToast';
+import { EditorActionBar } from '@/components/shared/EditorActionBar';
 import { ModulePickerCard } from '@/components/shared/ModulePickerCard';
-import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
-import { WorkspaceModulesList } from '@/components/quotes/WorkspaceModulesList';
 import { ModuleFieldInput } from '@/components/shared/ModuleFieldInput';
+// Feature components
+import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
+import { WorkspaceModulesManager } from '@/components/quotes/WorkspaceModulesManager';
+import { QuoteDetailsCard } from '@/components/quotes/QuoteDetailsCard';
+// Hooks
+import { useQuoteFieldLinking } from '@/hooks/use-quote-field-linking';
 
 export default function QuotesPage() {
   const modules = useModulesStore((state) => state.modules);
@@ -41,7 +48,12 @@ export default function QuotesPage() {
   const applyTemplate = useQuotesStore((state) => state.applyTemplate);
   const templates = useTemplatesStore((state) => state.templates);
 
-  const [quoteName, setQuoteName] = useState('New Quote');
+  const [formData, setFormData] = useState({
+    name: 'New Quote',
+    taxRate: 0,
+    markupPercent: 0,
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showAddModule, setShowAddModule] = useState(false);
   const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
   // Track which fields have link UI expanded: Map<instanceId, Map<fieldName, boolean>>
@@ -66,14 +78,28 @@ export default function QuotesPage() {
 
   useEffect(() => {
     if (currentQuote) {
-      setQuoteName(currentQuote.name);
+      setFormData({
+        name: currentQuote.name,
+        taxRate: currentQuote.taxRate * 100, // Convert to percentage
+        markupPercent: currentQuote.markupPercent,
+      });
     }
-  }, [currentQuote?.id, currentQuote]); // Update when quote ID or quote object changes
+  }, [currentQuote?.id]); // Update when quote ID changes
 
-  const handleQuoteNameChange = (name: string) => {
-    setQuoteName(name);
+  const handleFormDataChange = (updates: Partial<{ name: string; taxRate: number; markupPercent: number }>) => {
+    setFormData((prev) => ({ ...prev, ...updates }));
+
     if (currentQuote) {
-      updateCurrentQuote({ name });
+      // Update quote in store
+      if (updates.name !== undefined) {
+        updateCurrentQuote({ name: updates.name });
+      }
+      if (updates.taxRate !== undefined) {
+        setTaxRate(updates.taxRate / 100); // Convert from percentage to decimal
+      }
+      if (updates.markupPercent !== undefined) {
+        setMarkupPercent(updates.markupPercent);
+      }
     }
   };
 
@@ -139,96 +165,19 @@ export default function QuotesPage() {
     reorderWorkspaceModules(reordered);
   };
 
-  // Helper to check if field is linked
-  const isFieldLinked = useCallback((instance: QuoteModuleInstance, fieldName: string): boolean => {
-    return !!(instance.fieldLinks && instance.fieldLinks[fieldName]);
-  }, []);
-
-  // Helper to get current link value for dropdown
-  const getCurrentLinkValue = useCallback(
-    (instance: QuoteModuleInstance, fieldName: string): string => {
-      const link = instance.fieldLinks?.[fieldName];
-      if (!link) return 'none';
-      return `${link.moduleInstanceId}.${link.fieldVariableName}`;
-    },
-    []
-  );
-
-  // Helper to check if link is broken
-  const isLinkBroken = useCallback(
-    (instance: QuoteModuleInstance, fieldName: string): boolean => {
-      const link = instance.fieldLinks?.[fieldName];
-      if (!link) return false;
-
-      const targetInstance = currentQuote?.workspaceModules.find((m) => m.id === link.moduleInstanceId);
-      if (!targetInstance) return true;
-
-      const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
-      if (!targetModule) return true;
-
-      const targetField = targetModule.fields.find((f) => f.variableName === link.fieldVariableName);
-      if (!targetField) return true;
-
-      return false;
-    },
-    [currentQuote?.workspaceModules, modules]
-  );
-
-  // Helper to get link display name
-  const getLinkDisplayName = useCallback(
-    (instance: QuoteModuleInstance, fieldName: string): string => {
-      const link = instance.fieldLinks?.[fieldName];
-      if (!link) return '';
-
-      const targetInstance = currentQuote?.workspaceModules.find((m) => m.id === link.moduleInstanceId);
-      if (!targetInstance) return 'source unavailable';
-
-      const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
-      if (!targetModule) return 'source unavailable';
-
-      const targetField = targetModule.fields.find((f) => f.variableName === link.fieldVariableName);
-      if (!targetField) return 'source unavailable';
-
-      return `${targetModule.name} — ${targetField.label}`;
-    },
-    [currentQuote?.workspaceModules, modules]
-  );
-
-  // Helper to build link options for dropdown
-  const buildLinkOptions = useCallback(
-    (instance: QuoteModuleInstance, field: { variableName: string; type: FieldType }) => {
-      if (!currentQuote) return [{ value: 'none', label: 'None' }];
-
-      const options: Array<{ value: string; label: string }> = [
-        { value: 'none', label: 'None' },
-      ];
-
-      currentQuote.workspaceModules.forEach((otherInstance) => {
-        if (otherInstance.id === instance.id) return;
-
-        const otherModule = modules.find((m) => m.id === otherInstance.moduleId);
-        if (!otherModule) return;
-
-        options.push({ value: `sep-${otherInstance.id}`, label: `--- ${otherModule.name} ---` });
-
-        otherModule.fields.forEach((otherField) => {
-          if (otherField.type === 'material') return;
-          if (otherInstance.id === instance.id && otherField.variableName === field.variableName) return;
-
-          const validation = canLinkFields(instance.id, field.variableName, otherInstance.id, otherField.variableName);
-          if (validation.valid) {
-            options.push({
-              value: `${otherInstance.id}.${otherField.variableName}`,
-              label: otherField.label,
-            });
-          }
-        });
-      });
-
-      return options;
-    },
-    [canLinkFields, currentQuote, modules]
-  );
+  // Field linking helpers from hook
+  const {
+    isFieldLinked,
+    getCurrentLinkValue,
+    isLinkBroken,
+    getLinkDisplayName,
+    buildLinkOptions,
+    getResolvedValue,
+  } = useQuoteFieldLinking({
+    currentQuote,
+    modules,
+    canLinkFields,
+  });
 
   // Helper to toggle link UI expansion
   const toggleLinkUI = useCallback((instanceId: string, fieldName: string) => {
@@ -314,20 +263,6 @@ export default function QuotesPage() {
   const isModuleCollapsed = (instanceId: string): boolean => {
     return collapsedModules.has(instanceId);
   };
-
-  // Helper to get resolved value for display (when linked)
-  const getResolvedValue = useCallback(
-    (instance: QuoteModuleInstance, fieldName: string): any => {
-      const link = instance.fieldLinks?.[fieldName];
-      if (!link) return instance.fieldValues[fieldName];
-
-      const targetInstance = currentQuote?.workspaceModules.find((m) => m.id === link.moduleInstanceId);
-      if (!targetInstance) return instance.fieldValues[fieldName];
-
-      return targetInstance.fieldValues[link.fieldVariableName];
-    },
-    [currentQuote?.workspaceModules]
-  );
 
   const renderFieldInput = useCallback(
     (instance: QuoteModuleInstance, field: Field) => {
@@ -522,62 +457,44 @@ export default function QuotesPage() {
 
   return (
     <Layout>
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">Quote Builder</h1>
-          <p className="text-lg text-md-on-surface-variant">Build comprehensive construction cost estimates</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" onClick={() => saveQuote()} className="rounded-full">
-            <Save className="h-4 w-4 mr-2" />
-            Save Quote
-          </Button>
-          <Button variant="secondary" onClick={handleExport} className="rounded-full">
-            <Download className="h-4 w-4 mr-2" />
-            Export JSON
-          </Button>
-          <Button variant="secondary" onClick={handleExportPDF} className="rounded-full">
-            <Download className="h-4 w-4 mr-2" />
-            Print/PDF
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Quote Builder"
+        subtitle="Build comprehensive construction cost estimates"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" onClick={() => saveQuote()} className="rounded-full">
+              <Save className="h-4 w-4 mr-2" />
+              Save Quote
+            </Button>
+            <Button variant="secondary" onClick={handleExport} className="rounded-full">
+              <Download className="h-4 w-4 mr-2" />
+              Export JSON
+            </Button>
+            <Button variant="secondary" onClick={handleExportPDF} className="rounded-full">
+              <Download className="h-4 w-4 mr-2" />
+              Print/PDF
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
         <div className="lg:col-span-2 space-y-5">
-          {/* Quote Name Card */}
-          <Card>
-            <Input
-              label="Quote Name"
-              value={quoteName}
-              onChange={(e) => handleQuoteNameChange(e.target.value)}
-            />
-          </Card>
+          {/* Quote Details Card */}
+          <QuoteDetailsCard
+            formData={formData}
+            errors={errors}
+            onFormDataChange={handleFormDataChange}
+          />
 
           {/* Template Warnings */}
-          {templateWarnings.length > 0 && (
-            <Card className="border-warning bg-warning/10">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-warning mb-2">
-                    Template applied with {templateWarnings.length} warning(s):
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-xs text-warning">
-                    {templateWarnings.map((warning, idx) => (
-                      <li key={idx}>{warning}</li>
-                    ))}
-                  </ul>
-                </div>
-                <button
-                  onClick={() => setTemplateWarnings([])}
-                  className="text-warning hover:text-warning/80"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </Card>
-          )}
+          <AlertBanner
+            variant="warning"
+            title={`Template applied with ${templateWarnings.length} warning(s):`}
+            messages={templateWarnings}
+            isVisible={templateWarnings.length > 0}
+            onDismiss={() => setTemplateWarnings([])}
+          />
 
           {/* Add Module Card */}
           {showAddModule && (
@@ -596,61 +513,30 @@ export default function QuotesPage() {
             />
           )}
 
-          {/* Empty State Card */}
-          {!showAddModule && currentQuote.workspaceModules.length === 0 && (
-            <Card>
-              <div className="text-center py-20">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted elevation-1 mb-5">
-                  <Package className="h-10 w-10 text-md-on-surface-variant" />
-                </div>
-                <h4 className="text-lg font-bold text-foreground mb-2 tracking-tight">No modules in workspace</h4>
-                <p className="text-base text-md-on-surface-variant max-w-md mx-auto leading-relaxed mb-5">
-                  Click &quot;Add Module&quot; to get started, then configure and add them to your quote.
-                </p>
-                <Button 
-                  onClick={() => setShowAddModule(true)}
-                  className="rounded-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Module
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {/* Add Module Button Card */}
-          {!showAddModule && currentQuote.workspaceModules.length > 0 && (
-            <Card>
-              <Button 
-                onClick={() => setShowAddModule(true)}
-                className="rounded-full w-full"
-              >
+          {/* Workspace Modules */}
+          <WorkspaceModulesManager
+            modules={modules}
+            workspaceModules={currentQuote.workspaceModules}
+            collapsedModules={collapsedModules}
+            onToggleCollapse={toggleModuleCollapse}
+            onRemoveModule={removeWorkspaceModule}
+            onAddLineItem={(id) => {
+              addLineItem(id);
+              setAddedItems(new Set([...addedItems, id]));
+              setTimeout(() => {
+                setAddedItems(new Set());
+              }, 2000);
+            }}
+            addedItems={addedItems}
+            onReorder={handleReorder}
+            renderFieldInput={renderFieldInput}
+            emptyStateAction={
+              <Button onClick={() => setShowAddModule(true)} className="rounded-full">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Module
               </Button>
-            </Card>
-          )}
-
-          {/* Module Cards */}
-          {currentQuote.workspaceModules.length > 0 && (
-            <WorkspaceModulesList
-              modules={modules}
-              workspaceModules={currentQuote.workspaceModules}
-              collapsedModules={collapsedModules}
-              onToggleCollapse={toggleModuleCollapse}
-              onRemoveModule={removeWorkspaceModule}
-              onAddLineItem={(id) => {
-                addLineItem(id);
-                setAddedItems(new Set([...addedItems, id]));
-                setTimeout(() => {
-                  setAddedItems(new Set());
-                }, 2000);
-              }}
-              addedItems={addedItems}
-              onReorder={handleReorder}
-              renderFieldInput={renderFieldInput}
-            />
-          )}
+            }
+          />
         </div>
 
         <div className="lg:col-span-1">
@@ -664,120 +550,104 @@ export default function QuotesPage() {
       </div>
 
       {/* Save Template Modal */}
-      {showSaveTemplateModal && (
-        <div className="fixed inset-0 bg-overlay/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-md-primary">Save as Template</h3>
-              <button
-                onClick={() => {
-                  setShowSaveTemplateModal(false);
-                  setTemplateName('');
-                  setTemplateDescription('');
-                }}
-                className="text-md-on-surface-variant hover:text-foreground"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <Input
-                label="Template Name"
-                value={templateName}
-                onChange={(e) => setTemplateName(e.target.value)}
-                placeholder="e.g., Wall + Finish Setup"
-                required
-              />
-              
-              <Textarea
-                label="Description (optional)"
-                value={templateDescription}
-                onChange={(e) => setTemplateDescription(e.target.value)}
-                placeholder="Describe what this template is used for..."
-                rows={3}
-              />
-              
-              <div className="p-3 bg-muted/50 border border-border rounded-md">
-                <p className="text-xs font-medium text-md-on-surface mb-2">This template will save:</p>
-                <ul className="space-y-1 text-xs text-md-on-surface-variant">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
-                    Module combinations
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
-                    Field linking relationships
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <X className="h-3 w-3 text-destructive shrink-0" />
-                    Field values (you&apos;ll enter these when using the template)
-                  </li>
-                </ul>
-              </div>
-              
-              <div className="flex gap-3 justify-end">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setShowSaveTemplateModal(false);
-                    setTemplateName('');
-                    setTemplateDescription('');
-                  }}
-                  className="rounded-full"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveTemplate}
-                  disabled={!templateName.trim()}
-                  className="rounded-full"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Template
-                </Button>
-              </div>
-            </div>
-          </Card>
+      <ModalDialog
+        isOpen={showSaveTemplateModal}
+        onClose={() => {
+          setShowSaveTemplateModal(false);
+          setTemplateName('');
+          setTemplateDescription('');
+        }}
+        title="Save as Template"
+        maxWidth="medium"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Template Name"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            placeholder="e.g., Wall + Finish Setup"
+            required
+          />
+
+          <Textarea
+            label="Description (optional)"
+            value={templateDescription}
+            onChange={(e) => setTemplateDescription(e.target.value)}
+            placeholder="Describe what this template is used for..."
+            rows={3}
+          />
+
+          <div className="p-3 bg-muted/50 border border-border rounded-md">
+            <p className="text-xs font-medium text-md-on-surface mb-2">This template will save:</p>
+            <ul className="space-y-1 text-xs text-md-on-surface-variant">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
+                Module combinations
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
+                Field linking relationships
+              </li>
+              <li className="flex items-center gap-2">
+                <X className="h-3 w-3 text-destructive shrink-0" />
+                Field values (you&apos;ll enter these when using the template)
+              </li>
+            </ul>
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowSaveTemplateModal(false);
+                setTemplateName('');
+                setTemplateDescription('');
+              }}
+              className="rounded-full"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveTemplate}
+              disabled={!templateName.trim()}
+              className="rounded-full"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Template
+            </Button>
+          </div>
         </div>
-      )}
+      </ModalDialog>
 
       {/* Template Save Success Message */}
-      {templateSaveSuccess && (
-        <div className="fixed bottom-24 right-4 z-50">
-          <Card className="bg-success/10 border-success/30">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-              <p className="text-sm text-success">
-                Template &apos;{templateSaveSuccess}&apos; saved successfully
-              </p>
-            </div>
-          </Card>
-        </div>
-      )}
+      <NotificationToast
+        message={`Template '${templateSaveSuccess}' saved successfully`}
+        variant="success"
+        isVisible={!!templateSaveSuccess}
+        onDismiss={() => setTemplateSaveSuccess(null)}
+        autoHideDuration={3000}
+      />
 
-      {/* BOTTOM ACTION BAR */}
-      <div data-bottom-action-bar className="fixed bottom-0 left-0 right-0 bg-md-surface-container-high/95 backdrop-blur-md border-t border-border px-4 py-4 z-40 elevation-2">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end gap-3">
-          <Button 
-            onClick={() => setShowSaveTemplateModal(true)}
-            className="rounded-full"
-            disabled={!currentQuote || currentQuote.workspaceModules.length === 0}
-            variant="secondary"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save as Template
-          </Button>
-          <Button 
-            onClick={() => setShowAddModule(true)}
-            className="rounded-full"
-            disabled={showAddModule}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Module
-          </Button>
-        </div>
-      </div>
+      {/* Bottom Action Bar */}
+      <EditorActionBar justifyContent="end">
+        <Button
+          onClick={() => setShowSaveTemplateModal(true)}
+          className="rounded-full"
+          disabled={!currentQuote || currentQuote.workspaceModules.length === 0}
+          variant="secondary"
+        >
+          <Save className="h-4 w-4 mr-2" />
+          Save as Template
+        </Button>
+        <Button
+          onClick={() => setShowAddModule(true)}
+          className="rounded-full"
+          disabled={showAddModule}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Module
+        </Button>
+      </EditorActionBar>
     </Layout>
   );
 }
