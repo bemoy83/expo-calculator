@@ -191,7 +191,11 @@ export function ComputedOutputItem({
   }, []);
 
   const dragHandleProps = {
-    attributes: { tabIndex: -1, 'aria-hidden': true, style: { visibility: 'hidden', pointerEvents: 'none' } },
+    attributes: {
+      tabIndex: -1,
+      'aria-hidden': true,
+      style: { visibility: 'hidden' as const, pointerEvents: 'none' as const },
+    },
     listeners: {},
   };
 
