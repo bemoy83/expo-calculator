@@ -42,6 +42,7 @@ export interface Field {
 }
 
 import type { UnitCategory } from './units';
+export type { UnitCategory } from './units';
 
 export interface ComputedOutput {
   id: string;
