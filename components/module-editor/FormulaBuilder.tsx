@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { cn } from '@/lib/utils';
 import { analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { Field, Material } from '@/lib/types';
+import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { 
   ChevronDown, 
   ChevronRight,
@@ -131,6 +132,8 @@ export function FormulaBuilder({
   materials,
   fields,
 }: FormulaBuilderProps) {
+  const functions = useFunctionsStore((state) => state.functions);
+  
   return (
     <Card title="Formula Builder" className="sticky top-[88px]">
       <div className="space-y-6">
@@ -426,7 +429,8 @@ export function FormulaBuilder({
                   variableName: f.variableName,
                   type: f.type,
                   materialCategory: f.materialCategory,
-                }))
+                })),
+                functions
               );
               
               return (
@@ -441,6 +445,30 @@ export function FormulaBuilder({
                         {debugInfo.variables.map((varName: string) => (
                           <Chip key={varName} size="sm" variant="primary" className="font-mono text-xs">
                             {varName}
+                          </Chip>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-md-on-surface-variant italic">None</p>
+                    )}
+                  </div>
+
+                  {/* Function Calls */}
+                  <div>
+                    <h5 className="text-xs font-semibold text-md-primary mb-1.5">
+                      Function Calls ({debugInfo.functionCalls?.length || 0})
+                    </h5>
+                    {debugInfo.functionCalls && debugInfo.functionCalls.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {debugInfo.functionCalls.map((call: { name: string; arguments: string[]; fullMatch: string }, idx: number) => (
+                          <Chip
+                            key={`${call.name}-${idx}`}
+                            size="sm"
+                            variant="primary"
+                            className="font-mono text-xs"
+                            title={`${call.name}(${call.arguments.join(', ')})`}
+                          >
+                            {call.fullMatch}
                           </Chip>
                         ))}
                       </div>
@@ -688,6 +716,7 @@ export function FormulaBuilder({
     </Card>
   );
 }
+
 
 
 

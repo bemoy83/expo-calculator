@@ -343,3 +343,4 @@ import { Plus, Trash2 } from 'lucide-react';
 7. **Hydration Safety**: Always guard client-only code
 8. **Hook Stability**: Never call hooks conditionally
 
+

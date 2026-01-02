@@ -53,7 +53,7 @@ export function usePreviewCost({
         variableName: f.variableName,
         type: f.type,
         materialCategory: f.materialCategory,
-      })));
+      })), functions);
       const materialFields = fields.filter(f => f.type === 'material');
       const hasMaterialProperties = formulaVars.materialPropertyRefs.length > 0;
       

@@ -184,3 +184,4 @@ export function TemplatePreviewSidebar({ moduleCount }: TemplatePreviewSidebarPr
     </div>
   );
 }
+
