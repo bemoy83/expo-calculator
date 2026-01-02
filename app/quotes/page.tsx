@@ -225,7 +225,13 @@ export default function QuotesPage() {
         return;
       }
 
-      const [targetInstanceId, targetFieldName] = value.split('.');
+      // Split only on the first dot to handle computed outputs with 'out.' prefix
+      const firstDotIndex = value.indexOf('.');
+      if (firstDotIndex === -1) return;
+      
+      const targetInstanceId = value.substring(0, firstDotIndex);
+      const targetFieldName = value.substring(firstDotIndex + 1);
+      
       if (!targetInstanceId || !targetFieldName) return;
 
       const result = linkField(instance.id, fieldName, targetInstanceId, targetFieldName);

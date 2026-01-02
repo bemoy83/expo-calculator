@@ -344,3 +344,4 @@ import { Plus, Trash2 } from 'lucide-react';
 8. **Hook Stability**: Never call hooks conditionally
 
 
+

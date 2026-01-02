@@ -41,6 +41,18 @@ export interface Field {
   materialCategory?: string; // For material type fields: limit materials to this category (empty = all categories)
 }
 
+import type { UnitCategory } from './units';
+
+export interface ComputedOutput {
+  id: string;
+  label: string; // Display name (e.g., "Paint Area")
+  variableName: string; // Variable name WITHOUT out. prefix (e.g., "paint_area_m2")
+  expression: string; // Formula expression (e.g., "area(width, height)" or "width * height")
+  unitSymbol?: string; // Optional unit symbol (e.g., "m2")
+  unitCategory?: UnitCategory; // Optional unit category
+  description?: string; // Optional help text
+}
+
 export interface CalculationModule {
   id: string;
   name: string;
@@ -48,6 +60,7 @@ export interface CalculationModule {
   category?: string;
   fields: Field[];
   formula: string; // Formula using variable names
+  computedOutputs?: ComputedOutput[]; // NEW: Array of computed outputs
   createdAt: string;
   updatedAt: string;
 }

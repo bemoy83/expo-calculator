@@ -181,9 +181,14 @@ export function useFormulaAutocomplete({
     }
     
     // Handle dot notation: if typing "mat_plank." and selecting "width", insert just "width"
+    // BUT: computed outputs (out.*) should always insert the full name, not just the variable part
     if (wordInfo.hasDot && wordInfo.baseWord && suggestion.type !== 'function') {
-      if (suggestion.name.startsWith(`${wordInfo.baseWord}.`)) {
-        // Extract property name only
+      // Special handling for computed outputs - always insert full "out.variableName"
+      if (suggestion.name.startsWith('out.')) {
+        // Keep the full computed output name
+        variableToInsert = suggestion.name;
+      } else if (suggestion.name.startsWith(`${wordInfo.baseWord}.`)) {
+        // Extract property name only for regular properties
         variableToInsert = suggestion.name.substring(wordInfo.baseWord.length + 1);
       } else if (suggestion.name === wordInfo.baseWord) {
         // Keep the base word

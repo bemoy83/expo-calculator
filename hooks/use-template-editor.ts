@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { evaluateFormula } from "@/lib/formula-evaluator";
 import { resolveFieldLinks } from "@/lib/utils/field-linking";
+import { evaluateComputedOutputs } from "@/lib/utils/evaluate-computed-outputs";
 import {
   CalculationModule,
   Field,
@@ -98,8 +99,26 @@ export function useTemplateEditor({
 
         try {
           const resolved = resolvedValues[instance.id] || instance.fieldValues;
+          
+          // Step 1: Evaluate computed outputs (if any)
+          let resolvedWithComputed = { ...resolved };
+          if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
+            const computedResult = evaluateComputedOutputs(
+              moduleDef,
+              resolved,
+              materials,
+              functions
+            );
+            // Merge computed values into resolved values
+            resolvedWithComputed = {
+              ...resolved,
+              ...computedResult.computedValues,
+            };
+          }
+          
+          // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
           const result = evaluateFormula(moduleDef.formula, {
-            fieldValues: resolved,
+            fieldValues: resolvedWithComputed,
             materials,
             fields: moduleDef.fields.map((f) => ({
               variableName: f.variableName,
@@ -251,8 +270,26 @@ export function useTemplateEditor({
 
       try {
         const resolved = resolvedValues[instance.id] || instance.fieldValues;
+        
+        // Step 1: Evaluate computed outputs (if any)
+        let resolvedWithComputed = { ...resolved };
+        if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
+          const computedResult = evaluateComputedOutputs(
+            moduleDef,
+            resolved,
+            materials,
+            functions
+          );
+          // Merge computed values into resolved values
+          resolvedWithComputed = {
+            ...resolved,
+            ...computedResult.computedValues,
+          };
+        }
+        
+        // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
         const result = evaluateFormula(moduleDef.formula, {
-          fieldValues: resolved,
+          fieldValues: resolvedWithComputed,
           materials,
           fields: moduleDef.fields.map((f) => ({
             variableName: f.variableName,

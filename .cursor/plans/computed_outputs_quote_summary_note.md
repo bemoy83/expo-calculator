@@ -159,3 +159,4 @@ Add to **Phase 3** or create **Phase 9**:
 - Format with units: `"Paint Area: 50 m²"`
 - Store computed outputs in `fieldValues` snapshot (with `out.` prefix)
 
+

@@ -10,7 +10,7 @@ import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { Textarea } from '@/components/ui/Textarea';
 
 import { useCategoriesStore } from '@/lib/stores/categories-store';
-import { CalculationModule, Field } from '@/lib/types';
+import { CalculationModule, Field, ComputedOutput } from '@/lib/types';
 import { 
   Plus, 
   Trash2, 
@@ -21,6 +21,7 @@ import { FormulaBuilder } from '@/components/module-editor/FormulaBuilder';
 import { ModulePreview } from '@/components/module-editor/ModulePreview';
 import { ModuleDetailsCard } from '@/components/module-editor/ModuleDetailsCard';
 import { FieldsManager } from '@/components/module-editor/FieldsManager';
+import { ComputedOutputsManager } from '@/components/module-editor/ComputedOutputsManager';
 import { ModuleEditorHeader } from '@/components/module-editor/ModuleEditorHeader';
 import { ModuleEditorActions } from '@/components/module-editor/ModuleEditorActions';
 import { useFormulaValidation } from '@/hooks/use-formula-validation';
@@ -28,6 +29,9 @@ import { usePreviewCost } from '@/hooks/use-preview-cost';
 import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
 import { useFieldManager } from '@/hooks/use-field-manager';
 import { useFormulaVariables } from '@/hooks/use-formula-variables';
+import { generateId } from '@/lib/utils';
+import { validateComputedOutputVariableName, validateComputedOutputExpression } from '@/lib/utils/computed-outputs';
+import { useFunctionsStore } from '@/lib/stores/functions-store';
 
 export default function ModulesPage() {
   const modules = useModulesStore((state) => state.modules);
@@ -51,6 +55,8 @@ export default function ModulesPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, Record<string, string>>>({});
+  const [computedOutputs, setComputedOutputs] = useState<ComputedOutput[]>([]);
+  const [computedOutputErrors, setComputedOutputErrors] = useState<Record<string, Record<string, string>>>({});
   const formulaTextareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Field management hook
@@ -78,6 +84,7 @@ export default function ModulesPage() {
     formula: formData.formula,
     fields,
     materials,
+    computedOutputs,
   });
   // Preview state
   const [showPreview, setShowPreview] = useState(false);
@@ -91,6 +98,7 @@ export default function ModulesPage() {
     materials,
     previewFieldValues,
     formulaValidationValid: formulaValidation.valid,
+    computedOutputs,
   });
 
   // Initialize editing state
@@ -104,6 +112,7 @@ export default function ModulesPage() {
         formula: module.formula,
       });
       setFields(module.fields.map((f) => ({ ...f })));
+      setComputedOutputs(module.computedOutputs ? module.computedOutputs.map((o) => ({ ...o })) : []);
     } else {
       setEditingModuleId('new');
       setFormData({
@@ -113,9 +122,11 @@ export default function ModulesPage() {
         formula: '',
       });
       setFields([]);
+      setComputedOutputs([]);
     }
     setErrors({});
     setFieldErrors({});
+    setComputedOutputErrors({});
   };
 
   const cancelEditing = () => {
@@ -127,8 +138,10 @@ export default function ModulesPage() {
       formula: '',
     });
     setFields([]);
+    setComputedOutputs([]);
     setErrors({});
     setFieldErrors({});
+    setComputedOutputErrors({});
   };
 
   // Handle reorder event - reorder fields array
@@ -152,6 +165,7 @@ export default function ModulesPage() {
     fields,
     materials,
     formula: formData.formula,
+    computedOutputs,
   });
 
   // Helper function to initialize preview with default values
@@ -293,6 +307,8 @@ export default function ModulesPage() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     const newFieldErrors: Record<string, Record<string, string>> = {};
+    const newComputedOutputErrors: Record<string, Record<string, string>> = {};
+    const functions = useFunctionsStore.getState().functions;
 
     if (!formData.name.trim()) {
       newErrors.name = 'Module name is required';
@@ -328,9 +344,51 @@ export default function ModulesPage() {
       }
     });
 
+    // Validate computed outputs
+    computedOutputs.forEach((output) => {
+      const outputError: Record<string, string> = {};
+      if (!output.label.trim()) {
+        outputError.label = 'Label is required';
+      }
+      if (!output.variableName.trim()) {
+        outputError.variableName = 'Variable name is required';
+      } else {
+        const varValidation = validateComputedOutputVariableName(
+          output.variableName,
+          computedOutputs.filter((o) => o.id !== output.id),
+          fields
+        );
+        if (!varValidation.valid) {
+          outputError.variableName = varValidation.error || 'Invalid variable name';
+        }
+      }
+      if (!output.expression.trim()) {
+        outputError.expression = 'Expression is required';
+      } else {
+        const exprValidation = validateComputedOutputExpression(
+          output.expression,
+          fields,
+          computedOutputs, // Pass all outputs to check order
+          functions,
+          output.id // Pass current output ID to check if references are to previous outputs
+        );
+        if (!exprValidation.valid) {
+          outputError.expression = exprValidation.error || 'Invalid expression';
+        }
+      }
+      if (Object.keys(outputError).length > 0) {
+        newComputedOutputErrors[output.id] = outputError;
+      }
+    });
+
     setErrors(newErrors);
     setFieldErrors(newFieldErrors);
-    return Object.keys(newErrors).length === 0 && Object.keys(newFieldErrors).length === 0;
+    setComputedOutputErrors(newComputedOutputErrors);
+    return (
+      Object.keys(newErrors).length === 0 &&
+      Object.keys(newFieldErrors).length === 0 &&
+      Object.keys(newComputedOutputErrors).length === 0
+    );
   };
 
   const handleSubmit = () => {
@@ -346,6 +404,16 @@ export default function ModulesPage() {
         label: f.label.trim(),
         variableName: f.variableName.trim(),
       })),
+      computedOutputs:
+        computedOutputs.length > 0
+          ? computedOutputs.map((o) => ({
+              ...o,
+              label: o.label.trim(),
+              variableName: o.variableName.trim(),
+              expression: o.expression.trim(),
+              description: o.description?.trim() || undefined,
+            }))
+          : undefined,
     };
 
     if (editingModuleId === 'new') {
@@ -408,6 +476,53 @@ export default function ModulesPage() {
               onAddField={addField}
               setFieldRef={setFieldRef}
             />
+
+            {/* COMPUTED OUTPUTS MANAGER */}
+            <ComputedOutputsManager
+              computedOutputs={computedOutputs}
+              fields={fields}
+              onUpdateOutput={(id, updates) => {
+                setComputedOutputs((prev) =>
+                  prev.map((o) => (o.id === id ? { ...o, ...updates } : o))
+                );
+              }}
+              onRemoveOutput={(id) => {
+                setComputedOutputs((prev) => prev.filter((o) => o.id !== id));
+                // Clear errors for removed output
+                setComputedOutputErrors((prev) => {
+                  const updated = { ...prev };
+                  delete updated[id];
+                  return updated;
+                });
+              }}
+              onAddOutput={() => {
+                const newOutput: ComputedOutput = {
+                  id: generateId(),
+                  label: '',
+                  variableName: '',
+                  expression: '',
+                };
+                setComputedOutputs((prev) => [...prev, newOutput]);
+              }}
+              errors={computedOutputErrors}
+              onValidationError={(id, field, error) => {
+                setComputedOutputErrors((prev) => {
+                  const updated = { ...prev };
+                  if (!updated[id]) {
+                    updated[id] = {};
+                  }
+                  if (error) {
+                    updated[id][field] = error;
+                  } else {
+                    delete updated[id][field];
+                    if (Object.keys(updated[id]).length === 0) {
+                      delete updated[id];
+                    }
+                  }
+                  return updated;
+                });
+              }}
+            />
           </div>
 
           {/* RIGHT COLUMN - FORMULA BUILDER */}
@@ -448,6 +563,11 @@ export default function ModulesPage() {
               onSetIsAutocompleteOpen={setIsAutocompleteOpen}
               materials={materials}
               fields={fields}
+              computedOutputs={computedOutputs.map((o) => ({
+                variableName: o.variableName,
+                label: o.label,
+                unitSymbol: o.unitSymbol,
+              }))}
             />
           </div>
         </div>

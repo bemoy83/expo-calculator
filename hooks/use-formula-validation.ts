@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Field, Material } from '@/lib/types';
+import { Field, Material, ComputedOutput, CalculationModule } from '@/lib/types';
 import { validateFormula, evaluateFormula } from '@/lib/formula-evaluator';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
+import { evaluateComputedOutputs } from '@/lib/utils/evaluate-computed-outputs';
 
 interface FormulaValidation {
   valid: boolean;
@@ -13,12 +14,14 @@ interface UseFormulaValidationProps {
   formula: string;
   fields: Field[];
   materials: Material[];
+  computedOutputs?: ComputedOutput[];
 }
 
 export function useFormulaValidation({
   formula,
   fields,
   materials,
+  computedOutputs = [],
 }: UseFormulaValidationProps) {
   const [formulaValidation, setFormulaValidation] = useState<FormulaValidation>({ valid: false });
   const functions = useFunctionsStore((state) => state.functions);
@@ -30,13 +33,19 @@ export function useFormulaValidation({
     }
 
     const availableVars = fields.map((f) => f.variableName).filter(Boolean);
+    // Add computed outputs with 'out.' prefix to available variables
+    const computedOutputVars = computedOutputs
+      .filter((o) => o.variableName)
+      .map((o) => `out.${o.variableName}`);
+    const allAvailableVars = [...availableVars, ...computedOutputVars];
+    
     // Pass field definitions for validation (needed to identify material fields)
     const fieldDefinitions = fields.map(f => ({
       variableName: f.variableName,
       type: f.type,
       materialCategory: f.materialCategory,
     }));
-    const validation = validateFormula(formulaToValidate, availableVars, materials, fieldDefinitions, functions);
+    const validation = validateFormula(formulaToValidate, allAvailableVars, materials, fieldDefinitions, functions);
 
     if (validation.valid) {
       // Calculate preview with default values
@@ -73,9 +82,41 @@ export function useFormulaValidation({
         }
       });
 
+      // Evaluate computed outputs with default field values
+      let computedValues: Record<string, number> = {};
+      if (computedOutputs.length > 0) {
+        // Create a temporary module-like object for evaluateComputedOutputs
+        const tempModule: Partial<CalculationModule> = {
+          fields,
+          computedOutputs,
+        };
+        try {
+          const computedResult = evaluateComputedOutputs(
+            tempModule as CalculationModule,
+            defaultValues,
+            materials,
+            functions
+          );
+          computedValues = computedResult.computedValues;
+        } catch (error) {
+          // If computed outputs fail to evaluate, use 0 as fallback
+          computedOutputs.forEach((output) => {
+            if (output.variableName) {
+              computedValues[`out.${output.variableName}`] = 0;
+            }
+          });
+        }
+      }
+
+      // Merge computed values into default values
+      const valuesWithComputed = {
+        ...defaultValues,
+        ...computedValues,
+      };
+
       try {
         const preview = evaluateFormula(formulaToValidate, {
-          fieldValues: defaultValues,
+          fieldValues: valuesWithComputed,
           materials,
           functions,
         });
@@ -90,7 +131,7 @@ export function useFormulaValidation({
     } else {
       setFormulaValidation({ valid: false, error: validation.error });
     }
-  }, [fields, materials, functions]);
+  }, [fields, materials, functions, computedOutputs]);
 
   useEffect(() => {
     if (formula) {
@@ -98,7 +139,7 @@ export function useFormulaValidation({
     } else {
       setFormulaValidation({ valid: false });
     }
-  }, [formula, fields, materials, validateFormulaInput]);
+  }, [formula, fields, materials, computedOutputs, validateFormulaInput]);
 
   return {
     formulaValidation,

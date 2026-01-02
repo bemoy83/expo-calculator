@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { Field, Material } from '@/lib/types';
+import { Field, Material, ComputedOutput } from '@/lib/types';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 
 interface FieldVariable {
@@ -30,12 +30,14 @@ interface UseFormulaVariablesProps {
   fields: Field[];
   materials: Material[];
   formula: string;
+  computedOutputs?: ComputedOutput[];
 }
 
 export function useFormulaVariables({
   fields,
   materials,
   formula,
+  computedOutputs = [],
 }: UseFormulaVariablesProps) {
   const functions = useFunctionsStore((state) => state.functions);
 
@@ -193,6 +195,20 @@ export function useFormulaVariables({
       });
     });
 
+    // Computed outputs (with 'out.' prefix)
+    computedOutputs.forEach((output) => {
+      if (output.variableName) {
+        const computedOutputName = `out.${output.variableName}`;
+        const unitDisplay = output.unitSymbol ? ` (${output.unitSymbol})` : '';
+        candidates.push({
+          name: computedOutputName,
+          displayName: `${computedOutputName}${unitDisplay}`,
+          type: 'field', // Treat as field type for autocomplete
+          description: output.label || output.variableName,
+        });
+      }
+    });
+
     // Built-in math functions
     const mathFunctions = [
       { name: 'sqrt', displayName: 'sqrt()', description: 'Square root' },
@@ -239,7 +255,7 @@ export function useFormulaVariables({
     });
 
     return candidates;
-  }, [availableFieldVariables, availableMaterialVariables, getMaterialFieldProperties, functions]);
+  }, [availableFieldVariables, availableMaterialVariables, getMaterialFieldProperties, functions, computedOutputs]);
 
   return {
     // Helper functions

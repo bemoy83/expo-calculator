@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Plus } from 'lucide-react';
 
-interface ModuleDetailsCardProps {
+interface FunctionDetailsCardProps {
   formData: {
     name: string;
     description: string;
@@ -22,13 +22,13 @@ interface ModuleDetailsCardProps {
   addCategory: (category: string) => void;
 }
 
-export function ModuleDetailsCard({
+export function FunctionDetailsCard({
   formData,
   errors,
   onFormDataChange,
   getAllCategories,
   addCategory,
-}: ModuleDetailsCardProps) {
+}: FunctionDetailsCardProps) {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
@@ -47,26 +47,24 @@ export function ModuleDetailsCard({
   };
 
   return (
-    <Card title="Module Details">
+    <Card title="Function Details">
       <div className="space-y-4">
         <Input
-          label="Module Name"
+          label="Function Name"
           value={formData.name}
           onChange={(e) => onFormDataChange({ name: e.target.value })}
           error={errors.name}
-          placeholder="e.g., Floor Area Calculator"
+          placeholder="e.g., m2, area, volume"
         />
         <Textarea
           label="Description (optional)"
           value={formData.description}
           onChange={(e) => onFormDataChange({ description: e.target.value })}
           rows={3}
-          placeholder="Describe what this module calculates..."
+          placeholder="Describe what this function calculates..."
         />
         <div>
-          <label className="block text-sm font-medium text-foreground mb-3">
-            Category
-          </label>
+          <label className="block text-sm font-medium text-foreground mb-3">Category</label>
           <div className="flex flex-wrap gap-2 mb-3">
             {getAllCategories().map((cat) => (
               <Chip
@@ -79,11 +77,7 @@ export function ModuleDetailsCard({
               </Chip>
             ))}
             {!showAddCategory && (
-              <Chip
-                size="md"
-                variant="dashed"
-                onClick={() => setShowAddCategory(true)}
-              >
+              <Chip size="md" variant="dashed" onClick={() => setShowAddCategory(true)}>
                 <Plus className="h-4 w-4 inline mr-1" />
                 Add Category
               </Chip>
@@ -106,20 +100,10 @@ export function ModuleDetailsCard({
                 }}
                 autoFocus
               />
-              <Button
-                onClick={handleAddCategory}
-                disabled={!newCategoryName.trim()}
-                size="sm"
-                className="rounded-full"
-              >
+              <Button onClick={handleAddCategory} disabled={!newCategoryName.trim()} size="sm" className="rounded-full">
                 Add
               </Button>
-              <Button
-                onClick={handleCancelAddCategory}
-                variant="ghost"
-                size="sm"
-                className="rounded-full"
-              >
+              <Button onClick={handleCancelAddCategory} variant="ghost" size="sm" className="rounded-full">
                 Cancel
               </Button>
             </div>
@@ -138,13 +122,5 @@ export function ModuleDetailsCard({
     </Card>
   );
 }
-
-
-
-
-
-
-
-
 
 

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Field, Material } from '@/lib/types';
+import { Field, Material, ComputedOutput, CalculationModule } from '@/lib/types';
 import { evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
+import { evaluateComputedOutputs } from '@/lib/utils/evaluate-computed-outputs';
 
 interface UsePreviewCostProps {
   showPreview: boolean;
@@ -10,6 +11,7 @@ interface UsePreviewCostProps {
   materials: Material[];
   previewFieldValues: Record<string, string | number | boolean>;
   formulaValidationValid: boolean;
+  computedOutputs?: ComputedOutput[];
 }
 
 export function usePreviewCost({
@@ -19,6 +21,7 @@ export function usePreviewCost({
   materials,
   previewFieldValues,
   formulaValidationValid,
+  computedOutputs = [],
 }: UsePreviewCostProps) {
   const [previewCalculatedCost, setPreviewCalculatedCost] = useState(0);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -49,7 +52,13 @@ export function usePreviewCost({
 
       // Check if material is needed for property formulas
       const availableVars = fields.map((f) => f.variableName).filter(Boolean);
-      const formulaVars = analyzeFormulaVariables(formula, availableVars, materials, fields.map(f => ({
+      // Add computed outputs to available variables for analysis
+      const computedOutputVars = computedOutputs
+        .filter((o) => o.variableName)
+        .map((o) => `out.${o.variableName}`);
+      const allAvailableVars = [...availableVars, ...computedOutputVars];
+      
+      const formulaVars = analyzeFormulaVariables(formula, allAvailableVars, materials, fields.map(f => ({
         variableName: f.variableName,
         type: f.type,
         materialCategory: f.materialCategory,
@@ -71,8 +80,34 @@ export function usePreviewCost({
         }
       }
 
+      // Evaluate computed outputs first (if any)
+      let valuesWithComputed = { ...previewFieldValues };
+      if (computedOutputs.length > 0) {
+        // Create a temporary module-like object for evaluateComputedOutputs
+        const tempModule: Partial<CalculationModule> = {
+          fields,
+          computedOutputs,
+        };
+        try {
+          const computedResult = evaluateComputedOutputs(
+            tempModule as CalculationModule,
+            previewFieldValues,
+            materials,
+            functions
+          );
+          // Merge computed values into preview values
+          valuesWithComputed = {
+            ...previewFieldValues,
+            ...computedResult.computedValues,
+          };
+        } catch (error) {
+          // If computed outputs fail, continue with regular field values
+          // The formula evaluation will handle the error
+        }
+      }
+
       const result = evaluateFormula(formula, {
-        fieldValues: previewFieldValues,
+        fieldValues: valuesWithComputed,
         materials,
         fields: fields.map(f => ({
           variableName: f.variableName,
@@ -88,7 +123,7 @@ export function usePreviewCost({
       setPreviewError('⚠️ Cannot calculate yet — missing inputs.');
       setPreviewCalculatedCost(0);
     }
-  }, [showPreview, formula, previewFieldValues, materials, fields, formulaValidationValid, functions]);
+  }, [showPreview, formula, previewFieldValues, materials, fields, formulaValidationValid, functions, computedOutputs]);
 
   return {
     previewCalculatedCost,

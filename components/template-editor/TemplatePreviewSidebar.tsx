@@ -185,3 +185,4 @@ export function TemplatePreviewSidebar({ moduleCount }: TemplatePreviewSidebarPr
   );
 }
 
+

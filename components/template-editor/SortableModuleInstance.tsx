@@ -99,7 +99,13 @@ export function SortableModuleInstance({
       if (value === 'none') {
         onUnlinkField(instance.id, fieldName);
       } else {
-        const [targetInstanceId, targetFieldName] = value.split('.');
+        // Split only on the first dot to handle computed outputs with 'out.' prefix
+        const firstDotIndex = value.indexOf('.');
+        if (firstDotIndex === -1) return;
+        
+        const targetInstanceId = value.substring(0, firstDotIndex);
+        const targetFieldName = value.substring(firstDotIndex + 1);
+        
         if (targetInstanceId && targetFieldName) {
           onLinkField(instance.id, fieldName, targetInstanceId, targetFieldName);
         }

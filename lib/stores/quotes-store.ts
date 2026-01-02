@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Quote, QuoteModuleInstance, QuoteLineItem, FieldLink, Field, ModuleTemplate } from '../types';
 import { generateId } from '../utils';
 import { evaluateFormula } from '../formula-evaluator';
+import { evaluateComputedOutputs } from '../utils/evaluate-computed-outputs';
 import { useModulesStore } from './modules-store';
 import { useMaterialsStore } from './materials-store';
 import { useTemplatesStore } from './templates-store';
@@ -319,11 +320,49 @@ export const useQuotesStore = create<QuotesStore>()(
         
         // Find field definitions
         const sourceField = sourceModule.fields.find((f) => f.variableName === fieldName);
-        const targetField = targetModule.fields.find((f) => f.variableName === targetFieldName);
         
         if (!sourceField) {
           return { valid: false, error: 'Source field not found' };
         }
+        
+        // Check if target is a computed output (starts with 'out.')
+        if (targetFieldName.startsWith('out.')) {
+          const outputVarName = targetFieldName.replace('out.', '');
+          const computedOutput = targetModule.computedOutputs?.find(
+            (o) => o.variableName === outputVarName
+          );
+          
+          if (!computedOutput) {
+            return { valid: false, error: 'Computed output not found' };
+          }
+          
+          // Check type compatibility (computed outputs are always numbers)
+          if (sourceField.type !== 'number') {
+            return { valid: false, error: `Cannot link computed output to ${sourceField.type} field` };
+          }
+          
+          // Check unit compatibility if both have units
+          if (computedOutput.unitCategory && sourceField.unitCategory) {
+            if (computedOutput.unitCategory !== sourceField.unitCategory) {
+              return {
+                valid: false,
+                error: `Cannot link computed output with ${computedOutput.unitCategory} unit to field with ${sourceField.unitCategory} unit`,
+              };
+            }
+          }
+          
+          // Check for circular references
+          const cycle = get().detectCircularReference(instanceId, fieldName, targetInstanceId, targetFieldName);
+          if (cycle) {
+            return { valid: false, error: `Circular reference detected: ${cycle}` };
+          }
+          
+          return { valid: true };
+        }
+        
+        // Regular field linking
+        const targetField = targetModule.fields.find((f) => f.variableName === targetFieldName);
+        
         if (!targetField) {
           return { valid: false, error: 'Target field not found' };
         }
@@ -453,10 +492,28 @@ export const useQuotesStore = create<QuotesStore>()(
         
         const materials = useMaterialsStore.getState().materials;
         const functions = useFunctionsStore.getState().functions;
+        
+        // Step 1: Evaluate computed outputs (if any)
+        let resolvedWithComputed = { ...resolved };
+        if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
+          const computedResult = evaluateComputedOutputs(
+            moduleDef,
+            resolved,
+            materials,
+            functions
+          );
+          // Merge computed values into resolved values
+          resolvedWithComputed = {
+            ...resolved,
+            ...computedResult.computedValues,
+          };
+        }
+        
+        // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
         let cost = 0;
         try {
           cost = evaluateFormula(moduleDef.formula, {
-            fieldValues: resolved,
+            fieldValues: resolvedWithComputed,
             materials,
             functions,
           });
@@ -467,20 +524,40 @@ export const useQuotesStore = create<QuotesStore>()(
           return;
         }
         
-        // Create a brief summary of key field values using resolved values
-        const fieldSummary = moduleDef.fields
-          .slice(0, 3) // Show first 3 fields
-          .map((field) => {
-            const value = resolved[field.variableName];
-            return `${field.label}: ${value}`;
-          })
-          .join(', ');
+        // Step 3: Generate field summary prioritizing computed outputs
+        const summaryParts: string[] = [];
+        
+        // Add computed outputs first (they're often the most important)
+        if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
+          moduleDef.computedOutputs.forEach((output) => {
+            const value = resolvedWithComputed[`out.${output.variableName}`];
+            if (value !== null && value !== undefined) {
+              const unitStr = output.unitSymbol ? ` ${output.unitSymbol}` : '';
+              summaryParts.push(`${output.label}: ${value}${unitStr}`);
+            }
+          });
+        }
+        
+        // Add regular fields (limit total to 3-4 items)
+        const remainingSlots = Math.max(0, 4 - summaryParts.length);
+        if (remainingSlots > 0) {
+          moduleDef.fields
+            .slice(0, remainingSlots)
+            .forEach((field) => {
+              const value = resolved[field.variableName];
+              if (value !== null && value !== undefined) {
+                summaryParts.push(`${field.label}: ${value}`);
+              }
+            });
+        }
+        
+        const fieldSummary = summaryParts.join(', ') || 'No details';
         
         const lineItem: QuoteLineItem = {
             id: generateId(),
             moduleId: instance.moduleId,
             moduleName: moduleDef.name,
-          fieldValues: { ...resolved }, // Snapshot of resolved values
+          fieldValues: { ...resolvedWithComputed }, // Snapshot of resolved values including computed outputs
           fieldSummary: fieldSummary || 'No details',
           cost,
           createdAt: new Date().toISOString(),
@@ -547,6 +624,16 @@ export const useQuotesStore = create<QuotesStore>()(
             return instance.fieldValues[fieldName];
           }
           
+          // Check if link target is a computed output (starts with 'out.')
+          // Computed outputs are stored directly in fieldValues, don't recurse
+          if (link.fieldVariableName.startsWith('out.')) {
+            if (!(link.fieldVariableName in targetInstance.fieldValues)) {
+              brokenLinks.push({ instanceId, fieldName });
+              return instance.fieldValues[fieldName];
+            }
+            return targetInstance.fieldValues[link.fieldVariableName];
+          }
+          
           // Check if target field exists
           if (!(link.fieldVariableName in targetInstance.fieldValues)) {
             brokenLinks.push({ instanceId, fieldName });
@@ -554,7 +641,7 @@ export const useQuotesStore = create<QuotesStore>()(
             return instance.fieldValues[fieldName];
           }
           
-          // Resolve linked value recursively
+          // Resolve linked value recursively (regular field)
           return resolve(link.moduleInstanceId, link.fieldVariableName, [...path, key]);
         }
         
@@ -615,6 +702,8 @@ export const useQuotesStore = create<QuotesStore>()(
         // Resolve all field links first
         const resolvedValues = get().resolveFieldLinks(current.workspaceModules);
         
+        const functions = useFunctionsStore.getState().functions;
+        
         // Use resolved values for evaluation
         const updatedModules = current.workspaceModules.map((moduleInstance) => {
           const moduleDef = useModulesStore.getState().getModule(moduleInstance.moduleId);
@@ -622,11 +711,28 @@ export const useQuotesStore = create<QuotesStore>()(
           
           const resolved = resolvedValues[moduleInstance.id] || moduleInstance.fieldValues;
           
-          const functions = useFunctionsStore.getState().functions;
+          // Step 1: Evaluate computed outputs (if any)
+          let resolvedWithComputed = { ...resolved };
+          let computedResult: { computedValues: Record<string, number>; errors: Array<{ outputId: string; outputLabel: string; error: string }> } | null = null;
+          if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
+            computedResult = evaluateComputedOutputs(
+              moduleDef,
+              resolved,
+              materials,
+              functions
+            );
+            // Merge computed values into resolved values
+            resolvedWithComputed = {
+              ...resolved,
+              ...computedResult.computedValues,
+            };
+          }
+          
+          // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
           let cost = 0;
           try {
             cost = evaluateFormula(moduleDef.formula, {
-              fieldValues: resolved,
+              fieldValues: resolvedWithComputed,
               materials,
               functions,
             });
@@ -636,8 +742,16 @@ export const useQuotesStore = create<QuotesStore>()(
             cost = 0;
           }
           
+          // Step 3: Store computed output values in fieldValues so they can be accessed by linked fields
+          const updatedFieldValues = { ...moduleInstance.fieldValues };
+          if (computedResult) {
+            // Merge computed values into fieldValues
+            Object.assign(updatedFieldValues, computedResult.computedValues);
+          }
+          
           return {
             ...moduleInstance,
+            fieldValues: updatedFieldValues,
             calculatedCost: cost,
           };
         });

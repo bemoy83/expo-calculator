@@ -5,8 +5,8 @@ import { UnitCategory, getUnitCategory, normalizeToBase, multiplyUnits, divideUn
 export interface EvaluationContext {
   fieldValues: Record<string, string | number | boolean>;
   materials: Material[];
-  // Optional: field definitions for validation (needed to identify material fields)
-  fields?: Array<{ variableName: string; type: string; materialCategory?: string }>;
+  // Optional: field definitions for validation (needed to identify material fields and default values)
+  fields?: Array<{ variableName: string; type: string; materialCategory?: string; defaultValue?: string | number | boolean }>;
   functionOutputs?: Record<string, number>; // Pre-computed function outputs (for linked functions)
   functions?: SharedFunction[]; // Available functions
 }
@@ -15,6 +15,7 @@ export type FormulaDebugInfo = {
   fieldPropertyRefs: Array<{ full: string; fieldVar: string; property: string }>;
   materialPropertyRefs: Array<{ full: string; materialVar: string; property: string }>;
   variables: string[];
+  computedOutputs: string[]; // Computed outputs (out.variableName)
   mathFunctions: string[];
   functionCalls: Array<{ name: string; arguments: string[]; fullMatch: string }>;
   unknownVariables: string[];
@@ -250,6 +251,33 @@ function evaluateFunctionCall(
     else if (argVarName in context.fieldValues) {
       argValue = context.fieldValues[argVarName];
     } 
+    // Check field default values as fallback
+    else if (context.fields) {
+      const field = context.fields.find(f => f.variableName === argVarName);
+      if (field && field.defaultValue !== undefined) {
+        argValue = field.defaultValue;
+      } else {
+        // Check if it's a function output (for linked functions)
+        if (context.functionOutputs && argVarName in context.functionOutputs) {
+          argValue = context.functionOutputs[argVarName];
+        }
+        // Check if it's a material variable
+        else {
+          const material = context.materials.find(m => m.variableName === argVarName);
+          if (material) {
+            argValue = material.price;
+          } else {
+            // Try to parse as number
+            const numValue = Number(argVarName);
+            if (!isNaN(numValue) && isFinite(numValue)) {
+              argValue = numValue;
+            } else {
+              throw new Error(`Variable '${argVarName}' not found for function '${call.functionName}' parameter '${paramName}'`);
+            }
+          }
+        }
+      }
+    }
     // Check if it's a function output (for linked functions)
     else if (context.functionOutputs && argVarName in context.functionOutputs) {
       argValue = context.functionOutputs[argVarName];
@@ -281,18 +309,43 @@ function evaluateFunctionCall(
 /**
  * Tokenizes identifiers in a string and applies a replacement handler.
  * Returns the rebuilt string with replacements applied.
+ * 
+ * @param input - The input string to process
+ * @param handler - Function to determine replacement for each identifier
+ * @param excludeRanges - Optional array of [startIndex, endIndex] ranges to exclude from replacement
+ *                        (e.g., function call ranges to prevent replacing function names or arguments)
  */
 function replaceIdentifiers(
   input: string,
-  handler: (token: IdentifierToken) => string | null | undefined
+  handler: (token: IdentifierToken) => string | null | undefined,
+  excludeRanges?: Array<[number, number]>
 ): string {
   let result = '';
   let lastIndex = 0;
   IDENTIFIER_REGEX.lastIndex = 0;
   let match: RegExpExecArray | null;
 
+  // Helper to check if a position is within an excluded range
+  const isExcluded = (index: number, length: number): boolean => {
+    if (!excludeRanges) return false;
+    const endIndex = index + length;
+    return excludeRanges.some(([start, end]) => {
+      // Check if identifier overlaps with excluded range
+      return (index >= start && index < end) || (endIndex > start && endIndex <= end) || (index < start && endIndex > end);
+    });
+  };
+
   while ((match = IDENTIFIER_REGEX.exec(input)) !== null) {
     const tokenText = match[0];
+    const matchIndex = match.index;
+    
+    // Skip if this identifier is within an excluded range (e.g., inside function call)
+    if (isExcluded(matchIndex, tokenText.length)) {
+      result += input.slice(lastIndex, matchIndex + tokenText.length);
+      lastIndex = matchIndex + tokenText.length;
+      continue;
+    }
+    
     const hasDot = tokenText.includes('.');
     const [base, property] = tokenText.split('.');
     const token: IdentifierToken = {
@@ -302,7 +355,7 @@ function replaceIdentifiers(
       hasDot,
     };
 
-    result += input.slice(lastIndex, match.index);
+    result += input.slice(lastIndex, matchIndex);
 
     const replacement = handler(token);
     result += replacement !== null && replacement !== undefined ? replacement : tokenText;
@@ -342,6 +395,7 @@ function parseMaterialPropertyReferences(formula: string): Array<{ materialVar: 
   const propertyRefs = parsePropertyReferences(formula);
   return propertyRefs
     .filter(ref => !ref.isFieldProperty)
+    .filter(ref => !ref.fullMatch.startsWith('out.')) // Exclude computed output references (out.*)
     .map(ref => ({
       materialVar: ref.baseVar,
       propertyName: ref.propertyName,
@@ -359,6 +413,7 @@ function parseFieldPropertyReferences(
 ): Array<{ fieldVar: string; propertyName: string; fullMatch: string }> {
   const propertyRefs = parsePropertyReferences(formula);
   return propertyRefs
+    .filter(ref => !ref.fullMatch.startsWith('out.')) // Exclude computed output references (out.*)
     .filter(ref => fieldVariableNames.includes(ref.baseVar))
     .map(ref => ({
       fieldVar: ref.baseVar,
@@ -545,7 +600,19 @@ export function evaluateFormula(
     const functions = context.functions || [];
 
     // STEP 0: Parse function calls (but don't evaluate yet - we need variable values first)
-    const functionCalls = parseFunctionCalls(processedFormula);
+    // We'll re-parse after each replacement pass to keep exclusion ranges accurate
+    let functionCalls = parseFunctionCalls(processedFormula);
+    
+    // Helper function to update exclusion ranges after string modifications
+    const updateExclusionRanges = (): Array<[number, number]> => {
+      return functionCalls.map(call => {
+        // Exclude the entire function call: from startIndex to endIndex (includes arguments)
+        return [call.startIndex, call.endIndex];
+      });
+    };
+    
+    // Also create a set of function names for quick lookup
+    let functionNames = new Set(functionCalls.map(call => call.functionName));
 
     // STEP 1: Replace field property references FIRST (e.g., wallboard.width)
     // This must happen BEFORE replacing field variables to avoid conflicts
@@ -561,7 +628,11 @@ export function evaluateFormula(
         return fieldPropertyValueMap.get(token.text);
       }
       return null;
-    });
+    }, updateExclusionRanges());
+    
+    // Re-parse function calls after STEP 1 to update exclusion ranges
+    functionCalls = parseFunctionCalls(processedFormula);
+    functionNames = new Set(functionCalls.map(call => call.functionName));
 
     // STEP 2: Replace field variable values
     // Material fields: When a field value is a string matching a material's variableName,
@@ -591,17 +662,33 @@ export function evaluateFormula(
     }
 
     processedFormula = replaceIdentifiers(processedFormula, (token) => {
+      // Skip function names (they should not be replaced)
+      if (functionNames.has(token.text)) return null;
+      
+      // Handle computed outputs (out.variableName) as regular field values
+      // They are NOT property references, they're stored directly in fieldValues
+      if (token.hasDot && token.text.startsWith('out.')) {
+        if (fieldValueMap.has(token.text)) {
+          return fieldValueMap.get(token.text)?.toString();
+        }
+        return null;
+      }
       if (token.hasDot) return null; // Don't touch property references here
       if (MATH_FUNCTIONS.has(token.text)) return null;
       if (fieldValueMap.has(token.text)) {
         return fieldValueMap.get(token.text)?.toString();
       }
       return null;
-    });
+    }, updateExclusionRanges());
+    
+    // Re-parse function calls after STEP 2 to update exclusion ranges
+    functionCalls = parseFunctionCalls(processedFormula);
+    functionNames = new Set(functionCalls.map(call => call.functionName));
 
     // STEP 3: Replace material property references (e.g., mat_plank.length)
     // This must happen BEFORE replacing material variables to avoid conflicts
-    const materialPropertyRefs = parseMaterialPropertyReferences(formula);
+    // Use processedFormula (not original formula) since the string may have been modified
+    const materialPropertyRefs = parseMaterialPropertyReferences(processedFormula);
     const fieldPropertyFullMatches = new Set(fieldPropertyRefs.map(ref => ref.fullMatch));
     const materialPropertyValueMap = new Map<string, string>();
     for (const ref of materialPropertyRefs) {
@@ -624,7 +711,11 @@ export function evaluateFormula(
         return materialPropertyValueMap.get(token.text);
       }
       return null;
-    });
+    }, updateExclusionRanges());
+    
+    // Re-parse function calls after STEP 3 to update exclusion ranges
+    functionCalls = parseFunctionCalls(processedFormula);
+    functionNames = new Set(functionCalls.map(call => call.functionName));
 
     // STEP 4: Replace material variable values
     // Property references have already been replaced, so we can safely replace all material variables
@@ -635,13 +726,20 @@ export function evaluateFormula(
     }
 
     processedFormula = replaceIdentifiers(processedFormula, (token) => {
+      // Skip function names (they should not be replaced)
+      if (functionNames.has(token.text)) return null;
+      
       if (token.hasDot) return null;
       if (MATH_FUNCTIONS.has(token.text)) return null;
       if (materialValueMap.has(token.text)) {
         return materialValueMap.get(token.text);
       }
       return null;
-    });
+    }, updateExclusionRanges());
+    
+    // Re-parse function calls after STEP 4 to update exclusion ranges
+    functionCalls = parseFunctionCalls(processedFormula);
+    functionNames = new Set(functionCalls.map(call => call.functionName));
 
     // Check for unreplaced variables (identifiers that aren't math functions)
     // Note: We need to exclude property references and function calls that were already processed
@@ -653,8 +751,20 @@ export function evaluateFormula(
     const fieldVarsInPropertyRefs = new Set(fieldPropertyRefs.map(ref => ref.fieldVar));
     const materialVarsInPropertyRefs = new Set(materialPropertyRefs.map(ref => ref.materialVar));
     
-    // Track function names to exclude from unreplaced variable check
-    const functionNames = new Set(functionCalls.map(call => call.functionName));
+    // Collect all function call argument variable names to exclude from unreplaced variable check
+    // Function arguments will be resolved by evaluateFunctionCall in STEP 5
+    const functionCallArgs = new Set<string>();
+    for (const call of functionCalls) {
+      for (const arg of call.arguments) {
+        // Only include simple variable names (not numbers, not nested function calls)
+        // Check if it's a valid identifier and not a number
+        if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(arg.trim()) && isNaN(Number(arg.trim()))) {
+          functionCallArgs.add(arg.trim());
+        }
+      }
+    }
+    
+    // functionNames is already defined above, no need to redefine it
 
     if (matches) {
       for (const match of matches) {
@@ -670,6 +780,8 @@ export function evaluateFormula(
         if (fieldVarsInPropertyRefs.has(match)) continue;
         // Skip material variables that were used in property references
         if (materialVarsInPropertyRefs.has(match)) continue;
+        // Skip function call arguments (will be resolved by evaluateFunctionCall)
+        if (functionCallArgs.has(match)) continue;
         // This is an unreplaced variable
         unreplacedVars.push(match);
       }
@@ -970,13 +1082,78 @@ export function validateFormula(
         ...materials.map(m => m.variableName),
       ];
 
+      // Collect all available function names for nested function call detection
+      const allFunctionNames = new Set(
+        availableFunctions.map(f => f.name)
+      );
+
       for (let i = 0; i < call.arguments.length; i++) {
         const argVar = call.arguments[i];
+        
         // Skip if it's a number literal
         if (!isNaN(Number(argVar)) && isFinite(Number(argVar))) {
           continue;
         }
         
+        // Check if argument is itself a nested function call (e.g., func1(x))
+        const nestedFunctionCalls = parseFunctionCalls(argVar);
+        if (nestedFunctionCalls.length > 0) {
+          // Validate nested function call recursively
+          // First check if the nested function exists
+          const nestedFuncName = nestedFunctionCalls[0].functionName;
+          const nestedFuncDef = availableFunctions.find(f => f.name === nestedFuncName);
+          
+          if (!nestedFuncDef) {
+            warnings.push(
+              `Function '${call.functionName}' parameter '${funcDef.parameters[i].name}' uses nested function '${nestedFuncName}' which is not found`
+            );
+            continue;
+          }
+          
+          // Check parameter count for nested function
+          if (nestedFunctionCalls[0].arguments.length !== nestedFuncDef.parameters.length) {
+            warnings.push(
+              `Nested function '${nestedFuncName}' in '${call.functionName}' parameter '${funcDef.parameters[i].name}' expects ${nestedFuncDef.parameters.length} argument(s), but got ${nestedFunctionCalls[0].arguments.length}`
+            );
+            continue;
+          }
+          
+          // Recursively validate the nested function call's arguments
+          // Validate each argument of the nested function call
+          for (let j = 0; j < nestedFunctionCalls[0].arguments.length; j++) {
+            const nestedArg = nestedFunctionCalls[0].arguments[j];
+            
+            // Skip if nested argument is a number literal
+            if (!isNaN(Number(nestedArg)) && isFinite(Number(nestedArg))) {
+              continue;
+            }
+            
+            // Check if nested argument is itself a function call (deep nesting)
+            const deepNestedCalls = parseFunctionCalls(nestedArg);
+            if (deepNestedCalls.length > 0) {
+              // For deep nesting, just check if the function exists
+              const deepFuncName = deepNestedCalls[0].functionName;
+              if (!allFunctionNames.has(deepFuncName)) {
+                warnings.push(
+                  `Deeply nested function '${deepFuncName}' in '${nestedFuncName}' argument '${nestedFuncDef.parameters[j].name}' is not found`
+                );
+              }
+              continue; // Skip allAvailableVars check for nested function calls
+            }
+            
+            // Regular variable check for nested function arguments
+            // These should be available in the outer function's context (parameters or materials)
+            if (!allAvailableVars.includes(nestedArg)) {
+              warnings.push(
+                `Nested function '${nestedFuncName}' argument '${nestedFuncDef.parameters[j].name}' uses variable '${nestedArg}' which may not be available in the outer function context`
+              );
+            }
+          }
+          
+          continue; // Skip the allAvailableVars check for the nested function call itself
+        }
+        
+        // Regular variable check (not a nested function call)
         if (!allAvailableVars.includes(argVar)) {
           warnings.push(
             `Function '${call.functionName}' parameter '${funcDef.parameters[i].name}' uses variable '${argVar}' which may not be available`
@@ -985,8 +1162,29 @@ export function validateFormula(
       }
     }
 
-    // First, check field property references (e.g., wallboard.width)
-    const fieldPropertyRefs = parseFieldPropertyReferences(formula, availableVariables);
+    // First, check computed output references (out.variableName) - these must be checked BEFORE property references
+    const computedOutputRefRegex = /\bout\.([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
+    const computedOutputMatches = formula.match(computedOutputRefRegex) || [];
+    for (const match of computedOutputMatches) {
+      if (!availableVariables.includes(match)) {
+        const outputName = match.replace('out.', '');
+        return {
+          valid: false,
+          error: `Computed output '${outputName}' not found. Available computed outputs: ${availableVariables.filter(v => v.startsWith('out.')).map(v => v.replace('out.', '')).join(', ') || 'none'}`,
+        };
+      }
+    }
+
+    // Then, check field property references (e.g., wallboard.width)
+    // Include field variable names from fields array, not just availableVariables
+    // This ensures field property references are recognized even if the field doesn't have a value yet
+    const allFieldVariableNames = [
+      ...availableVariables,
+      ...(fields?.map(f => f.variableName) || [])
+    ];
+    // Remove duplicates
+    const uniqueFieldVariableNames = Array.from(new Set(allFieldVariableNames));
+    const fieldPropertyRefs = parseFieldPropertyReferences(formula, uniqueFieldVariableNames);
     for (const ref of fieldPropertyRefs) {
       // Find the field definition
       const field = fields?.find(f => f.variableName === ref.fieldVar);
@@ -1067,10 +1265,15 @@ export function validateFormula(
     }
 
     // Now parse identifiers, excluding those that are property parts
-    const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
-    const matches = formula.match(variableRegex);
+    // Also parse computed output references (out.variableName) as single tokens
+    const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\b/g;
+    const matches = formula.match(variableRegex) || [];
+    
+    // Separate computed output references from regular identifiers
+    const computedOutputRefs = matches.filter(m => m.startsWith('out.'));
+    const regularMatches = matches.filter(m => !m.startsWith('out.'));
 
-    if (matches) {
+    if (matches.length > 0) {
       const allAvailableVars = [
         ...availableVariables,
         ...materials.map(m => m.variableName),
@@ -1093,7 +1296,11 @@ export function validateFormula(
         ...availableFunctions.map(f => f.name) // All available function names from store
       ]);
 
-      for (const match of matches) {
+      // Skip computed output references - they're already validated earlier in the function
+      // Filter them out from regularMatches to avoid duplicate checks
+      const regularMatchesWithoutComputedOutputs = regularMatches.filter(m => !m.startsWith('out.'));
+
+      for (const match of regularMatchesWithoutComputedOutputs) {
         // Skip if it's a number
         if (!isNaN(Number(match))) continue;
 
@@ -1104,6 +1311,24 @@ export function validateFormula(
 
         // Skip if it's ANY user-defined function name (not just ones in calls)
         if (allFunctionNames.has(match)) {
+          continue;
+        }
+
+        // Skip if this identifier is part of a computed output reference (out.variableName)
+        // Computed outputs are stored in fieldValues with 'out.' prefix
+        if (match === 'out') {
+          // Check if 'out' is followed by a dot and variable name (e.g., "out.area")
+          const outPattern = /\bout\.([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
+          const outMatches = formula.match(outPattern);
+          if (outMatches && outMatches.length > 0) {
+            // 'out' is part of a computed output reference, skip it
+            continue;
+          }
+        }
+
+        // Skip if this identifier is a full property reference (e.g., "material.width")
+        // Property references are already validated separately
+        if (allPropertyRefs.has(match)) {
           continue;
         }
 
@@ -1271,8 +1496,13 @@ export function analyzeFormulaVariables(
   }));
 
   // Parse all identifiers using same regex as validation
-  const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
+  // Also parse computed output references (out.variableName) as single tokens
+  const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\b/g;
   const matches = formula.match(variableRegex) || [];
+  
+  // Separate computed output references from regular identifiers
+  const computedOutputRefs = matches.filter(m => m.startsWith('out.'));
+  const regularMatches = matches.filter(m => !m.startsWith('out.'));
 
   // Track which full property references exist
   const allPropertyRefs = new Set([
@@ -1280,7 +1510,7 @@ export function analyzeFormulaVariables(
     ...filteredMaterialPropertyRefs.map(ref => ref.fullMatch)
   ]);
 
-  // Collect all available variables
+  // Collect all available variables (including computed outputs with 'out.' prefix)
   const allAvailableVars = [
     ...availableVariables,
     ...materials.map(m => m.variableName),
@@ -1294,10 +1524,20 @@ export function analyzeFormulaVariables(
   ]);
 
   const variables: string[] = [];
+  const computedOutputs: string[] = [];
   const mathFunctions: string[] = [];
   const unknownVariables: string[] = [];
+  
+  // Add computed output references to computedOutputs array (separate from regular variables)
+  computedOutputRefs.forEach(ref => {
+    if (allAvailableVars.includes(ref)) {
+      computedOutputs.push(ref);
+    } else {
+      unknownVariables.push(ref);
+    }
+  });
 
-  for (const match of matches) {
+  for (const match of regularMatches) {
     // Skip if it's a number
     if (!isNaN(Number(match))) continue;
 
@@ -1340,6 +1580,7 @@ export function analyzeFormulaVariables(
     fieldPropertyRefs: fieldPropertyRefsFormatted,
     materialPropertyRefs: materialPropertyRefsFormatted,
     variables: [...new Set(variables)], // Remove duplicates
+    computedOutputs: [...new Set(computedOutputs)], // Computed output references (out.variableName)
     mathFunctions: [...new Set(mathFunctions)], // Remove duplicates
     functionCalls: functionCallsFormatted, // Function calls found in formula
     unknownVariables: [...new Set(unknownVariables)], // Remove duplicates

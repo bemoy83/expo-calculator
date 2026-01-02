@@ -93,6 +93,7 @@ interface FormulaBuilderProps {
   // Data dependencies
   materials: Material[];
   fields: Field[];
+  computedOutputs?: Array<{ variableName: string; label: string; unitSymbol?: string }>; // Computed outputs for this module
 }
 
 export function FormulaBuilder({
@@ -131,6 +132,7 @@ export function FormulaBuilder({
   onSetIsAutocompleteOpen,
   materials,
   fields,
+  computedOutputs = [],
 }: FormulaBuilderProps) {
   const functions = useFunctionsStore((state) => state.functions);
   
@@ -421,9 +423,16 @@ export function FormulaBuilder({
           </summary>
           <div className="mt-3 space-y-3 p-3">
             {(() => {
+              // Include computed outputs in available variables (with 'out.' prefix)
+              const computedOutputVars = computedOutputs.map((o) => `out.${o.variableName}`);
+              const allAvailableVars = [
+                ...availableFieldVariables.map(v => v.name),
+                ...computedOutputVars,
+              ];
+              
               const debugInfo = analyzeFormulaVariables(
                 formula,
-                availableFieldVariables.map(v => v.name),
+                allAvailableVars,
                 materials,
                 fields.map(f => ({
                   variableName: f.variableName,
@@ -476,6 +485,22 @@ export function FormulaBuilder({
                       <p className="text-xs text-md-on-surface-variant italic">None</p>
                     )}
                   </div>
+
+                  {/* Computed Outputs */}
+                  {debugInfo.computedOutputs && debugInfo.computedOutputs.length > 0 && (
+                    <div>
+                      <h5 className="text-xs font-semibold text-md-primary mb-1.5">
+                        Computed Outputs ({debugInfo.computedOutputs.length})
+                      </h5>
+                      <div className="flex flex-wrap gap-1.5">
+                        {debugInfo.computedOutputs.map((varName: string) => (
+                          <Chip key={varName} size="sm" variant="secondary" className="font-mono text-xs">
+                            {varName}
+                          </Chip>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Unknown Variables */}
                   <div>
