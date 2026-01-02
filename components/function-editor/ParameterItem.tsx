@@ -33,7 +33,11 @@ export function ParameterItem({
   }, []);
 
   const dragHandleProps = {
-    attributes: { tabIndex: -1, 'aria-hidden': true, style: { visibility: 'hidden', pointerEvents: 'none' as const } },
+    attributes: {
+      tabIndex: -1,
+      'aria-hidden': true,
+      style: { visibility: 'hidden' as const, pointerEvents: 'none' as const },
+    },
     listeners: {},
   };
 
@@ -69,4 +73,3 @@ export function ParameterItem({
     </ModuleCardShell>
   );
 }
-
