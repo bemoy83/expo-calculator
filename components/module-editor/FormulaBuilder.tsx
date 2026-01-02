@@ -494,7 +494,7 @@ export function FormulaBuilder({
                       </h5>
                       <div className="flex flex-wrap gap-1.5">
                         {debugInfo.computedOutputs.map((varName: string) => (
-                          <Chip key={varName} size="sm" variant="secondary" className="font-mono text-xs">
+                          <Chip key={varName} size="sm" variant="primaryTonal" className="font-mono text-xs">
                             {varName}
                           </Chip>
                         ))}
@@ -741,7 +741,6 @@ export function FormulaBuilder({
     </Card>
   );
 }
-
 
 
 
