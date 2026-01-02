@@ -5,14 +5,13 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Field, FieldType } from '@/lib/types';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
-import { Card } from '@/components/ui/Card';
+import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Chip } from '@/components/ui/Chip';
 import { labelToVariableName } from '@/lib/utils';
 import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
-import { ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Trash2, GripVertical } from 'lucide-react';
 
 interface SortableFieldItemProps {
   field: Field;
@@ -87,87 +86,32 @@ export function SortableFieldItem({
   }, [setNodeRef, fieldRef]);
 
   return (
-    <Card
-    ref={combinedRef}
-    style={style}
-    variant="default"  
+    <ModuleCardShell
+      cardRef={combinedRef}
+      style={style}
+      dragHandleProps={{ attributes, listeners }}
+      title={field.label || 'Unnamed Field'}
+      subtitle={field.description || undefined}
+      isCollapsed={!isExpanded}
+      onToggle={() => onToggleExpanded(field.id)}
+      onRemove={() => onRemoveField(field.id)}
+      removeConfirmMessage="Remove this field?"
+      metaChips={[
+        field.variableName ? (
+          <Chip key="var" size="sm" variant="primary" className="font-mono">
+            {field.variableName}
+          </Chip>
+        ) : null,
+        <Chip key="type" size="sm" variant="default" className="capitalize">
+          {field.type}
+        </Chip>,
+        field.required ? (
+          <Chip key="required" size="sm" variant="error">
+            Required
+          </Chip>
+        ) : null,
+      ].filter(Boolean)}
     >
-      {/* Field Header */}
-      <div className="flex items-center">
-        {/* Drag Handle - Left Side */}
-        <button
-          {...attributes}
-          {...listeners}
-          className="text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none transition-smooth"
-          aria-label={`Drag to reorder ${field.label || 'field'}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-5 w-5" />
-        </button>
-
-        {/* Field Content */}
-        <div
-          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-extra-large"
-          onClick={() => onToggleExpanded(field.id)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onToggleExpanded(field.id);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-expanded={isExpanded}
-          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} field ${field.label || 'Unnamed Field'}`}
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-md-primary">
-                {field.label || 'Unnamed Field'}
-              </span>
-              {field.variableName && (
-                <Chip size="sm" variant="primary" className="font-mono">
-                {field.variableName}
-              </Chip>
-              )}
-              <Chip size="sm" variant="default" className="capitalize">
-                {field.type}
-              </Chip>
-              {field.required && (
-                <Chip size="sm" variant="error">
-                Required
-              </Chip>
-              )}
-            </div>
-            {field.description && (
-              <p className="text-sm text-md-on-surface-variant mt-1.5 truncate">
-                {field.description}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center space-x-1 ml-4 shrink-0">
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm('Remove this field?')) {
-                  onRemoveField(field.id);
-                }
-              }}
-              className="p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error-container/10 rounded-full transition-smooth active:scale-95"
-              aria-label="Remove field"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Expanded Field Form */}
       {isExpanded && (
         <div className="p-4 border-t border-border space-y-4">
@@ -340,18 +284,15 @@ export function SortableFieldItem({
             onChange={(e) => onUpdateField(field.id, { description: e.target.value || undefined })}
             placeholder="Help text for users..."
           />
-          <Checkbox
-            label="Required Field"
-            checked={field.required || false}
-            onChange={(e) => onUpdateField(field.id, { required: e.target.checked })}
-          />
+            <Checkbox
+              label="Required Field"
+              checked={field.required || false}
+              onChange={(e) => onUpdateField(field.id, { required: e.target.checked })}
+            />
         </div>
       )}
-    </Card>
+    </ModuleCardShell>
   );
 }
-
-
-
 
 

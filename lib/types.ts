@@ -72,11 +72,44 @@ export interface FieldLink {
   fieldVariableName: string;
 }
 
+export interface SharedFunction {
+  id: string;
+  name: string; // Function name (e.g., "m2", "area")
+  description?: string; // Help text
+  formula: string; // Formula using parameter names (e.g., "width * height")
+  parameters: Array<{
+    name: string; // Parameter name (e.g., "width", "height")
+    label: string; // Display label
+    unitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count';
+    unitSymbol?: string;
+    required?: boolean;
+  }>;
+  returnUnitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count';
+  returnUnitSymbol?: string;
+  category?: string; // For organization
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FunctionOutput {
+  functionName: string;
+  arguments: Record<string, string>; // Maps parameter name -> field variable name
+  instanceId: string; // Module instance that calculates this function
+}
+
+export interface FunctionLink {
+  sourceInstanceId: string;
+  functionName: string;
+  outputName?: string; // Optional name for the output
+}
+
 export interface QuoteModuleInstance {
   id: string;
   moduleId: string;
   fieldValues: Record<string, string | number | boolean>;
   fieldLinks?: Record<string, FieldLink>; // Maps fieldVariableName -> link target
+  functionOutputs?: Record<string, FunctionOutput>; // Maps output name -> function output
+  functionInputs?: Record<string, FunctionLink>; // Maps field name -> function link
   calculatedCost: number;
 }
 

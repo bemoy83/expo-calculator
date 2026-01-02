@@ -3,10 +3,10 @@
 import { useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft, GripVertical, Trash2, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { ActionIconButton } from '@/components/shared/ActionIconButton';
 import { QuoteModuleInstance, CalculationModule, Field } from '@/lib/types';
-import { Chip } from '@/components/ui/Chip';
-import { Card } from '@/components/ui/Card';
+import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
 
 interface SortableModuleCardProps {
   instance: QuoteModuleInstance;
@@ -60,96 +60,36 @@ export function SortableModuleCard({
   }, [setNodeRef]);
 
   return (
-    <Card
-      ref={stableRef}
+    <ModuleCardShell
+      cardRef={stableRef}
       style={style}
-      variant="default"
+  dragHandleProps={{ attributes, listeners }}
+  title={module.name}
+  category={module.category}
+  subtitle={module.description || undefined}
+  isCollapsed={isCollapsed}
+  onToggle={() => onToggleCollapse(instance.id)}
+      onRemove={() => onRemove(instance.id)}
+      removeConfirmMessage={`Remove ${module.name} from quote?`}
+      rightExtras={
+        <>
+          <span className="text-sm font-semibold text-success tabular-nums">
+            ${instance.calculatedCost.toFixed(2)}
+          </span>
+          {onAddToQuote && addedItems && (
+            <ActionIconButton
+              icon={Plus}
+              actionType="custom"
+              onAction={() => onAddToQuote(instance.id)}
+              ariaLabel={addedItems.has(instance.id) ? 'Added to quote' : 'Add to quote'}
+            />
+          )}
+        </>
+      }
     >
-      {/* Module Header */}
-      <div className="flex items-center">
-        {/* Drag Handle - Left Side */}
-        <button
-          {...attributes}
-          {...listeners}
-          className="text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none transition-smooth"
-          aria-label={`Drag to reorder ${module.name}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-5 w-5" />
-        </button>
-
-        {/* Interactive Header Content */}
-        <div
-          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-extra-large"
-          onClick={() => onToggleCollapse(instance.id)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onToggleCollapse(instance.id);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-expanded={!isCollapsed}
-          aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} module ${module.name}`}
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-md-primary">
-                {module.name}
-              </span>
-              {module.category && (
-                <Chip size="sm">
-                  {module.category}
-                </Chip>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm font-semibold text-success tabular-nums">
-              ${instance.calculatedCost.toFixed(2)}
-            </span>
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-                <ChevronDown className="h-4 w-4" />
-            )}
-            {/* Action Buttons - Right Aligned */}
-            {onAddToQuote && addedItems && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAddToQuote(instance.id);
-                }}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-md-primary text-md-on-primary hover:bg-md-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-md-primary focus:ring-offset-2 focus:ring-offset-md-surface"
-                aria-label={addedItems.has(instance.id) ? 'Added to quote' : 'Add to quote'}
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm(`Remove ${module.name} from quote?`)) {
-                  onRemove(instance.id);
-                }
-              }}
-              className="p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error-container/10 rounded-full transition-smooth active:scale-95 focus:outline-none"
-              aria-label="Remove module"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Module Content */}
       {!isCollapsed && (
         <div className={contentClassName}>
-          {module.description && (
-            <p className="text-sm text-md-on-surface-variant mb-5">{module.description}</p>
-          )}
-          
           <div className={gridClassName}>
             {module.fields.map((field) => (
               <div key={field.id} className={onAddToQuote ? 'flex flex-col' : ''}>
@@ -166,6 +106,6 @@ export function SortableModuleCard({
           </div>
         </div>
       )}
-    </Card>
+    </ModuleCardShell>
   );
 }

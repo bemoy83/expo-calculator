@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { Field, Material } from '@/lib/types';
+import { useFunctionsStore } from '@/lib/stores/functions-store';
 
 interface FieldVariable {
   name: string;
@@ -22,6 +23,7 @@ interface AutocompleteCandidate {
   displayName: string;
   type: 'field' | 'material' | 'property' | 'function' | 'constant';
   description?: string;
+  functionSignature?: string; // For user-defined functions: parameter names
 }
 
 interface UseFormulaVariablesProps {
@@ -35,6 +37,7 @@ export function useFormulaVariables({
   materials,
   formula,
 }: UseFormulaVariablesProps) {
+  const functions = useFunctionsStore((state) => state.functions);
 
   const getFormulaTokens = (formulaText: string): string[] => {
     // Matches identifiers like: width, sheet.width, area1, sheet_width, etc.
@@ -190,8 +193,8 @@ export function useFormulaVariables({
       });
     });
 
-    // Functions
-    const functions = [
+    // Built-in math functions
+    const mathFunctions = [
       { name: 'sqrt', displayName: 'sqrt()', description: 'Square root' },
       { name: 'round', displayName: 'round()', description: 'Round to nearest integer' },
       { name: 'ceil', displayName: 'ceil()', description: 'Round up' },
@@ -200,12 +203,24 @@ export function useFormulaVariables({
       { name: 'max', displayName: 'max()', description: 'Maximum value' },
       { name: 'min', displayName: 'min()', description: 'Minimum value' },
     ];
-    functions.forEach((fn) => {
+    mathFunctions.forEach((fn) => {
       candidates.push({
         name: fn.name,
         displayName: fn.displayName,
         type: 'function',
         description: fn.description,
+      });
+    });
+
+    // User-defined shared functions
+    functions.forEach((func) => {
+      const paramNames = func.parameters.map(p => p.name).join(', ');
+      candidates.push({
+        name: func.name,
+        displayName: `${func.name}(${paramNames})`,
+        type: 'function',
+        description: func.description || `User-defined function: ${func.formula}`,
+        functionSignature: paramNames, // Store parameter names for insertion
       });
     });
 
@@ -224,7 +239,7 @@ export function useFormulaVariables({
     });
 
     return candidates;
-  }, [availableFieldVariables, availableMaterialVariables, getMaterialFieldProperties]);
+  }, [availableFieldVariables, availableMaterialVariables, getMaterialFieldProperties, functions]);
 
   return {
     // Helper functions

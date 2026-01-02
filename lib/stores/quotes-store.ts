@@ -6,6 +6,7 @@ import { evaluateFormula } from '../formula-evaluator';
 import { useModulesStore } from './modules-store';
 import { useMaterialsStore } from './materials-store';
 import { useTemplatesStore } from './templates-store';
+import { useFunctionsStore } from './functions-store';
 
 /**
  * Quotes Store
@@ -451,11 +452,13 @@ export const useQuotesStore = create<QuotesStore>()(
         const resolved = resolvedValues[instance.id] || instance.fieldValues;
         
         const materials = useMaterialsStore.getState().materials;
+        const functions = useFunctionsStore.getState().functions;
         let cost = 0;
         try {
           cost = evaluateFormula(moduleDef.formula, {
             fieldValues: resolved,
             materials,
+            functions,
           });
         } catch (error: any) {
           // If formula evaluation fails, show error and don't add line item
@@ -619,11 +622,13 @@ export const useQuotesStore = create<QuotesStore>()(
           
           const resolved = resolvedValues[moduleInstance.id] || moduleInstance.fieldValues;
           
+          const functions = useFunctionsStore.getState().functions;
           let cost = 0;
           try {
             cost = evaluateFormula(moduleDef.formula, {
               fieldValues: resolved,
               materials,
+              functions,
             });
           } catch (error: any) {
             // If formula evaluation fails, log error and set cost to 0

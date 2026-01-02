@@ -5,9 +5,7 @@ import { Layout } from '@/components/Layout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { NotificationToast } from '@/components/shared/NotificationToast';
-import { ActionIconButton } from '@/components/shared/ActionIconButton';
-import { SectionHeading } from '@/components/shared/SectionHeading';
-import { Card } from '@/components/ui/Card';
+import { EntityCard } from '@/components/shared/EntityCard';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
@@ -147,76 +145,52 @@ function TemplateCard({ template, moduleNames, onEdit, onDuplicate, onDelete }: 
   const remainingCount = moduleNames.length - 6;
 
   return (
-    <div onClick={onEdit}>
-      <Card className="h-full hover:border-accent/30 cursor-pointer relative">
-        {/* Action Buttons */}
-        <div className="absolute top-4 right-4 flex gap-1">
-          <ActionIconButton
-            icon={Copy}
-            actionType="duplicate"
-            onAction={onDuplicate}
-            ariaLabel={`Duplicate ${template.name}`}
-          />
-          <ActionIconButton
-            icon={Trash2}
-            actionType="delete"
-            onAction={onDelete}
-            ariaLabel={`Delete ${template.name}`}
-            confirmationMessage={`Delete "${template.name}"?`}
-          />
-        </div>
-
-        {/* Template Info */}
-        <h3 className="text-lg font-bold text-md-primary mb-3 pr-20">
-          {template.name}
-        </h3>
-
-        {/* Description */}
-        {template.description && (
-          <div className="mb-4">
-            <SectionHeading spacing="small">Description</SectionHeading>
-            <p className="text-sm text-md-on-surface-variant line-clamp-2">
-              {template.description}
-            </p>
-          </div>
-        )}
-
-        {/* Categories */}
-        {template.categories && template.categories.length > 0 && (
-          <div className="mb-4">
-            <SectionHeading spacing="small">Categories</SectionHeading>
+    <EntityCard
+      title={template.name}
+      description={template.description}
+      categories={template.categories}
+      onClick={onEdit}
+      actions={[
+        {
+          icon: Copy,
+          actionType: 'duplicate',
+          onAction: onDuplicate,
+          ariaLabel: `Duplicate ${template.name}`,
+        },
+        {
+          icon: Trash2,
+          actionType: 'delete',
+          onAction: onDelete,
+          ariaLabel: `Delete ${template.name}`,
+          confirmationMessage: `Delete "${template.name}"?`,
+        },
+      ]}
+      sections={[
+        {
+          label: 'Modules',
+          content: (
             <div className="flex flex-wrap gap-2">
-              {template.categories.map((category) => (
-                <Chip key={category} size="sm">
-                  {category}
+              {visibleModules.map((name) => (
+                <Chip key={name} size="sm">
+                  {name}
                 </Chip>
               ))}
+              {remainingCount > 0 && (
+                <Chip size="sm" variant="outline">
+                  + {remainingCount} more
+                </Chip>
+              )}
             </div>
-          </div>
-        )}
-
-        {/* Modules */}
-        <div className="mb-5">
-          <SectionHeading spacing="small">Modules</SectionHeading>
-          <div className="flex flex-wrap gap-2">
-            {visibleModules.map((name) => (
-              <Chip key={name} size="sm">
-                {name}
-              </Chip>
-            ))}
-            {remainingCount > 0 && (
-              <Chip size="sm" variant="outline">
-                + {remainingCount} more
-              </Chip>
-            )}
-          </div>
-        </div>
-
+          ),
+          spacing: 'small',
+        },
+      ]}
+      footer={
         <p className="text-xs text-md-on-surface-variant">
           {template.moduleInstances.length}{' '}
           {template.moduleInstances.length === 1 ? 'module' : 'modules'}
         </p>
-      </Card>
-    </div>
+      }
+    />
   );
 }

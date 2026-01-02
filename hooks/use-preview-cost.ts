@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Field, Material } from '@/lib/types';
 import { evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
+import { useFunctionsStore } from '@/lib/stores/functions-store';
 
 interface UsePreviewCostProps {
   showPreview: boolean;
@@ -21,6 +22,7 @@ export function usePreviewCost({
 }: UsePreviewCostProps) {
   const [previewCalculatedCost, setPreviewCalculatedCost] = useState(0);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const functions = useFunctionsStore((state) => state.functions);
 
   useEffect(() => {
     if (!showPreview || !formula || !formulaValidationValid) {
@@ -77,6 +79,7 @@ export function usePreviewCost({
           type: f.type,
           materialCategory: f.materialCategory,
         })),
+        functions,
       });
       setPreviewCalculatedCost(result);
       setPreviewError(null);
@@ -85,7 +88,7 @@ export function usePreviewCost({
       setPreviewError('⚠️ Cannot calculate yet — missing inputs.');
       setPreviewCalculatedCost(0);
     }
-  }, [showPreview, formula, previewFieldValues, materials, fields, formulaValidationValid]);
+  }, [showPreview, formula, previewFieldValues, materials, fields, formulaValidationValid, functions]);
 
   return {
     previewCalculatedCost,

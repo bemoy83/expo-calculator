@@ -5,6 +5,7 @@ interface AutocompleteSuggestion {
   displayName: string;
   type: 'field' | 'material' | 'property' | 'function' | 'constant';
   description?: string;
+  functionSignature?: string; // For user-defined functions: parameter names
 }
 
 interface WordInfo {
@@ -170,8 +171,17 @@ export function useFormulaAutocomplete({
 
     let variableToInsert = suggestion.name;
     
+    // Handle function calls: if it's a function with signature, insert with parentheses and parameters
+    if (suggestion.type === 'function' && suggestion.functionSignature) {
+      // User-defined function: insert function name with parameter placeholders
+      variableToInsert = `${suggestion.name}(${suggestion.functionSignature})`;
+    } else if (suggestion.type === 'function' && suggestion.displayName.includes('()')) {
+      // Built-in function: use displayName which already has ()
+      variableToInsert = suggestion.displayName;
+    }
+    
     // Handle dot notation: if typing "mat_plank." and selecting "width", insert just "width"
-    if (wordInfo.hasDot && wordInfo.baseWord) {
+    if (wordInfo.hasDot && wordInfo.baseWord && suggestion.type !== 'function') {
       if (suggestion.name.startsWith(`${wordInfo.baseWord}.`)) {
         // Extract property name only
         variableToInsert = suggestion.name.substring(wordInfo.baseWord.length + 1);
@@ -201,11 +211,18 @@ export function useFormulaAutocomplete({
     const spaceAfter = needsSpaceAfter ? ' ' : '';
     
     // If we had dot notation and are inserting property, don't add space before
-    const finalBefore = wordInfo.hasDot && variableToInsert !== wordInfo.baseWord ? '' : spaceBefore;
+    const finalBefore = wordInfo.hasDot && variableToInsert !== wordInfo.baseWord && suggestion.type !== 'function' ? '' : spaceBefore;
     
     const insertedText = `${finalBefore}${variableToInsert}${spaceAfter}`;
     const newValue = before + insertedText + after;
-    const newCursorPos = wordInfo.start + insertedText.length;
+    
+    // For function calls, position cursor between parentheses
+    let newCursorPos = wordInfo.start + insertedText.length;
+    if (suggestion.type === 'function' && suggestion.functionSignature) {
+      // Position cursor after opening parenthesis, before first parameter
+      const openParenPos = insertedText.indexOf('(');
+      newCursorPos = wordInfo.start + openParenPos + 1;
+    }
     
     onFormulaChange(newValue);
     

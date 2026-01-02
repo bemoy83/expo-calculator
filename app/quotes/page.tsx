@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
@@ -84,7 +85,7 @@ export default function QuotesPage() {
         markupPercent: currentQuote.markupPercent,
       });
     }
-  }, [currentQuote?.id]); // Update when quote ID changes
+  }, [currentQuote]); // Update when quote changes
 
   const handleFormDataChange = (updates: Partial<{ name: string; taxRate: number; markupPercent: number }>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
@@ -513,30 +514,54 @@ export default function QuotesPage() {
             />
           )}
 
-          {/* Workspace Modules */}
-          <WorkspaceModulesManager
-            modules={modules}
-            workspaceModules={currentQuote.workspaceModules}
-            collapsedModules={collapsedModules}
-            onToggleCollapse={toggleModuleCollapse}
-            onRemoveModule={removeWorkspaceModule}
-            onAddLineItem={(id) => {
-              addLineItem(id);
-              setAddedItems(new Set([...addedItems, id]));
-              setTimeout(() => {
-                setAddedItems(new Set());
-              }, 2000);
-            }}
-            addedItems={addedItems}
-            onReorder={handleReorder}
-            renderFieldInput={renderFieldInput}
-            emptyStateAction={
-              <Button onClick={() => setShowAddModule(true)} className="rounded-full">
+          {/* Empty State Card - only show when picker is closed and no modules */}
+          {!showAddModule && currentQuote.workspaceModules.length === 0 && (
+            <Card>
+              <div className="text-center py-6">
+                <p className="text-sm text-md-on-surface-variant mb-3">
+                  Add calculation modules to build your quote. Your workspace is where you configure modules before adding them to the quote.
+                </p>
+                <Button size="sm" onClick={() => setShowAddModule(true)} className="rounded-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Your First Module
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {/* Add Module Button Card - show when there are modules but picker is closed */}
+          {!showAddModule && currentQuote.workspaceModules.length > 0 && (
+            <Card>
+              <Button
+                onClick={() => setShowAddModule(true)}
+                className="rounded-full w-full"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Module
               </Button>
-            }
-          />
+            </Card>
+          )}
+
+          {/* Workspace Modules - only show when there are modules */}
+          {currentQuote.workspaceModules.length > 0 && (
+            <WorkspaceModulesManager
+              modules={modules}
+              workspaceModules={currentQuote.workspaceModules}
+              collapsedModules={collapsedModules}
+              onToggleCollapse={toggleModuleCollapse}
+              onRemoveModule={removeWorkspaceModule}
+              onAddLineItem={(id) => {
+                addLineItem(id);
+                setAddedItems(new Set([...addedItems, id]));
+                setTimeout(() => {
+                  setAddedItems(new Set());
+                }, 2000);
+              }}
+              addedItems={addedItems}
+              onReorder={handleReorder}
+              renderFieldInput={renderFieldInput}
+            />
+          )}
         </div>
 
         <div className="lg:col-span-1">

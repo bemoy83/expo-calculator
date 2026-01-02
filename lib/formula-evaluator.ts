@@ -1,5 +1,5 @@
 import { evaluate, create, all } from 'mathjs';
-import { Material, CalculationModule, QuoteModuleInstance } from './types';
+import { Material, CalculationModule, QuoteModuleInstance, SharedFunction } from './types';
 import { UnitCategory, getUnitCategory, normalizeToBase, multiplyUnits, divideUnits } from './units';
 
 export interface EvaluationContext {
@@ -7,6 +7,8 @@ export interface EvaluationContext {
   materials: Material[];
   // Optional: field definitions for validation (needed to identify material fields)
   fields?: Array<{ variableName: string; type: string; materialCategory?: string }>;
+  functionOutputs?: Record<string, number>; // Pre-computed function outputs (for linked functions)
+  functions?: SharedFunction[]; // Available functions
 }
 
 export type FormulaDebugInfo = {
@@ -136,6 +138,125 @@ type IdentifierToken = {
 
 const IDENTIFIER_REGEX = /[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?/g;
 const MATH_FUNCTIONS = new Set(['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor']);
+
+/**
+ * Interface for parsed function calls
+ */
+export interface FunctionCall {
+  functionName: string;
+  arguments: string[]; // Variable names passed as arguments
+  fullMatch: string; // Full match string for replacement
+  startIndex: number;
+  endIndex: number;
+}
+
+/**
+ * Parses function calls in a formula (e.g., m2(width, height))
+ * Returns an array of FunctionCall objects
+ */
+export function parseFunctionCalls(formula: string): FunctionCall[] {
+  const functionCallRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)/g;
+  const calls: FunctionCall[] = [];
+  let match;
+
+  while ((match = functionCallRegex.exec(formula)) !== null) {
+    const functionName = match[1];
+    
+    // Skip if it's a math function
+    if (MATH_FUNCTIONS.has(functionName)) {
+      continue;
+    }
+
+    const argsString = match[2].trim();
+    const args = argsString
+      ? argsString.split(',').map(arg => arg.trim()).filter(arg => arg.length > 0)
+      : [];
+
+    calls.push({
+      functionName,
+      arguments: args,
+      fullMatch: match[0],
+      startIndex: match.index,
+      endIndex: match.index + match[0].length,
+    });
+  }
+
+  return calls;
+}
+
+/**
+ * Evaluates a function call by:
+ * 1. Finding the function definition
+ * 2. Mapping arguments to actual values from context
+ * 3. Evaluating the function formula with mapped values
+ * 4. Returning the result
+ */
+function evaluateFunctionCall(
+  call: FunctionCall,
+  context: EvaluationContext,
+  functions: SharedFunction[]
+): number {
+  // Find function definition
+  const funcDef = functions.find(f => f.name === call.functionName);
+  if (!funcDef) {
+    throw new Error(`Function '${call.functionName}' not found`);
+  }
+
+  // Check parameter count
+  if (call.arguments.length !== funcDef.parameters.length) {
+    throw new Error(
+      `Function '${call.functionName}' expects ${funcDef.parameters.length} argument(s), but got ${call.arguments.length}`
+    );
+  }
+
+  // Create a context for evaluating the function formula
+  // Map function parameters to the provided argument values
+  const functionContext: EvaluationContext = {
+    fieldValues: {},
+    materials: context.materials,
+    fields: context.fields,
+    functions: functions, // Allow nested function calls
+  };
+
+  // Map arguments to parameter names
+  for (let i = 0; i < funcDef.parameters.length; i++) {
+    const paramName = funcDef.parameters[i].name;
+    const argVarName = call.arguments[i];
+
+    // Resolve argument value from context
+    let argValue: string | number | boolean;
+    
+    // Check if it's a direct field value
+    if (argVarName in context.fieldValues) {
+      argValue = context.fieldValues[argVarName];
+    } 
+    // Check if it's a function output (for linked functions)
+    else if (context.functionOutputs && argVarName in context.functionOutputs) {
+      argValue = context.functionOutputs[argVarName];
+    }
+    // Check if it's a material variable
+    else {
+      const material = context.materials.find(m => m.variableName === argVarName);
+      if (material) {
+        argValue = material.price;
+      } else {
+        // Try to parse as number
+        const numValue = Number(argVarName);
+        if (!isNaN(numValue) && isFinite(numValue)) {
+          argValue = numValue;
+        } else {
+          throw new Error(`Variable '${argVarName}' not found for function '${call.functionName}' parameter '${paramName}'`);
+        }
+      }
+    }
+
+    // Map parameter name to argument value in function context
+    functionContext.fieldValues[paramName] = argValue;
+  }
+
+  // Evaluate the function formula with the mapped context
+  return evaluateFormula(funcDef.formula, functionContext);
+}
 
 /**
  * Tokenizes identifiers in a string and applies a replacement handler.
@@ -401,6 +522,10 @@ export function evaluateFormula(
 ): number {
   try {
     let processedFormula = formula;
+    const functions = context.functions || [];
+
+    // STEP 0: Parse function calls (but don't evaluate yet - we need variable values first)
+    const functionCalls = parseFunctionCalls(processedFormula);
 
     // STEP 1: Replace field property references FIRST (e.g., wallboard.width)
     // This must happen BEFORE replacing field variables to avoid conflicts
@@ -529,7 +654,25 @@ export function evaluateFormula(
       throw new Error(`Missing values for variables: ${unreplacedVars.join(', ')}`);
     }
 
-    // Evaluate the formula using our custom math instance
+    // STEP 5: Evaluate function calls (now we have all variable values)
+    // Process function calls from innermost to outermost (right to left)
+    // Sort by start index descending to process from right to left
+    const sortedCalls = [...functionCalls].sort((a, b) => b.startIndex - a.startIndex);
+    
+    for (const call of sortedCalls) {
+      try {
+        const result = evaluateFunctionCall(call, context, functions);
+        // Replace the function call with its result
+        processedFormula = 
+          processedFormula.slice(0, call.startIndex) +
+          result.toString() +
+          processedFormula.slice(call.endIndex);
+      } catch (error: any) {
+        throw new Error(`Error evaluating function '${call.functionName}': ${error.message}`);
+      }
+    }
+
+    // STEP 6: Evaluate the formula using our custom math instance
     let result: any;
     try {
       result = mathInstance.evaluate(processedFormula);
@@ -765,9 +908,58 @@ export function validateFormula(
   formula: string,
   availableVariables: string[],
   materials: Material[],
-  fields?: Array<{ variableName: string; type: string; materialCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>
-): { valid: boolean; error?: string } {
+  fields?: Array<{ variableName: string; type: string; materialCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>,
+  functions?: SharedFunction[]
+): { valid: boolean; error?: string; warnings?: string[] } {
   try {
+    const warnings: string[] = [];
+    const availableFunctions = functions || [];
+
+    // STEP 0: Validate function calls
+    const functionCalls = parseFunctionCalls(formula);
+    const functionNames = new Set<string>();
+    
+    for (const call of functionCalls) {
+      functionNames.add(call.functionName);
+      
+      // Find function definition
+      const funcDef = availableFunctions.find(f => f.name === call.functionName);
+      if (!funcDef) {
+        return {
+          valid: false,
+          error: `Function '${call.functionName}' not found`
+        };
+      }
+
+      // Check parameter count
+      if (call.arguments.length !== funcDef.parameters.length) {
+        return {
+          valid: false,
+          error: `Function '${call.functionName}' expects ${funcDef.parameters.length} argument(s), but got ${call.arguments.length}`
+        };
+      }
+
+      // Check parameter variables exist
+      const allAvailableVars = [
+        ...availableVariables,
+        ...materials.map(m => m.variableName),
+      ];
+
+      for (let i = 0; i < call.arguments.length; i++) {
+        const argVar = call.arguments[i];
+        // Skip if it's a number literal
+        if (!isNaN(Number(argVar)) && isFinite(Number(argVar))) {
+          continue;
+        }
+        
+        if (!allAvailableVars.includes(argVar)) {
+          warnings.push(
+            `Function '${call.functionName}' parameter '${funcDef.parameters[i].name}' uses variable '${argVar}' which may not be available`
+          );
+        }
+      }
+    }
+
     // First, check field property references (e.g., wallboard.width)
     const fieldPropertyRefs = parseFieldPropertyReferences(formula, availableVariables);
     for (const ref of fieldPropertyRefs) {
@@ -878,6 +1070,11 @@ export function validateFormula(
           continue;
         }
 
+        // Skip if it's a user-defined function name
+        if (functionNames.has(match)) {
+          continue;
+        }
+
         // Skip if this identifier is part of a property reference (e.g., "wallboard" or "width" in "wallboard.width")
         // We need to check if this match appears as part of any property reference
         let isPartOfPropertyRef = false;
@@ -936,6 +1133,12 @@ export function validateFormula(
       }
     }
 
+    // Replace function calls with dummy values
+    for (const call of functionCalls) {
+      const regex = new RegExp(`\\b${escapeRegex(call.fullMatch)}\\b`, 'g');
+      testFormula = testFormula.replace(regex, '1');
+    }
+
     // Replace regular variables
     const allVars = [...availableVariables, ...materials.map(m => m.variableName)];
     for (const varName of allVars) {
@@ -965,7 +1168,9 @@ export function validateFormula(
     // Use our custom math instance for validation
     mathInstance.evaluate(testFormula);
 
-    return { valid: true };
+    return warnings.length > 0 
+      ? { valid: true, warnings }
+      : { valid: true };
   } catch (error: any) {
     // Translate technical parser errors into user-friendly messages
     const errorMessage = error.message || 'Invalid formula syntax';

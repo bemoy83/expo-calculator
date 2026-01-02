@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Field, Material } from '@/lib/types';
 import { validateFormula, evaluateFormula } from '@/lib/formula-evaluator';
+import { useFunctionsStore } from '@/lib/stores/functions-store';
 
 interface FormulaValidation {
   valid: boolean;
@@ -20,6 +21,7 @@ export function useFormulaValidation({
   materials,
 }: UseFormulaValidationProps) {
   const [formulaValidation, setFormulaValidation] = useState<FormulaValidation>({ valid: false });
+  const functions = useFunctionsStore((state) => state.functions);
 
   const validateFormulaInput = useCallback((formulaToValidate: string) => {
     if (!formulaToValidate.trim()) {
@@ -34,7 +36,7 @@ export function useFormulaValidation({
       type: f.type,
       materialCategory: f.materialCategory,
     }));
-    const validation = validateFormula(formulaToValidate, availableVars, materials, fieldDefinitions);
+    const validation = validateFormula(formulaToValidate, availableVars, materials, fieldDefinitions, functions);
 
     if (validation.valid) {
       // Calculate preview with default values
@@ -75,6 +77,7 @@ export function useFormulaValidation({
         const preview = evaluateFormula(formulaToValidate, {
           fieldValues: defaultValues,
           materials,
+          functions,
         });
         setFormulaValidation({ valid: true, preview });
       } catch (error: any) {
@@ -87,7 +90,7 @@ export function useFormulaValidation({
     } else {
       setFormulaValidation({ valid: false, error: validation.error });
     }
-  }, [fields, materials]);
+  }, [fields, materials, functions]);
 
   useEffect(() => {
     if (formula) {

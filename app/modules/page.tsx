@@ -16,6 +16,7 @@ import {
   Trash2, 
   Calculator
 } from 'lucide-react';
+import { EntityCard } from '@/components/shared/EntityCard';
 import { FormulaBuilder } from '@/components/module-editor/FormulaBuilder';
 import { ModulePreview } from '@/components/module-editor/ModulePreview';
 import { ModuleDetailsCard } from '@/components/module-editor/ModuleDetailsCard';
@@ -518,65 +519,49 @@ export default function ModulesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {modules.map((module) => (
-            <div
+            <EntityCard
               key={module.id}
-              className="hover:border-accent/30 transition-smooth cursor-pointer group relative"
+              title={module.name}
+              description={module.description}
+              category={module.category}
               onClick={() => startEditing(module)}
-            >
-              <Card className="h-full hover:border-accent/30">
-                {/* Delete button - top right corner */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm('Are you sure you want to delete this module?')) {
-                      deleteModule(module.id);
-                    }
-                  }}
-                  className="absolute top-0 right-0 p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
-                  aria-label="Delete module"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-
-                <h3 className="text-lg font-bold text-md-primary mb-3 transition-smooth tracking-tight pr-10">
-                  {module.name}
-                </h3>
-              {module.category && (
-                <div className="mb-3">
-                    <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">
-                      Categories
-                    </p>
-                  <Chip size="sm">{module.category}</Chip>
-                </div>
-              )}
-                <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">
-                  Description
-                </p>
-              <p className="text-sm text-md-on-surface-variant mb-4 line-clamp-2">
-                {module.description || 'No description'}
-              </p>
-              <div className="mb-5">
-                <p className="text-xs text-md-on-surface-variant uppercase tracking-wide mb-2">Fields</p>
-                <div className="flex flex-wrap gap-2">
-                  {module.fields.map((field) => (
-                    <Chip key={field.id} size="sm">
-                      {field.label}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-              <div className="mb-4">
-                <p className="text-xs text-md-on-surface-variant mb-1">Formula:</p>
-                <Textarea
-                autoGrow={true}
-                value={module.formula}
-                readOnly
-                className="text-xs text-md-primary font-mono cursor-default"
-              />
-              </div>
-            </Card>
-            </div>
+              actions={[
+                {
+                  icon: Trash2,
+                  actionType: 'delete',
+                  onAction: () => deleteModule(module.id),
+                  ariaLabel: `Delete module: ${module.name}`,
+                  confirmationMessage: `Are you sure you want to delete "${module.name}"?`,
+                },
+              ]}
+              sections={[
+                {
+                  label: 'Fields',
+                  content: (
+                    <div className="flex flex-wrap gap-2">
+                      {module.fields.map((field) => (
+                        <Chip key={field.id} size="sm">
+                          {field.label}
+                        </Chip>
+                      ))}
+                    </div>
+                  ),
+                  spacing: 'small',
+                },
+                {
+                  label: 'Formula',
+                  content: (
+                    <Textarea
+                      autoGrow={true}
+                      value={module.formula}
+                      readOnly
+                      className="text-xs text-md-primary font-mono cursor-default"
+                    />
+                  ),
+                  spacing: 'default',
+                },
+              ]}
+            />
           ))}
         </div>
       )}

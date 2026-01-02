@@ -14,6 +14,7 @@ import {
 import { normalizeToBase } from "@/lib/units";
 import { generateId } from "@/lib/utils";
 import { canLinkFields } from "@/lib/utils/field-linking";
+import { useFunctionsStore } from "@/lib/stores/functions-store";
 
 interface UseTemplateEditorOptions {
   templateId: string;
@@ -89,6 +90,7 @@ export function useTemplateEditor({
       if (prev.length === 0) return prev;
 
       const resolvedValues = resolveFieldLinks(prev);
+      const functions = useFunctionsStore.getState().functions;
 
       const updated = prev.map((instance) => {
         const moduleDef = modules.find((m) => m.id === instance.moduleId);
@@ -104,6 +106,7 @@ export function useTemplateEditor({
               type: f.type,
               materialCategory: f.materialCategory,
             })),
+            functions,
           });
 
           return {
@@ -241,6 +244,7 @@ export function useTemplateEditor({
 
     // Calculate costs for initial modules
     const resolvedValues = resolveFieldLinks(initialModules);
+    const functions = useFunctionsStore.getState().functions;
     const modulesWithCosts = initialModules.map((instance) => {
       const moduleDef = modules.find((m) => m.id === instance.moduleId);
       if (!moduleDef) return instance;
@@ -255,6 +259,7 @@ export function useTemplateEditor({
             type: f.type,
             materialCategory: f.materialCategory,
           })),
+          functions,
         });
 
         return {

@@ -3,10 +3,9 @@
 import { useState, useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
+import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
 import { ModuleFieldInput } from '@/components/shared/ModuleFieldInput';
-import { ChevronDown, ChevronRight, Trash2, GripVertical } from 'lucide-react';
 import type { QuoteModuleInstance, Material, CalculationModule } from '@/lib/types';
 
 /**
@@ -120,87 +119,39 @@ export function SortableModuleInstance({
 
   if (!module) {
     return (
-      <Card ref={setNodeRef} style={style} variant="default">
+      <ModuleCardShell
+        cardRef={setNodeRef}
+        style={style}
+        dragHandleProps={{ attributes, listeners }}
+        title="Module not found"
+        isCollapsed={true}
+        onToggle={() => {}}
+      >
         <div className="p-4 text-md-on-surface-variant">
           Module not found
         </div>
-      </Card>
+      </ModuleCardShell>
     );
   }
 
   return (
-    <Card ref={setNodeRef} style={style} variant="default">
-      {/* Module Header */}
-      <div className="flex items-center">
-        {/* Drag Handle */}
-        <button
-          {...attributes}
-          {...listeners}
-          className="text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none transition-smooth"
-          aria-label={`Drag to reorder ${module.name}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-5 w-5" />
-        </button>
-
-        {/* Module Content */}
-        <div
-          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-extra-large"
-          onClick={() => onToggleExpanded(instance.id)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onToggleExpanded(instance.id);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-expanded={isExpanded}
-          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} module ${module.name}`}
-        >
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-md-primary">
-                {module.name}
-              </span>
-              {module.category && (
-                <Chip size="sm" variant="default">
-                  {module.category}
-                </Chip>
-              )}
-              <Chip size="sm" variant="primary" className="font-mono">
-                {module.fields.length} {module.fields.length === 1 ? 'field' : 'fields'}
-              </Chip>
-            </div>
-            {module.description && (
-              <p className="text-sm text-md-on-surface-variant mt-1.5 truncate">
-                {module.description}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center space-x-1 ml-4 shrink-0">
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm(`Remove ${module.name} from template?`)) {
-                  onRemove(instance.id);
-                }
-              }}
-              className="p-2 text-md-on-surface-variant hover:text-md-error hover:bg-md-error-container/10 rounded-full transition-smooth active:scale-95"
-              aria-label={`Remove ${module.name}`}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
+    <ModuleCardShell
+      cardRef={setNodeRef}
+      style={style}
+      dragHandleProps={{ attributes, listeners }}
+      title={module.name}
+      category={module.category}
+      metaChips={[
+        <Chip key="field-count" size="sm" variant="primary" className="font-mono">
+          {module.fields.length} {module.fields.length === 1 ? 'field' : 'fields'}
+        </Chip>,
+      ]}
+      subtitle={module.description || undefined}
+      isCollapsed={!isExpanded}
+      onToggle={() => onToggleExpanded(instance.id)}
+      onRemove={() => onRemove(instance.id)}
+      removeConfirmMessage={`Remove ${module.name} from template?`}
+    >
       {/* Expanded Field Inputs */}
       {isExpanded && (
         <div className="p-4 border-t border-border space-y-4">
@@ -255,6 +206,6 @@ export function SortableModuleInstance({
           )}
         </div>
       )}
-    </Card>
+    </ModuleCardShell>
   );
 }

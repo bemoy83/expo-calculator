@@ -20,7 +20,8 @@ import {
   Menu,
   X,
   Download,
-  Upload
+  Upload,
+  FunctionSquare
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -32,6 +33,7 @@ const navigation = [
   { name: 'Materials', href: '/materials', icon: Package },
   { name: 'Modules', href: '/modules', icon: LayoutDashboard },
   { name: 'Templates', href: '/templates', icon: FileText },
+  { name: 'Functions', href: '/functions', icon: FunctionSquare },
   { name: 'Quote Builder', href: '/quotes', icon: Calculator },
 ];
 

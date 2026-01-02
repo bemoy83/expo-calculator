@@ -14,6 +14,7 @@ import { labelToVariableName, generateId } from '@/lib/utils';
 import { getAllUnitSymbols, getUnitCategory, normalizeToBase, convertFromBase } from '@/lib/units';
 import { Plus, Edit2, Trash2, X, Search, Package } from 'lucide-react';
 import { PropertyForm } from '@/components/materials/PropertyForm';
+import { ActionIconButton } from '@/components/shared/ActionIconButton';
 
 /**
  * Materials Manager Page
@@ -448,27 +449,24 @@ export default function MaterialsPage() {
                       </div>
                     </div>
                     <div className="flex items-start gap-1 shrink-0">
-                      <button
-                        onClick={() => openEditor(material)}
-                        className="p-2 text-md-on-surface-variant hover:text-md-primary hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
-                        aria-label={`Edit material: ${material.name}`}
-                      >
-                        <Edit2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete "${material.name}"?`)) {
-                            deleteMaterial(material.id);
-                            if (selectedMaterialId === material.id) {
-                              closeEditor();
-                            }
+                      <ActionIconButton
+                        icon={Edit2}
+                        actionType="edit"
+                        onAction={() => openEditor(material)}
+                        ariaLabel={`Edit material: ${material.name}`}
+                      />
+                      <ActionIconButton
+                        icon={Trash2}
+                        actionType="delete"
+                        onAction={() => {
+                          deleteMaterial(material.id);
+                          if (selectedMaterialId === material.id) {
+                            closeEditor();
                           }
                         }}
-                        className="p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
-                        aria-label={`Delete material: ${material.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                        ariaLabel={`Delete material: ${material.name}`}
+                        confirmationMessage={`Are you sure you want to delete "${material.name}"?`}
+                      />
                     </div>
                   </div>
                 </Card>
