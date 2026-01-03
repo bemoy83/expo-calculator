@@ -73,6 +73,7 @@ export interface Material {
   unit: string;
   price: number;
   variableName: string;
+  order?: number;
   sku?: string; // Stock Keeping Unit
   supplier?: string; // Supplier name
   description?: string; // Material description or usage notes

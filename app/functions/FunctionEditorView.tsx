@@ -65,7 +65,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
         setFormData((prev) => ({ ...prev, name: generatedName }));
       }
     }
-  }, [formData.displayName, hasManuallyEditedVariableName]);
+  }, [formData.displayName, formData.name, hasManuallyEditedVariableName]);
 
   // Track manual edits to variable name
   const handleVariableNameChange = useCallback((newName: string) => {

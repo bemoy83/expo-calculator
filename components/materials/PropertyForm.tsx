@@ -1,10 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { MaterialProperty, MaterialPropertyType } from '@/lib/types';
 import { getAllUnitSymbols, getUnitCategory, convertFromBase } from '@/lib/units';
+import { labelToVariableName } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 
 interface PropertyFormProps {
@@ -38,6 +40,21 @@ export function PropertyForm({
 }: PropertyFormProps) {
   const isEditMode = mode === 'edit';
   const isNumberOrPrice = propertyData.type === 'number' || propertyData.type === 'price';
+  
+  // Track if user has manually edited the variable name
+  const [hasManuallyEditedVariableName, setHasManuallyEditedVariableName] = useState(false);
+  const [displayName, setDisplayName] = useState(isEditMode && property ? property.name : '');
+
+  // Auto-generate variable name from display name when display name changes
+  // Only auto-generate if creating new property and user hasn't manually edited the variable name
+  useEffect(() => {
+    if (!isEditMode && displayName && !hasManuallyEditedVariableName) {
+      const generatedName = labelToVariableName(displayName);
+      if (generatedName && generatedName !== propertyData.name) {
+        onChange({ name: generatedName });
+      }
+    }
+  }, [displayName, hasManuallyEditedVariableName, propertyData.name, isEditMode, onChange]);
 
   // For edit mode with number/price types, handle unit conversion for display
   const displayValue = isEditMode && property && isNumberOrPrice && typeof propertyData.value === 'number'
@@ -47,6 +64,21 @@ export function PropertyForm({
     : typeof propertyData.value === 'number' || typeof propertyData.value === 'string'
     ? propertyData.value
     : '';
+
+  const handleDisplayNameChange = (newDisplayName: string) => {
+    setDisplayName(newDisplayName);
+    if (!isEditMode && !hasManuallyEditedVariableName) {
+      const generatedName = labelToVariableName(newDisplayName);
+      if (generatedName) {
+        onChange({ name: generatedName });
+      }
+    }
+  };
+
+  const handleVariableNameChange = (newName: string) => {
+    setHasManuallyEditedVariableName(true);
+    onChange({ name: newName });
+  };
 
   const handleTypeChange = (newType: MaterialPropertyType) => {
     let newValue: string | number | boolean;
@@ -73,14 +105,39 @@ export function PropertyForm({
 
   return (
     <div className="space-y-2">
-      <Input
-        label="Property Name"
-        value={propertyData.name}
-        onChange={(e) => onChange({ name: e.target.value })}
-        error={error}
-        placeholder={isEditMode ? "e.g., length" : "e.g., mdf_sheet_width"}
-        className="text-sm"
-      />
+      {!isEditMode ? (
+        <>
+          <Input
+            label="Property Name"
+            value={displayName}
+            onChange={(e) => handleDisplayNameChange(e.target.value)}
+            error={error}
+            placeholder="e.g., Sheet Width"
+            className="text-sm"
+          />
+          <div>
+            <Input
+              label="Variable Name"
+              value={propertyData.name}
+              onChange={(e) => handleVariableNameChange(e.target.value)}
+              placeholder="e.g., sheet_width"
+              className="text-sm"
+            />
+            <p className="mt-1 text-xs text-md-on-surface-variant">
+              Used in formulas. Must be a valid identifier (letters, numbers, underscores only, starting with letter or underscore). Auto-generated from property name.
+            </p>
+          </div>
+        </>
+      ) : (
+        <Input
+          label="Property Name"
+          value={propertyData.name}
+          onChange={(e) => onChange({ name: e.target.value })}
+          error={error}
+          placeholder="e.g., length"
+          className="text-sm"
+        />
+      )}
       <div className="grid grid-cols-2 gap-2">
         <Select
           label="Type"

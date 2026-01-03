@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Plus } from 'lucide-react';
 import { ActionIconButton } from '@/components/shared/ActionIconButton';
+import { Chip } from '@/components/ui/Chip';
 import { QuoteModuleInstance, CalculationModule, Field } from '@/lib/types';
 import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
 
@@ -59,16 +60,32 @@ export function SortableModuleCard({
     setNodeRef(el);
   }, [setNodeRef]);
 
+  // Create computed output chips for the header
+  const computedOutputChips = useMemo(() => {
+    if (!module.computedOutputs || module.computedOutputs.length === 0) {
+      return undefined;
+    }
+    return module.computedOutputs.map((output) => (
+      <Chip key={output.id} size="sm" variant="outline">
+        {output.label}
+        {output.unitSymbol && (
+          <span className="ml-1 text-xs opacity-70">({output.unitSymbol})</span>
+        )}
+      </Chip>
+    ));
+  }, [module.computedOutputs]);
+
   return (
     <ModuleCardShell
       cardRef={stableRef}
       style={style}
-  dragHandleProps={{ attributes, listeners }}
-  title={module.name}
-  category={module.category}
-  subtitle={module.description || undefined}
-  isCollapsed={isCollapsed}
-  onToggle={() => onToggleCollapse(instance.id)}
+      dragHandleProps={{ attributes, listeners }}
+      title={module.name}
+      category={module.category}
+      metaChips={computedOutputChips}
+      subtitle={module.description || undefined}
+      isCollapsed={isCollapsed}
+      onToggle={() => onToggleCollapse(instance.id)}
       onRemove={() => onRemove(instance.id)}
       removeConfirmMessage={`Remove ${module.name} from quote?`}
       rightExtras={

@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
-import { Select } from '@/components/ui/Select';
 import { Chip } from '@/components/ui/Chip';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { Material, MaterialProperty, MaterialPropertyType, COMMON_MATERIAL_PROPERTIES } from '@/lib/types';
@@ -14,7 +13,9 @@ import { labelToVariableName, generateId } from '@/lib/utils';
 import { getAllUnitSymbols, getUnitCategory, normalizeToBase, convertFromBase } from '@/lib/units';
 import { Plus, Edit2, Trash2, X, Search, Package } from 'lucide-react';
 import { PropertyForm } from '@/components/materials/PropertyForm';
-import { ActionIconButton } from '@/components/shared/ActionIconButton';
+import { SortableList } from '@/components/shared/SortableList';
+import { MaterialItem } from '@/components/materials/MaterialItem';
+import { CategoryChipSelector } from '@/components/shared/CategoryChipSelector';
 
 /**
  * Materials Manager Page
@@ -63,22 +64,45 @@ export default function MaterialsPage() {
     unitSymbol: undefined,
   });
   const [propertyErrors, setPropertyErrors] = useState<Record<string, string>>({});
+  const [collapsedMaterials, setCollapsedMaterials] = useState<Set<string>>(
+    () => new Set(materials.map((m) => m.id))
+  );
+
+  // Keep new materials collapsed by default while preserving user toggles
+  useEffect(() => {
+    setCollapsedMaterials((prev) => {
+      const next = new Set(prev);
+      materials.forEach((mat) => {
+        if (!next.has(mat.id)) {
+          next.add(mat.id);
+        }
+      });
+      return next;
+    });
+  }, [materials]);
 
   // Get all unique categories
   const categories = useMemo(() => {
     return Array.from(new Set(materials.map((m) => m.category))).sort();
   }, [materials]);
 
+  const sortedByOrder = useMemo(() => {
+    return [...materials].sort((a, b) => {
+      const orderA = a.order ?? materials.indexOf(a);
+      const orderB = b.order ?? materials.indexOf(b);
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name);
+    });
+  }, [materials]);
+
   // Filter materials based on search and category
   const filteredMaterials = useMemo(() => {
-    let filtered = materials;
+    let filtered = sortedByOrder;
 
-    // Apply category filter
     if (categoryFilter !== 'all') {
       filtered = filtered.filter((m) => m.category === categoryFilter);
     }
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -91,8 +115,10 @@ export default function MaterialsPage() {
       );
     }
 
-    return filtered.sort((a, b) => a.name.localeCompare(b.name));
-  }, [materials, categoryFilter, searchQuery]);
+    return filtered;
+  }, [sortedByOrder, categoryFilter, searchQuery]);
+
+  const canReorder = !searchQuery.trim() && categoryFilter === 'all';
 
   const openEditor = (material?: Material) => {
     if (material) {
@@ -280,7 +306,7 @@ export default function MaterialsPage() {
         return updated;
       })
     );
-    setEditingPropertyId(null);
+    // Don't close the editor here - let the user explicitly click "Done" or "Cancel"
   };
 
   const removeProperty = (id: string) => {
@@ -316,6 +342,35 @@ export default function MaterialsPage() {
     closeEditor();
   };
 
+  const toggleMaterialCollapse = (id: string) => {
+    setCollapsedMaterials((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleReorderMaterials = (oldIndex: number, newIndex: number) => {
+    // Only allow reorder when unfiltered/unsearched to avoid ambiguous ordering
+    const canReorder = !searchQuery.trim() && categoryFilter === 'all';
+    if (!canReorder) return;
+
+    const ordered = [...sortedByOrder];
+    const [moved] = ordered.splice(oldIndex, 1);
+    if (!moved) return;
+    ordered.splice(newIndex, 0, moved);
+
+    ordered.forEach((mat, idx) => {
+      if (mat.order !== idx) {
+        updateMaterial(mat.id, { order: idx });
+      }
+    });
+  };
+
   const isCreating = selectedMaterialId === null;
 
   return (
@@ -337,7 +392,6 @@ export default function MaterialsPage() {
           {/* Search and Filter Card */}
           <Card>
             <div className="flex flex-wrap items-center gap-3">
-              {/* Search Input - Dominant, flex-grows to fill space */}
               <div className="flex-1 min-w-[200px] relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-md-on-surface-variant pointer-events-none" />
                 <Input
@@ -347,17 +401,15 @@ export default function MaterialsPage() {
                   className="pl-10 w-full"
                 />
               </div>
-              {/* Category Dropdown - Fixed width, no flex-grow */}
-              <div className="w-full sm:w-auto sm:min-w-[180px]">
-                <Select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  options={[
-                    { value: 'all', label: 'All Categories' },
-                    ...categories.map((cat) => ({ value: cat, label: cat })),
-                  ]}
-                />
-              </div>
+            </div>
+            <div className="mt-3">
+              <CategoryChipSelector
+                label="Categories"
+                availableCategories={categories}
+                selectedCategory={categoryFilter === 'all' ? null : categoryFilter}
+                onSelectCategory={(cat) => setCategoryFilter(cat || 'all')}
+                allowDeselect
+              />
             </div>
           </Card>
 
@@ -384,94 +436,60 @@ export default function MaterialsPage() {
                 )}
               </div>
             </Card>
+          ) : canReorder ? (
+            <SortableList
+              items={filteredMaterials}
+              onReorder={handleReorderMaterials}
+              className="flex flex-col gap-4"
+              renderItem={(material) => (
+                <MaterialItem
+                  key={material.id}
+                  material={material}
+                  isCollapsed={collapsedMaterials.has(material.id)}
+                  onToggleCollapse={toggleMaterialCollapse}
+                  onEdit={openEditor}
+                  onDelete={(id) => {
+                    if (confirm(`Are you sure you want to delete "${material.name}"?`)) {
+                      deleteMaterial(id);
+                      setCollapsedMaterials((prev) => {
+                        const next = new Set(prev);
+                        next.delete(id);
+                        return next;
+                      });
+                      if (selectedMaterialId === id) {
+                        closeEditor();
+                      }
+                    }
+                  }}
+                />
+              )}
+            />
           ) : (
-            <>
-              {/* Materials List - Each material is its own Card */}
+                <div className="flex flex-col gap-4">
               {filteredMaterials.map((material) => (
-                <Card key={material.id} className="overlay-white">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4 mb-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-md-primary mb-2">{material.name}</h3>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Chip size="sm">{material.category}</Chip>
-                            {material.sku && (
-                              <Chip size="sm">SKU: {material.sku}</Chip>
-                            )}
-                            {material.supplier && (
-                              <Chip size="sm">{material.supplier}</Chip>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-3xl font-bold text-success tabular-nums tracking-tight">
-                            ${material.price.toFixed(2)}
-                          </div>
-                          <div className="text-sm font-medium text-md-on-surface-variant">per {material.unit}</div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs text-md-on-surface-variant uppercase tracking-wide shrink-0">Variable:</span>
-                          <code className="px-2.5 py-1 bg-md-secondary border-accent rounded-full text-sm text-md-on-secondary font-mono">
-                            {material.variableName}
-                          </code>
-                        </div>
-                        {material.description && (
-                          <p className="text-sm text-md-on-surface-variant line-clamp-2">{material.description}</p>
-                        )}
-                        {material.properties && material.properties.length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-border">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs text-md-on-surface-variant uppercase tracking-wide shrink-0">Properties:</span>
-                              <span className="text-xs text-md-on-surface-variant">
-                                {material.properties.length} {material.properties.length === 1 ? 'property' : 'properties'}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {material.properties.map((prop) => (
-                                <div
-                                  key={prop.id}
-                                  className="px-2.5 py-1 bg-md-secondary border rounded-full text-xs"
-                                  title={`${prop.name}: ${prop.type === 'boolean' ? (prop.value === true || prop.value === 'true' ? 'True' : 'False') : String(prop.value)}${prop.unit ? ` ${prop.unit}` : ''}`}
-                                >
-                                  <code className="text-md-on-secondary font-mono">{material.variableName}.{prop.name}</code>
-                                  {prop.unitSymbol && (
-                                    <span className="text-md-on-secondary ml-1">({prop.unitSymbol})</span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-1 shrink-0">
-                      <ActionIconButton
-                        icon={Edit2}
-                        actionType="edit"
-                        onAction={() => openEditor(material)}
-                        ariaLabel={`Edit material: ${material.name}`}
-                      />
-                      <ActionIconButton
-                        icon={Trash2}
-                        actionType="delete"
-                        onAction={() => {
-                          deleteMaterial(material.id);
-                          if (selectedMaterialId === material.id) {
-                            closeEditor();
-                          }
-                        }}
-                        ariaLabel={`Delete material: ${material.name}`}
-                        confirmationMessage={`Are you sure you want to delete "${material.name}"?`}
-                      />
-                    </div>
-                  </div>
-                </Card>
+                <MaterialItem
+                  key={material.id}
+                  material={material}
+                  isCollapsed={collapsedMaterials.has(material.id)}
+                  onToggleCollapse={toggleMaterialCollapse}
+                  onEdit={openEditor}
+                  onDelete={(id) => {
+                    if (confirm(`Are you sure you want to delete "${material.name}"?`)) {
+                      deleteMaterial(id);
+                      setCollapsedMaterials((prev) => {
+                        const next = new Set(prev);
+                        next.delete(id);
+                        return next;
+                      });
+                      if (selectedMaterialId === id) {
+                        closeEditor();
+                      }
+                    }
+                  }}
+                  disableDrag
+                />
               ))}
-            </>
+                </div>
           )}
         </div>
 

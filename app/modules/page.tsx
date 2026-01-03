@@ -669,6 +669,26 @@ export default function ModulesPage() {
                   ),
                   spacing: 'small',
                 },
+                ...(module.computedOutputs && module.computedOutputs.length > 0
+                  ? [
+                    {
+                      label: 'Computed Outputs',
+                      content: (
+                        <div className="flex flex-wrap gap-2">
+                          {module.computedOutputs.map((output) => (
+                            <Chip key={output.id} size="sm" variant="outline">
+                              {output.label}
+                              {output.unitSymbol && (
+                                <span className="ml-1 text-xs opacity-70">({output.unitSymbol})</span>
+                              )}
+                            </Chip>
+                          ))}
+                        </div>
+                      ),
+                      spacing: 'small' as const,
+                    },
+                  ]
+                  : []),
                 {
                   label: 'Formula',
                   content: (
