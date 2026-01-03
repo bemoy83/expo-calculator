@@ -1,8 +1,9 @@
-import { CalculationModule, Material, ModuleTemplate } from '../types';
+import { CalculationModule, Material, ModuleTemplate, SharedFunction } from '../types';
 import { useModulesStore } from '../stores/modules-store';
 import { useMaterialsStore } from '../stores/materials-store';
 import { useCategoriesStore } from '../stores/categories-store';
 import { useTemplatesStore } from '../stores/templates-store';
+import { useFunctionsStore } from '../stores/functions-store';
 import type { ExportedData } from './data-export';
 
 export interface ImportOptions {
@@ -14,6 +15,7 @@ export interface ImportResult {
   modulesAdded: number;
   materialsAdded: number;
   categoriesAdded: number;
+  functionsAdded: number;
   templatesAdded: number;
   errors?: string[];
 }
@@ -72,6 +74,24 @@ export function validateImportedData(json: unknown): json is ExportedData {
     }
   }
 
+  // Validate functions structure (if present)
+  if (data.functions !== undefined) {
+    if (!Array.isArray(data.functions)) {
+      return false;
+    }
+    for (const func of data.functions) {
+      if (
+        typeof func !== 'object' ||
+        typeof (func as SharedFunction).id !== 'string' ||
+        typeof (func as SharedFunction).name !== 'string' ||
+        typeof (func as SharedFunction).formula !== 'string' ||
+        !Array.isArray((func as SharedFunction).parameters)
+      ) {
+        return false;
+      }
+    }
+  }
+
   // Validate templates structure (if present, but templates are not imported)
   if (data.templates !== undefined) {
     if (!Array.isArray(data.templates)) {
@@ -103,6 +123,7 @@ export function importData(
   let modulesAdded = 0;
   let materialsAdded = 0;
   let categoriesAdded = 0;
+  let functionsAdded = 0;
   let templatesAdded = 0;
 
   try {
@@ -111,6 +132,7 @@ export function importData(
       useModulesStore.setState({ modules: [] });
       useMaterialsStore.setState({ materials: [] });
       useCategoriesStore.setState({ customCategories: [] });
+      useFunctionsStore.setState({ functions: [] });
       useTemplatesStore.setState({ templates: [] });
     }
 
@@ -217,6 +239,52 @@ export function importData(
       }
     });
 
+    // Import functions
+    if (data.functions && data.functions.length > 0) {
+      if (options.mode === 'replace') {
+        // In replace mode, add all functions
+        data.functions.forEach((func) => {
+          try {
+            useFunctionsStore.getState().addFunction({
+              name: func.name,
+              description: func.description,
+              formula: func.formula,
+              parameters: func.parameters,
+              returnUnitCategory: func.returnUnitCategory,
+              returnUnitSymbol: func.returnUnitSymbol,
+              category: func.category,
+            });
+            functionsAdded++;
+          } catch (err) {
+            errors.push(`Failed to import function "${func.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+          }
+        });
+      } else {
+        // Merge mode: skip duplicates by name (case-insensitive)
+        const existingFunctions = useFunctionsStore.getState().functions;
+        const existingNames = new Set(existingFunctions.map((f) => f.name.toLowerCase()));
+
+        data.functions.forEach((func) => {
+          if (!existingNames.has(func.name.toLowerCase())) {
+            try {
+              useFunctionsStore.getState().addFunction({
+                name: func.name,
+                description: func.description,
+                formula: func.formula,
+                parameters: func.parameters,
+                returnUnitCategory: func.returnUnitCategory,
+                returnUnitSymbol: func.returnUnitSymbol,
+                category: func.category,
+              });
+              functionsAdded++;
+            } catch (err) {
+              errors.push(`Failed to import function "${func.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+            }
+          }
+        });
+      }
+    }
+
     // Templates are not imported because they reference module IDs which get regenerated on import
     // This would break template functionality. Templates must be recreated manually after importing modules.
     // templatesAdded remains 0
@@ -226,6 +294,7 @@ export function importData(
       modulesAdded,
       materialsAdded,
       categoriesAdded,
+      functionsAdded,
       templatesAdded,
       errors: errors.length > 0 ? errors : undefined,
     };
@@ -235,6 +304,7 @@ export function importData(
       modulesAdded,
       materialsAdded,
       categoriesAdded,
+      functionsAdded,
       templatesAdded,
       errors: [err instanceof Error ? err.message : 'Unknown error during import'],
     };
