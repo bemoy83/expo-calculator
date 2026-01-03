@@ -53,7 +53,7 @@ export const UNITS: Record<string, Unit> = {
     toBase: (v) => v,
     fromBase: (v) => v,
   },
-  liters: {
+  l: {
     category: 'volume',
     symbol: 'L',
     toBase: (v) => v / 1000,
@@ -82,6 +82,21 @@ export const UNITS: Record<string, Unit> = {
     symbol: 'pcs',
     toBase: (v) => v,      // No conversion needed
     fromBase: (v) => v,    // No conversion needed
+  },
+  // Liters as count unit (for counting containers, not volume calculations)
+  // When used as count, "3 liters" means "3" - no conversion to m³
+  liters: {
+    category: 'count',
+    symbol: 'L',
+    toBase: (v) => v,      // No conversion - use as-is
+    fromBase: (v) => v,    // No conversion - use as-is
+  },
+  // When used as count, 30$ means "30" - no conversion to $
+  price: {
+    category: 'count',
+    symbol: '$',
+    toBase: (v) => v,      // No conversion - use as-is
+    fromBase: (v) => v,    // No conversion - use as-is
   },
 };
 

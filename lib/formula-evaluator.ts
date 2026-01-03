@@ -155,13 +155,14 @@ export interface FunctionCall {
 /**
  * Parses function calls in a formula (e.g., m2(width, height))
  * Returns an array of FunctionCall objects
+ * Handles nested function calls and function calls inside operators correctly
  */
 export function parseFunctionCalls(formula: string): FunctionCall[] {
-  const functionCallRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)/g;
   const calls: FunctionCall[] = [];
+  const functionNameRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
   let match;
 
-  while ((match = functionCallRegex.exec(formula)) !== null) {
+  while ((match = functionNameRegex.exec(formula)) !== null) {
     const functionName = match[1];
     
     // Skip if it's a math function
@@ -169,17 +170,75 @@ export function parseFunctionCalls(formula: string): FunctionCall[] {
       continue;
     }
 
-    const argsString = match[2].trim();
-    const args = argsString
-      ? argsString.split(',').map(arg => arg.trim()).filter(arg => arg.length > 0)
-      : [];
+    const startIndex = match.index;
+    const openParenIndex = match.index + match[0].length - 1; // Position of '('
+
+    // Find matching closing parenthesis by counting parentheses
+    let parenCount = 1;
+    let i = openParenIndex + 1;
+    let endIndex = -1;
+
+    while (i < formula.length && parenCount > 0) {
+      if (formula[i] === '(') {
+        parenCount++;
+      } else if (formula[i] === ')') {
+        parenCount--;
+        if (parenCount === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+      i++;
+    }
+
+    if (endIndex === -1) {
+      // Unmatched parentheses - skip this match
+      continue;
+    }
+
+    // Extract arguments string (between parentheses)
+    const argsString = formula.slice(openParenIndex + 1, endIndex).trim();
+
+    // Parse arguments, respecting nested parentheses
+    const args: string[] = [];
+    if (argsString) {
+      let currentArg = '';
+      let nestedParenCount = 0;
+
+      for (let j = 0; j < argsString.length; j++) {
+        const char = argsString[j];
+
+        if (char === '(') {
+          nestedParenCount++;
+          currentArg += char;
+        } else if (char === ')') {
+          nestedParenCount--;
+          currentArg += char;
+        } else if (char === ',' && nestedParenCount === 0) {
+          // Found a top-level comma - this separates arguments
+          const trimmedArg = currentArg.trim();
+          if (trimmedArg.length > 0) {
+            args.push(trimmedArg);
+          }
+          currentArg = '';
+        } else {
+          currentArg += char;
+        }
+      }
+
+      // Add the last argument
+      const trimmedArg = currentArg.trim();
+      if (trimmedArg.length > 0) {
+        args.push(trimmedArg);
+      }
+    }
 
     calls.push({
       functionName,
       arguments: args,
-      fullMatch: match[0],
-      startIndex: match.index,
-      endIndex: match.index + match[0].length,
+      fullMatch: formula.slice(startIndex, endIndex + 1),
+      startIndex,
+      endIndex: endIndex + 1,
     });
   }
 
@@ -1277,6 +1336,8 @@ export function validateFormula(
       const allAvailableVars = [
         ...availableVariables,
         ...materials.map(m => m.variableName),
+        // Include field variable names - they're valid variables even if not in availableVariables
+        ...(fields?.map(f => f.variableName) || []),
         // Math functions and constants
         'sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e',
         // Rounding functions
@@ -1339,8 +1400,14 @@ export function validateFormula(
           // Check if match is the base part (before dot) or property part (after dot)
           const parts = propRef.split('.');
           if (parts.length === 2 && (parts[0] === match || parts[1] === match)) {
-            // But only skip the property part, not the base part (base parts can be used standalone)
+            // Always skip the property part (after dot) - it's never a standalone variable
             if (parts[1] === match) {
+              isPartOfPropertyRef = true;
+              break;
+            }
+            // For the base part (before dot): skip it if it's not in allAvailableVars
+            // This means it's only used as part of property references, not as a standalone variable
+            if (parts[0] === match && !allAvailableVars.includes(match)) {
               isPartOfPropertyRef = true;
               break;
             }
@@ -1550,6 +1617,12 @@ export function analyzeFormulaVariables(
     // Skip if it's a user-defined function name
     if (allFunctionNames.has(match)) {
       continue; // Don't add to unknown variables
+    }
+
+    // Skip if this identifier is a full property reference (e.g., "paint.coverage_per_liters")
+    // Property references are tracked separately and shouldn't be in unknown variables
+    if (allPropertyRefs.has(match)) {
+      continue;
     }
 
     // Skip if this identifier is part of a property reference

@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ComputedOutput, Field, SharedFunction } from '@/lib/types';
+import { ComputedOutput, Field, SharedFunction, Material } from '@/lib/types';
 import { Plus } from 'lucide-react';
 import { generateComputedOutputVariableName, validateComputedOutputVariableName, validateComputedOutputExpression } from '@/lib/utils/computed-outputs';
 import { getUnitCategory, getUnitsByCategory, UnitCategory } from '@/lib/units';
@@ -13,6 +13,7 @@ import { ComputedOutputItem } from '@/components/module-editor/ComputedOutputIte
 interface ComputedOutputsManagerProps {
     computedOutputs: ComputedOutput[];
     fields: Field[];
+    materials: Material[]; // Materials needed to validate field property references
     onUpdateOutput: (id: string, updates: Partial<ComputedOutput>) => void;
     onRemoveOutput: (id: string) => void;
     onAddOutput: () => void;
@@ -23,6 +24,7 @@ interface ComputedOutputsManagerProps {
 export function ComputedOutputsManager({
     computedOutputs,
     fields,
+    materials,
     onUpdateOutput,
     onRemoveOutput,
     onAddOutput,
@@ -166,6 +168,7 @@ export function ComputedOutputsManager({
                             fields,
                             computedOutputs, // Pass all outputs to check order
                             outputFunctions,
+                            materials, // Pass materials to validate field property references
                             output.id // Pass current output ID to check if references are to previous outputs
                         );
 
@@ -202,6 +205,7 @@ export function ComputedOutputsManager({
                                 }
                                 onUnitSymbolChange={(unitSymbol) => handleUnitChange(output.id, unitSymbol)}
                                 onExpressionChange={(expression) => handleExpressionChange(output.id, expression)}
+                                onShowInQuoteChange={(showInQuote) => onUpdateOutput(output.id, { showInQuote })}
                                 setTextareaRef={(el) => {
                                     formulaTextareaRefs.current[output.id] = el;
                                 }}

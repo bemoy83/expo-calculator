@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { Chip } from '@/components/ui/Chip';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { ComputedOutput, UnitCategory, Field, SharedFunction } from '@/lib/types';
 import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,7 @@ interface ComputedOutputItemProps {
   onUnitCategoryChange: (value: UnitCategory | undefined) => void;
   onUnitSymbolChange: (value: string) => void;
   onExpressionChange: (value: string) => void;
+  onShowInQuoteChange: (value: boolean) => void;
   setTextareaRef: (el: HTMLTextAreaElement | null) => void;
 }
 
@@ -61,6 +63,7 @@ export function ComputedOutputItem({
   onUnitCategoryChange,
   onUnitSymbolChange,
   onExpressionChange,
+  onShowInQuoteChange,
   setTextareaRef,
 }: ComputedOutputItemProps) {
   const expressionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -278,6 +281,17 @@ export function ComputedOutputItem({
               rows={2}
               placeholder="Describe what this computed output represents..."
             />
+          </div>
+
+          <div>
+            <Checkbox
+              label="Show in quote summary"
+              checked={output.showInQuote || false}
+              onChange={(e) => onShowInQuoteChange(e.target.checked)}
+            />
+            <p className="text-xs text-md-on-surface-variant mt-1 ml-6">
+              Display this computed output in the quote summary line item
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

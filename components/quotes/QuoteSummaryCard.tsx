@@ -37,7 +37,7 @@ export function QuoteSummaryCard({
           {(quote.markupPercent ?? 0) > 0 && (
             <div className="flex items-center justify-between gap-3">
               <label className="text-sm text-md-on-surface-variant shrink-0">
-                Markup {quote.markupPercent > 0 && `(${quote.markupPercent.toFixed(1)}%)`}
+                Markup {quote.markupPercent > 0 && `(${quote.markupPercent.toFixed(2)}%)`}
               </label>
               <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                 <span className="font-semibold text-md-on-surface tabular-nums text-sm">
@@ -49,7 +49,7 @@ export function QuoteSummaryCard({
           {(quote.taxRate ?? 0) > 0 && (
             <div className="flex items-center justify-between gap-3">
               <label className="text-sm text-md-on-surface-variant shrink-0">
-                Tax {quote.taxRate > 0 && `(${(quote.taxRate * 100).toFixed(1)}%)`}
+                Tax {quote.taxRate > 0 && `(${(quote.taxRate * 100).toFixed(2)}%)`}
               </label>
               <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                 <span className="font-semibold text-md-on-surface tabular-nums text-sm">
@@ -71,19 +71,30 @@ export function QuoteSummaryCard({
 
         <div className="pt-5 border-t border-border">
           <h4 className="text-sm font-semibold text-md-primary mb-3">Line Items</h4>
-          <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
+          <div className="space-y-2">
             {quote.lineItems.map((item) => (
               <div
                 key={item.id}
                 className="group flex items-start justify-between gap-3 p-3 rounded-lg transition-smooth"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-md-on-surface text-sm mb-0.5 truncate">
+                  <div className="font-medium text-md-on-surface text-sm mb-0.5 break-words">
                     {item.moduleName}
                   </div>
-                  <div className="text-md-on-surface-variant text-xs truncate">
-                    {item.fieldSummary}
-                  </div>
+                  {item.primarySummary && (
+                    <div className="text-md-on-surface text-sm break-words mb-0.5">
+                      {item.primarySummary}
+                    </div>
+                  )}
+                  {item.secondarySummary ? (
+                    <div className="text-md-on-surface-variant text-xs break-words">
+                      {item.secondarySummary}
+                    </div>
+                  ) : (
+                    <div className="text-md-on-surface-variant text-xs break-words">
+                      {item.fieldSummary}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="font-semibold text-md-on-surface text-sm tabular-nums">

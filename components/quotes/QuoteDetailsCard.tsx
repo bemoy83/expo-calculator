@@ -35,9 +35,13 @@ export function QuoteDetailsCard({ formData, errors, onFormDataChange }: QuoteDe
           label="Tax Rate (%)"
           type="number"
           value={formData.taxRate}
-          onChange={(e) => onFormDataChange({ taxRate: parseFloat(e.target.value) || 0 })}
+          onChange={(e) => {
+            const value = parseFloat(e.target.value) || 0;
+            const rounded = Math.round(value * 100) / 100; // Round to 2 decimal places
+            onFormDataChange({ taxRate: rounded });
+          }}
           error={errors.taxRate}
-          placeholder="e.g., 8.5"
+          placeholder="e.g., 8.50"
           step="0.01"
           min="0"
           max="100"
@@ -46,9 +50,13 @@ export function QuoteDetailsCard({ formData, errors, onFormDataChange }: QuoteDe
           label="Markup (%)"
           type="number"
           value={formData.markupPercent}
-          onChange={(e) => onFormDataChange({ markupPercent: parseFloat(e.target.value) || 0 })}
+          onChange={(e) => {
+            const value = parseFloat(e.target.value) || 0;
+            const rounded = Math.round(value * 100) / 100; // Round to 2 decimal places
+            onFormDataChange({ markupPercent: rounded });
+          }}
           error={errors.markupPercent}
-          placeholder="e.g., 12.5"
+          placeholder="e.g., 12.50"
           step="0.01"
           min="0"
           max="100"

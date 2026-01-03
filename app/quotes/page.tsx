@@ -341,14 +341,14 @@ export default function QuotesPage() {
               value: value,
             };
           }),
-          cost: item.cost,
+          cost: Math.round(item.cost * 100) / 100,
         })),
-        subtotal: currentQuote.subtotal,
-        markupPercent: currentQuote.markupPercent || 0,
-        markupAmount: currentQuote.markupAmount || 0,
-        taxRate: currentQuote.taxRate * 100,
-        taxAmount: currentQuote.taxAmount,
-        total: currentQuote.total,
+        subtotal: Math.round(currentQuote.subtotal * 100) / 100,
+        markupPercent: Math.round((currentQuote.markupPercent || 0) * 100) / 100,
+        markupAmount: Math.round((currentQuote.markupAmount || 0) * 100) / 100,
+        taxRate: Math.round((currentQuote.taxRate * 100) * 100) / 100,
+        taxAmount: Math.round(currentQuote.taxAmount * 100) / 100,
+        total: Math.round(currentQuote.total * 100) / 100,
       },
     };
 
@@ -418,7 +418,7 @@ export default function QuotesPage() {
     if (currentQuote.markupPercent > 0) {
       html += `
             <tr>
-              <td colspan="2" class="right-align"><strong>Markup (${currentQuote.markupPercent.toFixed(1)}%):</strong></td>
+              <td colspan="2" class="right-align"><strong>Markup (${currentQuote.markupPercent.toFixed(2)}%):</strong></td>
               <td class="right-align">$${(currentQuote.markupAmount || 0).toFixed(2)}</td>
             </tr>
       `;
@@ -426,7 +426,7 @@ export default function QuotesPage() {
     
     html += `
             <tr>
-              <td colspan="2" class="right-align"><strong>Tax (${(currentQuote.taxRate * 100).toFixed(1)}%):</strong></td>
+              <td colspan="2" class="right-align"><strong>Tax (${(currentQuote.taxRate * 100).toFixed(2)}%):</strong></td>
               <td class="right-align">$${currentQuote.taxAmount.toFixed(2)}</td>
             </tr>
             <tr class="total-row">

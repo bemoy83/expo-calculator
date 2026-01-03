@@ -81,9 +81,11 @@ export default function MaterialsPage() {
     });
   }, [materials]);
 
-  // Get all unique categories
+  // Get all unique categories (filter out "custom" as it's not meaningful)
   const categories = useMemo(() => {
-    return Array.from(new Set(materials.map((m) => m.category))).sort();
+    return Array.from(new Set(materials.map((m) => m.category)))
+      .filter(cat => cat && cat.toLowerCase() !== 'custom')
+      .sort();
   }, [materials]);
 
   const sortedByOrder = useMemo(() => {
@@ -405,7 +407,7 @@ export default function MaterialsPage() {
             <div className="mt-3">
               <CategoryChipSelector
                 label="Categories"
-                availableCategories={categories}
+                availableCategories={categories.filter(cat => cat.toLowerCase() !== 'custom')}
                 selectedCategory={categoryFilter === 'all' ? null : categoryFilter}
                 onSelectCategory={(cat) => setCategoryFilter(cat || 'all')}
                 allowDeselect
@@ -449,16 +451,15 @@ export default function MaterialsPage() {
                   onToggleCollapse={toggleMaterialCollapse}
                   onEdit={openEditor}
                   onDelete={(id) => {
-                    if (confirm(`Are you sure you want to delete "${material.name}"?`)) {
-                      deleteMaterial(id);
-                      setCollapsedMaterials((prev) => {
-                        const next = new Set(prev);
-                        next.delete(id);
-                        return next;
-                      });
-                      if (selectedMaterialId === id) {
-                        closeEditor();
-                      }
+                    // Confirmation handled by MaterialItem via removeConfirmMessage
+                    deleteMaterial(id);
+                    setCollapsedMaterials((prev) => {
+                      const next = new Set(prev);
+                      next.delete(id);
+                      return next;
+                    });
+                    if (selectedMaterialId === id) {
+                      closeEditor();
                     }
                   }}
                 />
@@ -474,16 +475,15 @@ export default function MaterialsPage() {
                   onToggleCollapse={toggleMaterialCollapse}
                   onEdit={openEditor}
                   onDelete={(id) => {
-                    if (confirm(`Are you sure you want to delete "${material.name}"?`)) {
-                      deleteMaterial(id);
-                      setCollapsedMaterials((prev) => {
-                        const next = new Set(prev);
-                        next.delete(id);
-                        return next;
-                      });
-                      if (selectedMaterialId === id) {
-                        closeEditor();
-                      }
+                    // Confirmation handled by MaterialItem via removeConfirmMessage
+                    deleteMaterial(id);
+                    setCollapsedMaterials((prev) => {
+                      const next = new Set(prev);
+                      next.delete(id);
+                      return next;
+                    });
+                    if (selectedMaterialId === id) {
+                      closeEditor();
                     }
                   }}
                   disableDrag
@@ -496,7 +496,7 @@ export default function MaterialsPage() {
         {/* RIGHT SIDE - MATERIAL EDITOR SIDEBAR */}
         {isEditorOpen && (
           <div className="lg:col-span-2">
-            <Card title={isCreating ? 'Create Material' : 'Edit Material'} className="sticky top-8">
+            <Card title={isCreating ? 'Create Material' : 'Edit Material'} className="sticky top-24">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
                   label="Material Name"

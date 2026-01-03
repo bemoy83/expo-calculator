@@ -4,6 +4,7 @@ import { Quote, QuoteModuleInstance, QuoteLineItem, FieldLink, Field, ModuleTemp
 import { generateId } from '../utils';
 import { evaluateFormula } from '../formula-evaluator';
 import { evaluateComputedOutputs } from '../utils/evaluate-computed-outputs';
+import { convertFromBase } from '../units';
 import { useModulesStore } from './modules-store';
 import { useMaterialsStore } from './materials-store';
 import { useTemplatesStore } from './templates-store';
@@ -512,11 +513,12 @@ export const useQuotesStore = create<QuotesStore>()(
         // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
         let cost = 0;
         try {
-          cost = evaluateFormula(moduleDef.formula, {
+          const calculatedCost = evaluateFormula(moduleDef.formula, {
             fieldValues: resolvedWithComputed,
             materials,
             functions,
           });
+          cost = Math.round(calculatedCost * 100) / 100; // Round to 2 decimal places
         } catch (error: any) {
           // If formula evaluation fails, show error and don't add line item
           console.error(`Error evaluating formula for module "${moduleDef.name}":`, error.message);
@@ -524,32 +526,83 @@ export const useQuotesStore = create<QuotesStore>()(
           return;
         }
         
-        // Step 3: Generate field summary prioritizing computed outputs
-        const summaryParts: string[] = [];
+        // Step 3: Generate summaries
+        // Primary summary: all checked computed outputs with labels + material name (if material field exists)
+        let primarySummary: string | undefined;
         
-        // Add computed outputs first (they're often the most important)
-        if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
-          moduleDef.computedOutputs.forEach((output) => {
-            const value = resolvedWithComputed[`out.${output.variableName}`];
+        // Get all computed outputs marked to show in quote
+        const checkedOutputs = moduleDef.computedOutputs?.filter(o => o.showInQuote) || [];
+
+        if (checkedOutputs.length > 0) {
+          const outputSummaries = checkedOutputs
+            .map((output) => {
+              const value = resolvedWithComputed[`out.${output.variableName}`];
+              if (value !== null && value !== undefined) {
+                const unitStr = output.unitSymbol ? ` ${output.unitSymbol}` : '';
+                return `${output.label}: ${value}${unitStr}`;
+              }
+              return null;
+            })
+            .filter((summary): summary is string => summary !== null);
+
+          if (outputSummaries.length > 0) {
+            let summary = outputSummaries.join(', ');
+
+            // Find material field and add material display name (only add once, not per output)
+            const materialField = moduleDef.fields.find(f => f.type === 'material');
+            if (materialField) {
+              const materialVarName = resolved[materialField.variableName];
+              if (typeof materialVarName === 'string') {
+                const material = materials.find(m => m.variableName === materialVarName);
+                if (material) {
+                  summary += ` — ${material.name}`;
+                }
+              }
+            }
+
+            primarySummary = summary;
+          }
+        }
+
+        // Secondary summary: Group dimension fields (length units) with × separator, include field labels
+        const dimensionFields: Array<{ label: string; value: number | string; unitSymbol: string }> = [];
+
+        moduleDef.fields.forEach((field) => {
+          const value = resolved[field.variableName];
+          if (value !== null && value !== undefined) {
+            // Check if field has length unit category (dimension)
+            if (field.unitCategory === 'length' && field.unitSymbol) {
+              // Convert from base unit (meters) to display unit
+              const displayValue = typeof value === 'number'
+                ? convertFromBase(value, field.unitSymbol)
+                : value;
+
+              dimensionFields.push({
+                label: field.label,
+                value: displayValue,
+                unitSymbol: field.unitSymbol,
+              });
+            }
+          }
+        });
+
+        // Group dimensions with × separator, include labels (e.g., "Width: 2.4 m × Height: 3.0 m × Depth: 18 mm")
+        const secondarySummary = dimensionFields.length > 0
+          ? dimensionFields.map((d) => `${d.label}: ${d.value} ${d.unitSymbol}`).join(' × ')
+          : undefined;
+
+        // Field summary: fallback if no computed outputs (keep for backward compatibility)
+        const summaryParts: string[] = [];
+
+        // Add regular fields (limit to 3-4 items)
+        moduleDef.fields
+          .slice(0, 4)
+          .forEach((field) => {
+            const value = resolved[field.variableName];
             if (value !== null && value !== undefined) {
-              const unitStr = output.unitSymbol ? ` ${output.unitSymbol}` : '';
-              summaryParts.push(`${output.label}: ${value}${unitStr}`);
+              summaryParts.push(`${field.label}: ${value}`);
             }
           });
-        }
-        
-        // Add regular fields (limit total to 3-4 items)
-        const remainingSlots = Math.max(0, 4 - summaryParts.length);
-        if (remainingSlots > 0) {
-          moduleDef.fields
-            .slice(0, remainingSlots)
-            .forEach((field) => {
-              const value = resolved[field.variableName];
-              if (value !== null && value !== undefined) {
-                summaryParts.push(`${field.label}: ${value}`);
-              }
-            });
-        }
         
         const fieldSummary = summaryParts.join(', ') || 'No details';
         
@@ -558,7 +611,9 @@ export const useQuotesStore = create<QuotesStore>()(
             moduleId: instance.moduleId,
             moduleName: moduleDef.name,
           fieldValues: { ...resolvedWithComputed }, // Snapshot of resolved values including computed outputs
-          fieldSummary: fieldSummary || 'No details',
+          fieldSummary: fieldSummary || 'No details', // Fallback if no computed outputs
+          primarySummary, // Only if computed outputs exist
+          secondarySummary, // Grouped dimensions + other fields
           cost,
           createdAt: new Date().toISOString(),
         };
@@ -771,19 +826,19 @@ export const useQuotesStore = create<QuotesStore>()(
         const current = get().currentQuote;
         if (!current) return;
         
-        // Calculate subtotal from line items only
-        const subtotal = current.lineItems.reduce((sum, item) => sum + item.cost, 0);
+        // Calculate subtotal from line items only (rounded to 2 decimal places)
+        const subtotal = Math.round(current.lineItems.reduce((sum, item) => sum + item.cost, 0) * 100) / 100;
         
         // Calculate markup amount (markup applies before tax)
         const markupPercent = current.markupPercent || 0;
-        const markupAmount = subtotal * (markupPercent / 100);
+        const markupAmount = Math.round((subtotal * (markupPercent / 100)) * 100) / 100;
         
         // Tax applies to subtotal + markup
         const taxBase = subtotal + markupAmount;
-        const taxAmount = taxBase * current.taxRate;
+        const taxAmount = Math.round((taxBase * current.taxRate) * 100) / 100;
         
         // Total = subtotal + markup + tax
-        const total = subtotal + markupAmount + taxAmount;
+        const total = Math.round((subtotal + markupAmount + taxAmount) * 100) / 100;
         
         set({
           currentQuote: {
@@ -798,13 +853,16 @@ export const useQuotesStore = create<QuotesStore>()(
       },
   
       setTaxRate: (rate) => {
-        get().updateCurrentQuote({ taxRate: rate });
+        // Round to 2 decimal places
+        const roundedRate = Math.round((rate || 0) * 10000) / 10000; // Round to 4 decimal places for rate (0.0850 = 8.50%)
+        get().updateCurrentQuote({ taxRate: roundedRate });
       },
       
       setMarkupPercent: (percent) => {
-        // Clamp markup to 0 or higher (prevent negative markup)
+        // Clamp markup to 0 or higher (prevent negative markup) and round to 2 decimal places
         const clampedPercent = Math.max(0, percent || 0);
-        get().updateCurrentQuote({ markupPercent: clampedPercent });
+        const roundedPercent = Math.round(clampedPercent * 100) / 100; // Round to 2 decimal places
+        get().updateCurrentQuote({ markupPercent: roundedPercent });
       },
       
       saveQuote: () => {

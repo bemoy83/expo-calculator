@@ -370,6 +370,7 @@ export default function ModulesPage() {
           fields,
           computedOutputs, // Pass all outputs to check order
           functions,
+          materials, // Pass materials to validate field property references
           output.id // Pass current output ID to check if references are to previous outputs
         );
         if (!exprValidation.valid) {
@@ -481,6 +482,7 @@ export default function ModulesPage() {
             <ComputedOutputsManager
               computedOutputs={computedOutputs}
               fields={fields}
+              materials={materials}
               onUpdateOutput={(id, updates) => {
                 setComputedOutputs((prev) =>
                   prev.map((o) => (o.id === id ? { ...o, ...updates } : o))

@@ -4,7 +4,7 @@
  * Validation, generation, and sanitization helpers for computed outputs.
  */
 
-import { ComputedOutput, Field, SharedFunction, CalculationModule } from '../types';
+import { ComputedOutput, Field, SharedFunction, CalculationModule, Material } from '../types';
 import { labelToVariableName } from '../utils';
 import { validateFormula } from '../formula-evaluator';
 import { useFunctionsStore } from '../stores/functions-store';
@@ -109,6 +109,7 @@ export function validateComputedOutputExpression(
   fields: Field[],
   computedOutputs: ComputedOutput[],
   functions: SharedFunction[],
+  materials: Material[], // Materials needed to validate field property references
   currentOutputId?: string // ID of the output being validated (to check order)
 ): { valid: boolean; error?: string; warnings?: string[] } {
   if (!expression || !expression.trim()) {
@@ -191,7 +192,7 @@ export function validateComputedOutputExpression(
   const validation = validateFormula(
     expression,
     availableVariables,
-    [], // No materials in computed output expressions (they use field values)
+    materials, // Pass materials to validate field property references
     fieldDefinitions,
     functions
   );

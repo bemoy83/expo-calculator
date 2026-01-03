@@ -52,6 +52,7 @@ export interface ComputedOutput {
   unitSymbol?: string; // Optional unit symbol (e.g., "m2")
   unitCategory?: UnitCategory; // Optional unit category
   description?: string; // Optional help text
+  showInQuote?: boolean; // Whether to display in quote summary
 }
 
 export interface CalculationModule {
@@ -138,7 +139,9 @@ export interface QuoteLineItem {
   moduleId: string;
   moduleName: string;
   fieldValues: Record<string, string | number | boolean>;
-  fieldSummary: string; // Brief summary of key input values
+  fieldSummary: string; // Brief summary of key input values (fallback if no computed outputs)
+  primarySummary?: string; // Top computed output (e.g., "12 m lumber" or "45 m² paint area") - only if computed outputs exist
+  secondarySummary?: string; // Grouped dimensions (e.g., "2.4 m × 3.0 m × 18 mm") + other fields
   cost: number;
   createdAt: string;
 }
