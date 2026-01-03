@@ -88,7 +88,8 @@ export interface FieldLink {
 
 export interface SharedFunction {
   id: string;
-  name: string; // Function name (e.g., "m2", "area")
+  displayName: string; // User-friendly display name (e.g., "Calculate Area", "Square Meters")
+  name: string; // Function variable name used in formulas (e.g., "m2", "area") - must be valid identifier
   description?: string; // Help text
   formula: string; // Formula using parameter names (e.g., "width * height")
   parameters: Array<{

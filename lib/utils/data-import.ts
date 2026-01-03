@@ -89,6 +89,10 @@ export function validateImportedData(json: unknown): json is ExportedData {
       ) {
         return false;
       }
+      // displayName is optional for backward compatibility
+      if ((func as SharedFunction).displayName !== undefined && typeof (func as SharedFunction).displayName !== 'string') {
+        return false;
+      }
     }
   }
 
@@ -246,6 +250,7 @@ export function importData(
         data.functions.forEach((func) => {
           try {
             useFunctionsStore.getState().addFunction({
+              displayName: func.displayName || func.name, // Backward compatibility: use name as displayName if displayName not present
               name: func.name,
               description: func.description,
               formula: func.formula,
@@ -256,7 +261,7 @@ export function importData(
             });
             functionsAdded++;
           } catch (err) {
-            errors.push(`Failed to import function "${func.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+            errors.push(`Failed to import function "${func.displayName || func.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
           }
         });
       } else {
@@ -268,6 +273,7 @@ export function importData(
           if (!existingNames.has(func.name.toLowerCase())) {
             try {
               useFunctionsStore.getState().addFunction({
+                displayName: func.displayName || func.name, // Backward compatibility: use name as displayName if displayName not present
                 name: func.name,
                 description: func.description,
                 formula: func.formula,
@@ -278,7 +284,7 @@ export function importData(
               });
               functionsAdded++;
             } catch (err) {
-              errors.push(`Failed to import function "${func.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+              errors.push(`Failed to import function "${func.displayName || func.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
             }
           }
         });

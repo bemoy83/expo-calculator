@@ -24,7 +24,7 @@ export default function FunctionsPage() {
   };
 
   const handleDelete = (func: SharedFunction) => {
-    if (confirm(`Are you sure you want to delete function "${func.name}"?`)) {
+    if (confirm(`Are you sure you want to delete function "${func.displayName || func.name}"?`)) {
       deleteFunction(func.id);
     }
   };
@@ -74,7 +74,7 @@ export default function FunctionsPage() {
           {functions.map((func) => (
             <EntityCard
               key={func.id}
-              title={func.name}
+              title={func.displayName || func.name}
               description={func.description}
               category={func.category}
               onClick={() => handleEdit(func)}
@@ -83,14 +83,14 @@ export default function FunctionsPage() {
                   icon: Edit2,
                   actionType: 'edit',
                   onAction: () => handleEdit(func),
-                  ariaLabel: `Edit function: ${func.name}`,
+                  ariaLabel: `Edit function: ${func.displayName || func.name}`,
                 },
                 {
                   icon: Trash2,
                   actionType: 'delete',
                   onAction: () => handleDelete(func),
-                  ariaLabel: `Delete function: ${func.name}`,
-                  confirmationMessage: `Are you sure you want to delete "${func.name}"?`,
+                  ariaLabel: `Delete function: ${func.displayName || func.name}`,
+                  confirmationMessage: `Are you sure you want to delete "${func.displayName || func.name}"?`,
                 },
               ]}
               sections={[

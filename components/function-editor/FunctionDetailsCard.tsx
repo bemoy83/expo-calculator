@@ -10,14 +10,17 @@ import { Plus } from 'lucide-react';
 
 interface FunctionDetailsCardProps {
   formData: {
+    displayName: string;
     name: string;
     description: string;
     category: string;
   };
   errors: {
+    displayName?: string;
     name?: string;
   };
-  onFormDataChange: (updates: Partial<{ name: string; description: string; category: string }>) => void;
+  onFormDataChange: (updates: Partial<{ displayName: string; name: string; description: string; category: string }>) => void;
+  onVariableNameChange?: (name: string) => void;
   getAllCategories: () => string[];
   addCategory: (category: string) => void;
 }
@@ -26,6 +29,7 @@ export function FunctionDetailsCard({
   formData,
   errors,
   onFormDataChange,
+  onVariableNameChange,
   getAllCategories,
   addCategory,
 }: FunctionDetailsCardProps) {
@@ -50,12 +54,30 @@ export function FunctionDetailsCard({
     <Card title="Function Details">
       <div className="space-y-4">
         <Input
-          label="Function Name"
-          value={formData.name}
-          onChange={(e) => onFormDataChange({ name: e.target.value })}
-          error={errors.name}
-          placeholder="e.g., m2, area, volume"
+          label="Display Name"
+          value={formData.displayName}
+          onChange={(e) => onFormDataChange({ displayName: e.target.value })}
+          error={errors.displayName}
+          placeholder="e.g., Calculate Area, Square Meters, Volume Calculator"
         />
+        <div>
+          <Input
+            label="Variable Name"
+            value={formData.name}
+            onChange={(e) => {
+              if (onVariableNameChange) {
+                onVariableNameChange(e.target.value);
+              } else {
+                onFormDataChange({ name: e.target.value });
+              }
+            }}
+            error={errors.name}
+            placeholder="e.g., m2, area, volume"
+          />
+          <p className="mt-1 text-xs text-md-on-surface-variant">
+            Used in formulas. Must be a valid identifier (letters, numbers, underscores only, starting with letter or underscore). Auto-generated from display name.
+          </p>
+        </div>
         <Textarea
           label="Description (optional)"
           value={formData.description}

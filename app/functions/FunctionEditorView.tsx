@@ -15,6 +15,7 @@ import { ParametersManager } from '@/components/function-editor/ParametersManage
 import { FunctionFormulaCard } from '@/components/function-editor/FunctionFormulaCard';
 import { FunctionEditorHeader } from '@/components/function-editor/FunctionEditorHeader';
 import { FunctionEditorActions } from '@/components/function-editor/FunctionEditorActions';
+import { labelToVariableName } from '@/lib/utils';
 import { X } from 'lucide-react';
 
 interface AutocompleteCandidate {
@@ -43,11 +44,34 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
   const formulaTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [formData, setFormData] = useState({
+    displayName: existingFunction?.displayName || existingFunction?.name || '',
     name: existingFunction?.name || '',
     description: existingFunction?.description || '',
     formula: existingFunction?.formula || '',
     category: existingFunction?.category || '',
   });
+
+  // Track if user has manually edited the variable name
+  const [hasManuallyEditedVariableName, setHasManuallyEditedVariableName] = useState(false);
+
+  // Auto-generate variable name from display name when display name changes
+  // Only auto-generate if:
+  // 1. Creating a new function, OR
+  // 2. User hasn't manually edited the variable name
+  useEffect(() => {
+    if (formData.displayName && !hasManuallyEditedVariableName) {
+      const generatedName = labelToVariableName(formData.displayName);
+      if (generatedName && generatedName !== formData.name) {
+        setFormData((prev) => ({ ...prev, name: generatedName }));
+      }
+    }
+  }, [formData.displayName, hasManuallyEditedVariableName]);
+
+  // Track manual edits to variable name
+  const handleVariableNameChange = useCallback((newName: string) => {
+    setHasManuallyEditedVariableName(true);
+    setFormData((prev) => ({ ...prev, name: newName }));
+  }, []);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [parameterErrors, setParameterErrors] = useState<Record<number, Record<string, string>>>({});
@@ -219,16 +243,22 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
   const handleSave = useCallback(() => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Function name is required';
+    if (!formData.displayName.trim()) {
+      newErrors.displayName = 'Function display name is required';
     }
 
-    // Check for duplicate names
+    if (!formData.name.trim()) {
+      newErrors.name = 'Function variable name is required';
+    } else if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(formData.name.trim())) {
+      newErrors.name = 'Variable name must start with a letter or underscore and contain only letters, numbers, and underscores';
+    }
+
+    // Check for duplicate variable names
     const duplicate = functions.find(
       (f) => f.name.toLowerCase() === formData.name.toLowerCase().trim() && f.id !== functionId
     );
     if (duplicate) {
-      newErrors.name = 'A function with this name already exists';
+      newErrors.name = 'A function with this variable name already exists';
     }
 
     // Validate parameters
@@ -254,6 +284,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
     if (Object.keys(newErrors).length > 0) return;
 
     const functionData: Omit<SharedFunction, 'id' | 'createdAt' | 'updatedAt'> = {
+      displayName: formData.displayName.trim(),
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
       formula: formData.formula.trim(),
@@ -288,7 +319,9 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
 
   // Check if form is valid for submission
   const isValid =
+    formData.displayName.trim() !== '' &&
     formData.name.trim() !== '' &&
+    /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(formData.name.trim()) &&
     formData.formula.trim() !== '' &&
     formulaValidation.valid &&
     parameters.some((p) => p.name.trim() && p.label.trim());
@@ -314,6 +347,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
             formData={formData}
             errors={errors}
             onFormDataChange={(updates) => setFormData({ ...formData, ...updates })}
+            onVariableNameChange={handleVariableNameChange}
             getAllCategories={getAllCategories}
             addCategory={addCategory}
           />
