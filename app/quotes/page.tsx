@@ -484,9 +484,9 @@ export default function QuotesPage() {
           </div>
         }
       />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
-        <div className="lg:col-span-2 space-y-5">
+      {/* Quote Builder */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 pb-24">
+        <div className="lg:col-span-3 space-y-5">
           {/* Quote Details Card */}
           <QuoteDetailsCard
             formData={formData}
@@ -570,7 +570,8 @@ export default function QuotesPage() {
           )}
         </div>
 
-        <div className="lg:col-span-1">
+        {/* Quote Summary Card */}
+        <div className="lg:col-span-2">
           <QuoteSummaryCard
             quote={currentQuote}
             setMarkupPercent={setMarkupPercent}

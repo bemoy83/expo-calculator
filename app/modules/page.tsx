@@ -452,9 +452,9 @@ export default function ModulesPage() {
       <Layout>
         <ModuleEditorHeader editingModuleId={editingModuleId} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 pb-24">
           {/* LEFT COLUMN */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
             {/* MODULE DETAILS PANEL */}
             <ModuleDetailsCard
               formData={formData}
@@ -526,7 +526,7 @@ export default function ModulesPage() {
           </div>
 
           {/* RIGHT COLUMN - FORMULA BUILDER */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <FormulaBuilder
               formula={formData.formula}
               onFormulaChange={(formula) => setFormData({ ...formData, formula })}

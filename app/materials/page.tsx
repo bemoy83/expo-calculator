@@ -386,9 +386,9 @@ export default function MaterialsPage() {
         </Button>
       </div>
 
-      <div className={`grid grid-cols-1 gap-6 pb-24 ${isEditorOpen ? 'lg:grid-cols-3' : 'lg:grid-cols-1'}`}>
+      <div className={`grid grid-cols-1 gap-6 pb-24 ${isEditorOpen ? 'lg:grid-cols-5' : 'lg:grid-cols-1'}`}>
         {/* LEFT SIDE - MATERIALS CATALOG */}
-        <div className={isEditorOpen ? 'lg:col-span-2 space-y-5' : 'lg:col-span-1 space-y-5'}>
+        <div className={isEditorOpen ? 'lg:col-span-3 space-y-5' : 'lg:col-span-1 space-y-5'}>
           {/* Search and Filter Card */}
           <Card>
             <div className="flex flex-wrap items-center gap-3">
@@ -495,7 +495,7 @@ export default function MaterialsPage() {
 
         {/* RIGHT SIDE - MATERIAL EDITOR SIDEBAR */}
         {isEditorOpen && (
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <Card title={isCreating ? 'Create Material' : 'Edit Material'} className="sticky top-8">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input

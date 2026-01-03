@@ -34,30 +34,10 @@ export function QuoteSummaryCard({
               </span>
             </div>
           </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <label className="text-sm text-md-on-surface-variant shrink-0">
-              Markup (%)
-            </label>
-            <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={Math.round(quote.markupPercent ?? 0).toString()}
-                onChange={(e) => {
-                  const percent = Math.round(Number(e.target.value) || 0);
-                  setMarkupPercent(Math.max(0, percent));
-                }}
-                className="w-full text-right font-semibold text-md-on-surface tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
-              />
-            </div>
-          </div>
-
           {(quote.markupPercent ?? 0) > 0 && (
             <div className="flex items-center justify-between gap-3">
               <label className="text-sm text-md-on-surface-variant shrink-0">
-                Markup
+                Markup {quote.markupPercent > 0 && `(${quote.markupPercent.toFixed(1)}%)`}
               </label>
               <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                 <span className="font-semibold text-md-on-surface tabular-nums text-sm">
@@ -66,31 +46,10 @@ export function QuoteSummaryCard({
               </div>
             </div>
           )}
-
-          <div className="flex items-center justify-between gap-3">
-            <label className="text-sm text-md-on-surface-variant shrink-0">
-              Tax Rate (%)
-            </label>
-            <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
-              <input
-                type="number"
-                step="1"
-                min="0"
-                max="100"
-                value={Math.round(quote.taxRate * 100).toString()}
-                onChange={(e) => {
-                  const rate = Math.round(Number(e.target.value) || 0) / 100;
-                  setTaxRate(Math.max(0, Math.min(1, rate)));
-                }}
-                className="w-full text-right font-semibold text-md-on-surface tabular-nums text-sm bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0"
-              />
-            </div>
-          </div>
-
           {(quote.taxRate ?? 0) > 0 && (
             <div className="flex items-center justify-between gap-3">
               <label className="text-sm text-md-on-surface-variant shrink-0">
-                Tax
+                Tax {quote.taxRate > 0 && `(${(quote.taxRate * 100).toFixed(1)}%)`}
               </label>
               <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                 <span className="font-semibold text-md-on-surface tabular-nums text-sm">

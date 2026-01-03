@@ -70,7 +70,7 @@ export const useQuotesStore = create<QuotesStore>()(
           subtotal: 0,
           markupPercent: 0, // Default 0% markup
           markupAmount: 0,
-          taxRate: 0.1, // Default 10%
+          taxRate: 0, // Default 0% tax rate
           taxAmount: 0,
           total: 0,
           createdAt: now,
