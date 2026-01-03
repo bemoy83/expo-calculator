@@ -6,10 +6,12 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { EntityCard } from '@/components/shared/EntityCard';
 import { Button } from '@/components/ui/Button';
+import { Textarea } from '@/components/ui/Textarea';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { SharedFunction } from '@/lib/types';
 import { Plus, FunctionSquare, Trash2, Edit2 } from 'lucide-react';
 import { FunctionEditorView } from './FunctionEditorView';
+import { Chip } from '@/components/ui/Chip';
 
 export default function FunctionsPage() {
   const functions = useFunctionsStore((state) => state.functions);
@@ -93,30 +95,35 @@ export default function FunctionsPage() {
               ]}
               sections={[
                 {
-                  label: 'Formula',
-                  content: (
-                    <code className="text-sm text-md-primary font-mono bg-md-surface-variant/50 px-2 py-1 rounded">
-                      {func.formula}
-                    </code>
-                  ),
-                  spacing: 'small',
-                },
-                {
                   label: 'Parameters',
                   content: (
                     <div className="flex flex-wrap gap-2">
                       {func.parameters.map((param) => (
-                        <span
+                        <Chip
                           key={param.name}
-                          className="text-xs bg-md-surface-variant/50 px-2 py-1 rounded"
+                          size="sm"
+                          variant="primaryTonal"
                         >
                           {param.label} ({param.name})
-                        </span>
+                        </Chip>
                       ))}
                     </div>
                   ),
                   spacing: 'small',
                 },
+                {
+                  label: 'Formula',
+                  content: (
+                    <Textarea
+                      value={func.formula}
+                      readOnly
+                      autoGrow={true}
+                      className="font-mono text-xs text-md-primary resize-none cursor-default"
+                    />
+                  ),
+                  spacing: 'small',
+                },
+
               ]}
             />
           ))}

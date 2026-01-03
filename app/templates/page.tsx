@@ -171,7 +171,8 @@ function TemplateCard({ template, moduleNames, onEdit, onDuplicate, onDelete }: 
           content: (
             <div className="flex flex-wrap gap-2">
               {visibleModules.map((name) => (
-                <Chip key={name} size="sm">
+                <Chip key={name} size="sm"
+                  variant="primaryTonal">
                   {name}
                 </Chip>
               ))}

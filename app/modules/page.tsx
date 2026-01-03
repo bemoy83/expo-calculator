@@ -660,7 +660,8 @@ export default function ModulesPage() {
                   content: (
                     <div className="flex flex-wrap gap-2">
                       {module.fields.map((field) => (
-                        <Chip key={field.id} size="sm">
+                        <Chip key={field.id} size="sm"
+                          variant="primaryTonal">
                           {field.label}
                         </Chip>
                       ))}
@@ -675,7 +676,7 @@ export default function ModulesPage() {
                       autoGrow={true}
                       value={module.formula}
                       readOnly
-                      className="text-xs text-md-primary font-mono cursor-default"
+                      className="text-xs text-md-primary font-mono"
                     />
                   ),
                   spacing: 'default',
