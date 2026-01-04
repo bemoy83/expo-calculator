@@ -8,6 +8,7 @@ import { ActionIconButton } from '@/components/shared/ActionIconButton';
 import { Chip } from '@/components/ui/Chip';
 import { QuoteModuleInstance, CalculationModule, Field } from '@/lib/types';
 import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
+import { useCurrencyStore } from '@/lib/stores/currency-store';
 
 interface SortableModuleCardProps {
   instance: QuoteModuleInstance;
@@ -38,6 +39,7 @@ export function SortableModuleCard({
   gridClassName = 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-5',
   borderClassName = 'border-border',
 }: SortableModuleCardProps) {
+  const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
   const {
     attributes,
     listeners,
@@ -91,7 +93,7 @@ export function SortableModuleCard({
       rightExtras={
         <>
           <span className="text-sm font-semibold text-success tabular-nums">
-            ${instance.calculatedCost.toFixed(2)}
+            {formatCurrency(instance.calculatedCost)}
           </span>
           {onAddToQuote && addedItems && (
             <ActionIconButton
@@ -118,7 +120,7 @@ export function SortableModuleCard({
           <div className={`flex items-center justify-between pt-5 border-t ${borderClassName}`}>
             <span className="text-sm font-semibold text-md-on-surface-variant uppercase tracking-wide">Module Cost</span>
             <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
-              ${instance.calculatedCost.toFixed(2)}
+              {formatCurrency(instance.calculatedCost)}
             </span>
           </div>
         </div>

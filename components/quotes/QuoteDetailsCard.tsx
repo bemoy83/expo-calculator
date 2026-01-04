@@ -2,6 +2,7 @@
 
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { CurrencySelector } from '@/components/shared/CurrencySelector';
 
 /**
  * QuoteDetailsCard Component
@@ -31,6 +32,7 @@ export function QuoteDetailsCard({ formData, errors, onFormDataChange }: QuoteDe
           error={errors.name}
           placeholder="e.g., Office Renovation Project"
         />
+        <CurrencySelector />
         <Input
           label="Tax Rate (%)"
           type="number"

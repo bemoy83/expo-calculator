@@ -58,7 +58,7 @@ export function FunctionFormulaCard({
   setIsAutocompleteOpen,
 }: FunctionFormulaCardProps) {
   return (
-    <Card title="Formula">
+    <Card elevation={1} className="sticky top-[88px] z-40" title="Formula">
       <div className="space-y-4">
         <div className="relative">
           <Textarea

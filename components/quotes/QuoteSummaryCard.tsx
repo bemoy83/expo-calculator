@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Trash2, Send, Calculator } from "lucide-react";
 import { Quote } from "@/lib/types";
+import { useCurrencyStore } from "@/lib/stores/currency-store";
 
 interface QuoteSummaryCardProps {
   quote: Quote;
@@ -19,6 +20,8 @@ export function QuoteSummaryCard({
   setTaxRate,
   removeLineItem,
 }: QuoteSummaryCardProps) {
+  const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
+
   return (
     <Card elevation={1} className="sticky top-[88px] z-40" title="Quote Summary">
       <div className="space-y-5">
@@ -30,7 +33,7 @@ export function QuoteSummaryCard({
             </label>
             <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
               <span className="font-semibold text-md-on-surface tabular-nums text-sm">
-                ${quote.subtotal.toFixed(2)}
+                {formatCurrency(quote.subtotal)}
               </span>
             </div>
           </div>
@@ -41,7 +44,7 @@ export function QuoteSummaryCard({
               </label>
               <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                 <span className="font-semibold text-md-on-surface tabular-nums text-sm">
-                  ${(quote.markupAmount ?? 0).toFixed(2)}
+                  {formatCurrency(quote.markupAmount ?? 0)}
                 </span>
               </div>
             </div>
@@ -53,7 +56,7 @@ export function QuoteSummaryCard({
               </label>
               <div className="w-20 shrink-0 text-right flex items-center justify-end h-[44px]">
                 <span className="font-semibold text-md-on-surface tabular-nums text-sm">
-                  ${quote.taxAmount.toFixed(2)}
+                  {formatCurrency(quote.taxAmount)}
                 </span>
               </div>
             </div>
@@ -64,7 +67,7 @@ export function QuoteSummaryCard({
           <div className="flex justify-between items-baseline p-4 -mx-2">
             <span className="text-base font-bold text-md-on-surface">Total</span>
             <span className="text-3xl font-bold text-md-primary tabular-nums tracking-tight">
-              ${quote.total.toFixed(2)}
+              {formatCurrency(quote.total)}
             </span>
           </div>
         </div>
@@ -98,7 +101,7 @@ export function QuoteSummaryCard({
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="font-semibold text-md-on-surface text-sm tabular-nums">
-                    ${item.cost.toFixed(2)}
+                    {formatCurrency(item.cost)}
                   </span>
                   <button
                     onClick={() => removeLineItem(item.id)}

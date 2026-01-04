@@ -163,12 +163,7 @@ export function FormulaBuilder({
               )}
             </button>
             {fieldVariablesExpanded && (
-              <div
-                className="grid gap-3"
-                style={{
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))'
-                }}
-              >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {availableFieldVariables.map((varInfo) => {
                   const isInFormula = isVariableInFormula(varInfo.name, formula);
                   const showCheckmark = isInFormula;
@@ -227,12 +222,7 @@ export function FormulaBuilder({
               </p>
             )}
             {materialVariablesExpanded && (
-              <div
-                className="grid gap-3"
-                style={{
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))'
-                }}
-              >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {availableMaterialVariables.map((mat) => {
                   const isMaterialInFormula = isVariableInFormula(mat.name, formula);
 

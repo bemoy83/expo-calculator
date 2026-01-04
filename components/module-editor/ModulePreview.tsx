@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { Chip } from '@/components/ui/Chip';
 import { normalizeToBase, convertFromBase } from '@/lib/units';
 import { X } from 'lucide-react';
+import { useCurrencyStore } from '@/lib/stores/currency-store';
 
 interface ModulePreviewProps {
   formData: {
@@ -34,6 +35,7 @@ export function ModulePreview({
   onClose,
   onFieldValueChange,
 }: ModulePreviewProps) {
+  const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
   // Helper to format label with unit
   const formatLabel = (label: string, unit?: string, unitSymbol?: string) => {
     if (unitSymbol) return `${label} (${unitSymbol})`;
@@ -270,7 +272,7 @@ export function ModulePreview({
                           { value: '', label: 'Select a material...' },
                           ...sortedMaterials.map((mat) => ({
                             value: mat.variableName,
-                            label: `${mat.name} - $${mat.price.toFixed(2)}/${mat.unit}`,
+                            label: `${mat.name} - ${formatCurrency(mat.price)}/${mat.unit}`,
                           })),
                         ]}
                       />
@@ -319,7 +321,7 @@ export function ModulePreview({
               </span>
             ) : (
               <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
-                ${previewCalculatedCost.toFixed(2)}
+                  {formatCurrency(previewCalculatedCost)}
               </span>
             )}
           </div>

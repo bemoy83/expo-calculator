@@ -496,7 +496,7 @@ export default function MaterialsPage() {
         {/* RIGHT SIDE - MATERIAL EDITOR SIDEBAR */}
         {isEditorOpen && (
           <div className="lg:col-span-2">
-            <Card title={isCreating ? 'Create Material' : 'Edit Material'} className="sticky top-24">
+            <Card className="sticky top-[88px] z-40" title={isCreating ? 'Create Material' : 'Edit Material'}>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
                   label="Material Name"

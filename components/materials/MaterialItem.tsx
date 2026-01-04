@@ -7,6 +7,7 @@ import { Material, MaterialProperty } from "@/lib/types";
 import { Chip } from "@/components/ui/Chip";
 import { Edit2 } from "lucide-react";
 import { ModuleCardShell } from "@/components/shared/ModuleCardShell";
+import { useCurrencyStore } from "@/lib/stores/currency-store";
 
 interface MaterialItemProps {
   material: Material;
@@ -35,6 +36,7 @@ export function MaterialItem({
   onDelete,
   disableDrag = false,
 }: MaterialItemProps) {
+  const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: material.id,
     disabled: disableDrag,
@@ -62,7 +64,7 @@ export function MaterialItem({
       rightExtras={
         <>
           <span className="text-xl font-semibold text-success tabular-nums">
-            ${material.price.toFixed(2)}
+            {formatCurrency(material.price)}
           </span>
           <span className="text-xs text-md-on-surface-variant">/ {material.unit}</span>
           <button

@@ -10,6 +10,7 @@ import { useQuotesStore } from '@/lib/stores/quotes-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
+import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { QuoteModuleInstance, Field } from '@/lib/types';
 import { Plus, Download, Save, Calculator, CheckCircle2, X } from 'lucide-react';
 // Shared components
@@ -367,6 +368,7 @@ export default function QuotesPage() {
     if (!currentQuote) return;
 
     const modulesStore = useModulesStore.getState();
+    const formatCurrency = useCurrencyStore.getState().formatCurrency;
     let html = `
       <!DOCTYPE html>
       <html>
@@ -401,7 +403,7 @@ export default function QuotesPage() {
         <tr>
           <td>${item.moduleName}</td>
           <td>${item.fieldSummary}</td>
-          <td class="right-align">$${item.cost.toFixed(2)}</td>
+          <td class="right-align">${formatCurrency(item.cost)}</td>
         </tr>
       `;
     });
@@ -411,7 +413,7 @@ export default function QuotesPage() {
           <tfoot>
             <tr>
               <td colspan="2" class="right-align"><strong>Subtotal:</strong></td>
-              <td class="right-align">$${currentQuote.subtotal.toFixed(2)}</td>
+              <td class="right-align">${formatCurrency(currentQuote.subtotal)}</td>
             </tr>
     `;
     
@@ -419,7 +421,7 @@ export default function QuotesPage() {
       html += `
             <tr>
               <td colspan="2" class="right-align"><strong>Markup (${currentQuote.markupPercent.toFixed(2)}%):</strong></td>
-              <td class="right-align">$${(currentQuote.markupAmount || 0).toFixed(2)}</td>
+              <td class="right-align">${formatCurrency(currentQuote.markupAmount || 0)}</td>
             </tr>
       `;
     }
@@ -427,11 +429,11 @@ export default function QuotesPage() {
     html += `
             <tr>
               <td colspan="2" class="right-align"><strong>Tax (${(currentQuote.taxRate * 100).toFixed(2)}%):</strong></td>
-              <td class="right-align">$${currentQuote.taxAmount.toFixed(2)}</td>
+              <td class="right-align">${formatCurrency(currentQuote.taxAmount)}</td>
             </tr>
             <tr class="total-row">
               <td colspan="2" class="right-align"><strong>Total:</strong></td>
-              <td class="right-align"><strong>$${currentQuote.total.toFixed(2)}</strong></td>
+              <td class="right-align"><strong>${formatCurrency(currentQuote.total)}</strong></td>
             </tr>
           </tfoot>
         </table>

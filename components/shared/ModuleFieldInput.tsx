@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
 import { Link2, Unlink, X } from "lucide-react";
+import { useCurrencyStore } from "@/lib/stores/currency-store";
 
 type LinkOption = { value: string; label: string };
 
@@ -39,6 +40,7 @@ export function ModuleFieldInput({
   onChange,
   linkProps,
 }: ModuleFieldInputProps) {
+  const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
   const isLinked = linkProps?.isLinked ?? false;
   const canLink = linkProps?.canLink ?? false;
   const linkUIOpenForField = linkProps?.linkUIOpen ?? false;
@@ -300,7 +302,7 @@ export function ModuleFieldInput({
                 { value: "", label: "Select a material..." },
                 ...sortedMaterials.map((mat) => ({
                   value: mat.variableName,
-                  label: `${mat.name} - $${mat.price.toFixed(2)}/${mat.unit}`,
+                  label: `${mat.name} - ${formatCurrency(mat.price)}/${mat.unit}`,
                 })),
               ]}
               className="w-full"
