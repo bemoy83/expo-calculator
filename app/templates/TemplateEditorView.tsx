@@ -242,7 +242,11 @@ export function TemplateEditorView({ templateId, onClose }: TemplateEditorViewPr
         </div>
 
         {/* Right Column: Template Preview Sidebar */}
-        <TemplatePreviewSidebar moduleCount={workspaceModules.length} />
+        <TemplatePreviewSidebar
+          workspaceModules={workspaceModules}
+          modules={modules}
+          onLinkField={linkField}
+        />
       </div>
 
       <EditorActionBar justifyContent="between">
