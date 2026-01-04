@@ -163,11 +163,49 @@ export function canLinkFields(
   
   // Find field definitions
   const sourceField = sourceModule.fields.find((f) => f.variableName === fieldName);
-  const targetField = targetModule.fields.find((f) => f.variableName === targetFieldName);
   
   if (!sourceField) {
     return { valid: false, error: 'Source field not found' };
   }
+
+  // Check if target is a computed output (starts with 'out.')
+  if (targetFieldName.startsWith('out.')) {
+    const outputVarName = targetFieldName.replace('out.', '');
+    const computedOutput = targetModule.computedOutputs?.find(
+      (o) => o.variableName === outputVarName
+    );
+
+    if (!computedOutput) {
+      return { valid: false, error: 'Computed output not found' };
+    }
+
+    // Check type compatibility (computed outputs are always numbers)
+    if (sourceField.type !== 'number') {
+      return { valid: false, error: `Cannot link computed output to ${sourceField.type} field` };
+    }
+
+    // Check unit compatibility if both have units
+    if (computedOutput.unitCategory && sourceField.unitCategory) {
+      if (computedOutput.unitCategory !== sourceField.unitCategory) {
+        return {
+          valid: false,
+          error: `Cannot link computed output with ${computedOutput.unitCategory} unit to field with ${sourceField.unitCategory} unit`,
+        };
+      }
+    }
+
+    // Check for circular references
+    const cycle = detectCircularReference(instances, instanceId, fieldName, targetInstanceId, targetFieldName);
+    if (cycle) {
+      return { valid: false, error: `Circular reference detected: ${cycle}` };
+    }
+
+    return { valid: true };
+  }
+
+  // Regular field linking
+  const targetField = targetModule.fields.find((f) => f.variableName === targetFieldName);
+
   if (!targetField) {
     return { valid: false, error: 'Target field not found' };
   }

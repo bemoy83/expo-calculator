@@ -4,12 +4,15 @@ import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import {
   Link2,
+  ArrowLeftCircle,
   Sparkles,
   ChevronDown,
   ChevronRight,
   CheckCircle2,
   Building2,
-  Link as LinkIcon
+  Link as LinkIcon,
+  ArrowRightCircle,
+  ArrowUp
 } from "lucide-react";
 import { useState } from "react";
 import { useTemplateLinkAnalysis } from "@/hooks/use-template-link-analysis";
@@ -181,7 +184,7 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
                   <span className="text-xs font-semibold text-md-primary uppercase tracking-wide">
                     Link Opportunities
                   </span>
-                  <Chip size="sm" variant="ghost">
+                  <Chip size="sm" variant="muted">
                     {linkOpportunities.length}
                   </Chip>
                 </div>
@@ -199,53 +202,65 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
                     if (!bestSuggestion) return null;
 
                     return (
-                      <div key={idx} className="space-y-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Chip size="sm" variant="primaryTonal" className="font-mono max-w-full min-w-0">
-                            {opp.moduleName}.{opp.fieldLabel}
-                          </Chip>
-                          {!opp.hasLocalValue && (
-                            <Chip size="sm" variant="errorTonal">
-                              No value
-                            </Chip>
-                          )}
-                        </div>
-                        <div className="pl-4 p-2 bg-md-surface-container-highest text-md-on-surface /*border border-md-outline*/ rounded-full">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-mono text-md-on-surface-container truncate">
-                                  {bestSuggestion.moduleName}.{bestSuggestion.fieldLabel}
-                                </span>
-                                <span className="text-xs font-semibold text-emerald-600">
-                                  {bestSuggestion.confidence}%
-                                </span>
-                                {bestSuggestion.isComputedOutput && (
-                                  <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded flex-shrink-0">
-                                    Computed
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-md-on-surface/50 mt-1">
-                                {bestSuggestion.reason}
-                              </p>
+                      <div key={idx} className="">
+                        {/* Output Field (Target) - What needs a value */}
+                        <div className="flex items-center gap-2 p-2 bg-md-surface-container-highest rounded-extra-large border-l-2 border-md-primary">
+                          <ArrowRightCircle className="h-4 w-4 text-md-primary flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-mono font-semibold text-md-on-surface truncate">
+                              {opp.fieldLabel}
                             </div>
-                            <div className="flex-shrink-0 ml-2">
-                              <button
-                                onClick={() => handleApplyLink(
-                                  opp.moduleInstanceId,
-                                  opp.fieldVariableName,
-                                  bestSuggestion.moduleInstanceId,
-                                  bestSuggestion.fieldVariableName
-                                )}
-                                className="p-1.5 bg-md-primary text-md-on-primary rounded-full hover:bg-md-primary/10 hover:text-md-primary transition-smooth group"
-                                title="Apply this suggestion"
-                                aria-label={`Apply link from ${bestSuggestion.moduleName}.${bestSuggestion.fieldLabel} to ${opp.moduleName}.${opp.fieldLabel}`}
-                              >
-                                <LinkIcon className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                              </button>
+                            <div className="text-xs font-mono font-medium text-md-on-surface-variant truncate">
+                              {opp.moduleName}
                             </div>
                           </div>
+                          <span className="px-2 text-[10px] text-md-on-surface-variant uppercase">needs value</span>
+                        </div>
+
+                        {/* Arrow showing flow direction */}
+                        <div className="flex items-center justify-center py-1">
+                          <ArrowUp className="h-4 w-4 text-md-on-surface-variant/50" />
+                        </div>
+
+                        {/* Input Field (Source) - Where value comes from */}
+                        <div className="flex items-center gap-2 p-2 ml-4 bg-md-surface-variant/30 rounded-2xl border-l-2 border-emerald-500">
+                          <ArrowLeftCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="min-w-0">
+                                <div className="text-xs font-mono font-medium text-md-on-surface truncate">
+                                  {bestSuggestion.fieldLabel}
+                                </div>
+                                <div className="text-xs font-mono font-medium text-md-on-surface-variant truncate">
+                                  {bestSuggestion.moduleName}
+                                </div>
+                              </div>
+                              <span className="text-xs font-semibold text-emerald-600 whitespace-nowrap">
+                                {bestSuggestion.confidence}%
+                              </span>
+                              {bestSuggestion.isComputedOutput && (
+                                <Chip size="sm" variant="primaryTonal" className="text-[10px]">
+                                  Computed
+                                </Chip>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-md-on-surface/50 leading-relaxed">
+                              {bestSuggestion.reason}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleApplyLink(
+                              opp.moduleInstanceId,
+                              opp.fieldVariableName,
+                              bestSuggestion.moduleInstanceId,
+                              bestSuggestion.fieldVariableName
+                            )}
+                            className="px-2 flex-shrink-0 text-xs text-md-primary hover:text-md-on-surface-variant transition-transform hover:scale-110"
+                            title="Apply this suggestion"
+                            aria-label={`Apply link from ${bestSuggestion.moduleName}.${bestSuggestion.fieldLabel} to ${opp.moduleName}.${opp.fieldLabel}`}
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     );
@@ -273,7 +288,7 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
                   <span className="text-xs font-semibold text-md-primary uppercase tracking-wide">
                     Link Sources
                   </span>
-                  <Chip size="sm" variant="ghost">
+                  <Chip size="sm" variant="muted">
                     {linkSources.length}
                   </Chip>
                 </div>
@@ -293,9 +308,9 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
                           {source.moduleName}.{source.fieldVariableName}
                         </span>
                         {source.isComputedOutput && (
-                          <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded flex-shrink-0">
+                          <Chip size="sm" variant="default">
                             Computed
-                          </span>
+                          </Chip>
                         )}
                       </div>
 

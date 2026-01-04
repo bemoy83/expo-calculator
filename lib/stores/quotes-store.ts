@@ -540,7 +540,7 @@ export const useQuotesStore = create<QuotesStore>()(
               if (value !== null && value !== undefined) {
                 const unitStr = output.unitSymbol ? ` ${output.unitSymbol}` : '';
                 return `${output.label}: ${value}${unitStr}`;
-              }
+            }
               return null;
             })
             .filter((summary): summary is string => summary !== null);
@@ -597,12 +597,12 @@ export const useQuotesStore = create<QuotesStore>()(
         // Add regular fields (limit to 3-4 items)
         moduleDef.fields
           .slice(0, 4)
-          .forEach((field) => {
-            const value = resolved[field.variableName];
-            if (value !== null && value !== undefined) {
-              summaryParts.push(`${field.label}: ${value}`);
-            }
-          });
+            .forEach((field) => {
+              const value = resolved[field.variableName];
+              if (value !== null && value !== undefined) {
+                summaryParts.push(`${field.label}: ${value}`);
+              }
+            });
         
         const fieldSummary = summaryParts.join(', ') || 'No details';
         

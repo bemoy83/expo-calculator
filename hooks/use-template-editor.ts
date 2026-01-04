@@ -486,6 +486,15 @@ export function useTemplateEditor({
       const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
       if (!targetModule) return true;
 
+      // Check if it's a computed output (starts with 'out.')
+      if (link.fieldVariableName.startsWith('out.')) {
+        const outputVarName = link.fieldVariableName.replace('out.', '');
+        const computedOutput = targetModule.computedOutputs?.find(
+          (o) => o.variableName === outputVarName
+        );
+        return !computedOutput; // Broken if computed output not found
+      }
+
       const targetField = targetModule.fields.find(
         (f) => f.variableName === link.fieldVariableName
       );
@@ -506,6 +515,17 @@ export function useTemplateEditor({
 
       const targetModule = modules.find((m) => m.id === targetInstance.moduleId);
       if (!targetModule) return "source unavailable";
+
+      // Check if it's a computed output (starts with 'out.')
+      if (link.fieldVariableName.startsWith('out.')) {
+        const outputVarName = link.fieldVariableName.replace('out.', '');
+        const computedOutput = targetModule.computedOutputs?.find(
+          (o) => o.variableName === outputVarName
+        );
+        if (!computedOutput) return 'source unavailable';
+        const unitStr = computedOutput.unitSymbol ? ` (${computedOutput.unitSymbol})` : '';
+        return `${targetModule.name} — Computed: ${computedOutput.label}${unitStr}`;
+      }
 
       const targetField = targetModule.fields.find(
         (f) => f.variableName === link.fieldVariableName
@@ -553,11 +573,33 @@ export function useTemplateEditor({
             });
           }
         });
+
+        // Add computed outputs as link sources
+        if (otherModule.computedOutputs && otherModule.computedOutputs.length > 0) {
+          otherModule.computedOutputs.forEach((output) => {
+            const computedOutputVarName = `out.${output.variableName}`;
+            const validation = canLinkFields(
+              workspaceModules,
+              modules,
+              instance.id,
+              field.variableName,
+              otherInstance.id,
+              computedOutputVarName
+            );
+            if (validation.valid) {
+              const unitStr = output.unitSymbol ? ` (${output.unitSymbol})` : '';
+              options.push({
+                value: `${otherInstance.id}.${computedOutputVarName}`,
+                label: `Computed: ${output.label}${unitStr}`,
+              });
+            }
+          });
+        }
       });
 
       return options;
     },
-    [modules, workspaceModules]
+    [modules, workspaceModules, canLinkFields]
   );
 
   const getCurrentLinkValue = useCallback(

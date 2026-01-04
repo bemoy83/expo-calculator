@@ -129,14 +129,14 @@ export function PropertyForm({
           </div>
         </>
       ) : (
-        <Input
-          label="Property Name"
-          value={propertyData.name}
-          onChange={(e) => onChange({ name: e.target.value })}
-          error={error}
+      <Input
+        label="Property Name"
+        value={propertyData.name}
+        onChange={(e) => onChange({ name: e.target.value })}
+        error={error}
           placeholder="e.g., length"
-          className="text-sm"
-        />
+        className="text-sm"
+      />
       )}
       <div className="grid grid-cols-2 gap-2">
         <Select

@@ -81,13 +81,13 @@ export function SortableModuleCard({
     <ModuleCardShell
       cardRef={stableRef}
       style={style}
-      dragHandleProps={{ attributes, listeners }}
-      title={module.name}
-      category={module.category}
+  dragHandleProps={{ attributes, listeners }}
+  title={module.name}
+  category={module.category}
       metaChips={computedOutputChips}
-      subtitle={module.description || undefined}
-      isCollapsed={isCollapsed}
-      onToggle={() => onToggleCollapse(instance.id)}
+  subtitle={module.description || undefined}
+  isCollapsed={isCollapsed}
+  onToggle={() => onToggleCollapse(instance.id)}
       onRemove={() => onRemove(instance.id)}
       removeConfirmMessage={`Remove ${module.name} from quote?`}
       rightExtras={
