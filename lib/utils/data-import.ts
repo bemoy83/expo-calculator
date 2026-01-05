@@ -52,6 +52,23 @@ export function validateImportedData(json: unknown): json is ExportedData {
     ) {
       return false;
     }
+    // Validate computedOutputs if present
+    if ((mod as CalculationModule).computedOutputs !== undefined) {
+      if (!Array.isArray((mod as CalculationModule).computedOutputs)) {
+        return false;
+      }
+      for (const output of (mod as CalculationModule).computedOutputs || []) {
+        if (
+          typeof output !== 'object' ||
+          typeof output.id !== 'string' ||
+          typeof output.label !== 'string' ||
+          typeof output.variableName !== 'string' ||
+          typeof output.expression !== 'string'
+        ) {
+          return false;
+        }
+      }
+    }
   }
 
   // Validate materials structure
@@ -151,6 +168,7 @@ export function importData(
             category: mod.category,
             fields: mod.fields,
             formula: mod.formula,
+            computedOutputs: mod.computedOutputs,
           });
           modulesAdded++;
         } catch (err) {
@@ -171,6 +189,7 @@ export function importData(
               category: mod.category,
               fields: mod.fields,
               formula: mod.formula,
+              computedOutputs: mod.computedOutputs,
             });
             modulesAdded++;
           } catch (err) {

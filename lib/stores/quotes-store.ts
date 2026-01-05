@@ -588,7 +588,7 @@ export const useQuotesStore = create<QuotesStore>()(
 
         // Group dimensions with × separator, include labels (e.g., "Width: 2.4 m × Height: 3.0 m × Depth: 18 mm")
         const secondarySummary = dimensionFields.length > 0
-          ? dimensionFields.map((d) => `${d.label}: ${d.value} ${d.unitSymbol}`).join(' × ')
+          ? dimensionFields.map((d) => `${d.label}: ${d.value} ${d.unitSymbol}`).join(' - ')
           : undefined;
 
         // Field summary: fallback if no computed outputs (keep for backward compatibility)

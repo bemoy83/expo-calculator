@@ -63,7 +63,7 @@ export function FunctionDetailsCard({
         <div>
           <Input
             label="Variable Name"
-            value={formData.name}
+          value={formData.name}
             onChange={(e) => {
               if (onVariableNameChange) {
                 onVariableNameChange(e.target.value);
@@ -71,9 +71,9 @@ export function FunctionDetailsCard({
                 onFormDataChange({ name: e.target.value });
               }
             }}
-            error={errors.name}
-            placeholder="e.g., m2, area, volume"
-          />
+          error={errors.name}
+          placeholder="e.g., m2, area, volume"
+        />
           <p className="mt-1 text-xs text-md-on-surface-variant">
             Used in formulas. Must be a valid identifier (letters, numbers, underscores only, starting with letter or underscore). Auto-generated from display name.
           </p>

@@ -328,17 +328,6 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
 
   return (
     <Layout>
-      <PageHeader
-        title={isNew ? 'Create Function' : 'Edit Function'}
-        subtitle="Define a reusable calculation function"
-        actions={
-          <Button variant="ghost" onClick={onClose} className="rounded-full">
-            <X className="h-4 w-4 mr-2" />
-            Cancel
-          </Button>
-        }
-      />
-
       <FunctionEditorHeader functionId={functionId} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">

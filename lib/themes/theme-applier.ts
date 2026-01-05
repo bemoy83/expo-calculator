@@ -1,48 +1,17 @@
 import type { ParsedMD3Theme } from './types';
 
 /**
- * Default surface container values from globals.css
- * Used as fallbacks when theme is null or values are missing
- */
-const DEFAULT_SURFACE_CONTAINERS_LIGHT = {
-  lowest: '240 244 248',
-  low: '248 250 252',
-  container: '255 255 255',
-  high: '255 255 255',
-  highest: '255 255 255',
-};
-
-const DEFAULT_SURFACE_CONTAINERS_DARK = {
-  lowest: '18 18 18',
-  low: '23 23 23',
-  container: '30 30 30',
-  high: '38 38 38',
-  highest: '45 45 45',
-};
-
-/**
- * Safely set a CSS variable with fallback
- */
-function setVarSafe(root: HTMLElement, name: string, value: string | undefined, fallback: string): void {
-  const finalValue = value && value.trim() !== '' ? value : fallback;
-  root.style.setProperty(name, finalValue);
-}
-
-/**
  * Apply theme to document root CSS variables
  * Pass null to reset to default CSS values
- * 
- * CRITICAL: Always ensures surface container variables are set, even if missing from theme
  */
 export function applyTheme(theme: ParsedMD3Theme | null, isDark: boolean): void {
   if (typeof document === 'undefined') return;
   
   const root = document.documentElement;
   const scheme = theme ? (isDark ? theme.dark : theme.light) : null;
-  const defaultContainers = isDark ? DEFAULT_SURFACE_CONTAINERS_DARK : DEFAULT_SURFACE_CONTAINERS_LIGHT;
   
   if (scheme) {
-    // Apply all MD3 tokens
+    // Apply all MD3 tokens from imported theme
     root.style.setProperty('--md-primary', scheme.primary);
     root.style.setProperty('--md-on-primary', scheme.onPrimary);
     root.style.setProperty('--md-primary-container', scheme.primaryContainer);
@@ -71,17 +40,14 @@ export function applyTheme(theme: ParsedMD3Theme | null, isDark: boolean): void 
     root.style.setProperty('--md-outline', scheme.outline);
     root.style.setProperty('--md-outline-variant', scheme.outlineVariant);
     
-    // CRITICAL: Always set surface container variables with safe fallbacks
-    // These MUST exist for modals, dialogs, cards, and all surface-based UI
-    setVarSafe(root, '--md-surface-container-lowest', scheme.surfaceContainerLowest, defaultContainers.lowest);
-    setVarSafe(root, '--md-surface-container-low', scheme.surfaceContainerLow, defaultContainers.low);
-    setVarSafe(root, '--md-surface-container', scheme.surfaceContainer, defaultContainers.container);
-    setVarSafe(root, '--md-surface-container-high', scheme.surfaceContainerHigh, defaultContainers.high);
-    setVarSafe(root, '--md-surface-container-highest', scheme.surfaceContainerHighest, defaultContainers.highest);
+    // Set surface container variables from theme
+    root.style.setProperty('--md-surface-container-lowest', scheme.surfaceContainerLowest);
+    root.style.setProperty('--md-surface-container-low', scheme.surfaceContainerLow);
+    root.style.setProperty('--md-surface-container', scheme.surfaceContainer);
+    root.style.setProperty('--md-surface-container-high', scheme.surfaceContainerHigh);
+    root.style.setProperty('--md-surface-container-highest', scheme.surfaceContainerHighest);
   } else {
-    // Reset to default (remove inline styles, let CSS take over)
-    // BUT: Explicitly set surface containers to ensure they exist
-    // This prevents undefined variables when switching back to default theme
+    // Reset to default - remove ALL inline styles and let globals.css take over
     const md3Props = [
       '--md-primary', '--md-on-primary', '--md-primary-container', '--md-on-primary-container',
       '--md-secondary', '--md-on-secondary', '--md-secondary-container', '--md-on-secondary-container',
@@ -89,17 +55,11 @@ export function applyTheme(theme: ParsedMD3Theme | null, isDark: boolean): void 
       '--md-error', '--md-on-error', '--md-error-container', '--md-on-error-container',
       '--md-surface', '--md-on-surface', '--md-surface-variant', '--md-on-surface-variant',
       '--md-outline', '--md-outline-variant',
+      '--md-surface-container-lowest', '--md-surface-container-low', '--md-surface-container',
+      '--md-surface-container-high', '--md-surface-container-highest',
     ];
     
-    // Remove non-container properties
+    // Remove all properties - let CSS handle defaults via --md-sys-color-* mapping
     md3Props.forEach(prop => root.style.removeProperty(prop));
-    
-    // CRITICAL: Explicitly set surface containers to default values
-    // This ensures they exist even when using default theme
-    root.style.setProperty('--md-surface-container-lowest', defaultContainers.lowest);
-    root.style.setProperty('--md-surface-container-low', defaultContainers.low);
-    root.style.setProperty('--md-surface-container', defaultContainers.container);
-    root.style.setProperty('--md-surface-container-high', defaultContainers.high);
-    root.style.setProperty('--md-surface-container-highest', defaultContainers.highest);
   }
 }

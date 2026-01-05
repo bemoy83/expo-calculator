@@ -3,50 +3,100 @@
 @tailwind utilities;
 
 :root {
+/* Light - from Material Theme Builder JSON */
+  --md-sys-color-primary: 0 74 198;
+  --md-sys-color-surface-tint: 0 83 219;
+  --md-sys-color-on-primary: 255 255 255;
+  --md-sys-color-primary-container: 37 99 235;
+  --md-sys-color-on-primary-container: 238 239 255;
+  --md-sys-color-secondary: 73 92 149;
+  --md-sys-color-on-secondary: 255 255 255;
+  --md-sys-color-secondary-container: 172 191 255;
+  --md-sys-color-on-secondary-container: 57 76 132;
+  --md-sys-color-tertiary: 135 35 164;
+  --md-sys-color-on-tertiary: 255 255 255;
+  --md-sys-color-tertiary-container: 163 65 191;
+  --md-sys-color-on-tertiary-container: 255 234 254;
+  --md-sys-color-error: 186 26 26;
+  --md-sys-color-on-error: 255 255 255;
+  --md-sys-color-error-container: 255 218 214;
+  --md-sys-color-on-error-container: 147 0 10;
+  --md-sys-color-background: 250 248 255;
+  --md-sys-color-on-background: 25 27 35;
+  --md-sys-color-surface: 250 248 255;
+  --md-sys-color-on-surface: 25 27 35;
+  --md-sys-color-surface-variant: 223 225 244;
+  --md-sys-color-on-surface-variant: 67 70 85;
+  --md-sys-color-outline: 115 118 134;
+  --md-sys-color-outline-variant: 195 198 215;
+  --md-sys-color-shadow: 0 0 0;
+  --md-sys-color-scrim: 0 0 0;
+  --md-sys-color-inverse-surface: 46 48 57;
+  --md-sys-color-inverse-on-surface: 240 240 251;
+  --md-sys-color-inverse-primary: 180 197 255;
+  --md-sys-color-primary-fixed: 219 225 255;
+  --md-sys-color-on-primary-fixed: 0 23 75;
+  --md-sys-color-primary-fixed-dim: 180 197 255;
+  --md-sys-color-on-primary-fixed-variant: 0 62 168;
+  --md-sys-color-secondary-fixed: 219 225 255;
+  --md-sys-color-on-secondary-fixed: 0 23 75;
+  --md-sys-color-secondary-fixed-dim: 180 197 255;
+  --md-sys-color-on-secondary-fixed-variant: 49 76 123;
+  --md-sys-color-tertiary-fixed: 252 215 255;
+  --md-sys-color-on-tertiary-fixed: 52 0 67;
+  --md-sys-color-tertiary-fixed-dim: 242 175 255;
+  --md-sys-color-on-tertiary-fixed-variant: 119 9 148;
+  --md-sys-color-surface-dim: 217 217 229;
+  --md-sys-color-surface-bright: 250 248 255;
+  --md-sys-color-surface-container-lowest: 255 255 255;
+  --md-sys-color-surface-container-low: 243 243 254;
+  --md-sys-color-surface-container: 237 237 249;
+  --md-sys-color-surface-container-high: 231 231 243;
+  --md-sys-color-surface-container-highest: 225 226 237;
   /* ============================================
      Material Design 3 Color System - Light Mode
      ============================================ */
   
-  /* MD3 Primary Palette */
-  --md-primary: 37 99 235;                    /* Primary color */
-  --md-on-primary: 255 255 255;               /* Text/icon on primary */
-  --md-primary-container: 219 234 254;         /* Primary container background */
-  --md-on-primary-container: 15 23 42;         /* Text/icon on primary container */
+  /* MD3 Primary Palette - mapped from Material Theme Builder */
+    --md-primary: var(--md-sys-color-primary);
+    --md-on-primary: var(--md-sys-color-on-primary);
+    --md-primary-container: var(--md-sys-color-primary-container);
+    --md-on-primary-container: var(--md-sys-color-on-primary-container);
   
   /* MD3 Secondary Palette */
-  --md-secondary: 59 130 246;                 /* Secondary color */
-  --md-on-secondary: 255 255 255;             /* Text/icon on secondary */
-  --md-secondary-container: 191 219 254;        /* Secondary container */
-  --md-on-secondary-container: 15 23 42;       /* Text/icon on secondary container */
+  --md-secondary: var(--md-sys-color-secondary);
+    --md-on-secondary: var(--md-sys-color-on-secondary);
+    --md-secondary-container: var(--md-sys-color-secondary-container);
+    --md-on-secondary-container: var(--md-sys-color-on-secondary-container);
   
   /* MD3 Tertiary Palette */
-  --md-tertiary: 168 85 247;                  /* Tertiary color */
-  --md-on-tertiary: 255 255 255;               /* Text/icon on tertiary */
-  --md-tertiary-container: 233 213 255;        /* Tertiary container */
-  --md-on-tertiary-container: 15 23 42;         /* Text/icon on tertiary container */
+  --md-tertiary: var(--md-sys-color-tertiary);
+    --md-on-tertiary: var(--md-sys-color-on-tertiary);
+    --md-tertiary-container: var(--md-sys-color-tertiary-container);
+    --md-on-tertiary-container: var(--md-sys-color-on-tertiary-container);
   
   /* MD3 Error Palette */
-  --md-error: 116 0 6;                       /* Error color */
-  --md-on-error: 255 255 255;                  /* Text/icon on error */
-  --md-error-container: 207 44 39;           /* Error container background */
-  --md-on-error-container: 255 255 255;          /* Text/icon on error container */
+  --md-error: var(--md-sys-color-error);
+    --md-on-error: var(--md-sys-color-on-error);
+    --md-error-container: var(--md-sys-color-error-container);
+    --md-on-error-container: var(--md-sys-color-on-error-container);
   
   /* MD3 Surface System */
-  --md-surface: 247 250 251;                   /* Base surface color */
-  --md-on-surface: 14 18 19;                    /* Text/icon on surface */
-  --md-surface-variant: 218 228 231;           /* Surface variant */
-  --md-on-surface-variant: 46 56 58;          /* Text/icon on surface variant */
+  --md-surface: var(--md-sys-color-surface);
+    --md-on-surface: var(--md-sys-color-on-surface);
+    --md-surface-variant: var(--md-sys-color-surface-variant);
+    --md-on-surface-variant: var(--md-sys-color-on-surface-variant);
   
   /* MD3 Surface Container Hierarchy */
-  --md-surface-container-lowest: 255 255 255;
-  --md-surface-container-low: 241 244 245;
-  --md-surface-container: 230 232 234;
-  --md-surface-container-high: 218 221 222;
-  --md-surface-container-highest: 207 210 211;
+  --md-surface-container-lowest: var(--md-sys-color-surface-container-lowest);
+    --md-surface-container-low: var(--md-sys-color-surface-container-low);
+    --md-surface-container: var(--md-sys-color-surface-container);
+    --md-surface-container-high: var(--md-sys-color-surface-container-high);
+    --md-surface-container-highest: var(--md-sys-color-surface-container-highest);
   
   /* MD3 Outline System */
-  --md-outline: 226 232 240;                   /* Outline color */
-  --md-outline-variant: 241 245 249;           /* Outline variant (lighter) */
+  --md-outline: var(--md-sys-color-outline);
+    --md-outline-variant: var(--md-sys-color-outline-variant);
   
   /* MD3 Shape System (Border Radius) */
   --md-shape-corner-none: 0px;
@@ -87,50 +137,100 @@
 }
 
 .dark {
+  /* Dark - from Material Theme Builder JSON */
+    --md-sys-color-primary: 180 197 255;
+    --md-sys-color-surface-tint: 180 197 255;
+    --md-sys-color-on-primary: 0 42 120;
+    --md-sys-color-primary-container: 37 99 235;
+    --md-sys-color-on-primary-container: 238 239 255;
+    --md-sys-color-secondary: 180 197 255;
+    --md-sys-color-on-secondary: 24 45 99;
+    --md-sys-color-secondary-container: 51 70 126;
+    --md-sys-color-on-secondary-container: 164 182 245;
+    --md-sys-color-tertiary: 242 175 255;
+    --md-sys-color-on-tertiary: 85 0 108;
+    --md-sys-color-tertiary-container: 163 65 191;
+    --md-sys-color-on-tertiary-container: 255 234 254;
+    --md-sys-color-error: 255 180 171;
+    --md-sys-color-on-error: 105 0 5;
+    --md-sys-color-error-container: 147 0 10;
+    --md-sys-color-on-error-container: 255 218 214;
+    --md-sys-color-background: 17 19 27;
+    --md-sys-color-on-background: 225 226 237;
+    --md-sys-color-surface: 17 19 27;
+    --md-sys-color-on-surface: 225 226 237;
+    --md-sys-color-surface-variant: 67 70 85;
+    --md-sys-color-on-surface-variant: 195 198 215;
+    --md-sys-color-outline: 141 144 160;
+    --md-sys-color-outline-variant: 67 70 85;
+    --md-sys-color-shadow: 0 0 0;
+    --md-sys-color-scrim: 0 0 0;
+    --md-sys-color-inverse-surface: 225 226 237;
+    --md-sys-color-inverse-on-surface: 46 48 57;
+    --md-sys-color-inverse-primary: 0 83 219;
+    --md-sys-color-primary-fixed: 219 225 255;
+    --md-sys-color-on-primary-fixed: 0 23 75;
+    --md-sys-color-primary-fixed-dim: 180 197 255;
+    --md-sys-color-on-primary-fixed-variant: 0 62 168;
+    --md-sys-color-secondary-fixed: 219 225 255;
+    --md-sys-color-on-secondary-fixed: 0 23 75;
+    --md-sys-color-secondary-fixed-dim: 180 197 255;
+    --md-sys-color-on-secondary-fixed-variant: 49 76 123;
+    --md-sys-color-tertiary-fixed: 252 215 255;
+    --md-sys-color-on-tertiary-fixed: 52 0 67;
+    --md-sys-color-tertiary-fixed-dim: 242 175 255;
+    --md-sys-color-on-tertiary-fixed-variant: 119 9 148;
+    --md-sys-color-surface-dim: 17 19 27;
+    --md-sys-color-surface-bright: 55 57 66;
+    --md-sys-color-surface-container-lowest: 12 14 22;
+    --md-sys-color-surface-container-low: 25 27 35;
+    --md-sys-color-surface-container: 29 31 39;
+    --md-sys-color-surface-container-high: 40 42 50;
+    --md-sys-color-surface-container-highest: 50 52 61;
   /* ============================================
      Material Design 3 Color System - Dark Mode
      ============================================ */
   
-  /* MD3 Primary Palette - Dark Mode */
-  --md-primary: 147 197 253;                   /* Lighter blue for dark mode */
-  --md-on-primary: 15 23 42;                   /* Dark text on primary */
-  --md-primary-container: 30 58 138;           /* Darker blue container */
-  --md-on-primary-container: 219 234 254;     /* Light text on container */
+  /* MD3 Primary Palette - Dark Mode - mapped from Material Theme Builder */
+    --md-primary: var(--md-sys-color-primary);
+    --md-on-primary: var(--md-sys-color-on-primary);
+    --md-primary-container: var(--md-sys-color-primary-container);
+    --md-on-primary-container: var(--md-sys-color-on-primary-container);
   
   /* MD3 Secondary Palette - Dark Mode */
-  --md-secondary: 147 197 253;                 /* Secondary color */
-  --md-on-secondary: 15 23 42;                 /* Dark text on secondary */
-  --md-secondary-container: 30 58 138;         /* Secondary container */
-  --md-on-secondary-container: 219 234 254;     /* Light text on container */
+  --md-secondary: var(--md-sys-color-secondary);
+    --md-on-secondary: var(--md-sys-color-on-secondary);
+    --md-secondary-container: var(--md-sys-color-secondary-container);
+    --md-on-secondary-container: var(--md-sys-color-on-secondary-container);
   
   /* MD3 Tertiary Palette - Dark Mode */
-  --md-tertiary: 168 85 247;                   /* Tertiary color */
-  --md-on-tertiary: 255 255 255;               /* White text on tertiary */
-  --md-tertiary-container: 91 33 182;          /* Tertiary container */
-  --md-on-tertiary-container: 233 213 255;     /* Light text on container */
+  --md-tertiary: var(--md-sys-color-tertiary);
+    --md-on-tertiary: var(--md-sys-color-on-tertiary);
+    --md-tertiary-container: var(--md-sys-color-tertiary-container);
+    --md-on-tertiary-container: var(--md-sys-color-on-tertiary-container);
   
   /* MD3 Error Palette - Dark Mode */
-  --md-error: 207 102 121;                     /* Material error (desaturated red) */
-  --md-on-error: 255 255 255;                   /* White text on error */
-  --md-error-container: 127 29 29;             /* Error container background */
-  --md-on-error-container: 255 218 218;         /* Light text on error container */
+  --md-error: var(--md-sys-color-error);
+    --md-on-error: var(--md-sys-color-on-error);
+    --md-error-container: var(--md-sys-color-error-container);
+    --md-on-error-container: var(--md-sys-color-on-error-container);
   
   /* MD3 Surface System - Dark Mode */
-  --md-surface: 16 20 21;                      /* Base surface - #121212 */
-  --md-on-surface: 255 255 255;                 /* White text on surface */
-  --md-surface-variant:63 72 75;              /* Surface variant */
-  --md-on-surface-variant: 212 222 225;        /* Text/icon on surface variant */
+  --md-surface: var(--md-sys-color-surface);
+    --md-on-surface: var(--md-sys-color-on-surface);
+    --md-surface-variant: var(--md-sys-color-surface-variant);
+    --md-on-surface-variant: var(--md-sys-color-on-surface-variant);
   
   /* MD3 Surface Container Hierarchy - Dark Mode */
-  --md-surface-container-lowest: 5 8 9;     /* Lowest - #121212 */
-  --md-surface-container-low: 26 30 31;        /* Low - #171717 */
-  --md-surface-container: 37 40 42;             /* Default - #1E1E1E */
-  --md-surface-container-high: 47 51 52;        /* High - slightly lighter */
-  --md-surface-container-highest: 58 62 63;     /* Highest - lightest */
+  --md-surface-container-lowest: var(--md-sys-color-surface-container-lowest);
+    --md-surface-container-low: var(--md-sys-color-surface-container-low);
+    --md-surface-container: var(--md-sys-color-surface-container);
+    --md-surface-container-high: var(--md-sys-color-surface-container-high);
+    --md-surface-container-highest: var(--md-sys-color-surface-container-highest);
   
   /* MD3 Outline System - Dark Mode */
-  --md-outline: 255 255 255;                   /* White for dark mode (opacity applied via CSS) */
-  --md-outline-variant: 255 255 255;           /* White variant (lower opacity applied via CSS) */
+  --md-outline: var(--md-sys-color-outline);
+    --md-outline-variant: var(--md-sys-color-outline-variant);
   
   /* MD3 Shape System (same as light mode) */
   --md-shape-corner-none: 0px;

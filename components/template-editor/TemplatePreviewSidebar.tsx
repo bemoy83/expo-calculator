@@ -204,7 +204,7 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
                     return (
                       <div key={idx} className="">
                         {/* Output Field (Target) - What needs a value */}
-                        <div className="flex items-center gap-2 p-2 bg-md-surface-container-highest rounded-extra-large border-l-2 border-md-primary">
+                        <div className="flex items-center gap-2 p-2 bg-md-surface-container-highest rounded-2xl border-l-2 border-md-primary">
                           <ArrowRightCircle className="h-4 w-4 text-md-primary flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-mono font-semibold text-md-on-surface truncate">
