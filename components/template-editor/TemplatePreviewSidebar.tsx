@@ -204,17 +204,17 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
                     return (
                       <div key={idx} className="">
                         {/* Output Field (Target) - What needs a value */}
-                        <div className="flex items-center gap-2 p-2 bg-md-surface-container-highest rounded-2xl border-l-2 border-md-primary">
-                          <ArrowRightCircle className="h-4 w-4 text-md-primary flex-shrink-0" />
+                        <div className="flex items-center gap-2 p-2 bg-md-primary-container rounded-2xl /*border-l-2 border-md-primary*/">
+                          <ArrowRightCircle className="h-4 w-4 text-md-on-primary-container flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-mono font-semibold text-md-on-surface truncate">
+                            <div className="text-xs font-mono font-semibold text-md-on-primary-container truncate">
                               {opp.fieldLabel}
                             </div>
-                            <div className="text-xs font-mono font-medium text-md-on-surface-variant truncate">
+                            <div className="text-xs font-mono font-medium text-md-on-primary-container/80 truncate">
                               {opp.moduleName}
                             </div>
                           </div>
-                          <span className="px-2 text-[10px] text-md-on-surface-variant uppercase">needs value</span>
+                          <span className="px-2 text-[10px] text-md-on-primary-container/80 uppercase">needs value</span>
                         </div>
 
                         {/* Arrow showing flow direction */}
@@ -223,19 +223,19 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
                         </div>
 
                         {/* Input Field (Source) - Where value comes from */}
-                        <div className="flex items-center gap-2 p-2 ml-4 bg-md-surface-variant/30 rounded-2xl border-l-2 border-emerald-500">
-                          <ArrowLeftCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                        <div className="flex items-center gap-2 p-2 ml-4 bg-md-secondary-container rounded-2xl /*border-l-2 border-md-secondary*/">
+                          <ArrowLeftCircle className="h-4 w-4 text-md-secondary flex-shrink-0" />
                           <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <div className="min-w-0">
-                                <div className="text-xs font-mono font-medium text-md-on-surface truncate">
+                                <div className="text-xs font-mono font-medium text-md-on-secondary-container truncate">
                                   {bestSuggestion.fieldLabel}
                                 </div>
-                                <div className="text-xs font-mono font-medium text-md-on-surface-variant truncate">
+                                <div className="text-xs font-mono font-medium text-md-on-secondary-container/80 truncate">
                                   {bestSuggestion.moduleName}
                                 </div>
                               </div>
-                              <span className="text-xs font-semibold text-emerald-600 whitespace-nowrap">
+                              <span className="text-xs font-semibold text-md-secondary whitespace-nowrap">
                                 {bestSuggestion.confidence}%
                               </span>
                               {bestSuggestion.isComputedOutput && (

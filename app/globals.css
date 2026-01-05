@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-/* Light - from Material Theme Builder JSON */
+  /* Light - from Material Theme Builder JSON */
   --md-sys-color-primary: 0 74 198;
   --md-sys-color-surface-tint: 0 83 219;
   --md-sys-color-on-primary: 255 255 255;
@@ -53,6 +53,7 @@
   --md-sys-color-surface-container: 237 237 249;
   --md-sys-color-surface-container-high: 231 231 243;
   --md-sys-color-surface-container-highest: 225 226 237;
+
   /* ============================================
      Material Design 3 Color System - Light Mode
      ============================================ */
