@@ -93,6 +93,72 @@ export function ModuleFieldInput({
             : value
           : 0;
 
+      // When linked, show disabled field with linked value
+      if (isLinked) {
+        return (
+          <div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              showLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => linkProps?.onToggleLink()}
+              onUnlinkClick={() => linkProps?.onUnlink()}
+            />
+
+            <div className="relative h-[46px] flex items-center overflow-visible">
+              <Input
+                type="number"
+                value={displayValue.toString()}
+                disabled={true}
+                className="w-full pr-32"
+              />
+              {renderInlineLinkBadge()}
+            </div>
+
+            <FieldDescription description={field.description} />
+          </div>
+        );
+      }
+
+      // When linking UI is open, show link options dropdown
+      if (canLink && linkUIOpenForField && linkProps) {
+        return (
+          <div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              showLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => linkProps?.onToggleLink()}
+              onUnlinkClick={() => linkProps?.onUnlink()}
+            />
+
+            <div className="relative h-[46px] flex items-center overflow-visible">
+              <Select
+                label=""
+                value=""
+                onChange={(e) => {
+                  linkProps.onLinkChange(e.target.value);
+                }}
+                options={[
+                  { value: "", label: "Select..." },
+                  ...linkProps.linkOptions,
+                ]}
+                className="w-full"
+              />
+            </div>
+
+            <FieldDescription description={field.description} />
+          </div>
+        );
+      }
+
+      // Normal number input when not linking and not linked
       return (
         <div>
           <FieldHeader
@@ -111,7 +177,6 @@ export function ModuleFieldInput({
               type="number"
               value={displayValue.toString()}
               onChange={(e) => {
-                if (isLinked) return;
                 const inputValue = e.target.value === "" ? 0 : Number(e.target.value) || 0;
                 const baseValue =
                   field.unitSymbol && typeof inputValue === "number"
@@ -120,18 +185,80 @@ export function ModuleFieldInput({
                 onChange(baseValue);
               }}
               required={field.required}
-              disabled={isLinked}
-              className={`w-full ${isLinked ? 'pr-32' : ''}`}
+              className="w-full"
             />
-            {renderInlineLinkBadge()}
           </div>
 
           <FieldDescription description={field.description} />
-          {renderLinkSelector()}
         </div>
       );
     }
     case "boolean": {
+      // When linked, show disabled checkbox with linked value
+      if (isLinked) {
+        return (
+          <div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              showLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => linkProps?.onToggleLink()}
+              onUnlinkClick={() => linkProps?.onUnlink()}
+            />
+
+            <div className="relative h-[46px] flex items-center overflow-visible">
+              <Checkbox
+                label=""
+                checked={Boolean(value)}
+                disabled={true}
+              />
+              {renderInlineLinkBadge()}
+            </div>
+
+            <FieldDescription description={field.description} />
+          </div>
+        );
+      }
+
+      // When linking UI is open, show link options dropdown
+      if (canLink && linkUIOpenForField && linkProps) {
+        return (
+          <div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              showLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => linkProps?.onToggleLink()}
+              onUnlinkClick={() => linkProps?.onUnlink()}
+            />
+
+            <div className="relative h-[46px] flex items-center overflow-visible">
+              <Select
+                label=""
+                value=""
+                onChange={(e) => {
+                  linkProps.onLinkChange(e.target.value);
+                }}
+                options={[
+                  { value: "", label: "Select..." },
+                  ...linkProps.linkOptions,
+                ]}
+                className="w-full"
+              />
+            </div>
+
+            <FieldDescription description={field.description} />
+          </div>
+        );
+      }
+
+      // Normal checkbox when not linking and not linked
       return (
         <div>
           <FieldHeader
@@ -150,16 +277,12 @@ export function ModuleFieldInput({
               label=""
               checked={Boolean(value)}
               onChange={(e) => {
-                if (isLinked) return;
                 onChange(e.target.checked);
               }}
-              disabled={isLinked}
             />
-            {renderInlineLinkBadge()}
           </div>
 
           <FieldDescription description={field.description} />
-          {renderLinkSelector()}
         </div>
       );
     }
@@ -187,6 +310,75 @@ export function ModuleFieldInput({
           currentDisplayValue = value?.toString() || "";
         }
 
+        // When linked, show disabled dropdown with linked value
+        if (isLinked) {
+          return (
+            <div>
+              <FieldHeader
+                label={field.label}
+                unit={field.unit}
+                unitSymbol={field.unitSymbol}
+                required={field.required}
+                showLink={canLink}
+                isLinked={isLinked}
+                onLinkClick={() => linkProps?.onToggleLink()}
+                onUnlinkClick={() => linkProps?.onUnlink()}
+              />
+
+              <div className="relative h-[46px] flex items-center overflow-visible">
+                <Select
+                  label=""
+                  value={currentDisplayValue}
+                  disabled={true}
+                  options={[
+                    { value: currentDisplayValue, label: currentDisplayValue },
+                  ]}
+                  className="w-full pr-32"
+                />
+                {renderInlineLinkBadge()}
+              </div>
+
+              <FieldDescription description={field.description} />
+            </div>
+          );
+        }
+
+        // When linking UI is open, show link options dropdown
+        if (canLink && linkUIOpenForDropdown && linkProps) {
+          return (
+            <div>
+              <FieldHeader
+                label={field.label}
+                unit={field.unit}
+                unitSymbol={field.unitSymbol}
+                required={field.required}
+                showLink={canLink}
+                isLinked={isLinked}
+                onLinkClick={() => linkProps?.onToggleLink()}
+                onUnlinkClick={() => linkProps?.onUnlink()}
+              />
+
+              <div className="relative h-[46px] flex items-center overflow-visible">
+                <Select
+                  label=""
+                  value=""
+                  onChange={(e) => {
+                    linkProps.onLinkChange(e.target.value);
+                  }}
+                  options={[
+                    { value: "", label: "Select..." },
+                    ...linkProps.linkOptions,
+                  ]}
+                  className="w-full"
+                />
+              </div>
+
+              <FieldDescription description={field.description} />
+            </div>
+          );
+        }
+
+        // Normal dropdown when not linking and not linked
         return (
           <div>
             <FieldHeader
@@ -205,7 +397,6 @@ export function ModuleFieldInput({
                 label=""
                 value={currentDisplayValue}
                 onChange={(e) => {
-                  if (isLinked) return;
                   const selectedDisplay = e.target.value;
                   const match = selectedDisplay.match(/^([\d.]+)/);
                   if (match && field.unitSymbol) {
@@ -223,19 +414,85 @@ export function ModuleFieldInput({
                     label: displayOpt,
                   })),
                 ]}
-                disabled={isLinked}
-                className={`w-full ${isLinked ? 'pr-32' : ''}`}
+                className="w-full"
               />
-              {renderInlineLinkBadge()}
             </div>
 
             <FieldDescription description={field.description} />
-            {canLink && !isLinked && linkUIOpenForDropdown && renderLinkSelector()}
           </div>
         );
       }
 
       // String dropdown mode
+      // When linked, show disabled dropdown with linked value
+      if (isLinked) {
+        return (
+          <div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              showLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => linkProps?.onToggleLink()}
+              onUnlinkClick={() => linkProps?.onUnlink()}
+            />
+
+            <div className="relative h-[46px] flex items-center">
+              <Select
+                label=""
+                value={value?.toString() || ""}
+                disabled={true}
+                options={[
+                  { value: value?.toString() || "", label: value?.toString() || "" },
+                ]}
+                className="w-full pr-32"
+              />
+              {renderInlineLinkBadge()}
+            </div>
+
+            <FieldDescription description={field.description} />
+          </div>
+        );
+      }
+
+      // When linking UI is open, show link options dropdown
+      if (canLink && linkUIOpenForDropdown && linkProps) {
+        return (
+          <div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              showLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => linkProps?.onToggleLink()}
+              onUnlinkClick={() => linkProps?.onUnlink()}
+            />
+
+            <div className="relative h-[46px] flex items-center">
+              <Select
+                label=""
+                value=""
+                onChange={(e) => {
+                  linkProps.onLinkChange(e.target.value);
+                }}
+                options={[
+                  { value: "", label: "Select..." },
+                  ...linkProps.linkOptions,
+                ]}
+                className="w-full"
+              />
+            </div>
+
+            <FieldDescription description={field.description} />
+          </div>
+        );
+      }
+
+      // Normal string dropdown when not linking and not linked
       return (
         <div>
           <FieldHeader
@@ -254,21 +511,17 @@ export function ModuleFieldInput({
               label=""
               value={value?.toString() || ""}
               onChange={(e) => {
-                if (isLinked) return;
                 onChange(e.target.value);
               }}
               options={[
                 { value: "", label: "Select..." },
                 ...options.map((opt) => ({ value: opt, label: opt })),
               ]}
-              disabled={isLinked}
-              className={`w-full ${isLinked ? 'pr-32' : ''}`}
+              className="w-full"
             />
-            {renderInlineLinkBadge()}
           </div>
 
           <FieldDescription description={field.description} />
-          {renderLinkSelector()}
         </div>
       );
     }
@@ -316,6 +569,72 @@ export function ModuleFieldInput({
       );
     }
     case "text": {
+      // When linked, show disabled input with linked value
+      if (isLinked) {
+        return (
+          <div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              showLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => linkProps?.onToggleLink()}
+              onUnlinkClick={() => linkProps?.onUnlink()}
+            />
+
+            <div className="relative h-[46px] flex items-center">
+              <Input
+                label=""
+                value={value?.toString() || ""}
+                disabled={true}
+                className="w-full pr-32"
+              />
+              {renderInlineLinkBadge()}
+            </div>
+
+            <FieldDescription description={field.description} />
+          </div>
+        );
+      }
+
+      // When linking UI is open, show link options dropdown
+      if (canLink && linkUIOpenForField && linkProps) {
+        return (
+          <div>
+            <FieldHeader
+              label={field.label}
+              unit={field.unit}
+              unitSymbol={field.unitSymbol}
+              required={field.required}
+              showLink={canLink}
+              isLinked={isLinked}
+              onLinkClick={() => linkProps?.onToggleLink()}
+              onUnlinkClick={() => linkProps?.onUnlink()}
+            />
+
+            <div className="relative h-[46px] flex items-center">
+              <Select
+                label=""
+                value=""
+                onChange={(e) => {
+                  linkProps.onLinkChange(e.target.value);
+                }}
+                options={[
+                  { value: "", label: "Select..." },
+                  ...linkProps.linkOptions,
+                ]}
+                className="w-full"
+              />
+            </div>
+
+            <FieldDescription description={field.description} />
+          </div>
+        );
+      }
+
+      // Normal text input when not linking and not linked
       return (
         <div>
           <FieldHeader
@@ -334,18 +653,14 @@ export function ModuleFieldInput({
               label=""
               value={value?.toString() || ""}
               onChange={(e) => {
-                if (isLinked) return;
                 onChange(e.target.value);
               }}
               required={field.required}
-              disabled={isLinked}
-              className={`w-full ${isLinked ? 'pr-32' : ''}`}
+              className="w-full"
             />
-            {renderInlineLinkBadge()}
           </div>
 
           <FieldDescription description={field.description} />
-          {renderLinkSelector()}
         </div>
       );
     }

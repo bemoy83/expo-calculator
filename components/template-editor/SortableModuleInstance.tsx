@@ -96,22 +96,51 @@ export function SortableModuleInstance({
     (fieldName: string, value: string) => {
       if (!onLinkField || !onUnlinkField) return;
 
+      // Empty value or "Select..." - just close the dropdown
+      if (value === '' || value === 'select') {
+        setOpenLinkUIs((prev) => {
+          const next = new Set(prev);
+          next.delete(fieldName);
+          return next;
+        });
+        return;
+      }
+
+      // "None" - dismiss dropdown and unlink if there's an existing link
       if (value === 'none') {
-        onUnlinkField(instance.id, fieldName);
-      } else {
-        // Split only on the first dot to handle computed outputs with 'out.' prefix
-        const firstDotIndex = value.indexOf('.');
-        if (firstDotIndex === -1) return;
-        
-        const targetInstanceId = value.substring(0, firstDotIndex);
-        const targetFieldName = value.substring(firstDotIndex + 1);
-        
-        if (targetInstanceId && targetFieldName) {
-          onLinkField(instance.id, fieldName, targetInstanceId, targetFieldName);
+        // Check if field is currently linked
+        const isCurrentlyLinked = isFieldLinked?.(instance, fieldName);
+        if (isCurrentlyLinked) {
+          onUnlinkField(instance.id, fieldName);
         }
+        // Close link UI
+        setOpenLinkUIs((prev) => {
+          const next = new Set(prev);
+          next.delete(fieldName);
+          return next;
+        });
+        return;
+      }
+
+      // Actual link value - create the link
+      // Split only on the first dot to handle computed outputs with 'out.' prefix
+      const firstDotIndex = value.indexOf('.');
+      if (firstDotIndex === -1) return;
+
+      const targetInstanceId = value.substring(0, firstDotIndex);
+      const targetFieldName = value.substring(firstDotIndex + 1);
+
+      if (targetInstanceId && targetFieldName) {
+        onLinkField(instance.id, fieldName, targetInstanceId, targetFieldName);
+        // Close link UI after successful link
+        setOpenLinkUIs((prev) => {
+          const next = new Set(prev);
+          next.delete(fieldName);
+          return next;
+        });
       }
     },
-    [instance.id, onLinkField, onUnlinkField]
+    [instance, isFieldLinked, onLinkField, onUnlinkField]
   );
 
   // Handle unlink
