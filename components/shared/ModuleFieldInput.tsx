@@ -7,7 +7,7 @@ import { FieldHeader, FieldDescription } from "@/components/module-editor/FieldH
 import { Input } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
-import { Link2, Unlink, X } from "lucide-react";
+import { Link2, X } from "lucide-react";
 import { useCurrencyStore } from "@/lib/stores/currency-store";
 
 type LinkOption = { value: string; label: string };
@@ -45,33 +45,26 @@ export function ModuleFieldInput({
   const canLink = linkProps?.canLink ?? false;
   const linkUIOpenForField = linkProps?.linkUIOpen ?? false;
 
-  const renderLinkStatus = () => {
+  const renderInlineLinkBadge = () => {
     if (!linkProps || !linkProps.isLinked) return null;
-    const { isLinkBroken, linkDisplayName, onUnlink } = linkProps;
+    const { isLinkBroken, linkDisplayName } = linkProps;
+
     return (
-      <div className="mt-2 flex items-center gap-2 p-2 rounded-md">
+      <div className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full pointer-events-none z-50 ${isLinkBroken
+        ? 'bg-md-error'
+        : 'bg-transparent'
+        }`}>
         {isLinkBroken ? (
-          <X className="h-3.5 w-3.5 text-destructive shrink-0" />
+          <X className="h-3.5 w-3.5 text-md-on-error shrink-0" />
         ) : (
-          <Link2 className="h-3.5 w-3.5 text-md-primary shrink-0" />
+            <Link2 className="h-3.5 w-3.5 text-md-primary-container/70 shrink-0" />
         )}
-        <span
-          className={`text-xs flex-1 ${
-            isLinkBroken ? "text-destructive" : "text-md-primary"
-          }`}
-        >
+        <span className={`text-xs whitespace-nowrap ${isLinkBroken ? "text-md-on-error" : "text-md-primary-container/70"
+          }`}>
           {isLinkBroken
-            ? "Link broken: source unavailable"
-            : `Linked to: ${linkDisplayName}`}
+            ? "Broken link"
+            : linkDisplayName}
         </span>
-        <button
-          type="button"
-          onClick={onUnlink}
-          className="h-6 text-xs text-md-on-surface-variant hover:text-md-on-surface inline-flex items-center gap-1"
-        >
-          <Unlink className="h-3 w-3" />
-          {isLinkBroken ? "Remove Link" : "Unlink"}
-        </button>
       </div>
     );
   };
@@ -110,9 +103,10 @@ export function ModuleFieldInput({
             showLink={canLink}
             isLinked={isLinked}
             onLinkClick={() => linkProps?.onToggleLink()}
+            onUnlinkClick={() => linkProps?.onUnlink()}
           />
 
-          <div className="h-[46px] flex items-center">
+          <div className="relative h-[46px] flex items-center overflow-visible">
             <Input
               type="number"
               value={displayValue.toString()}
@@ -127,12 +121,12 @@ export function ModuleFieldInput({
               }}
               required={field.required}
               disabled={isLinked}
-              className="w-full"
+              className={`w-full ${isLinked ? 'pr-32' : ''}`}
             />
+            {renderInlineLinkBadge()}
           </div>
 
           <FieldDescription description={field.description} />
-          {renderLinkStatus()}
           {renderLinkSelector()}
         </div>
       );
@@ -148,9 +142,10 @@ export function ModuleFieldInput({
             showLink={canLink}
             isLinked={isLinked}
             onLinkClick={() => linkProps?.onToggleLink()}
+            onUnlinkClick={() => linkProps?.onUnlink()}
           />
 
-          <div className="h-[46px] flex items-center">
+          <div className="relative h-[46px] flex items-center overflow-visible">
             <Checkbox
               label=""
               checked={Boolean(value)}
@@ -160,10 +155,10 @@ export function ModuleFieldInput({
               }}
               disabled={isLinked}
             />
+            {renderInlineLinkBadge()}
           </div>
 
           <FieldDescription description={field.description} />
-          {renderLinkStatus()}
           {renderLinkSelector()}
         </div>
       );
@@ -202,9 +197,10 @@ export function ModuleFieldInput({
               showLink={canLink}
               isLinked={isLinked}
               onLinkClick={() => linkProps?.onToggleLink()}
+              onUnlinkClick={() => linkProps?.onUnlink()}
             />
 
-            <div className="h-[46px] flex items-center">
+            <div className="relative h-[46px] flex items-center overflow-visible">
               <Select
                 label=""
                 value={currentDisplayValue}
@@ -228,12 +224,12 @@ export function ModuleFieldInput({
                   })),
                 ]}
                 disabled={isLinked}
-                className="w-full"
+                className={`w-full ${isLinked ? 'pr-32' : ''}`}
               />
+              {renderInlineLinkBadge()}
             </div>
 
             <FieldDescription description={field.description} />
-            {renderLinkStatus()}
             {canLink && !isLinked && linkUIOpenForDropdown && renderLinkSelector()}
           </div>
         );
@@ -250,9 +246,10 @@ export function ModuleFieldInput({
             showLink={canLink}
             isLinked={isLinked}
             onLinkClick={() => linkProps?.onToggleLink()}
+            onUnlinkClick={() => linkProps?.onUnlink()}
           />
 
-          <div className="h-[46px] flex items-center">
+          <div className="relative h-[46px] flex items-center">
             <Select
               label=""
               value={value?.toString() || ""}
@@ -265,12 +262,12 @@ export function ModuleFieldInput({
                 ...options.map((opt) => ({ value: opt, label: opt })),
               ]}
               disabled={isLinked}
-              className="w-full"
+              className={`w-full ${isLinked ? 'pr-32' : ''}`}
             />
+            {renderInlineLinkBadge()}
           </div>
 
           <FieldDescription description={field.description} />
-          {renderLinkStatus()}
           {renderLinkSelector()}
         </div>
       );
@@ -329,9 +326,10 @@ export function ModuleFieldInput({
             showLink={canLink}
             isLinked={isLinked}
             onLinkClick={() => linkProps?.onToggleLink()}
+            onUnlinkClick={() => linkProps?.onUnlink()}
           />
 
-          <div className="h-[46px] flex items-center">
+          <div className="relative h-[46px] flex items-center">
             <Input
               label=""
               value={value?.toString() || ""}
@@ -341,12 +339,12 @@ export function ModuleFieldInput({
               }}
               required={field.required}
               disabled={isLinked}
-              className="w-full"
+              className={`w-full ${isLinked ? 'pr-32' : ''}`}
             />
+            {renderInlineLinkBadge()}
           </div>
 
           <FieldDescription description={field.description} />
-          {renderLinkStatus()}
           {renderLinkSelector()}
         </div>
       );

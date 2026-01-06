@@ -16,6 +16,7 @@ interface ChipProps extends React.HTMLAttributes<HTMLElement> {
   | 'ghost'
   | 'success'
   | 'muted'
+  | 'flat'
   leadingIcon?: React.ReactNode
   trailingIcon?: React.ReactNode
   disabled?: boolean
@@ -39,6 +40,9 @@ export const Chip: React.FC<ChipProps> = ({
   }
 
   const variants = {
+
+    flat: 'bg-md-secondary text-md-on-secondary',
+
     default: 'bg-md-tertiary text-md-on-tertiary',
 
     muted: 'bg-md-muted text-md-on-muted',

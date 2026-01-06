@@ -49,7 +49,7 @@ export function ModuleCardShell({
   const chips = metaChips?.filter(Boolean);
 
   return (
-    <Card ref={cardRef} style={style} variant="default">
+    <Card ref={cardRef} style={style}>
       <div className="flex items-center">
         <button
           {...dragHandleProps.attributes}
@@ -78,7 +78,7 @@ export function ModuleCardShell({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-md-primary">{title}</span>
-              {category && <Chip size="sm">{category}</Chip>}
+              {category && <Chip variant="default" size="sm">{category}</Chip>}
               {chips?.map((chip, idx) => (
                 <React.Fragment key={idx}>{chip}</React.Fragment>
               ))}

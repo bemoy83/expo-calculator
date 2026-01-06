@@ -62,32 +62,41 @@ export function SortableModuleCard({
     setNodeRef(el);
   }, [setNodeRef]);
 
-  // Create computed output chips for the header
-  const computedOutputChips = useMemo(() => {
-    if (!module.computedOutputs || module.computedOutputs.length === 0) {
-      return undefined;
-    }
-    return module.computedOutputs.map((output) => (
-      <Chip key={output.id} size="sm" variant="outline">
-        {output.label}
-        {output.unitSymbol && (
-          <span className="ml-1 text-xs opacity-70">({output.unitSymbol})</span>
-        )}
+  // Count required fields that are not linked (need user input)
+  const requiredUnlinkedChip = useMemo(() => {
+    const requiredUnlinkedFields = module.fields.filter((field) => {
+      // Check if field is required
+      if (!field.required) return false;
+
+      // Check if field is linked
+      const isLinked = instance.fieldLinks && instance.fieldLinks[field.variableName];
+      if (isLinked) return false;
+
+      // Required and not linked = needs user input
+      return true;
+    });
+
+    const count = requiredUnlinkedFields.length;
+    if (count === 0) return undefined;
+
+    return (
+      <Chip key="required-unlinked" size="sm" variant="error">
+        {count} {count === 1 ? 'input needed' : 'inputs needed'}
       </Chip>
-    ));
-  }, [module.computedOutputs]);
+    );
+  }, [module.fields, instance.fieldLinks]);
 
   return (
     <ModuleCardShell
       cardRef={stableRef}
       style={style}
-  dragHandleProps={{ attributes, listeners }}
-  title={module.name}
-  category={module.category}
-      metaChips={computedOutputChips}
-  subtitle={module.description || undefined}
-  isCollapsed={isCollapsed}
-  onToggle={() => onToggleCollapse(instance.id)}
+      dragHandleProps={{ attributes, listeners }}
+      title={module.name}
+      category={module.category}
+      metaChips={requiredUnlinkedChip ? [requiredUnlinkedChip] : undefined}
+      subtitle={module.description || undefined}
+      isCollapsed={isCollapsed}
+      onToggle={() => onToggleCollapse(instance.id)}
       onRemove={() => onRemove(instance.id)}
       removeConfirmMessage={`Remove ${module.name} from quote?`}
       rightExtras={

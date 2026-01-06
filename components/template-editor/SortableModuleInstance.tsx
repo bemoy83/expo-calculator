@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Chip } from '@/components/ui/Chip';
@@ -123,6 +123,49 @@ export function SortableModuleInstance({
     [instance.id, onUnlinkField]
   );
 
+  // Build metachips: field count + computed outputs + link count
+  const metaChips = useMemo(() => {
+    const chips: React.ReactNode[] = [];
+
+    // Early return if module is undefined
+    if (!module) {
+      return chips;
+    }
+
+    // Field count chip
+    chips.push(
+      <Chip key="field-count" size="sm" variant="primaryTonal" className="font-mono">
+        {module.fields.length} {module.fields.length === 1 ? 'field' : 'fields'}
+      </Chip>
+    );
+
+    // Computed output chips
+    if (module.computedOutputs && module.computedOutputs.length > 0) {
+      module.computedOutputs.forEach((output) => {
+        chips.push(
+          <Chip key={output.id} size="sm" variant="flat">
+            {output.label}
+            {output.unitSymbol && (
+              <span className="ml-1 text-xs opacity-70">({output.unitSymbol})</span>
+            )}
+          </Chip>
+        );
+      });
+    }
+
+    // Link count chip
+    const linkCount = Object.keys(instance.fieldLinks || {}).length;
+    if (linkCount > 0) {
+      chips.push(
+        <Chip key="link-count" size="sm" variant="outline">
+          {linkCount} {linkCount === 1 ? 'link' : 'links'}
+        </Chip>
+      );
+    }
+
+    return chips;
+  }, [module, instance.fieldLinks]);
+
   if (!module) {
     return (
       <ModuleCardShell
@@ -147,11 +190,7 @@ export function SortableModuleInstance({
       dragHandleProps={{ attributes, listeners }}
       title={module.name}
       category={module.category}
-      metaChips={[
-        <Chip key="field-count" size="sm" variant="primary" className="font-mono">
-          {module.fields.length} {module.fields.length === 1 ? 'field' : 'fields'}
-        </Chip>,
-      ]}
+      metaChips={metaChips}
       subtitle={module.description || undefined}
       isCollapsed={!isExpanded}
       onToggle={() => onToggleExpanded(instance.id)}

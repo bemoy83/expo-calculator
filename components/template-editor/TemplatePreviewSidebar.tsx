@@ -12,11 +12,13 @@ import {
   Building2,
   Link as LinkIcon,
   ArrowRightCircle,
-  ArrowUp
+  ArrowUp,
+  Zap
 } from "lucide-react";
 import { useState } from "react";
 import { useTemplateLinkAnalysis } from "@/hooks/use-template-link-analysis";
 import { CalculationModule, QuoteModuleInstance } from "@/lib/types";
+import { Button } from "../ui/Button";
 
 /**
  * TemplatePreviewSidebar Component
@@ -51,8 +53,22 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
     quickActions: false,
   });
 
+  const [expandedOpportunities, setExpandedOpportunities] = useState<Set<number>>(new Set());
+
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const toggleOpportunity = (index: number) => {
+    setExpandedOpportunities(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
   };
 
   // Handler for applying a link suggestion
@@ -80,10 +96,64 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
     // On success, the hook will re-analyze and the opportunity will disappear
   };
 
+  // Handler for batch linking
+  const handleBatchLink = (minConfidence: number) => {
+    const eligibleLinks = linkOpportunities
+      .filter(opp => opp.suggestedSources[0]?.confidence >= minConfidence)
+      .map(opp => ({
+        targetField: `${opp.moduleName}.${opp.fieldLabel}`,
+        sourceField: `${opp.suggestedSources[0].moduleName}.${opp.suggestedSources[0].fieldLabel}`,
+        confidence: opp.suggestedSources[0].confidence,
+        isComputed: opp.suggestedSources[0].isComputedOutput,
+        targetInstanceId: opp.moduleInstanceId,
+        targetFieldName: opp.fieldVariableName,
+        sourceInstanceId: opp.suggestedSources[0].moduleInstanceId,
+        sourceFieldName: opp.suggestedSources[0].fieldVariableName,
+      }));
+
+    if (eligibleLinks.length === 0) {
+      alert(`No suggestions with confidence ≥${minConfidence}%`);
+      return;
+    }
+
+    const preview = eligibleLinks
+      .map(link => `  • ${link.targetField} ← ${link.sourceField} (${link.confidence}%)${link.isComputed ? ' [Computed]' : ''}`)
+      .join('\n');
+
+    const confirmed = confirm(
+      `Link ${eligibleLinks.length} field${eligibleLinks.length > 1 ? 's' : ''} with confidence ≥${minConfidence}%?\n\n${preview}\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    eligibleLinks.forEach(link => {
+      const result = onLinkField(
+        link.targetInstanceId,
+        link.targetFieldName,
+        link.sourceInstanceId,
+        link.sourceFieldName
+      );
+
+      if (result.valid) {
+        successCount++;
+      } else {
+        failCount++;
+        console.error(`Failed to link ${link.targetField}:`, result.error);
+      }
+    });
+
+    if (failCount > 0) {
+      alert(`Batch link complete:\n✓ ${successCount} succeeded\n✗ ${failCount} failed (see console)`);
+    }
+  };
+
   // Early return for empty template
   if (workspaceModules.length === 0) {
     return (
-      <div className="lg:col-span-1">
+      <div className="lg:col-span-2">
         <Card className="sticky top-[88px] z-40">
           <div className="text-center py-8">
             <Link2 className="h-12 w-12 text-md-on-surface-variant/30 mx-auto mb-3" />
@@ -98,8 +168,12 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
 
   const { stats, primaryModule, linkSources, linkOpportunities } = analysis;
 
+  // Count opportunities by confidence threshold
+  const excellentCount = linkOpportunities.filter(opp => opp.suggestedSources[0]?.confidence >= 80).length;
+  const goodCount = linkOpportunities.filter(opp => opp.suggestedSources[0]?.confidence >= 60).length;
+
   return (
-    <div className="lg:col-span-1">
+    <div className="lg:col-span-2">
       <Card className="sticky top-[88px] z-40">
         <div className="space-y-4">
           {/* Header */}
@@ -120,7 +194,7 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
                 )}
               </div>
             </div>
-            <Chip size="sm" variant="primaryTonal">
+            <Chip size="sm" variant="default">
               {stats.totalModules} {stats.totalModules === 1 ? "module" : "modules"}
             </Chip>
           </div>
@@ -196,72 +270,99 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
               </button>
 
               {expandedSections.opportunities && (
-                <div className="space-y-3 pl-6">
+                <div className="space-y-2 pl-6">
                   {linkOpportunities.slice(0, 5).map((opp, idx) => {
+                    if (!opp.suggestedSources.length) return null;
+                    const isExpanded = expandedOpportunities.has(idx);
                     const bestSuggestion = opp.suggestedSources[0];
-                    if (!bestSuggestion) return null;
 
                     return (
-                      <div key={idx} className="">
-                        {/* Output Field (Target) - What needs a value */}
-                        <div className="flex items-center gap-2 p-2 bg-md-primary-container rounded-2xl /*border-l-2 border-md-primary*/">
-                          <ArrowRightCircle className="h-4 w-4 text-md-on-primary-container flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-mono font-semibold text-md-on-primary-container truncate">
+                      <div key={idx} className="space-y-2">
+                        {/* Collapsed header - clickable to expand */}
+                        <button
+                          onClick={() => toggleOpportunity(idx)}
+                          className="w-full flex items-center gap-2 p-2 bg-md-surface-container-highest rounded-2xl border-l-4 border-md-primary hover:bg-md-surface-container-high hover:scale-[1.02] transition-smooth"
+                        >
+                          <ArrowRightCircle className="h-4 w-4 flex-shrink-0 text-md-primary" />
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="text-xs font-mono font-semibold text-md-on-surface">
                               {opp.fieldLabel}
                             </div>
-                            <div className="text-xs font-mono font-medium text-md-on-primary-container/80 truncate">
+                            <div className="text-xs font-mono font-medium text-md-on-surface/80">
                               {opp.moduleName}
                             </div>
                           </div>
-                          <span className="px-2 text-[10px] text-md-on-primary-container/80 uppercase">needs value</span>
-                        </div>
-
-                        {/* Arrow showing flow direction */}
-                        <div className="flex items-center justify-center py-1">
-                          <ArrowUp className="h-4 w-4 text-md-on-surface-variant/50" />
-                        </div>
-
-                        {/* Input Field (Source) - Where value comes from */}
-                        <div className="flex items-center gap-2 p-2 ml-4 bg-md-secondary-container rounded-2xl /*border-l-2 border-md-secondary*/">
-                          <ArrowLeftCircle className="h-4 w-4 text-md-secondary flex-shrink-0" />
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <div className="min-w-0">
-                                <div className="text-xs font-mono font-medium text-md-on-secondary-container truncate">
-                                  {bestSuggestion.fieldLabel}
-                                </div>
-                                <div className="text-xs font-mono font-medium text-md-on-secondary-container/80 truncate">
-                                  {bestSuggestion.moduleName}
-                                </div>
-                              </div>
-                              <span className="text-xs font-semibold text-md-secondary whitespace-nowrap">
-                                {bestSuggestion.confidence}%
-                              </span>
-                              {bestSuggestion.isComputedOutput && (
-                                <Chip size="sm" variant="primaryTonal" className="text-[10px]">
-                                  Computed
-                                </Chip>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-md-on-surface/50 leading-relaxed">
-                              {bestSuggestion.reason}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleApplyLink(
-                              opp.moduleInstanceId,
-                              opp.fieldVariableName,
-                              bestSuggestion.moduleInstanceId,
-                              bestSuggestion.fieldVariableName
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Chip size="sm" variant="muted" className="text-[10px] text-md-on-surface/80">
+                              {opp.suggestedSources.length} {opp.suggestedSources.length === 1 ? 'source' : 'sources'}
+                            </Chip>
+                            <span className="text-xs font-semibold text-md-on-surface/80">
+                              {bestSuggestion.confidence}%
+                            </span>
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4h" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
                             )}
-                            className="px-2 flex-shrink-0 text-xs text-md-primary hover:text-md-on-surface-variant transition-transform hover:scale-110"
-                            title="Apply this suggestion"
-                            aria-label={`Apply link from ${bestSuggestion.moduleName}.${bestSuggestion.fieldLabel} to ${opp.moduleName}.${opp.fieldLabel}`}
-                          >
-                            <LinkIcon className="h-4 w-4" />
-                          </button>
-                        </div>
+                          </div>
+                        </button>
+
+                        {/* Expanded content - show all suggestions */}
+                        {isExpanded && (
+                          <>
+                            {/* Arrow showing flow direction */}
+                            <div className="flex items-center justify-center py-0.5">
+                              <ArrowUp className="h-4 w-4 text-md-on-surface-variant/50" />
+                            </div>
+
+                            {/* All suggested sources */}
+                            <div className="space-y-1.5 ml-4">
+                              {opp.suggestedSources.map((suggestion, suggIdx) => (
+                                <button
+                                  key={suggIdx}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleApplyLink(
+                                      opp.moduleInstanceId,
+                                      opp.fieldVariableName,
+                                      suggestion.moduleInstanceId,
+                                      suggestion.fieldVariableName
+                                    );
+                                  }}
+                                  className="w-full flex items-center gap-2 p-3 bg-md-surface-container-highest rounded-2xl border-l-4 border-emerald-500 hover:bg-md-surface-container-high hover:border-emerald-600 hover:scale-[1.02] transition-smooth group"
+                                  title="Click to apply this suggestion"
+                                  aria-label={`Apply link from ${suggestion.moduleName}.${suggestion.fieldLabel} to ${opp.moduleName}.${opp.fieldLabel}`}
+                                >
+                                  <ArrowLeftCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                                  <div className="flex-1 min-w-0 space-y-1 text-left">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <div className="min-w-0">
+                                        <div className="text-xs font-mono font-semibold text-md-on-surface/80 truncate">
+                                          {suggestion.fieldLabel}
+                                        </div>
+                                        <div className="text-xs font-mono font-medium text-md-on-surface/70 truncate">
+                                          {suggestion.moduleName}
+                                        </div>
+                                      </div>
+                                      {suggestion.isComputedOutput && (
+                                        <Chip size="sm" variant="flat" className="text-[10px]">
+                                          Computed
+                                        </Chip>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-md-on-surface/50 leading-relaxed">
+                                      {suggestion.reason}
+                                    </p>
+                                  </div>
+                                  <span className="text-xs font-semibold text-emerald-600">
+                                    {suggestion.confidence}%
+                                  </span>
+                                  <LinkIcon className="h-4 w-4 mr-2 text-emerald-500 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     );
                   })}
@@ -308,7 +409,7 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
                           {source.moduleName}.{source.fieldVariableName}
                         </span>
                         {source.isComputedOutput && (
-                          <Chip size="sm" variant="default">
+                          <Chip size="sm" variant="flat">
                             Computed
                           </Chip>
                         )}
@@ -342,13 +443,52 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
             </div>
           )}
 
-          {/* Quick Actions Section - Placeholder for Phase 3 */}
-          {linkOpportunities.length > 3 && (
-            <div className="pt-4 border-t border-border/50">
-              <div className="text-center p-3 bg-md-surface-variant/10 rounded-lg">
-                <p className="text-xs text-md-on-surface-variant">
-                  Batch link actions coming soon
-                </p>
+          {/* Batch Link Actions */}
+          {linkOpportunities.length > 1 && (
+            <div className="pt-4 border-t border-border/50 space-y-3">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-md-primary" />
+                <span className="text-xs font-semibold text-md-primary uppercase tracking-wide">
+                  Batch Actions
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => handleBatchLink(80)}
+                  disabled={excellentCount === 0}
+                  variant="primary"
+                  size="sm"
+                  className="text-xs font-medium transition-smooth disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={`Link ${excellentCount} suggestion${excellentCount !== 1 ? 's' : ''} with 80% or higher confidence`}
+                >
+                  <div className="flex flex-col items-center gap-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5" />
+                      <span>Link Excellent</span>
+                    </div>
+                    <span className="text-[10px] opacity-80">
+                      ({excellentCount} at ≥80%)
+                    </span>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => handleBatchLink(60)}
+                  disabled={goodCount === 0}
+                  variant="secondary"
+                  size="sm"
+                  className="text-xs font-medium transition-smooth disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={`Link ${goodCount} suggestion${goodCount !== 1 ? 's' : ''} with 60% or higher confidence`}
+                >
+                  <div className="flex flex-col items-center gap-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5" />
+                      <span>Link Good</span>
+                    </div>
+                    <span className="text-[8px] opacity-80">
+                      ({goodCount} at ≥60%)
+                    </span>
+                  </div>
+                </Button>
               </div>
             </div>
           )}

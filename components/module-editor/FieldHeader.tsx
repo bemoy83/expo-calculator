@@ -1,6 +1,6 @@
 "use client";
 
-import { Link2 } from "lucide-react";
+import { Link2, Unlink } from "lucide-react";
 
 interface FieldHeaderProps {
   label: React.ReactNode;
@@ -14,6 +14,7 @@ interface FieldHeaderProps {
   onLinkClick?: () => void;
   isLinked?: boolean;
   linkLabel?: string;
+  onUnlinkClick?: () => void;
 }
 
 export function FieldHeader({
@@ -28,6 +29,7 @@ export function FieldHeader({
   onLinkClick,
   isLinked,
   linkLabel = "Link",
+  onUnlinkClick,
 }: FieldHeaderProps) {
   const formattedUnit = (() => {
     if (!unit && !unitSymbol) return null;
@@ -54,17 +56,28 @@ export function FieldHeader({
         </label>
       </div>
 
-      {/* Right side link button - always reserve space for consistent alignment */}
-      <div className="flex-shrink-0 ml-2 min-w-[50px] flex justify-end">
+      {/* Right side link/unlink button - always reserve space for consistent alignment */}
+      <div className="flex-shrink-0 ml-2 min-w-[60px] flex justify-end">
         {showLink && !isLinked && (
           <button
             type="button"
             onClick={onLinkClick}
-            className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-foreground transition-colors p-1 -mr-1"
+            className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-primary transition-colors p-1 -mr-1"
             title="Link this field to another module field"
           >
             <Link2 className="h-3.5 w-3.5" />
             <span>{linkLabel}</span>
+          </button>
+        )}
+        {showLink && isLinked && onUnlinkClick && (
+          <button
+            type="button"
+            onClick={onUnlinkClick}
+            className="flex items-center gap-1 text-xs text-md-error hover:text-md-error/80 transition-colors p-1 -mr-1"
+            title="Unlink this field"
+          >
+            <Unlink className="h-3.5 w-3.5" />
+            <span>Unlink</span>
           </button>
         )}
       </div>

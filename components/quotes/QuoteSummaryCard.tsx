@@ -23,7 +23,7 @@ export function QuoteSummaryCard({
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
 
   return (
-    <Card elevation={1} className="sticky top-[88px] z-40" title="Quote Summary">
+    <Card className="sticky top-[88px] z-40" title="Quote Summary">
       <div className="space-y-5">
         {/* Financial Breakdown */}
         <div className="space-y-3">
@@ -78,23 +78,23 @@ export function QuoteSummaryCard({
             {quote.lineItems.map((item) => (
               <div
                 key={item.id}
-                className="group flex items-start justify-between gap-3 p-3 rounded-lg transition-smooth"
+                className="group flex items-start justify-between gap-3 pb-3 rounded-lg transition-smooth"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-md-on-surface text-sm mb-0.5 break-words">
+                  <div className="font-semibold text-md-on-surface text-sm mb-0.5 break-words">
                     {item.moduleName}
                   </div>
                   {item.primarySummary && (
-                    <div className="text-md-on-surface text-sm break-words mb-0.5">
+                    <div className="text-md-on-surface text-xs break-words mb-0.5">
                       {item.primarySummary}
                     </div>
                   )}
                   {item.secondarySummary ? (
-                    <div className="text-md-on-surface-variant text-xs break-words">
+                    <div className="text-md-on-surface-variant text-[10px] break-words">
                       {item.secondarySummary}
                     </div>
                   ) : (
-                    <div className="text-md-on-surface-variant text-xs break-words">
+                      <div className="text-md-on-surface-variant text-[10px] break-words">
                       {item.fieldSummary}
                     </div>
                   )}
@@ -105,7 +105,7 @@ export function QuoteSummaryCard({
                   </span>
                   <button
                     onClick={() => removeLineItem(item.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-md-error/10 rounded-md text-destructive"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-md-error/10 rounded-full p-1 text-destructive"
                     title="Remove item"
                     aria-label={`Remove line item: ${item.moduleName}`}
                   >

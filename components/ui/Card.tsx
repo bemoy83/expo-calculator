@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 export const CARD_BACKGROUND = 'bg-md-surface-container';
 export const CARD_BORDER = 'border border-md-outline';
 export const CARD_ROUNDED = 'rounded-extra-large';
-export const CARD_BASE_CLASSES = `${CARD_BACKGROUND} ${CARD_BORDER} ${CARD_ROUNDED} transition-all relative`;
 
 const VARIANT_STYLES = {
   default: {
