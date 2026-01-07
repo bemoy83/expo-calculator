@@ -4,7 +4,7 @@
  * Validation, generation, and sanitization helpers for computed outputs.
  */
 
-import { ComputedOutput, Field, SharedFunction, CalculationModule, Material } from '../types';
+import { ComputedOutput, Field, SharedFunction, CalculationModule, Material, Labor } from '../types';
 import { labelToVariableName } from '../utils';
 import { validateFormula } from '../formula-evaluator';
 import { useFunctionsStore } from '../stores/functions-store';
