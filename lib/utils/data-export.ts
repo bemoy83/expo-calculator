@@ -1,15 +1,17 @@
-import { CalculationModule, Material, ModuleTemplate, SharedFunction } from '../types';
+import { CalculationModule, Material, ModuleTemplate, SharedFunction, Labor } from '../types';
 import { useModulesStore } from '../stores/modules-store';
 import { useMaterialsStore } from '../stores/materials-store';
 import { useCategoriesStore } from '../stores/categories-store';
 import { useTemplatesStore } from '../stores/templates-store';
 import { useFunctionsStore } from '../stores/functions-store';
+import { useLaborStore } from '../stores/labor-store';
 
 export interface ExportedData {
   version: string;
   exportedAt: string;
   modules: CalculationModule[];
   materials: Material[];
+  labor?: Labor[];
   customCategories: string[];
   functions?: SharedFunction[]; // Optional for backward compatibility
   templates?: ModuleTemplate[]; // Optional for backward compatibility, but not exported/imported
@@ -24,6 +26,7 @@ const EXPORT_VERSION = '1.0.0';
 export function exportAllData(): ExportedData {
   const modules = useModulesStore.getState().modules;
   const materials = useMaterialsStore.getState().materials;
+  const labor = useLaborStore.getState().labor;
   const customCategories = useCategoriesStore.getState().customCategories;
   const functions = useFunctionsStore.getState().functions;
 
@@ -32,6 +35,7 @@ export function exportAllData(): ExportedData {
     exportedAt: new Date().toISOString(),
     modules,
     materials,
+    labor,
     customCategories,
     functions,
   };

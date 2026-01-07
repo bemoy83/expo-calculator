@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 interface AutocompleteSuggestion {
   name: string;
   displayName: string;
-  type: 'field' | 'material' | 'property' | 'function' | 'constant';
+  type: 'field' | 'material' | 'property' | 'function' | 'constant' | 'labor';
   description?: string;
   functionSignature?: string; // For user-defined functions: parameter names
 }

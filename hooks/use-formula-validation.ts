@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Field, Material, ComputedOutput, CalculationModule } from '@/lib/types';
+import { Field, Material, ComputedOutput, CalculationModule, Labor } from '@/lib/types';
 import { validateFormula, evaluateFormula } from '@/lib/formula-evaluator';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { evaluateComputedOutputs } from '@/lib/utils/evaluate-computed-outputs';
@@ -14,6 +14,7 @@ interface UseFormulaValidationProps {
   formula: string;
   fields: Field[];
   materials: Material[];
+  labor?: Labor[];
   computedOutputs?: ComputedOutput[];
 }
 
@@ -21,6 +22,7 @@ export function useFormulaValidation({
   formula,
   fields,
   materials,
+  labor = [],
   computedOutputs = [],
 }: UseFormulaValidationProps) {
   const [formulaValidation, setFormulaValidation] = useState<FormulaValidation>({ valid: false });
@@ -39,13 +41,14 @@ export function useFormulaValidation({
       .map((o) => `out.${o.variableName}`);
     const allAvailableVars = [...availableVars, ...computedOutputVars];
     
-    // Pass field definitions for validation (needed to identify material fields)
+    // Pass field definitions for validation (needed to identify material/labor fields)
     const fieldDefinitions = fields.map(f => ({
       variableName: f.variableName,
       type: f.type,
       materialCategory: f.materialCategory,
+      laborCategory: f.laborCategory,
     }));
-    const validation = validateFormula(formulaToValidate, allAvailableVars, materials, fieldDefinitions, functions);
+    const validation = validateFormula(formulaToValidate, allAvailableVars, materials, fieldDefinitions, functions, labor);
 
     if (validation.valid) {
       // Calculate preview with default values
@@ -72,6 +75,19 @@ export function useFormulaValidation({
                   defaultValues[field.variableName] = candidateMaterials[0].variableName;
                 } else {
                   // No material available - use empty string (will cause error if used in formula)
+                  defaultValues[field.variableName] = '';
+                }
+                break;
+              case 'labor':
+                // For labor fields, select first available labor item in category (or any labor item)
+                let candidateLabor = labor;
+                if (field.laborCategory && field.laborCategory.trim()) {
+                  candidateLabor = labor.filter(l => l.category === field.laborCategory);
+                }
+                if (candidateLabor.length > 0) {
+                  defaultValues[field.variableName] = candidateLabor[0].variableName;
+                } else {
+                  // No labor available - use empty string (will cause error if used in formula)
                   defaultValues[field.variableName] = '';
                 }
                 break;
@@ -118,6 +134,7 @@ export function useFormulaValidation({
         const preview = evaluateFormula(formulaToValidate, {
           fieldValues: valuesWithComputed,
           materials,
+          labor,
           functions,
         });
         setFormulaValidation({ valid: true, preview });
@@ -131,7 +148,7 @@ export function useFormulaValidation({
     } else {
       setFormulaValidation({ valid: false, error: validation.error });
     }
-  }, [fields, materials, functions, computedOutputs]);
+  }, [fields, materials, labor, functions, computedOutputs]);
 
   useEffect(() => {
     if (formula) {
@@ -139,7 +156,7 @@ export function useFormulaValidation({
     } else {
       setFormulaValidation({ valid: false });
     }
-  }, [formula, fields, materials, computedOutputs, validateFormulaInput]);
+  }, [formula, fields, materials, labor, computedOutputs, validateFormulaInput]);
 
   return {
     formulaValidation,

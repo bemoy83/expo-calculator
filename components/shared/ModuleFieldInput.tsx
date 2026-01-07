@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Field, Material } from "@/lib/types";
+import { Field, Material, Labor } from "@/lib/types";
 import { normalizeToBase, convertFromBase } from "@/lib/units";
 import { FieldHeader, FieldDescription } from "@/components/module-editor/FieldHeader";
 import { Input } from "@/components/ui/Input";
@@ -28,7 +28,8 @@ interface LinkProps {
 interface ModuleFieldInputProps {
   field: Field;
   value: string | number | boolean | undefined;
-  materials: Material[];
+  materials?: Material[];
+  labor?: Labor[];
   onChange: (val: string | number | boolean) => void; // expects base value
   linkProps?: LinkProps;
 }
@@ -37,6 +38,7 @@ export function ModuleFieldInput({
   field,
   value,
   materials = [],
+  labor = [],
   onChange,
   linkProps,
 }: ModuleFieldInputProps) {
@@ -563,6 +565,49 @@ export function ModuleFieldInput({
           {materialCategory && sortedMaterials.length === 0 && (
             <p className="text-xs text-md-on-surface-variant mt-1">
               No materials available in category &quot;{materialCategory}&quot;. Please add materials or adjust the field&apos;s category.
+            </p>
+          )}
+        </div>
+      );
+    }
+    case "labor": {
+      const laborCategory = field.laborCategory;
+      const allLabor = labor ?? [];
+      const filteredLabor =
+        laborCategory && laborCategory.trim()
+          ? allLabor.filter((l) => l.category === laborCategory)
+          : allLabor;
+      const sortedLabor = [...filteredLabor].sort((a, b) => a.name.localeCompare(b.name));
+
+      return (
+        <div>
+          <FieldHeader
+            label={field.label}
+            unit={field.unit}
+            unitSymbol={field.unitSymbol}
+            required={field.required}
+          />
+
+          <div className="h-[46px] flex items-center">
+            <Select
+              label=""
+              value={value?.toString() || ""}
+              onChange={(e) => onChange(e.target.value)}
+              options={[
+                { value: "", label: "Select labor..." },
+                ...sortedLabor.map((l) => ({
+                  value: l.variableName,
+                  label: `${l.name} - ${formatCurrency(l.cost)}/hour`,
+                })),
+              ]}
+              className="w-full"
+            />
+          </div>
+
+          <FieldDescription description={field.description} />
+          {laborCategory && sortedLabor.length === 0 && (
+            <p className="text-xs text-md-on-surface-variant mt-1">
+              No labor available in category &quot;{laborCategory}&quot;. Please add labor or adjust the field&apos;s category.
             </p>
           )}
         </div>

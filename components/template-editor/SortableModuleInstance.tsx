@@ -6,7 +6,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { Chip } from '@/components/ui/Chip';
 import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
 import { ModuleFieldInput } from '@/components/shared/ModuleFieldInput';
-import type { QuoteModuleInstance, Material, CalculationModule } from '@/lib/types';
+import type { QuoteModuleInstance, Material, CalculationModule, Labor } from '@/lib/types';
+import { useLaborStore } from '@/lib/stores/labor-store';
 
 /**
  * SortableModuleInstance Component
@@ -23,6 +24,7 @@ export interface SortableModuleInstanceProps {
   onRemove: (instanceId: string) => void;
   onFieldValueChange: (instanceId: string, fieldName: string, value: any) => void;
   materials: Material[];
+  labor?: Labor[];
   // Field linking props from use-template-editor hook
   workspaceModules: QuoteModuleInstance[];
   isFieldLinked?: (instance: QuoteModuleInstance, fieldName: string) => boolean;
@@ -43,6 +45,7 @@ export function SortableModuleInstance({
   onRemove,
   onFieldValueChange,
   materials,
+  labor,
   workspaceModules,
   isFieldLinked,
   getResolvedValue,
@@ -263,6 +266,7 @@ export function SortableModuleInstance({
                 field={field}
                 value={displayValue}
                 materials={materials}
+                labor={labor}
                 onChange={(value) => {
                   // Don't allow direct editing if field is linked
                   if (linkProps?.isLinked) return;

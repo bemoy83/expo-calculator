@@ -9,6 +9,7 @@ import { useModulesStore } from './modules-store';
 import { useMaterialsStore } from './materials-store';
 import { useTemplatesStore } from './templates-store';
 import { useFunctionsStore } from './functions-store';
+import { useLaborStore } from './labor-store';
 
 /**
  * Quotes Store
@@ -513,9 +514,11 @@ export const useQuotesStore = create<QuotesStore>()(
         // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
         let cost = 0;
         try {
+          const labor = useLaborStore.getState().labor;
           const calculatedCost = evaluateFormula(moduleDef.formula, {
             fieldValues: resolvedWithComputed,
             materials,
+            labor,
             functions,
           });
           cost = Math.round(calculatedCost * 100) / 100; // Round to 2 decimal places
@@ -786,9 +789,11 @@ export const useQuotesStore = create<QuotesStore>()(
           // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
           let cost = 0;
           try {
+            const labor = useLaborStore.getState().labor;
             cost = evaluateFormula(moduleDef.formula, {
               fieldValues: resolvedWithComputed,
               materials,
+              labor,
               functions,
             });
           } catch (error: any) {

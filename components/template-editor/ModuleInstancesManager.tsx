@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { SortableList } from '@/components/shared/SortableList';
 import { SortableModuleInstance } from './SortableModuleInstance';
-import type { QuoteModuleInstance, CalculationModule, Material } from '@/lib/types';
+import type { QuoteModuleInstance, CalculationModule, Material, Labor } from '@/lib/types';
 
 /**
  * ModuleInstancesManager Component
@@ -16,6 +16,7 @@ export interface ModuleInstancesManagerProps {
   workspaceModules: QuoteModuleInstance[];
   modules: CalculationModule[];
   materials: Material[];
+  labor?: Labor[];
   onRemoveModule: (instanceId: string) => void;
   onReorder: (oldIndex: number, newIndex: number) => void;
   onFieldValueChange: (instanceId: string, fieldName: string, value: any) => void;
@@ -34,6 +35,7 @@ export function ModuleInstancesManager({
   workspaceModules,
   modules,
   materials,
+  labor,
   onRemoveModule,
   onReorder,
   onFieldValueChange,
@@ -85,6 +87,7 @@ export function ModuleInstancesManager({
               onRemove={onRemoveModule}
               onFieldValueChange={onFieldValueChange}
               materials={materials}
+              labor={labor}
               workspaceModules={workspaceModules}
               isFieldLinked={isFieldLinked}
               getResolvedValue={getResolvedValue}

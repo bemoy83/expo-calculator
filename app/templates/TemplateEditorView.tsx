@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
+import { useLaborStore } from '@/lib/stores/labor-store';
 import { useTemplateEditor } from '@/hooks/use-template-editor';
 import { Plus } from 'lucide-react';
 
@@ -37,6 +38,7 @@ export function TemplateEditorView({ templateId, onClose }: TemplateEditorViewPr
   const getTemplate = useTemplatesStore((state) => state.getTemplate);
   const modules = useModulesStore((state) => state.modules);
   const materials = useMaterialsStore((state) => state.materials);
+  const labor = useLaborStore((state) => state.labor);
 
   // Get existing template
   const existingTemplate = isNew ? null : getTemplate(templateId);
@@ -71,6 +73,7 @@ export function TemplateEditorView({ templateId, onClose }: TemplateEditorViewPr
     template: existingTemplate || null,
     modules,
     materials,
+    labor,
   });
 
   // Save handler
@@ -226,6 +229,7 @@ export function TemplateEditorView({ templateId, onClose }: TemplateEditorViewPr
               workspaceModules={workspaceModules}
               modules={modules}
               materials={materials}
+              labor={labor}
               onRemoveModule={removeModuleInstance}
               onReorder={reorderModules}
               onFieldValueChange={updateFieldValue}

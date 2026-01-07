@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useCategoriesStore } from '@/lib/stores/categories-store';
+import { useLaborStore } from '@/lib/stores/labor-store';
 import { SharedFunction } from '@/lib/types';
 import { validateFormula } from '@/lib/formula-evaluator';
 import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
@@ -18,13 +19,13 @@ import { FunctionEditorActions } from '@/components/function-editor/FunctionEdit
 import { labelToVariableName } from '@/lib/utils';
 import { X } from 'lucide-react';
 
-interface AutocompleteCandidate {
+type AutocompleteCandidate = {
   name: string;
   displayName: string;
-  type: 'field' | 'material' | 'property' | 'function' | 'constant';
+  type: 'field' | 'material' | 'property' | 'function' | 'constant' | 'labor';
   description?: string;
   functionSignature?: string;
-}
+};
 
 export interface FunctionEditorViewProps {
   functionId: string; // 'new' or existing function ID
@@ -39,6 +40,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
   const getFunction = useFunctionsStore((state) => state.getFunction);
   const getAllCategories = useCategoriesStore((state) => state.getAllCategories);
   const addCategory = useCategoriesStore((state) => state.addCategory);
+  const labor = useLaborStore((state) => state.labor);
 
   const existingFunction = isNew ? null : getFunction(functionId);
   const formulaTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -189,8 +191,31 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
       });
     });
 
+    // Labor variables
+    labor.forEach((laborItem) => {
+      candidates.push({
+        name: laborItem.variableName,
+        displayName: laborItem.variableName,
+        type: 'labor',
+        description: `${laborItem.name} - ${laborItem.cost}/hour`,
+      });
+
+      // Labor properties
+      if (laborItem.properties) {
+        laborItem.properties.forEach((prop) => {
+          const unitDisplay = prop.unitSymbol;
+          candidates.push({
+            name: `${laborItem.variableName}.${prop.name}`,
+            displayName: `${laborItem.variableName}.${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''}`,
+            type: 'property',
+            description: prop.name,
+          });
+        });
+      }
+    });
+
     return candidates;
-  }, [parameters, functions, functionId]);
+  }, [parameters, functions, functionId, labor]);
 
   // Formula autocomplete hook
   const {

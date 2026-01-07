@@ -8,6 +8,7 @@ import {
   CalculationModule,
   Field,
   FieldType,
+  Labor,
   Material,
   ModuleTemplate,
   QuoteModuleInstance,
@@ -16,17 +17,20 @@ import { normalizeToBase } from "@/lib/units";
 import { generateId } from "@/lib/utils";
 import { canLinkFields } from "@/lib/utils/field-linking";
 import { useFunctionsStore } from "@/lib/stores/functions-store";
+import { useLaborStore } from "@/lib/stores/labor-store";
 
 interface UseTemplateEditorOptions {
   templateId: string;
   template: ModuleTemplate | null;
   modules: CalculationModule[];
   materials: Material[];
+  labor?: Labor[];
 }
 
 function getDefaultFieldValues(
   fields: Field[],
-  materials: Material[]
+  materials: Material[],
+  labor: Labor[] = []
 ): Record<string, string | number | boolean> {
   const defaults: Record<string, string | number | boolean> = {};
 
@@ -59,6 +63,17 @@ function getDefaultFieldValues(
           candidateMaterials[0]?.variableName ?? "";
         break;
       }
+      case "labor": {
+        let candidateLabor = labor;
+        if (field.laborCategory && field.laborCategory.trim()) {
+          candidateLabor = labor.filter(
+            (l) => l.category === field.laborCategory
+          );
+        }
+        defaults[field.variableName] =
+          candidateLabor[0]?.variableName ?? "";
+        break;
+      }
       case "text":
         defaults[field.variableName] = "";
         break;
@@ -73,6 +88,7 @@ export function useTemplateEditor({
   template,
   modules,
   materials,
+  labor = [],
 }: UseTemplateEditorOptions) {
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
@@ -117,13 +133,16 @@ export function useTemplateEditor({
           }
           
           // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
+          const labor = useLaborStore.getState().labor;
           const result = evaluateFormula(moduleDef.formula, {
             fieldValues: resolvedWithComputed,
             materials,
+            labor,
             fields: moduleDef.fields.map((f) => ({
               variableName: f.variableName,
               type: f.type,
               materialCategory: f.materialCategory,
+              laborCategory: f.laborCategory,
             })),
             functions,
           });
@@ -194,8 +213,8 @@ export function useTemplateEditor({
 
       // Use saved field values if available, otherwise use defaults
       const fieldValues = savedInstance.fieldValues
-        ? { ...getDefaultFieldValues(moduleDef.fields, materials), ...savedInstance.fieldValues }
-        : getDefaultFieldValues(moduleDef.fields, materials);
+        ? { ...getDefaultFieldValues(moduleDef.fields, materials, labor), ...savedInstance.fieldValues }
+        : getDefaultFieldValues(moduleDef.fields, materials, labor);
 
       // Migrate field links: convert __index_* format to ID-based (one-time migration)
       let fieldLinks: Record<string, { moduleInstanceId: string; fieldVariableName: string }> | undefined;
@@ -344,7 +363,7 @@ export function useTemplateEditor({
       const moduleDef = modules.find((m) => m.id === moduleId);
       if (!moduleDef) return;
 
-      const fieldValues = getDefaultFieldValues(moduleDef.fields, materials);
+      const fieldValues = getDefaultFieldValues(moduleDef.fields, materials, labor);
 
       // Create instance with cost 0, then recalculate (follows quotes store pattern)
       const newInstance: QuoteModuleInstance = {

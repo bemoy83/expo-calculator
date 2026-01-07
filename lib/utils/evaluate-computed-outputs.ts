@@ -7,6 +7,7 @@
 
 import { CalculationModule, ComputedOutput, Material, SharedFunction } from '../types';
 import { evaluateFormula, EvaluationContext } from '../formula-evaluator';
+import { useLaborStore } from '../stores/labor-store';
 
 export interface ComputedOutputEvaluationResult {
   computedValues: Record<string, number>; // Maps 'out.variableName' -> value
@@ -35,10 +36,14 @@ export function evaluateComputedOutputs(
     return { computedValues, errors };
   }
 
+  // Get labor from store
+  const labor = useLaborStore.getState().labor;
+
   // Create evaluation context
   const context: EvaluationContext = {
     fieldValues: resolvedFieldValues,
     materials,
+    labor,
     functions,
     fields: moduleDef.fields.map((f) => ({
       variableName: f.variableName,

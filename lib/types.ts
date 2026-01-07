@@ -1,4 +1,4 @@
-export type FieldType = 'number' | 'dropdown' | 'text' | 'boolean' | 'material';
+export type FieldType = 'number' | 'dropdown' | 'text' | 'boolean' | 'material' | 'labor';
 
 export type MaterialPropertyType = 'number' | 'string' | 'boolean' | 'price';
 
@@ -25,6 +25,27 @@ export const COMMON_MATERIAL_PROPERTIES = [
   'volume',
 ] as const;
 
+// Common labor property names for UI suggestions
+export const COMMON_LABOR_PROPERTIES = [
+  'm2_per_hour',
+  'pcs_per_hour',
+  'lm_per_hour',
+  'm_per_hour',
+  'units_per_hour',
+] as const;
+
+export type LaborPropertyType = 'number';
+
+export interface LaborProperty {
+  id: string;
+  name: string; // e.g., "m2_per_hour", "pcs_per_hour"
+  type: LaborPropertyType;
+  value: number;
+  unitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count'; // Auto-inferred from unitSymbol
+  unitSymbol?: string; // Normalized symbol (e.g., "m2", "pcs", "lm")
+  storedValue?: number; // Canonical base-normalized value (always use this for evaluation)
+}
+
 export interface Field {
   id: string;
   label: string;
@@ -39,6 +60,7 @@ export interface Field {
   unitSymbol?: string; // Normalized symbol (e.g., "mm", "m2", "m3")
   description?: string; // Help text for the field
   materialCategory?: string; // For material type fields: limit materials to this category (empty = all categories)
+  laborCategory?: string; // For labor type fields: limit labor items to this category (empty = all categories)
 }
 
 import type { UnitCategory } from './units';
@@ -79,6 +101,19 @@ export interface Material {
   supplier?: string; // Supplier name
   description?: string; // Material description or usage notes
   properties?: MaterialProperty[]; // Material properties (dimensions, density, etc.)
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Labor {
+  id: string;
+  name: string;
+  category: string;
+  cost: number; // Hourly rate (like price for materials)
+  variableName: string;
+  order?: number;
+  description?: string;
+  properties?: LaborProperty[]; // Labor properties (productivity rates like m²/hour, pcs/hour, etc.)
   createdAt: string;
   updatedAt: string;
 }

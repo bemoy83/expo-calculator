@@ -5,6 +5,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Field, FieldType } from '@/lib/types';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
+import { useLaborStore } from '@/lib/stores/labor-store';
 import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -32,8 +33,9 @@ export function SortableFieldItem({
   onRemoveField,
   fieldRef,
 }: SortableFieldItemProps) {
-  // Get materials from store for category dropdown
+  // Get materials and labor from stores for category dropdowns
   const materials = useMaterialsStore((state) => state.materials);
+  const labor = useLaborStore((state) => state.labor);
   
   // Local state to preserve trailing commas in dropdown options input
   const [dropdownOptionsInput, setDropdownOptionsInput] = useState(
@@ -149,6 +151,7 @@ export function SortableFieldItem({
                 { value: 'dropdown', label: 'Dropdown' },
                 { value: 'boolean', label: 'Boolean' },
                 { value: 'material', label: 'Material' },
+                { value: 'labor', label: 'Labor' },
               ]}
             />
             {field.type === 'number' && (
@@ -203,6 +206,19 @@ export function SortableFieldItem({
                 options={[
                   { value: '', label: 'All Categories' },
                   ...Array.from(new Set((materials ?? []).map((m) => m.category)))
+                    .sort()
+                    .map((cat) => ({ value: cat, label: cat })),
+                ]}
+              />
+            )}
+            {field.type === 'labor' && (
+              <Select
+                label="Limit to Labor Category (optional)"
+                value={field.laborCategory || ''}
+                onChange={(e) => onUpdateField(field.id, { laborCategory: e.target.value || undefined })}
+                options={[
+                  { value: '', label: 'All Categories' },
+                  ...Array.from(new Set((labor ?? []).map((l) => l.category)))
                     .sort()
                     .map((cat) => ({ value: cat, label: cat })),
                 ]}
@@ -276,6 +292,11 @@ export function SortableFieldItem({
           {field.type === 'material' && (
             <div className="text-xs text-md-on-surface-variant">
               The material variable represents the price of the selected material in your formula. If you&apos;ve selected a category above, only materials from that category will be available in the Quote Builder.
+            </div>
+          )}
+          {field.type === 'labor' && (
+            <div className="text-xs text-md-on-surface-variant">
+              The labor variable represents the hourly cost of the selected labor item in your formula. You can also access productivity properties using dot notation (e.g., <code className="text-md-primary">labor.m2_per_hour</code>). If you&apos;ve selected a category above, only labor items from that category will be available in the Quote Builder.
             </div>
           )}
           <Input

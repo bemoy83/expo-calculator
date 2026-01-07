@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ComputedOutput, Field, SharedFunction, Material } from '@/lib/types';
+import { ComputedOutput, Field, SharedFunction, Material, Labor } from '@/lib/types';
 import { Plus } from 'lucide-react';
 import { generateComputedOutputVariableName, validateComputedOutputVariableName, validateComputedOutputExpression } from '@/lib/utils/computed-outputs';
 import { getUnitCategory, getUnitsByCategory, UnitCategory } from '@/lib/units';
@@ -14,6 +14,7 @@ interface ComputedOutputsManagerProps {
     computedOutputs: ComputedOutput[];
     fields: Field[];
     materials: Material[]; // Materials needed to validate field property references
+    labor?: Labor[]; // Labor items needed to validate field property references
     onUpdateOutput: (id: string, updates: Partial<ComputedOutput>) => void;
     onRemoveOutput: (id: string) => void;
     onAddOutput: () => void;
@@ -25,6 +26,7 @@ export function ComputedOutputsManager({
     computedOutputs,
     fields,
     materials,
+    labor = [],
     onUpdateOutput,
     onRemoveOutput,
     onAddOutput,
@@ -169,6 +171,7 @@ export function ComputedOutputsManager({
                             computedOutputs, // Pass all outputs to check order
                             outputFunctions,
                             materials, // Pass materials to validate field property references
+                            labor, // Pass labor to validate field property references
                             output.id // Pass current output ID to check if references are to previous outputs
                         );
 

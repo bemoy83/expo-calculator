@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { Field, Material, ComputedOutput } from '@/lib/types';
+import { Field, Material, ComputedOutput, Labor } from '@/lib/types';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 
 interface FieldVariable {
@@ -8,6 +8,7 @@ interface FieldVariable {
   type: string;
   required: boolean;
   materialCategory?: string;
+  laborCategory?: string;
 }
 
 interface MaterialVariable {
@@ -18,10 +19,17 @@ interface MaterialVariable {
   properties: Array<{ id: string; name: string; unit?: string; unitSymbol?: string; type: string }>;
 }
 
+interface LaborVariable {
+  name: string;
+  label: string;
+  cost: number;
+  properties: Array<{ id: string; name: string; unitSymbol?: string; type: string }>;
+}
+
 interface AutocompleteCandidate {
   name: string;
   displayName: string;
-  type: 'field' | 'material' | 'property' | 'function' | 'constant';
+  type: 'field' | 'material' | 'property' | 'function' | 'constant' | 'labor';
   description?: string;
   functionSignature?: string; // For user-defined functions: parameter names
 }
@@ -29,6 +37,7 @@ interface AutocompleteCandidate {
 interface UseFormulaVariablesProps {
   fields: Field[];
   materials: Material[];
+  labor?: Labor[];
   formula: string;
   computedOutputs?: ComputedOutput[];
 }
@@ -36,6 +45,7 @@ interface UseFormulaVariablesProps {
 export function useFormulaVariables({
   fields,
   materials,
+  labor = [],
   formula,
   computedOutputs = [],
 }: UseFormulaVariablesProps) {
@@ -100,6 +110,39 @@ export function useFormulaVariables({
     return Array.from(propertyMap.values());
   }, [fields, materials]);
 
+  // Get available properties for labor fields
+  const getLaborFieldProperties = useCallback((fieldVar: string) => {
+    const field = fields.find(f => f.variableName === fieldVar);
+    // Normalize field type to lowercase for comparison
+    if (!field || field.type?.toLowerCase() !== 'labor') {
+      return [];
+    }
+    
+    // Get labor items in the field's category (if specified)
+    let candidateLabor = labor;
+    if (field.laborCategory && field.laborCategory.trim()) {
+      candidateLabor = labor.filter(l => l.category === field.laborCategory);
+    }
+    
+    // Collect all unique properties from candidate labor items
+    const propertyMap = new Map<string, { name: string; unitSymbol?: string; type: string }>();
+    candidateLabor.forEach(laborItem => {
+      if (laborItem.properties) {
+        laborItem.properties.forEach(prop => {
+          if (!propertyMap.has(prop.name)) {
+            propertyMap.set(prop.name, {
+              name: prop.name,
+              unitSymbol: prop.unitSymbol,
+              type: prop.type,
+            });
+          }
+        });
+      }
+    });
+    
+    return Array.from(propertyMap.values());
+  }, [fields, labor]);
+
   // Available field variables
   const availableFieldVariables = useMemo<FieldVariable[]>(() => {
     return fields
@@ -113,6 +156,7 @@ export function useFormulaVariables({
           type: field?.type || 'unknown',
           required: field?.required || false,
           materialCategory: field?.materialCategory,
+          laborCategory: field?.laborCategory,
         };
       });
   }, [fields]);
@@ -133,6 +177,21 @@ export function useFormulaVariables({
       })),
     }));
   }, [materials]);
+
+  // Available labor variables
+  const availableLaborVariables = useMemo<LaborVariable[]>(() => {
+    return labor.map((l) => ({
+      name: l.variableName,
+      label: l.name,
+      cost: l.cost,
+      properties: (l.properties || []).map((prop, index) => ({
+        id: prop.id || `${l.variableName}-prop-${index}`,
+        name: prop.name,
+        unitSymbol: prop.unitSymbol,
+        type: prop.type,
+      })),
+    }));
+  }, [labor]);
 
   // Calculate used fields for progress counter
   const usedFields = useMemo(() => {
@@ -172,6 +231,20 @@ export function useFormulaVariables({
           });
         });
       }
+
+      // If it's a labor field, add its properties
+      if (fieldVar.type === 'labor') {
+        const fieldProperties = getLaborFieldProperties(fieldVar.name);
+        fieldProperties.forEach((prop) => {
+          const unitDisplay = prop.unitSymbol;
+          candidates.push({
+            name: `${fieldVar.name}.${prop.name}`,
+            displayName: `${fieldVar.name}.${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''}`,
+            type: 'property',
+            description: prop.name,
+          });
+        });
+      }
     });
 
     // Material variables
@@ -189,6 +262,27 @@ export function useFormulaVariables({
         candidates.push({
           name: `${mat.name}.${prop.name}`,
           displayName: `${mat.name}.${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''}`,
+          type: 'property',
+          description: prop.name,
+        });
+      });
+    });
+
+    // Labor variables
+    availableLaborVariables.forEach((lab) => {
+      candidates.push({
+        name: lab.name,
+        displayName: lab.name,
+        type: 'labor',
+        description: lab.label,
+      });
+
+      // Labor properties
+      lab.properties.forEach((prop) => {
+        const unitDisplay = prop.unitSymbol;
+        candidates.push({
+          name: `${lab.name}.${prop.name}`,
+          displayName: `${lab.name}.${prop.name}${unitDisplay ? ` (${unitDisplay})` : ''}`,
           type: 'property',
           description: prop.name,
         });
@@ -255,17 +349,19 @@ export function useFormulaVariables({
     });
 
     return candidates;
-  }, [availableFieldVariables, availableMaterialVariables, getMaterialFieldProperties, functions, computedOutputs]);
+  }, [availableFieldVariables, availableMaterialVariables, availableLaborVariables, getMaterialFieldProperties, getLaborFieldProperties, functions, computedOutputs]);
 
   return {
     // Helper functions
     isVariableInFormula,
     isPropertyReferenceInFormula,
     getMaterialFieldProperties,
+    getLaborFieldProperties,
     
     // Variable collections
     availableFieldVariables,
     availableMaterialVariables,
+    availableLaborVariables,
     collectAutocompleteCandidates,
     
     // Computed values

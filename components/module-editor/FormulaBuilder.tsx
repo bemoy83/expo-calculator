@@ -23,6 +23,7 @@ interface VariableInfo {
   type: string;
   required?: boolean;
   materialCategory?: string;
+  laborCategory?: string;
 }
 
 interface MaterialVariableInfo {
@@ -31,6 +32,13 @@ interface MaterialVariableInfo {
   price: number;
   unit: string;
   properties: Array<{ id: string; name: string; unit?: string; unitSymbol?: string; type: string }>;
+}
+
+interface LaborVariableInfo {
+  name: string;
+  label: string;
+  cost: number;
+  properties: Array<{ id: string; name: string; unitSymbol?: string; type: string }>;
 }
 
 interface AutocompleteSuggestion {
@@ -57,23 +65,29 @@ interface FormulaBuilderProps {
   // Variable lists
   availableFieldVariables: VariableInfo[];
   availableMaterialVariables: MaterialVariableInfo[];
+  availableLaborVariables?: LaborVariableInfo[];
   allFields: VariableInfo[];
   usedFields: number;
   
   // Expansion state
   fieldVariablesExpanded: boolean;
   materialVariablesExpanded: boolean;
+  laborVariablesExpanded?: boolean;
   expandedField: string | null;
   expandedMaterial: string | null;
+  expandedLabor?: string | null;
   onToggleFieldVariablesExpanded: () => void;
   onToggleMaterialVariablesExpanded: () => void;
+  onToggleLaborVariablesExpanded?: () => void;
   onSetExpandedField: (fieldName: string | null) => void;
   onSetExpandedMaterial: (materialName: string | null) => void;
+  onSetExpandedLabor?: (laborName: string | null) => void;
   
   // Helper functions
   isVariableInFormula: (variableName: string, formula: string) => boolean;
   isPropertyReferenceInFormula: (materialVar: string, propertyName: string, formula: string) => boolean;
   getMaterialFieldProperties: (fieldVar: string) => Array<{ name: string; unit?: string; unitSymbol?: string; type: string }>;
+  getLaborFieldProperties?: (fieldVar: string) => Array<{ name: string; unitSymbol?: string; type: string }>;
   insertVariableAtCursor: (variableName: string) => void;
   insertOperatorAtCursor: (operator: string) => void;
   
@@ -104,19 +118,25 @@ export function FormulaBuilder({
   formulaError,
   availableFieldVariables,
   availableMaterialVariables,
+  availableLaborVariables = [],
   allFields,
   usedFields,
   fieldVariablesExpanded,
   materialVariablesExpanded,
+  laborVariablesExpanded = true,
   expandedField,
   expandedMaterial,
+  expandedLabor,
   onToggleFieldVariablesExpanded,
   onToggleMaterialVariablesExpanded,
+  onToggleLaborVariablesExpanded,
   onSetExpandedField,
   onSetExpandedMaterial,
+  onSetExpandedLabor,
   isVariableInFormula,
   isPropertyReferenceInFormula,
   getMaterialFieldProperties,
+  getLaborFieldProperties,
   insertVariableAtCursor,
   insertOperatorAtCursor,
   autocompleteSuggestions,
@@ -168,6 +188,17 @@ export function FormulaBuilder({
                   const isInFormula = isVariableInFormula(varInfo.name, formula);
                   const showCheckmark = isInFormula;
 
+                  // Get properties based on field type
+                  let fieldProperties: Array<{ name: string; unit?: string; unitSymbol?: string; type: string }> = [];
+                  // Normalize field type to lowercase for comparison
+                  const fieldType = varInfo.type?.toLowerCase();
+                  
+                  if (fieldType === 'material' && getMaterialFieldProperties) {
+                    fieldProperties = getMaterialFieldProperties(varInfo.name);
+                  } else if (fieldType === 'labor' && getLaborFieldProperties) {
+                    fieldProperties = getLaborFieldProperties(varInfo.name);
+                  }
+
                   return (
                     <FormulaExpandableVariable
                       key={varInfo.name}
@@ -175,7 +206,7 @@ export function FormulaBuilder({
                       value={varInfo.name}
                       isUsed={showCheckmark}
                       onInsert={insertVariableAtCursor}
-                      properties={getMaterialFieldProperties(varInfo.name).map((prop) => {
+                      properties={fieldProperties.map((prop) => {
                         const propertyRef = `${varInfo.name}.${prop.name}`;
                         const unitDisplay = prop.unitSymbol || prop.unit || '';
                         const propertyLabel = unitDisplay
@@ -260,9 +291,80 @@ export function FormulaBuilder({
           </div>
         )}
 
-        {availableFieldVariables.length === 0 && availableMaterialVariables.length === 0 && (
+        {availableLaborVariables && availableLaborVariables.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={onToggleLaborVariablesExpanded}
+              className="flex items-center justify-between w-full mb-3 group"
+              aria-expanded={laborVariablesExpanded}
+            >
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-md-primary">Labor Variables</h4>
+                <span className="text-xs text-md-on-surface-variant">
+                  {availableLaborVariables.length} {availableLaborVariables.length === 1 ? 'labor item' : 'labor items'}
+                </span>
+              </div>
+              {laborVariablesExpanded ? (
+                <ChevronDown className="h-4 w-4 text-md-on-surface-variant group-hover:text-md-on-surface transition-colors" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-md-on-surface-variant group-hover:text-md-on-surface transition-colors" />
+              )}
+            </button>
+            {!laborVariablesExpanded && (
+              <div className="text-xs text-md-on-surface-variant mb-3">
+                Click to expand and see labor variables
+              </div>
+            )}
+            {laborVariablesExpanded && (
+              <div className="space-y-2 mb-4">
+                {availableLaborVariables.map((lab) => {
+                  const isLaborInFormula = isVariableInFormula(lab.name, formula);
+                  const showCheckmark = isLaborInFormula;
+
+                  return (
+                    <FormulaExpandableVariable
+                      key={lab.name}
+                      label={lab.name}
+                      value={lab.name}
+                      isUsed={showCheckmark}
+                      onInsert={insertVariableAtCursor}
+                      properties={getLaborFieldProperties ? getLaborFieldProperties(lab.name).map((prop) => {
+                        const propertyRef = `${lab.name}.${prop.name}`;
+                        const unitDisplay = prop.unitSymbol || '';
+                        const propertyLabel = unitDisplay
+                          ? `${prop.name} (${unitDisplay})`
+                          : prop.name;
+
+                        return {
+                          label: propertyLabel,
+                          value: propertyRef,
+                          isUsed: isPropertyReferenceInFormula(lab.name, prop.name, formula),
+                        };
+                      }) : (lab.properties ?? []).map((prop) => {
+                        const propertyRef = `${lab.name}.${prop.name}`;
+                        const unitDisplay = prop.unitSymbol || '';
+                        const propertyLabel = unitDisplay
+                          ? `${prop.name} (${unitDisplay})`
+                          : prop.name;
+
+                        return {
+                          label: propertyLabel,
+                          value: propertyRef,
+                          isUsed: isPropertyReferenceInFormula(lab.name, prop.name, formula),
+                        };
+                      })}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {availableFieldVariables.length === 0 && availableMaterialVariables.length === 0 && (!availableLaborVariables || availableLaborVariables.length === 0) && (
           <div className="text-center py-4 text-md-on-surface-variant text-sm">
-            <p>Add fields or materials to use variables in your formula</p>
+            <p>Add fields, materials, or labor to use variables in your formula</p>
           </div>
         )}
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
+import { useLaborStore } from '@/lib/stores/labor-store';
 import { Textarea } from '@/components/ui/Textarea';
 
 import { useCategoriesStore } from '@/lib/stores/categories-store';
@@ -39,13 +40,16 @@ export default function ModulesPage() {
   const updateModule = useModulesStore((state) => state.updateModule);
   const deleteModule = useModulesStore((state) => state.deleteModule);
   const materials = useMaterialsStore((state) => state.materials);
+  const labor = useLaborStore((state) => state.labor);
   const getAllCategories = useCategoriesStore((state) => state.getAllCategories);
   const addCategory = useCategoriesStore((state) => state.addCategory);
 
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [expandedMaterial, setExpandedMaterial] = useState<string | null>(null);
+  const [expandedLabor, setExpandedLabor] = useState<string | null>(null);
   const [expandedField, setExpandedField] = useState<string | null>(null);
   const [fieldVariablesExpanded, setFieldVariablesExpanded] = useState(true);
+  const [laborVariablesExpanded, setLaborVariablesExpanded] = useState(true);
   const [materialVariablesExpanded, setMaterialVariablesExpanded] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -84,6 +88,7 @@ export default function ModulesPage() {
     formula: formData.formula,
     fields,
     materials,
+    labor,
     computedOutputs,
   });
   // Preview state
@@ -96,6 +101,7 @@ export default function ModulesPage() {
     formula: formData.formula,
     fields,
     materials,
+    labor,
     previewFieldValues,
     formulaValidationValid: formulaValidation.valid,
     computedOutputs,
@@ -156,14 +162,17 @@ export default function ModulesPage() {
     isVariableInFormula,
     isPropertyReferenceInFormula,
     getMaterialFieldProperties,
+    getLaborFieldProperties,
     availableFieldVariables,
     availableMaterialVariables,
+    availableLaborVariables,
     collectAutocompleteCandidates,
     usedFields,
     allFields,
   } = useFormulaVariables({
     fields,
     materials,
+    labor,
     formula: formData.formula,
     computedOutputs,
   });
@@ -371,6 +380,7 @@ export default function ModulesPage() {
           computedOutputs, // Pass all outputs to check order
           functions,
           materials, // Pass materials to validate field property references
+          labor, // Pass labor to validate field property references
           output.id // Pass current output ID to check if references are to previous outputs
         );
         if (!exprValidation.valid) {
@@ -483,6 +493,7 @@ export default function ModulesPage() {
               computedOutputs={computedOutputs}
               fields={fields}
               materials={materials}
+              labor={labor}
               onUpdateOutput={(id, updates) => {
                 setComputedOutputs((prev) =>
                   prev.map((o) => (o.id === id ? { ...o, ...updates } : o))
@@ -537,19 +548,25 @@ export default function ModulesPage() {
               formulaError={errors.formula}
               availableFieldVariables={availableFieldVariables}
               availableMaterialVariables={availableMaterialVariables}
+              availableLaborVariables={availableLaborVariables}
               allFields={allFields}
               usedFields={usedFields}
               fieldVariablesExpanded={fieldVariablesExpanded}
               materialVariablesExpanded={materialVariablesExpanded}
+              laborVariablesExpanded={laborVariablesExpanded}
               expandedField={expandedField}
               expandedMaterial={expandedMaterial}
+              expandedLabor={expandedLabor}
               onToggleFieldVariablesExpanded={() => setFieldVariablesExpanded(!fieldVariablesExpanded)}
               onToggleMaterialVariablesExpanded={() => setMaterialVariablesExpanded(!materialVariablesExpanded)}
+              onToggleLaborVariablesExpanded={() => setLaborVariablesExpanded(!laborVariablesExpanded)}
               onSetExpandedField={setExpandedField}
               onSetExpandedMaterial={setExpandedMaterial}
+              onSetExpandedLabor={setExpandedLabor}
               isVariableInFormula={isVariableInFormula}
               isPropertyReferenceInFormula={isPropertyReferenceInFormula}
               getMaterialFieldProperties={getMaterialFieldProperties}
+              getLaborFieldProperties={getLaborFieldProperties}
               insertVariableAtCursor={insertVariableAtCursor}
               insertOperatorAtCursor={insertOperatorAtCursor}
               autocompleteSuggestions={autocompleteSuggestions}

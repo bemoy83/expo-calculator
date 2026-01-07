@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
+import { useLaborStore } from '@/lib/stores/labor-store';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { QuoteModuleInstance, Field } from '@/lib/types';
@@ -31,6 +32,7 @@ import { useQuoteFieldLinking } from '@/hooks/use-quote-field-linking';
 export default function QuotesPage() {
   const modules = useModulesStore((state) => state.modules);
   const materials = useMaterialsStore((state) => state.materials);
+  const labor = useLaborStore((state) => state.labor);
   const currentQuote = useQuotesStore((state) => state.currentQuote);
   const createQuote = useQuotesStore((state) => state.createQuote);
   const updateCurrentQuote = useQuotesStore((state) => state.updateCurrentQuote);
@@ -300,6 +302,7 @@ export default function QuotesPage() {
           field={field}
           value={displayValue}
           materials={materials}
+          labor={labor}
           onChange={(val) => {
             if (linkProps?.isLinked) return;
             updateWorkspaceModuleFieldValue(instance.id, field.variableName, val);

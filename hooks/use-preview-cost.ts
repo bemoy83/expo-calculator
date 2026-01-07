@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Field, Material, ComputedOutput, CalculationModule } from '@/lib/types';
+import { Field, Material, ComputedOutput, CalculationModule, Labor } from '@/lib/types';
 import { evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { evaluateComputedOutputs } from '@/lib/utils/evaluate-computed-outputs';
@@ -9,6 +9,7 @@ interface UsePreviewCostProps {
   formula: string;
   fields: Field[];
   materials: Material[];
+  labor?: Labor[];
   previewFieldValues: Record<string, string | number | boolean>;
   formulaValidationValid: boolean;
   computedOutputs?: ComputedOutput[];
@@ -19,6 +20,7 @@ export function usePreviewCost({
   formula,
   fields,
   materials,
+  labor = [],
   previewFieldValues,
   formulaValidationValid,
   computedOutputs = [],
@@ -109,10 +111,12 @@ export function usePreviewCost({
       const result = evaluateFormula(formula, {
         fieldValues: valuesWithComputed,
         materials,
+        labor,
         fields: fields.map(f => ({
           variableName: f.variableName,
           type: f.type,
           materialCategory: f.materialCategory,
+          laborCategory: f.laborCategory,
         })),
         functions,
       });
@@ -123,7 +127,7 @@ export function usePreviewCost({
       setPreviewError('⚠️ Cannot calculate yet — missing inputs.');
       setPreviewCalculatedCost(0);
     }
-  }, [showPreview, formula, previewFieldValues, materials, fields, formulaValidationValid, functions, computedOutputs]);
+  }, [showPreview, formula, previewFieldValues, materials, labor, fields, formulaValidationValid, functions, computedOutputs]);
 
   return {
     previewCalculatedCost,

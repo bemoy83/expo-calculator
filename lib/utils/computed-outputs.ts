@@ -110,6 +110,7 @@ export function validateComputedOutputExpression(
   computedOutputs: ComputedOutput[],
   functions: SharedFunction[],
   materials: Material[], // Materials needed to validate field property references
+  labor?: Labor[], // Labor items needed to validate field property references
   currentOutputId?: string // ID of the output being validated (to check order)
 ): { valid: boolean; error?: string; warnings?: string[] } {
   if (!expression || !expression.trim()) {
@@ -187,6 +188,7 @@ export function validateComputedOutputExpression(
     variableName: f.variableName,
     type: f.type,
     materialCategory: f.materialCategory,
+    laborCategory: f.laborCategory,
   }));
 
   const validation = validateFormula(
@@ -194,7 +196,8 @@ export function validateComputedOutputExpression(
     availableVariables,
     materials, // Pass materials to validate field property references
     fieldDefinitions,
-    functions
+    functions,
+    labor // Pass labor to validate field property references
   );
 
   return validation;

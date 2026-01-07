@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 interface AutocompleteSuggestion {
   name: string;
   displayName: string;
-  type: 'field' | 'material' | 'property' | 'function' | 'constant';
+  type: 'field' | 'material' | 'property' | 'function' | 'constant' | 'labor';
   description?: string;
   functionSignature?: string;
 }

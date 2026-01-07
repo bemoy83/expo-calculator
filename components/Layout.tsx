@@ -21,7 +21,8 @@ import {
   X,
   Download,
   Upload,
-  FunctionSquare
+  FunctionSquare,
+  Gauge
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -31,6 +32,7 @@ interface LayoutProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Materials', href: '/materials', icon: Package },
+  { name: 'Labor', href: '/labor', icon: Gauge },
   { name: 'Functions', href: '/functions', icon: FunctionSquare },
   { name: 'Modules', href: '/modules', icon: LayoutDashboard },
   { name: 'Templates', href: '/templates', icon: FileText },

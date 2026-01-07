@@ -1,12 +1,13 @@
 import { evaluate, create, all } from 'mathjs';
-import { Material, CalculationModule, QuoteModuleInstance, SharedFunction } from './types';
+import { Material, CalculationModule, QuoteModuleInstance, SharedFunction, Labor } from './types';
 import { UnitCategory, getUnitCategory, normalizeToBase, multiplyUnits, divideUnits } from './units';
 
 export interface EvaluationContext {
   fieldValues: Record<string, string | number | boolean>;
   materials: Material[];
-  // Optional: field definitions for validation (needed to identify material fields and default values)
-  fields?: Array<{ variableName: string; type: string; materialCategory?: string; defaultValue?: string | number | boolean }>;
+  labor?: Labor[]; // Optional labor items
+  // Optional: field definitions for validation (needed to identify material/labor fields and default values)
+  fields?: Array<{ variableName: string; type: string; materialCategory?: string; laborCategory?: string; defaultValue?: string | number | boolean }>;
   functionOutputs?: Record<string, number>; // Pre-computed function outputs (for linked functions)
   functions?: SharedFunction[]; // Available functions
 }
@@ -564,31 +565,123 @@ function getMaterialPropertyValueFromMaterial(
 /**
  * Resolves a field property reference to its numeric value (base-normalized)
  * Returns the property value converted to a number
- * Throws error if material not selected or property doesn't exist
+ * Throws error if material/labor not selected or property doesn't exist
  */
 function resolveFieldProperty(
   fieldVar: string,
   propertyName: string,
   context: EvaluationContext
 ): number {
-  const fieldValue = context.fieldValues[fieldVar];
+  let fieldValue = context.fieldValues[fieldVar];
 
-  // Check if field value is a material selection (string matching material variableName)
-  if (typeof fieldValue !== 'string') {
-    throw new Error(`Field "${fieldVar}" is not a material field or no material is selected`);
+  // If field value is missing or empty, try to get default from field definition
+  if (!fieldValue || (typeof fieldValue === 'string' && fieldValue.trim() === '')) {
+    if (context.fields) {
+      const field = context.fields.find(f => f.variableName === fieldVar);
+      if (field && field.defaultValue !== undefined) {
+        fieldValue = field.defaultValue;
+      }
+    }
   }
 
+  // Check if field value is a material or labor selection (string matching variableName)
+  if (typeof fieldValue !== 'string' || fieldValue.trim() === '') {
+    throw new Error(`Field "${fieldVar}" is not a material/labor field or no item is selected`);
+  }
+
+  // Check if it's a material
   const material = context.materials.find((m) => m.variableName === fieldValue);
-  if (!material) {
-    throw new Error(`No material selected for field "${fieldVar}"`);
+  if (material) {
+    const propertyValue = resolveMaterialProperty(fieldValue, propertyName, context.materials);
+    if (propertyValue === null) {
+      throw new Error(`Property "${propertyName}" not found on selected material "${material.name}" for field "${fieldVar}"`);
+    }
+    return propertyValue;
   }
 
-  const propertyValue = resolveMaterialProperty(fieldValue, propertyName, context.materials);
-  if (propertyValue === null) {
-    throw new Error(`Property "${propertyName}" not found on selected material "${material.name}" for field "${fieldVar}"`);
+  // Check if it's a labor item
+  if (context.labor && context.labor.length > 0) {
+    const laborItem = context.labor.find((l) => l.variableName === fieldValue);
+    if (laborItem) {
+      const propertyValue = resolveLaborProperty(fieldValue, propertyName, context.labor);
+      if (propertyValue === null) {
+        throw new Error(`Property "${propertyName}" not found on selected labor "${laborItem.name}" for field "${fieldVar}"`);
+      }
+      return propertyValue;
+    }
   }
 
-  return propertyValue;
+  throw new Error(`No material or labor selected for field "${fieldVar}"`);
+}
+
+/**
+ * Resolves a labor property reference to its numeric value (base-normalized)
+ * Returns the property value converted to a number, or null if not found
+ */
+function resolveLaborProperty(
+  laborVar: string,
+  propertyName: string,
+  labor: Labor[]
+): number | null {
+  const laborItem = labor.find((l) => l.variableName === laborVar);
+  if (!laborItem || !laborItem.properties) {
+    return null;
+  }
+
+  return getLaborPropertyValueFromLabor(laborItem, propertyName);
+}
+
+/**
+ * Gets the unit category for a labor property
+ */
+function getLaborPropertyUnitCategory(
+  laborVar: string,
+  propertyName: string,
+  labor: Labor[]
+): UnitCategory | undefined {
+  const laborItem = labor.find((l) => l.variableName === laborVar);
+  if (!laborItem || !laborItem.properties) {
+    return undefined;
+  }
+
+  const property = laborItem.properties.find((p) => p.name === propertyName);
+  if (!property) {
+    return undefined;
+  }
+
+  // Use unitCategory if available, otherwise infer from unitSymbol
+  if (property.unitCategory) {
+    return property.unitCategory;
+  }
+  if (property.unitSymbol) {
+    return getUnitCategory(property.unitSymbol);
+  }
+
+  return undefined;
+}
+
+function getLaborPropertyValueFromLabor(
+  laborItem: Labor,
+  propertyName: string
+): number | null {
+  if (!laborItem.properties) {
+    return null;
+  }
+
+  const property = laborItem.properties.find((p) => p.name === propertyName);
+  if (!property) {
+    return null;
+  }
+
+  if (property.type === 'number') {
+    if (property.storedValue !== undefined) {
+      return property.storedValue;
+    }
+    const rawValue = typeof property.value === 'number' ? property.value : Number(property.value) || 0;
+    return property.unitSymbol ? normalizeToBase(rawValue, property.unitSymbol) : rawValue;
+  }
+
+  return null;
 }
 
 /**
@@ -605,7 +698,18 @@ function getFieldPropertyUnitCategory(
     return undefined;
   }
 
-  return getMaterialPropertyUnitCategory(fieldValue, propertyName, context.materials);
+  // Check if it's a material property
+  const materialCategory = getMaterialPropertyUnitCategory(fieldValue, propertyName, context.materials);
+  if (materialCategory !== undefined) {
+    return materialCategory;
+  }
+
+  // Check if it's a labor property
+  if (context.labor && context.labor.length > 0) {
+    return getLaborPropertyUnitCategory(fieldValue, propertyName, context.labor);
+  }
+
+  return undefined;
 }
 
 /**
@@ -696,8 +800,12 @@ export function evaluateFormula(
     // STEP 2: Replace field variable values
     // Material fields: When a field value is a string matching a material's variableName,
     // it is automatically resolved to that material's price for formula evaluation.
+    // Labor fields: When a field value is a string matching a labor item's variableName,
+    // it is automatically resolved to that labor item's cost for formula evaluation.
     // Example: If field 'material' has value 'mat_kvirke_48x98', and that material's price is 1.00,
     // then 'material' in the formula will be replaced with '1.00'.
+    // Example: If field 'labor' has value 'drywall_labor', and that labor's cost is 45.00,
+    // then 'labor' in the formula will be replaced with '45.00'.
     const fieldValueMap = new Map<string, number>();
     for (const [varName, value] of Object.entries(context.fieldValues)) {
       let numValue: number;
@@ -705,9 +813,18 @@ export function evaluateFormula(
       if (typeof value === 'boolean') {
         numValue = value ? 1 : 0;
       } else if (typeof value === 'string') {
+        // Check if it's a material
         const material = context.materials.find((m) => m.variableName === value);
         if (material) {
           numValue = material.price;
+        } else if (context.labor && context.labor.length > 0) {
+          // Check if it's a labor item
+          const laborItem = context.labor.find((l) => l.variableName === value);
+          if (laborItem) {
+            numValue = laborItem.cost;
+          } else {
+            numValue = Number(value);
+          }
         } else {
           numValue = Number(value);
         }
@@ -1104,8 +1221,9 @@ export function validateFormula(
   formula: string,
   availableVariables: string[],
   materials: Material[],
-  fields?: Array<{ variableName: string; type: string; materialCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>,
-  functions?: SharedFunction[]
+  fields?: Array<{ variableName: string; type: string; materialCategory?: string; laborCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>,
+  functions?: SharedFunction[],
+  labor?: Labor[]
 ): { valid: boolean; error?: string; warnings?: string[] } {
   try {
     const warnings: string[] = [];
@@ -1252,32 +1370,65 @@ export function validateFormula(
         continue;
       }
 
-      // Check if field is a material field
-      if (field.type !== 'material') {
+      // Check if field is a material or labor field
+      if (field.type !== 'material' && field.type !== 'labor') {
         return {
           valid: false,
-          error: `Field "${ref.fieldVar}" is not a material field, cannot access properties`
+          error: `Field "${ref.fieldVar}" is not a material or labor field, cannot access properties`
         };
       }
 
-      // Check if property exists on at least one material in the allowed category
-      let candidateMaterials = materials;
-      if (field.materialCategory && field.materialCategory.trim()) {
-        candidateMaterials = materials.filter(m => m.category === field.materialCategory);
+      // Handle material fields
+      if (field.type === 'material') {
+        // Check if property exists on at least one material in the allowed category
+        let candidateMaterials = materials;
+        if (field.materialCategory && field.materialCategory.trim()) {
+          candidateMaterials = materials.filter(m => m.category === field.materialCategory);
+        }
+
+        const hasProperty = candidateMaterials.some(material =>
+          material.properties && material.properties.some(p => p.name === ref.propertyName)
+        );
+
+        if (!hasProperty) {
+          const categoryMsg = field.materialCategory
+            ? ` in category "${field.materialCategory}"`
+            : '';
+          return {
+            valid: false,
+            error: `Property "${ref.propertyName}" not found on any material${categoryMsg} for field "${ref.fieldVar}"`
+          };
+        }
       }
 
-      const hasProperty = candidateMaterials.some(material =>
-        material.properties && material.properties.some(p => p.name === ref.propertyName)
-      );
+      // Handle labor fields
+      if (field.type === 'labor') {
+        if (!labor || labor.length === 0) {
+          return {
+            valid: false,
+            error: `No labor items available to check property "${ref.propertyName}" for field "${ref.fieldVar}"`
+          };
+        }
 
-      if (!hasProperty) {
-        const categoryMsg = field.materialCategory
-          ? ` in category "${field.materialCategory}"`
-          : '';
-        return {
-          valid: false,
-          error: `Property "${ref.propertyName}" not found on any material${categoryMsg} for field "${ref.fieldVar}"`
-        };
+        // Check if property exists on at least one labor item in the allowed category
+        let candidateLabor = labor;
+        if (field.laborCategory && field.laborCategory.trim()) {
+          candidateLabor = labor.filter(l => l.category === field.laborCategory);
+        }
+
+        const hasProperty = candidateLabor.some(laborItem =>
+          laborItem.properties && laborItem.properties.some(p => p.name === ref.propertyName)
+        );
+
+        if (!hasProperty) {
+          const categoryMsg = field.laborCategory
+            ? ` in category "${field.laborCategory}"`
+            : '';
+          return {
+            valid: false,
+            error: `Property "${ref.propertyName}" not found on any labor item${categoryMsg} for field "${ref.fieldVar}"`
+          };
+        }
       }
     }
 

@@ -83,6 +83,13 @@ export const UNITS: Record<string, Unit> = {
     toBase: (v) => v,      // No conversion needed
     fromBase: (v) => v,    // No conversion needed
   },
+  // Hours as count unit (for counting hours, not time calculations)
+  hr: {
+    category: 'count',
+    symbol: 'hr',
+    toBase: (v) => v,      // No conversion - use as-is
+    fromBase: (v) => v,    // No conversion - use as-is
+  },
   // Liters as count unit (for counting containers, not volume calculations)
   // When used as count, "3 liters" means "3" - no conversion to m³
   liters: {

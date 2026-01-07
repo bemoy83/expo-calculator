@@ -1,9 +1,10 @@
-import { CalculationModule, Material, ModuleTemplate, SharedFunction } from '../types';
+import { CalculationModule, Material, ModuleTemplate, SharedFunction, Labor } from '../types';
 import { useModulesStore } from '../stores/modules-store';
 import { useMaterialsStore } from '../stores/materials-store';
 import { useCategoriesStore } from '../stores/categories-store';
 import { useTemplatesStore } from '../stores/templates-store';
 import { useFunctionsStore } from '../stores/functions-store';
+import { useLaborStore } from '../stores/labor-store';
 import type { ExportedData } from './data-export';
 
 export interface ImportOptions {
@@ -14,6 +15,7 @@ export interface ImportResult {
   success: boolean;
   modulesAdded: number;
   materialsAdded: number;
+  laborAdded: number;
   categoriesAdded: number;
   functionsAdded: number;
   templatesAdded: number;
@@ -84,6 +86,24 @@ export function validateImportedData(json: unknown): json is ExportedData {
     }
   }
 
+  // Validate labor structure (if present)
+  if (data.labor !== undefined) {
+    if (!Array.isArray(data.labor)) {
+      return false;
+    }
+    for (const laborItem of data.labor) {
+      if (
+        typeof laborItem !== 'object' ||
+        typeof (laborItem as Labor).id !== 'string' ||
+        typeof (laborItem as Labor).name !== 'string' ||
+        typeof (laborItem as Labor).variableName !== 'string' ||
+        typeof (laborItem as Labor).cost !== 'number'
+      ) {
+        return false;
+      }
+    }
+  }
+
   // Validate categories (should be strings)
   for (const category of data.customCategories) {
     if (typeof category !== 'string') {
@@ -143,6 +163,7 @@ export function importData(
   const errors: string[] = [];
   let modulesAdded = 0;
   let materialsAdded = 0;
+  let laborAdded = 0;
   let categoriesAdded = 0;
   let functionsAdded = 0;
   let templatesAdded = 0;
@@ -247,6 +268,50 @@ export function importData(
       });
     }
 
+    // Import labor
+    if (data.labor && data.labor.length > 0) {
+      if (options.mode === 'replace') {
+        // In replace mode, add all labor items
+        data.labor.forEach((laborItem) => {
+          try {
+            useLaborStore.getState().addLabor({
+              name: laborItem.name,
+              category: laborItem.category,
+              cost: laborItem.cost,
+              variableName: laborItem.variableName,
+              description: laborItem.description,
+              properties: laborItem.properties,
+            });
+            laborAdded++;
+          } catch (err) {
+            errors.push(`Failed to import labor "${laborItem.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+          }
+        });
+      } else {
+        // Merge mode: skip duplicates by variableName (unique identifier)
+        const existingLabor = useLaborStore.getState().labor;
+        const existingVariableNames = new Set(existingLabor.map((l) => l.variableName));
+
+        data.labor.forEach((laborItem) => {
+          if (!existingVariableNames.has(laborItem.variableName)) {
+            try {
+              useLaborStore.getState().addLabor({
+                name: laborItem.name,
+                category: laborItem.category,
+                cost: laborItem.cost,
+                variableName: laborItem.variableName,
+                description: laborItem.description,
+                properties: laborItem.properties,
+              });
+              laborAdded++;
+            } catch (err) {
+              errors.push(`Failed to import labor "${laborItem.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+            }
+          }
+        });
+      }
+    }
+
     // Import categories
     const existingCategories = useCategoriesStore.getState().customCategories;
     const existingCategoriesSet = new Set(existingCategories);
@@ -318,6 +383,7 @@ export function importData(
       success: errors.length === 0,
       modulesAdded,
       materialsAdded,
+      laborAdded,
       categoriesAdded,
       functionsAdded,
       templatesAdded,
@@ -328,6 +394,7 @@ export function importData(
       success: false,
       modulesAdded,
       materialsAdded,
+      laborAdded,
       categoriesAdded,
       functionsAdded,
       templatesAdded,
