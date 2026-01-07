@@ -3,14 +3,7 @@
 import { Card } from '@/components/ui/Card';
 import { Textarea } from '@/components/ui/Textarea';
 import { cn } from '@/lib/utils';
-
-interface AutocompleteSuggestion {
-  name: string;
-  displayName: string;
-  type: 'field' | 'material' | 'property' | 'function' | 'constant' | 'labor';
-  description?: string;
-  functionSignature?: string;
-}
+import { AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
 
 interface WordInfo {
   word: string;

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-interface AutocompleteSuggestion {
+export interface AutocompleteSuggestion {
   name: string;
   displayName: string;
-  type: 'field' | 'material' | 'property' | 'function' | 'constant' | 'labor';
+  type: 'field' | 'material' | 'property' | 'function' | 'constant' | 'labor' | 'laborProperty';
   description?: string;
   functionSignature?: string; // For user-defined functions: parameter names
 }

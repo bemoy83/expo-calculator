@@ -322,6 +322,7 @@ export default function QuotesPage() {
       isLinkBroken,
       isLinkUIOpen,
       materials,
+      labor,
       toggleLinkUI,
       updateWorkspaceModuleFieldValue,
     ]

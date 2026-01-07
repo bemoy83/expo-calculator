@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Chip from '../ui/Chip';
 import { FormulaExpandableVariable } from "@/components/formula/FormulaExpandableVariable";
+import { AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
 
 interface VariableInfo {
   name: string;
@@ -39,13 +40,6 @@ interface LaborVariableInfo {
   label: string;
   cost: number;
   properties: Array<{ id: string; name: string; unitSymbol?: string; type: string }>;
-}
-
-interface AutocompleteSuggestion {
-  name: string;
-  displayName: string;
-  type: 'field' | 'material' | 'property' | 'function' | 'constant';
-  description?: string;
 }
 
 interface FormulaBuilderProps {
