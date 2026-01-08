@@ -60,7 +60,7 @@ export function ParametersManager({
                 onToggle={() => onToggleExpanded(index)}
                 onRemove={() => onRemoveParameter(index)}
                 onUpdate={(updates) => onUpdateParameter(index, updates)}
-                canRemove={parameters.length > 1}
+                canRemove={true}
               />
             );
           })}
@@ -73,5 +73,4 @@ export function ParametersManager({
     </div>
   );
 }
-
 

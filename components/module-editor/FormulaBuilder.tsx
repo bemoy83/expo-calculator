@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Textarea } from '@/components/ui/Textarea';
 import { cn } from '@/lib/utils';
@@ -149,6 +149,45 @@ export function FormulaBuilder({
   computedOutputs = [],
 }: FormulaBuilderProps) {
   const functions = useFunctionsStore((state) => state.functions);
+  const [selectedMaterialCategory, setSelectedMaterialCategory] = useState<string | null>(null);
+
+  const materialCategoryByVariable = useMemo(() => {
+    return new Map(materials.map((material) => [material.variableName, material.category]));
+  }, [materials]);
+
+  const materialCategories = useMemo(() => {
+    const categorySet = new Set<string>();
+    materials.forEach((material) => {
+      const category = material.category?.trim();
+      if (category) {
+        categorySet.add(category);
+      }
+    });
+    return Array.from(categorySet).sort((a, b) => a.localeCompare(b));
+  }, [materials]);
+
+  const materialCategoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    materials.forEach((material) => {
+      const category = material.category?.trim();
+      if (!category) return;
+      counts.set(category, (counts.get(category) ?? 0) + 1);
+    });
+    return counts;
+  }, [materials]);
+
+  const filteredMaterialVariables = useMemo(() => {
+    if (!selectedMaterialCategory) return availableMaterialVariables;
+    return availableMaterialVariables.filter(
+      (materialVar) => materialCategoryByVariable.get(materialVar.name) === selectedMaterialCategory
+    );
+  }, [availableMaterialVariables, materialCategoryByVariable, selectedMaterialCategory]);
+
+  useEffect(() => {
+    if (selectedMaterialCategory && !materialCategories.includes(selectedMaterialCategory)) {
+      setSelectedMaterialCategory(null);
+    }
+  }, [materialCategories, selectedMaterialCategory]);
   
   return (
     <Card title="Formula Builder" className="sticky top-[88px]">
@@ -232,7 +271,11 @@ export function FormulaBuilder({
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-semibold text-md-primary">Material Variables</h4>
                 <span className="text-xs text-md-on-surface-variant">
-                  {availableMaterialVariables.length} {availableMaterialVariables.length === 1 ? 'material' : 'materials'}
+                  {filteredMaterialVariables.length}
+                  {filteredMaterialVariables.length !== availableMaterialVariables.length && (
+                    <span> of {availableMaterialVariables.length}</span>
+                  )}{' '}
+                  {availableMaterialVariables.length === 1 ? 'material' : 'materials'}
                 </span>
               </div>
               {materialVariablesExpanded ? (
@@ -247,40 +290,69 @@ export function FormulaBuilder({
               </p>
             )}
             {materialVariablesExpanded && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {availableMaterialVariables.map((mat) => {
-                  const isMaterialInFormula = isVariableInFormula(mat.name, formula);
+              <>
+                {materialCategories.length > 1 && (
+                  <div className="flex flex-nowrap gap-2 mb-3 overflow-x-auto no-scrollbar">
+                    <Chip
+                      size="sm"
+                      variant={selectedMaterialCategory === null ? 'selected' : 'outline'}
+                      onClick={() => setSelectedMaterialCategory(null)}
+                    >
+                      All ({availableMaterialVariables.length})
+                    </Chip>
+                    {materialCategories.map((category) => (
+                      <Chip
+                        key={category}
+                        size="sm"
+                        variant={selectedMaterialCategory === category ? 'selected' : 'outline'}
+                        onClick={() => setSelectedMaterialCategory(category)}
+                      >
+                        {category} ({materialCategoryCounts.get(category) ?? 0})
+                      </Chip>
+                    ))}
+                  </div>
+                )}
 
-                  return (
-                    <FormulaExpandableVariable
-                      key={mat.name}
-                      label={mat.name}
-                      value={mat.name}
-                      isUsed={isMaterialInFormula}
-                      onInsert={insertVariableAtCursor}
-                      properties={(mat.properties ?? []).map((prop) => {
-                        const propertyRef = `${mat.name}.${prop.name}`;
-                        const unitDisplay = prop.unitSymbol || prop.unit || '';
-                        const propertyLabel = unitDisplay
-                          ? `${prop.name} (${unitDisplay})`
-                          : prop.name;
+                {filteredMaterialVariables.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {filteredMaterialVariables.map((mat) => {
+                      const isMaterialInFormula = isVariableInFormula(mat.name, formula);
 
-                        return {
-                          key: prop.id || prop.name,
-                          label: propertyLabel,
-                          value: propertyRef,
-                          isUsed: isPropertyReferenceInFormula(
-                            mat.name,
-                            prop.name,
-                            formula
-                          ),
-                        };
-                      })}
-                    />
-                  );
-                })}
-              </div>
+                      return (
+                        <FormulaExpandableVariable
+                          key={mat.name}
+                          label={mat.name}
+                          value={mat.name}
+                          isUsed={isMaterialInFormula}
+                          onInsert={insertVariableAtCursor}
+                          properties={(mat.properties ?? []).map((prop) => {
+                            const propertyRef = `${mat.name}.${prop.name}`;
+                            const unitDisplay = prop.unitSymbol || prop.unit || '';
+                            const propertyLabel = unitDisplay
+                              ? `${prop.name} (${unitDisplay})`
+                              : prop.name;
 
+                            return {
+                              key: prop.id || prop.name,
+                              label: propertyLabel,
+                              value: propertyRef,
+                              isUsed: isPropertyReferenceInFormula(
+                                mat.name,
+                                prop.name,
+                                formula
+                              ),
+                            };
+                          })}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-md-on-surface-variant">
+                    No materials in this category.
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}
@@ -827,9 +899,6 @@ export function FormulaBuilder({
     </Card>
   );
 }
-
-
-
 
 
 

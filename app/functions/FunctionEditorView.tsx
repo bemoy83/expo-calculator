@@ -2,11 +2,12 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Layout } from '@/components/Layout';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Chip } from '@/components/ui/Chip';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
+import { useModulesStore } from '@/lib/stores/modules-store';
 import { SharedFunction } from '@/lib/types';
 import { validateFormula } from '@/lib/formula-evaluator';
 import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
@@ -17,7 +18,7 @@ import { FunctionFormulaCard } from '@/components/function-editor/FunctionFormul
 import { FunctionEditorHeader } from '@/components/function-editor/FunctionEditorHeader';
 import { FunctionEditorActions } from '@/components/function-editor/FunctionEditorActions';
 import { labelToVariableName } from '@/lib/utils';
-import { X } from 'lucide-react';
+import { CheckCircle2, Plus } from 'lucide-react';
 
 type AutocompleteCandidate = {
   name: string;
@@ -41,6 +42,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
   const getAllCategories = useCategoriesStore((state) => state.getAllCategories);
   const addCategory = useCategoriesStore((state) => state.addCategory);
   const labor = useLaborStore((state) => state.labor);
+  const modules = useModulesStore((state) => state.modules);
 
   const existingFunction = isNew ? null : getFunction(functionId);
   const formulaTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -91,9 +93,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
     toggleParameterExpanded,
     setParameters,
   } = useParameterManager({
-    initialParameters: existingFunction?.parameters || [
-      { name: '', label: '', unitCategory: undefined, unitSymbol: undefined, required: true },
-    ],
+    initialParameters: existingFunction?.parameters ?? [],
     onParameterChange: () => {
       // Re-validate formula when parameters change
       if (formData.formula) {
@@ -101,6 +101,52 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
       }
     },
   });
+
+  const availableModuleFieldNames = useMemo(() => {
+    const uniqueNames = new Map<string, string>();
+
+    modules.forEach((module) => {
+      module.fields.forEach((field) => {
+        const name = field.variableName?.trim();
+        if (!name) return;
+
+        const key = name.toLowerCase();
+        if (!uniqueNames.has(key)) {
+          uniqueNames.set(key, name);
+        }
+      });
+    });
+
+    return Array.from(uniqueNames.values()).sort((a, b) => a.localeCompare(b));
+  }, [modules]);
+
+  const existingParameterNames = useMemo(() => {
+    return new Set(
+      parameters
+        .map((param) => param.name.trim().toLowerCase())
+        .filter(Boolean)
+    );
+  }, [parameters]);
+
+  const addParameterFromField = useCallback(
+    (fieldName: string) => {
+      const trimmedName = fieldName.trim();
+      if (!trimmedName) return;
+
+      setParameters((prev) => {
+        const alreadyExists = prev.some(
+          (param) => param.name.trim().toLowerCase() === trimmedName.toLowerCase()
+        );
+        if (alreadyExists) return prev;
+
+        return [
+          ...prev,
+          { name: trimmedName, label: trimmedName, unitCategory: undefined, unitSymbol: undefined, required: true },
+        ];
+      });
+    },
+    [setParameters]
+  );
 
   // Collect autocomplete candidates for function formulas
   // Includes: valid parameters, other functions, built-in math functions, constants
@@ -265,6 +311,91 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
     validateFormulaInput(formData.formula);
   }, [formData.formula, validateFormulaInput]);
 
+  const insertParameterAtCursor = useCallback(
+    (variableName: string) => {
+      const textarea = formulaTextareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentValue = textarea.value;
+
+      // Insert variable at cursor position
+      const before = currentValue.substring(0, start);
+      const after = currentValue.substring(end);
+
+      // Determine if we need spaces around the variable
+      const charBefore = start > 0 ? currentValue[start - 1] : '';
+      const needsSpaceBefore =
+        start > 0 && charBefore !== ' ' && charBefore !== '\t' && !/[+\-*/(]/.test(charBefore);
+
+      const charAfter = end < currentValue.length ? currentValue[end] : '';
+      const needsSpaceAfter =
+        end < currentValue.length && charAfter !== ' ' && charAfter !== '\t' && !/[+\-*/)]/.test(charAfter);
+
+      const spaceBefore = needsSpaceBefore ? ' ' : '';
+      const spaceAfter = needsSpaceAfter ? ' ' : '';
+      const insertedText = `${spaceBefore}${variableName}${spaceAfter}`;
+
+      const newValue = before + insertedText + after;
+      const newCursorPos = start + insertedText.length;
+
+      setFormData((prev) => ({ ...prev, formula: newValue }));
+
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      }, 0);
+    },
+    [formulaTextareaRef, setFormData]
+  );
+
+  const insertOperatorAtCursor = useCallback(
+    (operator: string) => {
+      const textarea = formulaTextareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentValue = textarea.value;
+
+      const before = currentValue.substring(0, start);
+      const after = currentValue.substring(end);
+
+      const charBefore = start > 0 ? currentValue[start - 1] : '';
+      const needsSpaceBefore =
+        start > 0 &&
+        charBefore !== ' ' &&
+        charBefore !== '(' &&
+        charBefore !== '' &&
+        !['+', '-', '*', '/', '(', '='].includes(charBefore);
+
+      const charAfter = end < currentValue.length ? currentValue[end] : '';
+      const needsSpaceAfter =
+        end < currentValue.length &&
+        charAfter !== ' ' &&
+        charAfter !== ')' &&
+        charAfter !== '' &&
+        !['+', '-', '*', '/', ')', '='].includes(charAfter) &&
+        !operator.includes('(') &&
+        !operator.includes(')');
+
+      const spaceBefore = needsSpaceBefore ? ' ' : '';
+      const spaceAfter = needsSpaceAfter ? ' ' : '';
+
+      const newValue = before + spaceBefore + operator + spaceAfter + after;
+
+      setFormData((prev) => ({ ...prev, formula: newValue }));
+
+      setTimeout(() => {
+        const newPosition = start + spaceBefore.length + operator.length + spaceAfter.length;
+        textarea.focus();
+        textarea.setSelectionRange(newPosition, newPosition);
+      }, 0);
+    },
+    [formulaTextareaRef, setFormData]
+  );
+
   const handleSave = useCallback(() => {
     const newErrors: Record<string, string> = {};
 
@@ -366,6 +497,43 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
             addCategory={addCategory}
           />
 
+          <Card title="Add parameters from module fields">
+            {availableModuleFieldNames.length > 0 ? (
+              <>
+                <p className="text-xs text-md-on-surface-variant mb-3">
+                  Click a field variable to add it as a parameter.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {availableModuleFieldNames.map((fieldName) => {
+                    const isAdded = existingParameterNames.has(fieldName.toLowerCase());
+                    return (
+                      <Chip
+                        key={fieldName}
+                        size="sm"
+                        variant={isAdded ? 'success' : 'primary'}
+                        onClick={() => addParameterFromField(fieldName)}
+                        disabled={isAdded}
+                        leadingIcon={
+                          isAdded ? (
+                            <CheckCircle2 className="h-3 w-3" />
+                          ) : (
+                            <Plus className="h-3 w-3" />
+                          )
+                        }
+                      >
+                        {fieldName}
+                      </Chip>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-md-on-surface-variant">
+                No module fields available yet. Create a module with fields to reuse them here.
+              </p>
+            )}
+          </Card>
+
           <ParametersManager
             parameters={parameters}
             expandedParameters={expandedParameters}
@@ -386,6 +554,9 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
             formulaTextareaRef={formulaTextareaRef}
             formulaValidation={formulaValidation}
             formulaError={errors.formula}
+            parameters={parameters}
+            onInsertParameter={insertParameterAtCursor}
+            onInsertOperator={insertOperatorAtCursor}
             autocompleteSuggestions={autocompleteSuggestions}
             selectedSuggestionIndex={selectedSuggestionIndex}
             isAutocompleteOpen={isAutocompleteOpen}
@@ -401,7 +572,13 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
         </div>
       </div>
 
-      <FunctionEditorActions functionId={functionId} isValid={isValid} onCancel={onClose} onSubmit={handleSave} />
+      <FunctionEditorActions
+        functionId={functionId}
+        isValid={isValid}
+        onCancel={onClose}
+        onSubmit={handleSave}
+        onAddParameter={addParameter}
+      />
     </Layout>
   );
 }
