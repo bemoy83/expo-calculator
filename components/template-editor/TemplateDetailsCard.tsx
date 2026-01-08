@@ -26,14 +26,14 @@ export function TemplateDetailsCard({ formData, errors, onFormDataChange }: Temp
           value={formData.name}
           onChange={(e) => onFormDataChange({ name: e.target.value })}
           error={errors.name}
-          placeholder="e.g., Wall + Finish Setup"
+          placeholder=""
         />
         <Textarea
           label="Description (optional)"
           value={formData.description}
           onChange={(e) => onFormDataChange({ description: e.target.value })}
           rows={3}
-          placeholder="Describe what this template is used for..."
+          placeholder=""
         />
       </div>
     </Card>

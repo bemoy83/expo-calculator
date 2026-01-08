@@ -63,7 +63,7 @@ export function FunctionDetailsCard({
             value={formData.displayName}
             onChange={(e) => onFormDataChange({ displayName: e.target.value })}
             error={errors.displayName}
-            placeholder="e.g., Calculate Area, Square Meters, Volume Calculator"
+            placeholder=""
           />
           <div>
             <label
@@ -92,14 +92,14 @@ export function FunctionDetailsCard({
                 }
               }}
               error={errors.name}
-              placeholder="e.g., m2, area, volume"
+              placeholder=""
             />
           </div>
         </div>
 
         <details open={isAdvancedOpen} onToggle={(e) => setIsAdvancedOpen(e.currentTarget.open)}>
           <summary className="cursor-pointer text-sm font-semibold text-md-primary">
-            Advanced details
+            More details
           </summary>
           <div className="mt-4 space-y-4">
             <Textarea
@@ -107,7 +107,7 @@ export function FunctionDetailsCard({
               value={formData.description}
               onChange={(e) => onFormDataChange({ description: e.target.value })}
               rows={2}
-              placeholder="Describe what this function calculates..."
+              placeholder=""
             />
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">Category</label>

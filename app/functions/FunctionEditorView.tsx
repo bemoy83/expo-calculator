@@ -500,9 +500,6 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
           <Card title="Add parameters from module fields">
             {availableModuleFieldNames.length > 0 ? (
               <>
-                <p className="text-xs text-md-on-surface-variant mb-3">
-                  Click a field variable to add it as a parameter.
-                </p>
                 <div className="flex flex-wrap gap-2">
                   {availableModuleFieldNames.map((fieldName) => {
                     const isAdded = existingParameterNames.has(fieldName.toLowerCase());

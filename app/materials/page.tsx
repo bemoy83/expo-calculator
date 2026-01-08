@@ -397,7 +397,7 @@ export default function MaterialsPage() {
               <div className="flex-1 min-w-[200px] relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-md-on-surface-variant pointer-events-none" />
                 <Input
-                  placeholder="Search materials..."
+                  placeholder=""
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 w-full"
@@ -512,7 +512,7 @@ export default function MaterialsPage() {
                   }}
                   error={errors.name}
                   required
-                  placeholder="e.g., Premium Hardwood Lumber"
+                  placeholder=""
                 />
 
                 <Input
@@ -521,7 +521,7 @@ export default function MaterialsPage() {
                   onChange={(e) => setFormData({ ...formData, variableName: e.target.value })}
                   error={errors.variableName}
                   required
-                  placeholder="e.g., lumber_price"
+                  placeholder=""
                 />
                 <p className="text-xs text-md-on-surface-variant -mt-2">
                   Used in formulas. Must start with a letter or underscore.
@@ -534,7 +534,7 @@ export default function MaterialsPage() {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     error={errors.category}
                     required
-                    placeholder="e.g., Lumber"
+                    placeholder=""
                   />
                   <Input
                     label="Unit"
@@ -542,7 +542,7 @@ export default function MaterialsPage() {
                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                     error={errors.unit}
                     required
-                    placeholder="e.g., sq ft"
+                    placeholder=""
                   />
                 </div>
 
@@ -556,13 +556,13 @@ export default function MaterialsPage() {
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     error={errors.price}
                     required
-                    placeholder="0.00"
+                    placeholder=""
                   />
                   <Input
                     label="SKU (optional)"
                     value={formData.sku}
                     onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    placeholder="e.g., LUM-001"
+                    placeholder=""
                   />
                 </div>
 
@@ -570,7 +570,7 @@ export default function MaterialsPage() {
                   label="Supplier (optional)"
                   value={formData.supplier}
                   onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                  placeholder="e.g., ABC Supply Co."
+                  placeholder=""
                 />
 
                 <Textarea
@@ -578,7 +578,7 @@ export default function MaterialsPage() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  placeholder="Material description, usage notes, or specifications..."
+                  placeholder=""
                 />
 
                 {/* Properties Section */}

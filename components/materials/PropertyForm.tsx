@@ -112,7 +112,7 @@ export function PropertyForm({
             value={displayName}
             onChange={(e) => handleDisplayNameChange(e.target.value)}
             error={error}
-            placeholder="e.g., Sheet Width"
+            placeholder=""
             className="text-sm"
           />
           <div>
@@ -120,7 +120,7 @@ export function PropertyForm({
               label="Variable Name"
               value={propertyData.name}
               onChange={(e) => handleVariableNameChange(e.target.value)}
-              placeholder="e.g., sheet_width"
+              placeholder=""
               className="text-sm"
             />
             <p className="mt-1 text-xs text-md-on-surface-variant">
@@ -134,7 +134,7 @@ export function PropertyForm({
         value={propertyData.name}
         onChange={(e) => onChange({ name: e.target.value })}
         error={error}
-          placeholder="e.g., length"
+            placeholder=""
         className="text-sm"
       />
       )}

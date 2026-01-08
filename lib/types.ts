@@ -27,11 +27,11 @@ export const COMMON_MATERIAL_PROPERTIES = [
 
 // Common labor property names for UI suggestions
 export const COMMON_LABOR_PROPERTIES = [
-  'm2_per_hour',
-  'pcs_per_hour',
-  'lm_per_hour',
-  'm_per_hour',
-  'units_per_hour',
+  'm2_per_hr',
+  'pcs_per_hr',
+  'lm_per_hr',
+  'm_per_hr',
+  'units_per_hr',
 ] as const;
 
 export type LaborPropertyType = 'number';

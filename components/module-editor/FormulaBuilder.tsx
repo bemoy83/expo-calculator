@@ -501,7 +501,7 @@ export function FormulaBuilder({
                 setTimeout(() => onSetIsAutocompleteOpen(false), 200);
               }}
               error={formulaError || formulaValidation.error}
-              placeholder="e.g., width * height * mat_plank.length * quantity"
+              placeholder=""
               rows={6}
               className={`font-mono text-sm text-md-primary ${
                 formulaValidation.valid && formula

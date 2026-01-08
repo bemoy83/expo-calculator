@@ -173,7 +173,7 @@ export function FunctionFormulaCard({
               setTimeout(() => setIsAutocompleteOpen(false), 200);
             }}
             rows={4}
-            placeholder="e.g., width * height"
+            placeholder=""
             error={formulaError}
             className={cn('font-mono text-sm', !formulaValidation.valid && formula && 'border-destructive')}
           />

@@ -361,7 +361,7 @@ export default function LaborPage() {
               <div className="flex-1 min-w-[200px] relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-md-on-surface-variant pointer-events-none" />
                 <Input
-                  placeholder="Search labor..."
+                  placeholder=""
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 w-full"
@@ -474,7 +474,7 @@ export default function LaborPage() {
                   }}
                   error={errors.name}
                   required
-                  placeholder="e.g., Drywall Installation"
+                  placeholder=""
                 />
 
                 <Input
@@ -483,7 +483,7 @@ export default function LaborPage() {
                   onChange={(e) => setFormData({ ...formData, variableName: e.target.value })}
                   error={errors.variableName}
                   required
-                  placeholder="e.g., drywall_labor"
+                  placeholder=""
                 />
                 <p className="text-xs text-md-on-surface-variant -mt-2">
                   Used in formulas. Must start with a letter or underscore.
@@ -496,7 +496,7 @@ export default function LaborPage() {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     error={errors.category}
                     required
-                    placeholder="e.g., Drywall"
+                    placeholder=""
                   />
                   <Input
                     label="Hourly Rate"
@@ -507,7 +507,7 @@ export default function LaborPage() {
                     onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
                     error={errors.cost}
                     required
-                    placeholder="0.00"
+                    placeholder=""
                   />
                 </div>
 
@@ -516,7 +516,7 @@ export default function LaborPage() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  placeholder="Labor description, usage notes, or specifications..."
+                  placeholder=""
                 />
 
                 {/* Properties Section */}
@@ -528,7 +528,7 @@ export default function LaborPage() {
                     </span>
                   </div>
                   <p className="text-xs text-md-on-surface-variant mb-4">
-                    Add productivity rates (e.g., m²/hour, pcs/hour) that can be referenced in formulas using dot notation (e.g., <code className="text-md-primary">labor.m2_per_hour</code>).
+                    Add productivity rates (e.g., m²/hr, pcs/hr) that can be referenced in formulas using dot notation (e.g., <code className="text-md-primary">labor.m2_per_hr</code>).
                   </p>
 
                   {/* Quick Add Common Properties */}

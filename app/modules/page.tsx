@@ -49,7 +49,7 @@ export default function ModulesPage() {
   const [expandedLabor, setExpandedLabor] = useState<string | null>(null);
   const [expandedField, setExpandedField] = useState<string | null>(null);
   const [fieldVariablesExpanded, setFieldVariablesExpanded] = useState(true);
-  const [laborVariablesExpanded, setLaborVariablesExpanded] = useState(true);
+  const [laborVariablesExpanded, setLaborVariablesExpanded] = useState(false);
   const [materialVariablesExpanded, setMaterialVariablesExpanded] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -217,6 +217,16 @@ export default function ModulesPage() {
     });
     setPreviewFieldValues(defaults);
     setShowPreview(true);
+  };
+
+  const addComputedOutput = () => {
+    const newOutput: ComputedOutput = {
+      id: generateId(),
+      label: '',
+      variableName: '',
+      expression: '',
+    };
+    setComputedOutputs((prev) => [...prev, newOutput]);
   };
 
   const insertVariableAtCursor = (variableName: string) => {
@@ -508,15 +518,7 @@ export default function ModulesPage() {
                   return updated;
                 });
               }}
-              onAddOutput={() => {
-                const newOutput: ComputedOutput = {
-                  id: generateId(),
-                  label: '',
-                  variableName: '',
-                  expression: '',
-                };
-                setComputedOutputs((prev) => [...prev, newOutput]);
-              }}
+              onAddOutput={addComputedOutput}
               errors={computedOutputErrors}
               onValidationError={(id, field, error) => {
                 setComputedOutputErrors((prev) => {
@@ -619,6 +621,7 @@ export default function ModulesPage() {
           fields={fields}
           formulaValidationValid={formulaValidation.valid}
           onAddField={addField}
+          onAddComputedOutput={addComputedOutput}
           onPreview={initializePreview}
           onCancel={cancelEditing}
           onSubmit={handleSubmit}

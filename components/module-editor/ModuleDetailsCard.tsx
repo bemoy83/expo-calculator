@@ -54,14 +54,14 @@ export function ModuleDetailsCard({
           value={formData.name}
           onChange={(e) => onFormDataChange({ name: e.target.value })}
           error={errors.name}
-          placeholder="e.g., Floor Area Calculator"
+          placeholder=""
         />
         <Textarea
           label="Description (optional)"
           value={formData.description}
           onChange={(e) => onFormDataChange({ description: e.target.value })}
           rows={3}
-          placeholder="Describe what this module calculates..."
+          placeholder=""
         />
         <div>
           <label className="block text-sm font-medium text-foreground mb-3">

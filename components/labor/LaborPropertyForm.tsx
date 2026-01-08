@@ -86,7 +86,7 @@ export function LaborPropertyForm({
             value={displayName}
             onChange={(e) => handleDisplayNameChange(e.target.value)}
             error={error}
-            placeholder="e.g., Square Meters Per Hour"
+            placeholder=""
             className="text-sm"
           />
           <div>
@@ -94,7 +94,7 @@ export function LaborPropertyForm({
               label="Variable Name"
               value={propertyData.name}
               onChange={(e) => handleVariableNameChange(e.target.value)}
-              placeholder="e.g., m2_per_hour"
+              placeholder=""
               className="text-sm"
             />
             <p className="mt-1 text-xs text-md-on-surface-variant">
@@ -108,7 +108,7 @@ export function LaborPropertyForm({
           value={propertyData.name}
           onChange={(e) => onChange({ name: e.target.value })}
           error={error}
-          placeholder="e.g., m2_per_hour"
+            placeholder=""
           className="text-sm"
         />
       )}

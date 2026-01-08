@@ -137,10 +137,6 @@ export function ComputedOutputsManager({
         <div className="space-y-5">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-foreground tracking-tight">Computed Outputs</h2>
-                <Button size="sm" onClick={onAddOutput} className="rounded-full">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Computed Output
-                </Button>
             </div>
 
             {computedOutputs.length === 0 ? (
