@@ -8,7 +8,7 @@ type TooltipAlign = 'start' | 'center' | 'end';
 
 interface ClickTooltipProps {
   content: React.ReactNode;
-  children: React.ReactElement;
+  children: React.ReactElement<any>;
   placement?: TooltipPlacement;
   align?: TooltipAlign;
   className?: string;
@@ -51,11 +51,7 @@ export function ClickTooltip({
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [isOpen]);
 
-  if (!React.isValidElement(children)) {
-    return <span className={className}>{children}</span>;
-  }
-
-  const child = React.cloneElement(children, {
+  const child = React.cloneElement(children as React.ReactElement<any>, {
     onClick: (event: React.MouseEvent) => {
       children.props.onClick?.(event);
       setIsOpen((prev) => !prev);
