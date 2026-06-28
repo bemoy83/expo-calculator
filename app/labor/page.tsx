@@ -10,7 +10,7 @@ import { Chip } from '@/components/ui/Chip';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { Labor, LaborProperty, COMMON_LABOR_PROPERTIES } from '@/lib/types';
 import { labelToVariableName, generateId } from '@/lib/utils';
-import { getAllUnitSymbols, getUnitCategory, normalizeToBase, convertFromBase } from '@/lib/units';
+import { getUnitCategory, normalizeToBase, convertFromBase } from '@/lib/units';
 import { Plus, Edit2, Trash2, Search, Users } from 'lucide-react';
 import { LaborPropertyForm } from '@/components/labor/LaborPropertyForm';
 import { SortableList } from '@/components/shared/SortableList';
@@ -82,9 +82,10 @@ export default function LaborPage() {
   }, [labor]);
 
   const sortedByOrder = useMemo(() => {
+    const originalIndex = new Map(labor.map((laborItem, index) => [laborItem.id, index]));
     return [...labor].sort((a, b) => {
-      const orderA = a.order ?? labor.indexOf(a);
-      const orderB = b.order ?? labor.indexOf(b);
+      const orderA = a.order ?? originalIndex.get(a.id) ?? 0;
+      const orderB = b.order ?? originalIndex.get(b.id) ?? 0;
       if (orderA !== orderB) return orderA - orderB;
       return a.name.localeCompare(b.name);
     });
@@ -704,4 +705,3 @@ export default function LaborPage() {
     </Layout>
   );
 }
-

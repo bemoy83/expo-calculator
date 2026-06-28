@@ -3,8 +3,9 @@
 import { useCallback, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Plus } from 'lucide-react';
+import { CheckCircle2, Plus } from 'lucide-react';
 import { ActionIconButton } from '@/components/shared/ActionIconButton';
+import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { QuoteModuleInstance, CalculationModule, Field } from '@/lib/types';
 import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
@@ -40,6 +41,7 @@ export function SortableModuleCard({
   borderClassName = 'border-border',
 }: SortableModuleCardProps) {
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
+  const isAdded = addedItems?.has(instance.id) ?? false;
   const {
     attributes,
     listeners,
@@ -109,7 +111,7 @@ export function SortableModuleCard({
               icon={Plus}
               actionType="custom"
               onAction={() => onAddToQuote(instance.id)}
-              ariaLabel={addedItems.has(instance.id) ? 'Added to quote' : 'Add to quote'}
+              ariaLabel={isAdded ? 'Added to quote' : 'Add to quote'}
             />
           )}
         </>
@@ -126,11 +128,29 @@ export function SortableModuleCard({
             ))}
           </div>
 
-          <div className={`flex items-center justify-between pt-5 border-t ${borderClassName}`}>
-            <span className="text-sm font-semibold text-md-on-surface-variant uppercase tracking-wide">Module Cost</span>
-            <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
-              {formatCurrency(instance.calculatedCost)}
-            </span>
+          <div className={`flex flex-col gap-4 pt-5 border-t ${borderClassName} sm:flex-row sm:items-center sm:justify-between`}>
+            <div>
+              <span className="block text-sm font-semibold text-md-on-surface-variant uppercase tracking-wide">Module Cost</span>
+              <span className="text-2xl font-bold text-success tabular-nums tracking-tight">
+                {formatCurrency(instance.calculatedCost)}
+              </span>
+            </div>
+            {onAddToQuote && (
+              <Button
+                type="button"
+                onClick={() => onAddToQuote(instance.id)}
+                disabled={isAdded}
+                className="w-full sm:w-auto"
+                variant={isAdded ? 'secondary' : 'primary'}
+              >
+                {isAdded ? (
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                ) : (
+                  <Plus className="h-4 w-4 mr-2" />
+                )}
+                {isAdded ? 'Added to Quote' : 'Add to Quote'}
+              </Button>
+            )}
           </div>
         </div>
       )}

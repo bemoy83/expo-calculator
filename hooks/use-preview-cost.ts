@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Field, Material, ComputedOutput, CalculationModule, Labor } from '@/lib/types';
-import { evaluateFormula, analyzeFormulaVariables } from '@/lib/formula-evaluator';
+import { analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
-import { evaluateComputedOutputs } from '@/lib/utils/evaluate-computed-outputs';
+import { calculateModuleInstance } from '@/lib/calculations/module-calculator';
 
 interface UsePreviewCostProps {
   showPreview: boolean;
@@ -82,45 +82,30 @@ export function usePreviewCost({
         }
       }
 
-      // Evaluate computed outputs first (if any)
-      let valuesWithComputed = { ...previewFieldValues };
-      if (computedOutputs.length > 0) {
-        // Create a temporary module-like object for evaluateComputedOutputs
-        const tempModule: Partial<CalculationModule> = {
+      const result = calculateModuleInstance({
+        moduleDef: {
+          id: 'preview',
+          name: 'Preview',
           fields,
+          formula,
           computedOutputs,
-        };
-        try {
-          const computedResult = evaluateComputedOutputs(
-            tempModule as CalculationModule,
-            previewFieldValues,
-            materials,
-            functions
-          );
-          // Merge computed values into preview values
-          valuesWithComputed = {
-            ...previewFieldValues,
-            ...computedResult.computedValues,
-          };
-        } catch (error) {
-          // If computed outputs fail, continue with regular field values
-          // The formula evaluation will handle the error
-        }
-      }
-
-      const result = evaluateFormula(formula, {
-        fieldValues: valuesWithComputed,
+          createdAt: '',
+          updatedAt: '',
+        } as CalculationModule,
+        fieldValues: previewFieldValues,
         materials,
         labor,
-        fields: fields.map(f => ({
-          variableName: f.variableName,
-          type: f.type,
-          materialCategory: f.materialCategory,
-          laborCategory: f.laborCategory,
-        })),
         functions,
+        roundCost: false,
       });
-      setPreviewCalculatedCost(result);
+
+      if (result.errors.length > 0) {
+        setPreviewError('⚠️ Cannot calculate yet — missing inputs.');
+        setPreviewCalculatedCost(0);
+        return;
+      }
+
+      setPreviewCalculatedCost(result.cost);
       setPreviewError(null);
     } catch (error: any) {
       // Calculation failed - show friendly error
@@ -134,7 +119,6 @@ export function usePreviewCost({
     previewError,
   };
 }
-
 
 
 

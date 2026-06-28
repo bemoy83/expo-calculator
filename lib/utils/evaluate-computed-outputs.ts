@@ -5,9 +5,8 @@
  * Returns computed values and any errors encountered during evaluation.
  */
 
-import { CalculationModule, ComputedOutput, Material, SharedFunction } from '../types';
+import { CalculationModule, Material, SharedFunction, Labor } from '../types';
 import { evaluateFormula, EvaluationContext } from '../formula-evaluator';
-import { useLaborStore } from '../stores/labor-store';
 
 export interface ComputedOutputEvaluationResult {
   computedValues: Record<string, number>; // Maps 'out.variableName' -> value
@@ -27,7 +26,8 @@ export function evaluateComputedOutputs(
   moduleDef: CalculationModule,
   resolvedFieldValues: Record<string, string | number | boolean>,
   materials: Material[],
-  functions: SharedFunction[]
+  functions: SharedFunction[],
+  labor: Labor[] = []
 ): ComputedOutputEvaluationResult {
   const computedValues: Record<string, number> = {};
   const errors: Array<{ outputId: string; outputLabel: string; error: string }> = [];
@@ -36,10 +36,6 @@ export function evaluateComputedOutputs(
     return { computedValues, errors };
   }
 
-  // Get labor from store
-  const labor = useLaborStore.getState().labor;
-
-  // Create evaluation context
   const context: EvaluationContext = {
     fieldValues: resolvedFieldValues,
     materials,
@@ -74,27 +70,16 @@ export function evaluateComputedOutputs(
       
       const value = evaluateFormula(output.expression, contextWithComputed);
       
-      // Round to 2 decimal places to avoid floating point precision issues
-      const roundedValue = Number(value.toFixed(2));
-      
-      // Store with 'out.' prefix
       const storageKey = `out.${output.variableName}`;
-      computedValues[storageKey] = roundedValue;
+      computedValues[storageKey] = value;
     } catch (error: any) {
-      // Log error and add to errors array
-      console.error(`Error evaluating computed output '${output.label}':`, error.message);
       errors.push({
         outputId: output.id,
         outputLabel: output.label,
         error: error.message || 'Evaluation failed',
       });
-      
-      // Set to null (or 0) to indicate failure
-      const storageKey = `out.${output.variableName}`;
-      computedValues[storageKey] = 0; // Use 0 for failed outputs
     }
   }
 
   return { computedValues, errors };
 }
-

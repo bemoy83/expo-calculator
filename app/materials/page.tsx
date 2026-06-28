@@ -10,8 +10,8 @@ import { Chip } from '@/components/ui/Chip';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { Material, MaterialProperty, MaterialPropertyType, COMMON_MATERIAL_PROPERTIES } from '@/lib/types';
 import { labelToVariableName, generateId } from '@/lib/utils';
-import { getAllUnitSymbols, getUnitCategory, normalizeToBase, convertFromBase } from '@/lib/units';
-import { Plus, Edit2, Trash2, X, Search, Package } from 'lucide-react';
+import { getUnitCategory, normalizeToBase, convertFromBase } from '@/lib/units';
+import { Plus, Edit2, Trash2, Search, Package } from 'lucide-react';
 import { PropertyForm } from '@/components/materials/PropertyForm';
 import { SortableList } from '@/components/shared/SortableList';
 import { MaterialItem } from '@/components/materials/MaterialItem';
@@ -89,9 +89,10 @@ export default function MaterialsPage() {
   }, [materials]);
 
   const sortedByOrder = useMemo(() => {
+    const originalIndex = new Map(materials.map((material, index) => [material.id, index]));
     return [...materials].sort((a, b) => {
-      const orderA = a.order ?? materials.indexOf(a);
-      const orderB = b.order ?? materials.indexOf(b);
+      const orderA = a.order ?? originalIndex.get(a.id) ?? 0;
+      const orderB = b.order ?? originalIndex.get(b.id) ?? 0;
       if (orderA !== orderB) return orderA - orderB;
       return a.name.localeCompare(b.name);
     });

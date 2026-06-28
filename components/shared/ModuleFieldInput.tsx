@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Field, Material, Labor } from "@/lib/types";
 import { normalizeToBase, convertFromBase } from "@/lib/units";
 import { FieldHeader, FieldDescription } from "@/components/module-editor/FieldHeader";
@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
 import { Link2, X } from "lucide-react";
 import { useCurrencyStore } from "@/lib/stores/currency-store";
+import { createCatalogIndex, getSortedLaborForCategory, getSortedMaterialsForCategory } from "@/lib/calculations/catalog-index";
 
 type LinkOption = { value: string; label: string };
 
@@ -46,6 +47,15 @@ export function ModuleFieldInput({
   const isLinked = linkProps?.isLinked ?? false;
   const canLink = linkProps?.canLink ?? false;
   const linkUIOpenForField = linkProps?.linkUIOpen ?? false;
+  const catalogIndex = useMemo(() => createCatalogIndex(materials, labor), [materials, labor]);
+  const materialOptions = useMemo(
+    () => getSortedMaterialsForCategory(catalogIndex, field.materialCategory),
+    [catalogIndex, field.materialCategory]
+  );
+  const laborOptions = useMemo(
+    () => getSortedLaborForCategory(catalogIndex, field.laborCategory),
+    [catalogIndex, field.laborCategory]
+  );
 
   const renderInlineLinkBadge = () => {
     if (!linkProps || !linkProps.isLinked) return null;
@@ -529,12 +539,6 @@ export function ModuleFieldInput({
     }
     case "material": {
       const materialCategory = field.materialCategory;
-      const allMaterials = materials ?? [];
-      const filteredMaterials =
-        materialCategory && materialCategory.trim()
-          ? allMaterials.filter((mat) => mat.category === materialCategory)
-          : allMaterials;
-      const sortedMaterials = [...filteredMaterials].sort((a, b) => a.name.localeCompare(b.name));
 
       return (
         <div>
@@ -552,7 +556,7 @@ export function ModuleFieldInput({
               onChange={(e) => onChange(e.target.value)}
               options={[
                 { value: "", label: "Select a material..." },
-                ...sortedMaterials.map((mat) => ({
+                ...materialOptions.map((mat) => ({
                   value: mat.variableName,
                   label: `${mat.name} - ${formatCurrency(mat.price)}/${mat.unit}`,
                 })),
@@ -562,7 +566,7 @@ export function ModuleFieldInput({
           </div>
 
           <FieldDescription description={field.description} />
-          {materialCategory && sortedMaterials.length === 0 && (
+          {materialCategory && materialOptions.length === 0 && (
             <p className="text-xs text-md-on-surface-variant mt-1">
               No materials available in category &quot;{materialCategory}&quot;. Please add materials or adjust the field&apos;s category.
             </p>
@@ -572,12 +576,6 @@ export function ModuleFieldInput({
     }
     case "labor": {
       const laborCategory = field.laborCategory;
-      const allLabor = labor ?? [];
-      const filteredLabor =
-        laborCategory && laborCategory.trim()
-          ? allLabor.filter((l) => l.category === laborCategory)
-          : allLabor;
-      const sortedLabor = [...filteredLabor].sort((a, b) => a.name.localeCompare(b.name));
 
       return (
         <div>
@@ -595,7 +593,7 @@ export function ModuleFieldInput({
               onChange={(e) => onChange(e.target.value)}
               options={[
                 { value: "", label: "Select labor..." },
-                ...sortedLabor.map((l) => ({
+                ...laborOptions.map((l) => ({
                   value: l.variableName,
                   label: `${l.name} - ${formatCurrency(l.cost)}/hour`,
                 })),
@@ -605,7 +603,7 @@ export function ModuleFieldInput({
           </div>
 
           <FieldDescription description={field.description} />
-          {laborCategory && sortedLabor.length === 0 && (
+          {laborCategory && laborOptions.length === 0 && (
             <p className="text-xs text-md-on-surface-variant mt-1">
               No labor available in category &quot;{laborCategory}&quot;. Please add labor or adjust the field&apos;s category.
             </p>

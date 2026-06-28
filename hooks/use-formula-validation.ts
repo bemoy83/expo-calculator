@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Field, Material, ComputedOutput, CalculationModule, Labor } from '@/lib/types';
-import { validateFormula, evaluateFormula } from '@/lib/formula-evaluator';
+import { validateFormula } from '@/lib/formula-evaluator';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
-import { evaluateComputedOutputs } from '@/lib/utils/evaluate-computed-outputs';
+import { calculateModuleInstance } from '@/lib/calculations/module-calculator';
 
 interface FormulaValidation {
   valid: boolean;
@@ -98,46 +98,32 @@ export function useFormulaValidation({
         }
       });
 
-      // Evaluate computed outputs with default field values
-      let computedValues: Record<string, number> = {};
-      if (computedOutputs.length > 0) {
-        // Create a temporary module-like object for evaluateComputedOutputs
-        const tempModule: Partial<CalculationModule> = {
-          fields,
-          computedOutputs,
-        };
-        try {
-          const computedResult = evaluateComputedOutputs(
-            tempModule as CalculationModule,
-            defaultValues,
-            materials,
-            functions
-          );
-          computedValues = computedResult.computedValues;
-        } catch (error) {
-          // If computed outputs fail to evaluate, use 0 as fallback
-          computedOutputs.forEach((output) => {
-            if (output.variableName) {
-              computedValues[`out.${output.variableName}`] = 0;
-            }
-          });
-        }
-      }
-
-      // Merge computed values into default values
-      const valuesWithComputed = {
-        ...defaultValues,
-        ...computedValues,
-      };
-
       try {
-        const preview = evaluateFormula(formulaToValidate, {
-          fieldValues: valuesWithComputed,
+        const result = calculateModuleInstance({
+          moduleDef: {
+            id: 'validation-preview',
+            name: 'Validation Preview',
+            fields,
+            formula: formulaToValidate,
+            computedOutputs,
+            createdAt: '',
+            updatedAt: '',
+          } as CalculationModule,
+          fieldValues: defaultValues,
           materials,
           labor,
           functions,
         });
-        setFormulaValidation({ valid: true, preview });
+
+        if (result.errors.length > 0) {
+          setFormulaValidation({
+            valid: false,
+            error: result.errors[0].message,
+          });
+          return;
+        }
+
+        setFormulaValidation({ valid: true, preview: result.cost });
       } catch (error: any) {
         // If evaluation fails, show the error
         setFormulaValidation({ 
@@ -163,4 +149,3 @@ export function useFormulaValidation({
     validateFormula: validateFormulaInput,
   };
 }
-

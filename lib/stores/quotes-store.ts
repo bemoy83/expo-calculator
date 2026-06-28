@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Quote, QuoteModuleInstance, QuoteLineItem, FieldLink, Field, ModuleTemplate } from '../types';
 import { generateId } from '../utils';
-import { evaluateFormula } from '../formula-evaluator';
-import { evaluateComputedOutputs } from '../utils/evaluate-computed-outputs';
 import { convertFromBase } from '../units';
+import { calculateModuleInstance } from '../calculations/module-calculator';
+import { calculateQuoteTotals, roundMoney, roundRate } from '../calculations/money';
 import { useModulesStore } from './modules-store';
 import { useMaterialsStore } from './materials-store';
 import { useTemplatesStore } from './templates-store';
@@ -44,7 +44,7 @@ interface QuotesStore {
   detectCircularReference: (instanceId: string, fieldName: string, targetInstanceId: string, targetFieldName: string) => string | null;
   resolveFieldLinks: (instances: QuoteModuleInstance[]) => Record<string, Record<string, any>>;
   // Line item management (committed items, included in totals)
-  addLineItem: (instanceId: string) => void;
+  addLineItem: (instanceId: string) => boolean;
   removeLineItem: (lineItemId: string) => void;
   recalculateQuote: () => void;
   setTaxRate: (rate: number) => void;
@@ -480,13 +480,13 @@ export const useQuotesStore = create<QuotesStore>()(
       // Line item management - these are committed items included in totals
       addLineItem: (instanceId) => {
         const current = get().currentQuote;
-        if (!current) return;
+        if (!current) return false;
         
         const instance = current.workspaceModules.find((m) => m.id === instanceId);
-        if (!instance) return;
+        if (!instance) return false;
         
         const moduleDef = useModulesStore.getState().getModule(instance.moduleId);
-        if (!moduleDef) return;
+        if (!moduleDef) return false;
         
         // Resolve field links to get actual values (need all modules to resolve cross-module links)
         const resolvedValues = get().resolveFieldLinks(current.workspaceModules);
@@ -495,39 +495,22 @@ export const useQuotesStore = create<QuotesStore>()(
         const materials = useMaterialsStore.getState().materials;
         const functions = useFunctionsStore.getState().functions;
         
-        // Step 1: Evaluate computed outputs (if any)
-        let resolvedWithComputed = { ...resolved };
-        if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
-          const computedResult = evaluateComputedOutputs(
-            moduleDef,
-            resolved,
-            materials,
-            functions
-          );
-          // Merge computed values into resolved values
-          resolvedWithComputed = {
-            ...resolved,
-            ...computedResult.computedValues,
-          };
+        const labor = useLaborStore.getState().labor;
+        const calculation = calculateModuleInstance({
+          moduleDef,
+          fieldValues: resolved,
+          materials,
+          labor,
+          functions,
+        });
+
+        if (calculation.errors.length > 0) {
+          alert(`Cannot add item: ${calculation.errors[0].message}`);
+          return false;
         }
-        
-        // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
-        let cost = 0;
-        try {
-          const labor = useLaborStore.getState().labor;
-          const calculatedCost = evaluateFormula(moduleDef.formula, {
-            fieldValues: resolvedWithComputed,
-            materials,
-            labor,
-            functions,
-          });
-          cost = Math.round(calculatedCost * 100) / 100; // Round to 2 decimal places
-        } catch (error: any) {
-          // If formula evaluation fails, show error and don't add line item
-          console.error(`Error evaluating formula for module "${moduleDef.name}":`, error.message);
-          alert(`Cannot add item: ${error.message || 'Formula evaluation failed'}`);
-          return;
-        }
+
+        const resolvedWithComputed = calculation.fieldValues;
+        const cost = calculation.cost;
         
         // Step 3: Generate summaries
         // Primary summary: all checked computed outputs with labels + material name (if material field exists)
@@ -630,6 +613,7 @@ export const useQuotesStore = create<QuotesStore>()(
         });
         
         get().recalculateQuote();
+        return true;
       },
       
       removeLineItem: (lineItemId) => {
@@ -769,52 +753,25 @@ export const useQuotesStore = create<QuotesStore>()(
           
           const resolved = resolvedValues[moduleInstance.id] || moduleInstance.fieldValues;
           
-          // Step 1: Evaluate computed outputs (if any)
-          let resolvedWithComputed = { ...resolved };
-          let computedResult: { computedValues: Record<string, number>; errors: Array<{ outputId: string; outputLabel: string; error: string }> } | null = null;
-          if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
-            computedResult = evaluateComputedOutputs(
-              moduleDef,
-              resolved,
-              materials,
-              functions
-            );
-            // Merge computed values into resolved values
-            resolvedWithComputed = {
-              ...resolved,
-              ...computedResult.computedValues,
-            };
-          }
-          
-          // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
-          let cost = 0;
-          try {
-            const labor = useLaborStore.getState().labor;
-            cost = evaluateFormula(moduleDef.formula, {
-              fieldValues: resolvedWithComputed,
-              materials,
-              labor,
-              functions,
-            });
-          } catch (error: any) {
-            // If formula evaluation fails, log error and set cost to 0
-            console.error(`Error evaluating formula for module "${moduleDef.name}":`, error.message);
-            cost = 0;
-          }
-          
-          // Step 3: Store computed output values in fieldValues so they can be accessed by linked fields
-          const updatedFieldValues = { ...moduleInstance.fieldValues };
-          if (computedResult) {
-            // Merge computed values into fieldValues
-            Object.assign(updatedFieldValues, computedResult.computedValues);
-          }
-          
-          return {
-            ...moduleInstance,
-            fieldValues: updatedFieldValues,
-            calculatedCost: cost,
-          };
-        });
+	          const labor = useLaborStore.getState().labor;
+	          const calculation = calculateModuleInstance({
+	            moduleDef,
+	            fieldValues: resolved,
+	            materials,
+	            labor,
+	            functions,
+	          });
+	          const updatedFieldValues = {
+	            ...moduleInstance.fieldValues,
+	            ...calculation.computedValues,
+	          };
+	          
+	          return {
+	            ...moduleInstance,
+	            fieldValues: updatedFieldValues,
+	            calculatedCost: calculation.errors.length > 0 ? 0 : calculation.cost,
+	          };
+	        });
         
         set({
           currentQuote: {
@@ -831,44 +788,29 @@ export const useQuotesStore = create<QuotesStore>()(
         const current = get().currentQuote;
         if (!current) return;
         
-        // Calculate subtotal from line items only (rounded to 2 decimal places)
-        const subtotal = Math.round(current.lineItems.reduce((sum, item) => sum + item.cost, 0) * 100) / 100;
-        
-        // Calculate markup amount (markup applies before tax)
-        const markupPercent = current.markupPercent || 0;
-        const markupAmount = Math.round((subtotal * (markupPercent / 100)) * 100) / 100;
-        
-        // Tax applies to subtotal + markup
-        const taxBase = subtotal + markupAmount;
-        const taxAmount = Math.round((taxBase * current.taxRate) * 100) / 100;
-        
-        // Total = subtotal + markup + tax
-        const total = Math.round((subtotal + markupAmount + taxAmount) * 100) / 100;
-        
-        set({
-          currentQuote: {
-            ...current,
-            subtotal,
-            markupAmount,
-            taxAmount,
-            total,
-            updatedAt: new Date().toISOString(),
-          },
-        });
-      },
-  
-      setTaxRate: (rate) => {
-        // Round to 2 decimal places
-        const roundedRate = Math.round((rate || 0) * 10000) / 10000; // Round to 4 decimal places for rate (0.0850 = 8.50%)
-        get().updateCurrentQuote({ taxRate: roundedRate });
-      },
-      
-      setMarkupPercent: (percent) => {
-        // Clamp markup to 0 or higher (prevent negative markup) and round to 2 decimal places
-        const clampedPercent = Math.max(0, percent || 0);
-        const roundedPercent = Math.round(clampedPercent * 100) / 100; // Round to 2 decimal places
-        get().updateCurrentQuote({ markupPercent: roundedPercent });
-      },
+	        const totals = calculateQuoteTotals({
+	          lineItems: current.lineItems,
+	          markupPercent: current.markupPercent,
+	          taxRate: current.taxRate,
+	        });
+	        
+	        set({
+	          currentQuote: {
+	            ...current,
+	            ...totals,
+	            updatedAt: new Date().toISOString(),
+	          },
+	        });
+	      },
+	  
+	      setTaxRate: (rate) => {
+	        get().updateCurrentQuote({ taxRate: roundRate(rate) });
+	      },
+	      
+	      setMarkupPercent: (percent) => {
+	        const clampedPercent = Math.max(0, percent || 0);
+	        get().updateCurrentQuote({ markupPercent: roundMoney(clampedPercent) });
+	      },
       
       saveQuote: () => {
     const current = get().currentQuote;
@@ -1090,4 +1032,3 @@ export const useQuotesStore = create<QuotesStore>()(
     }
   )
 );
-

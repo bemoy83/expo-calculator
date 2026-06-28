@@ -198,6 +198,31 @@ export interface Quote {
   updatedAt: string;
 }
 
+export type CalculationErrorCode =
+  | 'missing_value'
+  | 'invalid_formula'
+  | 'missing_property'
+  | 'unit_mismatch'
+  | 'computed_output_failed';
+
+export interface CalculationError {
+  code: CalculationErrorCode;
+  message: string;
+  source?: string;
+}
+
+export interface CalculationResult {
+  cost: number;
+  computedValues: Record<string, number>;
+  fieldValues: Record<string, string | number | boolean>;
+  errors: CalculationError[];
+}
+
+export interface CalculationResolver {
+  resolveValue: (name: string) => number | null;
+  resolveProperty: (base: string, property: string) => number | null;
+}
+
 export interface ModuleTemplate {
   id: string;
   name: string;

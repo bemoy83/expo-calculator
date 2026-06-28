@@ -86,14 +86,8 @@ export function TemplatePreviewSidebar({ workspaceModules, modules, onLinkField 
     );
 
     if (!result.valid && result.error) {
-      // TODO Phase 3 Enhancements:
-      // - Show error toast/notification
-      // - Add confirmation dialog for risky links
-      // - Add loading state during link creation
-      // - Add undo support
       console.error('Failed to create link:', result.error);
     }
-    // On success, the hook will re-analyze and the opportunity will disappear
   };
 
   // Handler for batch linking

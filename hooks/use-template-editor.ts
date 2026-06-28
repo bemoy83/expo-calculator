@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { evaluateFormula } from "@/lib/formula-evaluator";
 import { resolveFieldLinks } from "@/lib/utils/field-linking";
-import { evaluateComputedOutputs } from "@/lib/utils/evaluate-computed-outputs";
+import { calculateModuleInstance } from "@/lib/calculations/module-calculator";
 import {
   CalculationModule,
   Field,
@@ -17,7 +16,6 @@ import { normalizeToBase } from "@/lib/units";
 import { generateId } from "@/lib/utils";
 import { canLinkFields } from "@/lib/utils/field-linking";
 import { useFunctionsStore } from "@/lib/stores/functions-store";
-import { useLaborStore } from "@/lib/stores/labor-store";
 
 interface UseTemplateEditorOptions {
   templateId: string;
@@ -113,55 +111,28 @@ export function useTemplateEditor({
         const moduleDef = modules.find((m) => m.id === instance.moduleId);
         if (!moduleDef) return instance;
 
-        try {
-          const resolved = resolvedValues[instance.id] || instance.fieldValues;
-          
-          // Step 1: Evaluate computed outputs (if any)
-          let resolvedWithComputed = { ...resolved };
-          if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
-            const computedResult = evaluateComputedOutputs(
-              moduleDef,
-              resolved,
-              materials,
-              functions
-            );
-            // Merge computed values into resolved values
-            resolvedWithComputed = {
-              ...resolved,
-              ...computedResult.computedValues,
-            };
-          }
-          
-          // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
-          const labor = useLaborStore.getState().labor;
-          const result = evaluateFormula(moduleDef.formula, {
-            fieldValues: resolvedWithComputed,
-            materials,
-            labor,
-            fields: moduleDef.fields.map((f) => ({
-              variableName: f.variableName,
-              type: f.type,
-              materialCategory: f.materialCategory,
-              laborCategory: f.laborCategory,
-            })),
-            functions,
-          });
+        const resolved = resolvedValues[instance.id] || instance.fieldValues;
+        const calculation = calculateModuleInstance({
+          moduleDef,
+          fieldValues: resolved,
+          materials,
+          labor,
+          functions,
+        });
 
-          return {
-            ...instance,
-            calculatedCost: result,
-          };
-        } catch {
-          return {
-            ...instance,
-            calculatedCost: 0,
-          };
-        }
+        return {
+          ...instance,
+          fieldValues: {
+            ...instance.fieldValues,
+            ...calculation.computedValues,
+          },
+          calculatedCost: calculation.errors.length > 0 ? 0 : calculation.cost,
+        };
       });
 
       return updated;
     });
-  }, [materials, modules]);
+  }, [labor, materials, modules]);
 
   // Initialize from template or defaults
   useEffect(() => {
@@ -287,51 +258,27 @@ export function useTemplateEditor({
       const moduleDef = modules.find((m) => m.id === instance.moduleId);
       if (!moduleDef) return instance;
 
-      try {
-        const resolved = resolvedValues[instance.id] || instance.fieldValues;
-        
-        // Step 1: Evaluate computed outputs (if any)
-        let resolvedWithComputed = { ...resolved };
-        if (moduleDef.computedOutputs && moduleDef.computedOutputs.length > 0) {
-          const computedResult = evaluateComputedOutputs(
-            moduleDef,
-            resolved,
-            materials,
-            functions
-          );
-          // Merge computed values into resolved values
-          resolvedWithComputed = {
-            ...resolved,
-            ...computedResult.computedValues,
-          };
-        }
-        
-        // Step 2: Evaluate main formula (can reference computed outputs via out.variableName)
-        const result = evaluateFormula(moduleDef.formula, {
-          fieldValues: resolvedWithComputed,
-          materials,
-          fields: moduleDef.fields.map((f) => ({
-            variableName: f.variableName,
-            type: f.type,
-            materialCategory: f.materialCategory,
-          })),
-          functions,
-        });
+      const resolved = resolvedValues[instance.id] || instance.fieldValues;
+      const calculation = calculateModuleInstance({
+        moduleDef,
+        fieldValues: resolved,
+        materials,
+        labor,
+        functions,
+      });
 
-        return {
-          ...instance,
-          calculatedCost: result,
-        };
-      } catch {
-        return {
-          ...instance,
-          calculatedCost: 0,
-        };
-      }
+      return {
+        ...instance,
+        fieldValues: {
+          ...instance.fieldValues,
+          ...calculation.computedValues,
+        },
+        calculatedCost: calculation.errors.length > 0 ? 0 : calculation.cost,
+      };
     });
 
     setWorkspaceModules(modulesWithCosts);
-  }, [templateId, template?.id, modules, materials]); // Include modules/materials for initialization, but ref prevents duplicates
+  }, [templateId, template?.id, modules, materials, labor]); // Include inputs for initialization, but ref prevents duplicates
 
   const updateFieldValue = useCallback(
     (

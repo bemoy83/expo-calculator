@@ -6,6 +6,9 @@
  */
 
 import { evaluateFormula, type EvaluationContext } from './formula-evaluator';
+import { calculateModuleInstance } from './calculations/module-calculator';
+import { calculateQuoteTotals } from './calculations/money';
+import { CalculationModule, QuoteLineItem, SharedFunction } from './types';
 
 // Test helper function
 function testFormula(
@@ -263,6 +266,90 @@ testFormula(
       },
     ],
   }
+);
+
+console.log('\n=== Nested Function Regression ===');
+const sharedFunctions: SharedFunction[] = [
+  {
+    id: 'fn-add',
+    displayName: 'Add',
+    name: 'add',
+    formula: 'a + b',
+    parameters: [
+      { name: 'a', label: 'A' },
+      { name: 'b', label: 'B' },
+    ],
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: 'fn-double',
+    displayName: 'Double',
+    name: 'double',
+    formula: 'x * 2',
+    parameters: [{ name: 'x', label: 'X' }],
+    createdAt: '',
+    updatedAt: '',
+  },
+];
+
+testFormula('double(add(width, height))', 10, {
+  fieldValues: { width: 2, height: 3 },
+  materials: [],
+  functions: sharedFunctions,
+});
+
+console.log('\n=== Quote Totals Regression ===');
+const lineItems: QuoteLineItem[] = [
+  {
+    id: 'li-1',
+    moduleId: 'm-1',
+    moduleName: 'Module 1',
+    fieldValues: {},
+    fieldSummary: '',
+    cost: 10.005,
+    createdAt: '',
+  },
+  {
+    id: 'li-2',
+    moduleId: 'm-2',
+    moduleName: 'Module 2',
+    fieldValues: {},
+    fieldSummary: '',
+    cost: 20.005,
+    createdAt: '',
+  },
+];
+const totals = calculateQuoteTotals({ lineItems, markupPercent: 10, taxRate: 0.25 });
+console.log(
+  `${totals.subtotal === 30.01 && totals.markupAmount === 3 && totals.taxAmount === 8.25 && totals.total === 41.26 ? '✓' : '✗'} totals = ${JSON.stringify(totals)}`
+);
+
+console.log('\n=== Computed Output Failure Regression ===');
+const moduleWithBadOutput: CalculationModule = {
+  id: 'bad-module',
+  name: 'Bad Module',
+  fields: [],
+  formula: 'out.area * 2',
+  computedOutputs: [
+    {
+      id: 'out-area',
+      label: 'Area',
+      variableName: 'area',
+      expression: 'missing_width * 2',
+    },
+  ],
+  createdAt: '',
+  updatedAt: '',
+};
+const calculation = calculateModuleInstance({
+  moduleDef: moduleWithBadOutput,
+  fieldValues: {},
+  materials: [],
+  functions: [],
+});
+console.log(
+  `${calculation.errors.length > 0 && calculation.computedValues['out.area'] === undefined ? '✓' : '✗'} computed output failure is reported without zero fallback`
 );
 
 console.log('\n=== Tests Complete ===');

@@ -1,6 +1,6 @@
-import { evaluate, create, all } from 'mathjs';
-import { Material, CalculationModule, QuoteModuleInstance, SharedFunction, Labor } from './types';
-import { UnitCategory, getUnitCategory, normalizeToBase, multiplyUnits, divideUnits } from './units';
+import { create, all } from 'mathjs';
+import { Material, SharedFunction, Labor } from './types';
+import { UnitCategory, getUnitCategory, normalizeToBase, divideUnits } from './units';
 
 export interface EvaluationContext {
   fieldValues: Record<string, string | number | boolean>;
@@ -244,6 +244,18 @@ export function parseFunctionCalls(formula: string): FunctionCall[] {
   }
 
   return calls;
+}
+
+function getOutermostFunctionCalls(calls: FunctionCall[]): FunctionCall[] {
+  return calls.filter((call) => {
+    return !calls.some((candidateParent) => {
+      if (candidateParent === call) return false;
+      return (
+        candidateParent.startIndex < call.startIndex &&
+        candidateParent.endIndex >= call.endIndex
+      );
+    });
+  });
 }
 
 /**
@@ -970,7 +982,7 @@ export function evaluateFormula(
     // STEP 5: Evaluate function calls (now we have all variable values)
     // Process function calls from innermost to outermost (right to left)
     // Sort by start index descending to process from right to left
-    const sortedCalls = [...functionCalls].sort((a, b) => b.startIndex - a.startIndex);
+    const sortedCalls = getOutermostFunctionCalls(functionCalls).sort((a, b) => b.startIndex - a.startIndex);
     
     for (const call of sortedCalls) {
       try {

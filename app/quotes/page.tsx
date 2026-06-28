@@ -13,6 +13,7 @@ import { useLaborStore } from '@/lib/stores/labor-store';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { QuoteModuleInstance, Field } from '@/lib/types';
+import { roundMoney } from '@/lib/calculations/money';
 import { Plus, Download, Save, Calculator, CheckCircle2, X } from 'lucide-react';
 // Shared components
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -346,14 +347,14 @@ export default function QuotesPage() {
               value: value,
             };
           }),
-          cost: Math.round(item.cost * 100) / 100,
+          cost: roundMoney(item.cost),
         })),
-        subtotal: Math.round(currentQuote.subtotal * 100) / 100,
-        markupPercent: Math.round((currentQuote.markupPercent || 0) * 100) / 100,
-        markupAmount: Math.round((currentQuote.markupAmount || 0) * 100) / 100,
-        taxRate: Math.round((currentQuote.taxRate * 100) * 100) / 100,
-        taxAmount: Math.round(currentQuote.taxAmount * 100) / 100,
-        total: Math.round(currentQuote.total * 100) / 100,
+        subtotal: roundMoney(currentQuote.subtotal),
+        markupPercent: roundMoney(currentQuote.markupPercent || 0),
+        markupAmount: roundMoney(currentQuote.markupAmount || 0),
+        taxRate: roundMoney(currentQuote.taxRate * 100),
+        taxAmount: roundMoney(currentQuote.taxAmount),
+        total: roundMoney(currentQuote.total),
       },
     };
 
@@ -563,7 +564,8 @@ export default function QuotesPage() {
               onToggleCollapse={toggleModuleCollapse}
               onRemoveModule={removeWorkspaceModule}
               onAddLineItem={(id) => {
-                addLineItem(id);
+                const wasAdded = addLineItem(id);
+                if (!wasAdded) return;
                 setAddedItems(new Set([...addedItems, id]));
                 setTimeout(() => {
                   setAddedItems(new Set());
