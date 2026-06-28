@@ -5,7 +5,7 @@
  * In a production environment, these would be run with a testing framework like Jest.
  */
 
-import { evaluateFormula, type EvaluationContext } from './formula-evaluator';
+import { evaluateFormula, parseFunctionCalls, validateFormula, analyzeFormulaVariables, type EvaluationContext } from './formula-evaluator';
 import { calculateModuleInstance } from './calculations/module-calculator';
 import { calculateQuoteTotals } from './calculations/money';
 import { CalculationModule, QuoteLineItem, SharedFunction } from './types';
@@ -25,6 +25,11 @@ function testFormula(
     console.log(`✗ ${formula} - Error: ${error.message}`);
     return false;
   }
+}
+
+function logCheck(label: string, passed: boolean, detail?: string) {
+  console.log(`${passed ? '✓' : '✗'} ${label}${detail ? ` - ${detail}` : ''}`);
+  return passed;
 }
 
 // Rounding function tests
@@ -350,6 +355,121 @@ const calculation = calculateModuleInstance({
 });
 console.log(
   `${calculation.errors.length > 0 && calculation.computedValues['out.area'] === undefined ? '✓' : '✗'} computed output failure is reported without zero fallback`
+);
+
+console.log('\n=== Parser and Validation Regression ===');
+const siblingCalls = parseFunctionCalls('add(width, height) + double(depth)');
+logCheck(
+  'parses sibling function calls',
+  siblingCalls.length === 2 &&
+    siblingCalls[0].functionName === 'add' &&
+    siblingCalls[1].functionName === 'double'
+);
+
+const nestedCalls = parseFunctionCalls('double(add(width, height))');
+logCheck(
+  'parses nested function calls',
+  nestedCalls.length === 2 &&
+    nestedCalls.some((call) => call.fullMatch === 'double(add(width, height))') &&
+    nestedCalls.some((call) => call.fullMatch === 'add(width, height)')
+);
+
+const debugInfo = analyzeFormulaVariables(
+  'wallboard.width + out.area + mat_board.length',
+  ['wallboard', 'out.area'],
+  [
+    {
+      id: 'mat-board',
+      name: 'Board',
+      category: 'wood',
+      unit: 'ea',
+      price: 10,
+      variableName: 'mat_board',
+      properties: [
+        {
+          id: 'mat-length',
+          name: 'length',
+          type: 'number',
+          value: 2,
+        },
+      ],
+      createdAt: '',
+      updatedAt: '',
+    },
+  ],
+  [{ variableName: 'wallboard', type: 'material' }]
+);
+logCheck(
+  'analyzes field/material/computed references',
+  debugInfo.fieldPropertyRefs.some((ref) => ref.full === 'wallboard.width') &&
+    debugInfo.materialPropertyRefs.some((ref) => ref.full === 'mat_board.length') &&
+    debugInfo.computedOutputs.includes('out.area')
+);
+
+const missingValidation = validateFormula('width + missing', ['width'], [], []);
+logCheck(
+  'validates missing variables',
+  !missingValidation.valid && missingValidation.error === 'Undefined variable: missing',
+  missingValidation.error
+);
+
+const materialFieldValidation = validateFormula(
+  'material.width',
+  ['material'],
+  [
+    {
+      id: 'mat-field',
+      name: 'Board',
+      category: 'wood',
+      unit: 'ea',
+      price: 5,
+      variableName: 'mat_board',
+      properties: [{ id: 'width', name: 'width', type: 'number', value: 2 }],
+      createdAt: '',
+      updatedAt: '',
+    },
+  ],
+  [{ variableName: 'material', type: 'material' }]
+);
+logCheck('validates material field properties', materialFieldValidation.valid, materialFieldValidation.error);
+
+const laborFieldValidation = validateFormula(
+  'installer.m2_per_hr',
+  ['installer'],
+  [],
+  [{ variableName: 'installer', type: 'labor' }],
+  [],
+  [
+    {
+      id: 'labor-field',
+      name: 'Installer',
+      category: 'install',
+      cost: 500,
+      variableName: 'installer_rate',
+      properties: [{ id: 'm2-rate', name: 'm2_per_hr', type: 'number', value: 10 }],
+      createdAt: '',
+      updatedAt: '',
+    },
+  ]
+);
+logCheck('validates labor field properties', laborFieldValidation.valid, laborFieldValidation.error);
+
+const computedOutputValidation = validateFormula('out.area * 2', ['out.area'], [], []);
+logCheck('validates computed output references', computedOutputValidation.valid, computedOutputValidation.error);
+
+const unitMismatchValidation = validateFormula(
+  'width + weight',
+  ['width', 'weight'],
+  [],
+  [
+    { variableName: 'width', type: 'number', unitCategory: 'length', unitSymbol: 'm' },
+    { variableName: 'weight', type: 'number', unitCategory: 'weight', unitSymbol: 'kg' },
+  ]
+);
+logCheck(
+  'validates unit mismatch',
+  !unitMismatchValidation.valid && !!unitMismatchValidation.error?.includes('Cannot add length'),
+  unitMismatchValidation.error
 );
 
 console.log('\n=== Tests Complete ===');
