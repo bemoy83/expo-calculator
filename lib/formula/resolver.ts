@@ -4,17 +4,126 @@ import { EvaluationContext } from './types';
 
 type FieldValues = Record<string, string | number | boolean>;
 
+export interface FormulaResolver {
+  materialsByVariableName: Map<string, Material>;
+  laborByVariableName: Map<string, Labor>;
+  resolveNumericValue: (value: string | number | boolean | undefined) => number | null;
+  resolveVariable: (name: string) => number | null;
+  resolveMaterialProperty: (materialVar: string, propertyName: string) => number | null;
+  resolveLaborProperty: (laborVar: string, propertyName: string) => number | null;
+  resolveMaterialPropertyOrPrice: (materialVar: string, propertyName: string) => number | null;
+  resolveFieldProperty: (fieldVar: string, propertyName: string) => number;
+}
+
+export function createFormulaResolver(context: EvaluationContext): FormulaResolver {
+  const materialsByVariableName = new Map(context.materials.map((material) => [material.variableName, material]));
+  const laborByVariableName = new Map((context.labor ?? []).map((laborItem) => [laborItem.variableName, laborItem]));
+
+  const resolveNumericValue = (value: string | number | boolean | undefined): number | null => {
+    if (typeof value === 'boolean') return value ? 1 : 0;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (typeof value !== 'string' || value.trim() === '') return null;
+
+    const material = materialsByVariableName.get(value);
+    if (material) return material.price;
+
+    const laborItem = laborByVariableName.get(value);
+    if (laborItem) return laborItem.cost;
+
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
+  const resolveMaterialPropertyForMap = (materialVar: string, propertyName: string): number | null => {
+    const material = materialsByVariableName.get(materialVar);
+    if (!material || !material.properties) {
+      return null;
+    }
+
+    return getMaterialPropertyValueFromMaterial(material, propertyName);
+  };
+
+  const resolveLaborPropertyForMap = (laborVar: string, propertyName: string): number | null => {
+    const laborItem = laborByVariableName.get(laborVar);
+    if (!laborItem || !laborItem.properties) {
+      return null;
+    }
+
+    return getLaborPropertyValueFromLabor(laborItem, propertyName);
+  };
+
+  const resolveFieldPropertyForContext = (fieldVar: string, propertyName: string): number => {
+    let fieldValue = context.fieldValues[fieldVar];
+
+    if (!fieldValue || (typeof fieldValue === 'string' && fieldValue.trim() === '')) {
+      if (context.fields) {
+        const field = context.fields.find(f => f.variableName === fieldVar);
+        if (field && field.defaultValue !== undefined) {
+          fieldValue = field.defaultValue;
+        }
+      }
+    }
+
+    if (typeof fieldValue !== 'string' || fieldValue.trim() === '') {
+      throw new Error(`Field "${fieldVar}" is not a material/labor field or no item is selected`);
+    }
+
+    const material = materialsByVariableName.get(fieldValue);
+    if (material) {
+      const propertyValue = resolveMaterialPropertyForMap(fieldValue, propertyName);
+      if (propertyValue === null) {
+        throw new Error(`Property "${propertyName}" not found on selected material "${material.name}" for field "${fieldVar}"`);
+      }
+      return propertyValue;
+    }
+
+    const laborItem = laborByVariableName.get(fieldValue);
+    if (laborItem) {
+      const propertyValue = resolveLaborPropertyForMap(fieldValue, propertyName);
+      if (propertyValue === null) {
+        throw new Error(`Property "${propertyName}" not found on selected labor "${laborItem.name}" for field "${fieldVar}"`);
+      }
+      return propertyValue;
+    }
+
+    throw new Error(`No material or labor selected for field "${fieldVar}"`);
+  };
+
+  return {
+    materialsByVariableName,
+    laborByVariableName,
+    resolveNumericValue,
+    resolveVariable(name) {
+      if (name in context.fieldValues) {
+        return resolveNumericValue(context.fieldValues[name]);
+      }
+
+      const outputValue = context.functionOutputs?.[name];
+      if (outputValue !== undefined) {
+        return Number.isFinite(outputValue) ? outputValue : null;
+      }
+
+      return resolveNumericValue(name);
+    },
+    resolveMaterialProperty: resolveMaterialPropertyForMap,
+    resolveLaborProperty: resolveLaborPropertyForMap,
+    resolveMaterialPropertyOrPrice(materialVar, propertyName) {
+      const propertyValue = resolveMaterialPropertyForMap(materialVar, propertyName);
+      if (propertyValue !== null) {
+        return propertyValue;
+      }
+      return materialsByVariableName.get(materialVar)?.price ?? null;
+    },
+    resolveFieldProperty: resolveFieldPropertyForContext,
+  };
+}
+
 export function resolveMaterialProperty(
   materialVar: string,
   propertyName: string,
   materials: Material[]
 ): number | null {
-  const material = materials.find((m) => m.variableName === materialVar);
-  if (!material || !material.properties) {
-    return null;
-  }
-
-  return getMaterialPropertyValueFromMaterial(material, propertyName);
+  return createFormulaResolver({ fieldValues: {}, materials }).resolveMaterialProperty(materialVar, propertyName);
 }
 
 /**
@@ -89,46 +198,7 @@ export function resolveFieldProperty(
   propertyName: string,
   context: EvaluationContext
 ): number {
-  let fieldValue = context.fieldValues[fieldVar];
-
-  // If field value is missing or empty, try to get default from field definition
-  if (!fieldValue || (typeof fieldValue === 'string' && fieldValue.trim() === '')) {
-    if (context.fields) {
-      const field = context.fields.find(f => f.variableName === fieldVar);
-      if (field && field.defaultValue !== undefined) {
-        fieldValue = field.defaultValue;
-      }
-    }
-  }
-
-  // Check if field value is a material or labor selection (string matching variableName)
-  if (typeof fieldValue !== 'string' || fieldValue.trim() === '') {
-    throw new Error(`Field "${fieldVar}" is not a material/labor field or no item is selected`);
-  }
-
-  // Check if it's a material
-  const material = context.materials.find((m) => m.variableName === fieldValue);
-  if (material) {
-    const propertyValue = resolveMaterialProperty(fieldValue, propertyName, context.materials);
-    if (propertyValue === null) {
-      throw new Error(`Property "${propertyName}" not found on selected material "${material.name}" for field "${fieldVar}"`);
-    }
-    return propertyValue;
-  }
-
-  // Check if it's a labor item
-  if (context.labor && context.labor.length > 0) {
-    const laborItem = context.labor.find((l) => l.variableName === fieldValue);
-    if (laborItem) {
-      const propertyValue = resolveLaborProperty(fieldValue, propertyName, context.labor);
-      if (propertyValue === null) {
-        throw new Error(`Property "${propertyName}" not found on selected labor "${laborItem.name}" for field "${fieldVar}"`);
-      }
-      return propertyValue;
-    }
-  }
-
-  throw new Error(`No material or labor selected for field "${fieldVar}"`);
+  return createFormulaResolver(context).resolveFieldProperty(fieldVar, propertyName);
 }
 
 /**
@@ -140,12 +210,7 @@ export function resolveLaborProperty(
   propertyName: string,
   labor: Labor[]
 ): number | null {
-  const laborItem = labor.find((l) => l.variableName === laborVar);
-  if (!laborItem || !laborItem.properties) {
-    return null;
-  }
-
-  return getLaborPropertyValueFromLabor(laborItem, propertyName);
+  return createFormulaResolver({ fieldValues: {}, materials: [], labor }).resolveLaborProperty(laborVar, propertyName);
 }
 
 /**
@@ -201,64 +266,37 @@ export function getLaborPropertyValueFromLabor(
   return null;
 }
 
-function toNumericSelection(
-  value: string | number | boolean | undefined,
-  materialsByVariableName: Map<string, Material>,
-  laborByVariableName: Map<string, Labor>
-): number | null {
-  if (typeof value === 'boolean') return value ? 1 : 0;
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  if (typeof value !== 'string' || value.trim() === '') return null;
-
-  const material = materialsByVariableName.get(value);
-  if (material) return material.price;
-
-  const laborItem = laborByVariableName.get(value);
-  if (laborItem) return laborItem.cost;
-
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
 export function createCalculationResolver(input: {
   fieldValues: FieldValues;
   materials: Material[];
   labor?: Labor[];
 }): CalculationResolver {
-  const materialsByVariableName = new Map(input.materials.map((material) => [material.variableName, material]));
-  const laborByVariableName = new Map((input.labor ?? []).map((laborItem) => [laborItem.variableName, laborItem]));
+  const resolver = createFormulaResolver(input);
 
   return {
     resolveValue(name) {
-      if (name in input.fieldValues) {
-        return toNumericSelection(input.fieldValues[name], materialsByVariableName, laborByVariableName);
-      }
-
-      const material = materialsByVariableName.get(name);
-      if (material) return material.price;
-
-      const laborItem = laborByVariableName.get(name);
-      if (laborItem) return laborItem.cost;
-
-      return null;
+      return resolver.resolveVariable(name);
     },
     resolveProperty(base, property) {
       const selectedValue = input.fieldValues[base];
       if (typeof selectedValue === 'string') {
-        const selectedMaterial = materialsByVariableName.get(selectedValue);
-        if (selectedMaterial) return getMaterialPropertyValueFromMaterial(selectedMaterial, property);
+        const selectedMaterialValue = resolver.resolveMaterialProperty(selectedValue, property);
+        if (selectedMaterialValue !== null) {
+          return selectedMaterialValue;
+        }
 
-        const selectedLabor = laborByVariableName.get(selectedValue);
-        if (selectedLabor) return getLaborPropertyValueFromLabor(selectedLabor, property);
+        const selectedLaborValue = resolver.resolveLaborProperty(selectedValue, property);
+        if (selectedLaborValue !== null) {
+          return selectedLaborValue;
+        }
       }
 
-      const material = materialsByVariableName.get(base);
-      if (material) return getMaterialPropertyValueFromMaterial(material, property);
+      const materialValue = resolver.resolveMaterialProperty(base, property);
+      if (materialValue !== null) {
+        return materialValue;
+      }
 
-      const laborItem = laborByVariableName.get(base);
-      if (laborItem) return getLaborPropertyValueFromLabor(laborItem, property);
-
-      return null;
+      return resolver.resolveLaborProperty(base, property);
     },
   };
 }

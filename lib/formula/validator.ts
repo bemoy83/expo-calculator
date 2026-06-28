@@ -1,186 +1,14 @@
 import { Labor, Material, SharedFunction } from '../types';
-import { UnitCategory, divideUnits, getUnitCategory } from '../units';
-import { EvaluationContext, FormulaDebugInfo } from './types';
 import { mathInstance } from './math-runtime';
 import { MATH_FUNCTIONS, escapeRegex, parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
+import { translateParserError } from './error-messages';
+import { validateUnitCompatibility } from './unit-validation';
+import { FormulaField } from './validation-types';
 
-function validateUnitCompatibility(
-  formula: string,
-  fieldPropertyRefs: Array<{ fieldVar: string; propertyName: string; fullMatch: string }>,
-  materialPropertyRefs: Array<{ materialVar: string; propertyName: string; fullMatch: string }>,
-  availableVariables: string[],
-  materials: Material[],
-  fields?: Array<{ variableName: string; type: string; materialCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>
-): string | null {
-  // Collect unit categories for all variables/properties
-  const variableUnits = new Map<string, UnitCategory>();
+export { analyzeFormulaVariables } from './debug-analysis';
 
-  // Track field property references
-  for (const ref of fieldPropertyRefs) {
-    // Find the field to get material category
-    const field = fields?.find(f => f.variableName === ref.fieldVar);
-    if (field && field.type === 'material') {
-      // Find a material in the allowed category to get property unit
-      let candidateMaterials = materials;
-      if (field.materialCategory && field.materialCategory.trim()) {
-        candidateMaterials = materials.filter(m => m.category === field.materialCategory);
-      }
-
-      for (const material of candidateMaterials) {
-        const property = material.properties?.find(p => p.name === ref.propertyName);
-        if (property) {
-          const unitCat = property.unitCategory || (property.unitSymbol ? getUnitCategory(property.unitSymbol) : undefined);
-          if (unitCat) {
-            variableUnits.set(ref.fullMatch, unitCat);
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  // Track material property references
-  for (const ref of materialPropertyRefs) {
-    const material = materials.find(m => m.variableName === ref.materialVar);
-    if (material) {
-      const property = material.properties?.find(p => p.name === ref.propertyName);
-      if (property) {
-        const unitCat = property.unitCategory || (property.unitSymbol ? getUnitCategory(property.unitSymbol) : undefined);
-        if (unitCat) {
-          variableUnits.set(ref.fullMatch, unitCat);
-        }
-      }
-    }
-  }
-
-  // Track field variables
-  for (const varName of availableVariables) {
-    const field = fields?.find(f => f.variableName === varName);
-    if (field && (
-      field.type === 'number' ||
-      (field.type === 'dropdown' && field.dropdownMode === 'numeric')
-    )) {
-      const unitCat = field.unitCategory || (field.unitSymbol ? getUnitCategory(field.unitSymbol) : undefined);
-      if (unitCat) {
-        variableUnits.set(varName, unitCat);
-      }
-    }
-  }
-
-  // Phase 1: Simple pattern-based validation
-  // Check for addition/subtraction of incompatible units
-  // Pattern: variable1 + variable2 or variable1 - variable2
-  const addSubPattern = /([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\s*([+\-])\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)/g;
-  let match;
-  while ((match = addSubPattern.exec(formula)) !== null) {
-    const var1 = match[1];
-    const var2 = match[3];
-    const unit1 = variableUnits.get(var1);
-    const unit2 = variableUnits.get(var2);
-
-    // If both have units and they're different (and not unitless), error
-    if (unit1 && unit2 && unit1 !== unit2) {
-      // Allow unitless (count/percentage) to be added/subtracted with anything
-      if (unit1 !== 'count' && unit1 !== 'percentage' && unit2 !== 'count' && unit2 !== 'percentage') {
-        return `Cannot ${match[2] === '+' ? 'add' : 'subtract'} ${unit1} (${var1}) to ${unit2} (${var2})`;
-      }
-    }
-  }
-
-  // Check division rules
-  // Pattern: variable1 / variable2
-  const divPattern = /([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\s*\/\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)/g;
-  while ((match = divPattern.exec(formula)) !== null) {
-    const var1 = match[1];
-    const var2 = match[2];
-    const unit1 = variableUnits.get(var1);
-    const unit2 = variableUnits.get(var2);
-
-    if (unit1 && unit2) {
-      const resultUnit = divideUnits(unit1, unit2);
-      if (resultUnit === null) {
-        // Check specific error cases
-        // Unitless ÷ unit → disallow
-        if ((unit1 === 'count' || unit1 === 'percentage') && unit2 !== 'count' && unit2 !== 'percentage') {
-          return `Cannot divide unitless (${var1}) by ${unit2} (${var2})`;
-        }
-        // Different dimensional units → disallow
-        if (unit1 !== unit2 && unit1 !== 'count' && unit1 !== 'percentage' && unit2 !== 'count' && unit2 !== 'percentage') {
-          return `Cannot divide ${unit1} (${var1}) by ${unit2} (${var2})`;
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Translates technical parser errors into user-friendly messages
- */
-function translateParserError(errorMessage: string, formula: string): string {
-  // Extract character position if available
-  const charMatch = errorMessage.match(/\(char (\d+)\)/);
-  const charPos = charMatch ? parseInt(charMatch[1], 10) : null;
-
-  // Get context around the error position
-  let context = '';
-  if (charPos !== null && charPos < formula.length) {
-    const start = Math.max(0, charPos - 10);
-    const end = Math.min(formula.length, charPos + 10);
-    const before = formula.substring(start, charPos);
-    const at = formula[charPos];
-    const after = formula.substring(charPos + 1, end);
-    context = ` near "${before}${at}${after}"`;
-  }
-
-  // Common error patterns and their translations
-  if (errorMessage.includes('Unexpected part')) {
-    const partMatch = errorMessage.match(/Unexpected part "([^"]+)"/);
-    const part = partMatch ? partMatch[1] : 'character';
-
-    // Check for common issues
-    if (part === '1' || part.match(/^\d+$/)) {
-      return `Syntax error${context}: Unexpected number. Check for missing operators (+, -, *, /) between values.`;
-    }
-    if (part.match(/^[a-zA-Z_]/)) {
-      return `Syntax error${context}: Unexpected variable or function. Check for missing operators or invalid function names.`;
-    }
-    if (['(', ')', '+', '-', '*', '/'].includes(part)) {
-      return `Syntax error${context}: Unexpected "${part}". Check for mismatched parentheses or missing values.`;
-    }
-    return `Syntax error${context}: Unexpected "${part}". Check your formula syntax.`;
-  }
-
-  if (errorMessage.includes('Unexpected end of expression')) {
-    return `Formula is incomplete${context}. Check for missing values or operators at the end.`;
-  }
-
-  if (errorMessage.includes('Unexpected operator')) {
-    return `Syntax error${context}: Unexpected operator. Check for missing values before or after operators.`;
-  }
-
-  if (errorMessage.includes('Parenthesis')) {
-    if (errorMessage.includes('missing')) {
-      return `Missing closing parenthesis${context}. Check that all opening parentheses "(" have matching closing ones ")".`;
-    }
-    if (errorMessage.includes('unexpected')) {
-      return `Unexpected closing parenthesis${context}. Check for extra ")" or missing opening "(".`;
-    }
-  }
-
-  if (errorMessage.includes('Function') && errorMessage.includes('not found')) {
-    const funcMatch = errorMessage.match(/Function "([^"]+)" not found/);
-    const funcName = funcMatch ? funcMatch[1] : 'function';
-    return `Unknown function "${funcName}". Available functions: round, ceil, floor, sqrt, abs, max, min, sin, cos, tan, log, exp.`;
-  }
-
-  if (errorMessage.includes('Undefined variable')) {
-    return errorMessage; // Already user-friendly
-  }
-
-  // For other errors, provide a helpful message with context
-  return `Formula syntax error${context}: ${errorMessage}. Check that your formula uses valid operators (+, -, *, /) and proper parentheses.`;
+function hasProperty(items: Array<{ properties?: Array<{ name: string }> }>, propertyName: string): boolean {
+  return items.some(item => item.properties?.some(property => property.name === propertyName));
 }
 
 /**
@@ -190,15 +18,16 @@ export function validateFormula(
   formula: string,
   availableVariables: string[],
   materials: Material[],
-  fields?: Array<{ variableName: string; type: string; materialCategory?: string; laborCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>,
+  fields?: FormulaField[],
   functions?: SharedFunction[],
   labor?: Labor[]
 ): { valid: boolean; error?: string; warnings?: string[] } {
   try {
     const warnings: string[] = [];
     const availableFunctions = functions || [];
+    const materialsByVariableName = new Map(materials.map(material => [material.variableName, material]));
+    const fieldsByVariableName = new Map((fields ?? []).map(field => [field.variableName, field]));
 
-    // STEP 0: Validate function calls
     const functionCalls = parseFunctionCalls(formula);
     const functionNames = new Set<string>();
     
@@ -332,8 +161,7 @@ export function validateFormula(
     const uniqueFieldVariableNames = Array.from(new Set(allFieldVariableNames));
     const fieldPropertyRefs = parseFieldPropertyReferences(formula, uniqueFieldVariableNames);
     for (const ref of fieldPropertyRefs) {
-      // Find the field definition
-      const field = fields?.find(f => f.variableName === ref.fieldVar);
+      const field = fieldsByVariableName.get(ref.fieldVar);
       if (!field) {
         // Field not found in definitions - might be a regular variable, skip for now
         continue;
@@ -355,11 +183,9 @@ export function validateFormula(
           candidateMaterials = materials.filter(m => m.category === field.materialCategory);
         }
 
-        const hasProperty = candidateMaterials.some(material =>
-          material.properties && material.properties.some(p => p.name === ref.propertyName)
-        );
+        const propertyExists = hasProperty(candidateMaterials, ref.propertyName);
 
-        if (!hasProperty) {
+        if (!propertyExists) {
           const categoryMsg = field.materialCategory
             ? ` in category "${field.materialCategory}"`
             : '';
@@ -385,11 +211,9 @@ export function validateFormula(
           candidateLabor = labor.filter(l => l.category === field.laborCategory);
         }
 
-        const hasProperty = candidateLabor.some(laborItem =>
-          laborItem.properties && laborItem.properties.some(p => p.name === ref.propertyName)
-        );
+        const propertyExists = hasProperty(candidateLabor, ref.propertyName);
 
-        if (!hasProperty) {
+        if (!propertyExists) {
           const categoryMsg = field.laborCategory
             ? ` in category "${field.laborCategory}"`
             : '';
@@ -409,7 +233,7 @@ export function validateFormula(
         continue;
       }
 
-      const material = materials.find((m) => m.variableName === ref.materialVar);
+      const material = materialsByVariableName.get(ref.materialVar);
       if (!material) {
         return {
           valid: false,
@@ -548,19 +372,6 @@ export function validateFormula(
       }
     }
 
-    // Test evaluation with dummy values
-    const testContext: EvaluationContext = {
-      fieldValues: {},
-      materials: materials.map(m => ({
-        ...m,
-        price: 1,
-        properties: m.properties?.map(p => ({
-          ...p,
-          value: p.type === 'number' ? 1 : p.type === 'boolean' ? true : '1'
-        }))
-      }))
-    };
-
     // Replace all variables with 1 for syntax check
     let testFormula = formula;
 
@@ -630,152 +441,4 @@ export function validateFormula(
       error: translatedError
     };
   }
-}
-
-/**
- * Analyzes a formula to extract variable information for debugging
- * Returns detailed information about detected variables, property references, and unknown identifiers
- * This matches the parsing logic used in validateFormula exactly
- */
-export function analyzeFormulaVariables(
-  formula: string,
-  availableVariables: string[],
-  materials: Material[],
-  fields?: Array<{ variableName: string; type: string; materialCategory?: string; dropdownMode?: 'numeric' | 'string'; unitCategory?: UnitCategory; unitSymbol?: string }>,
-  functions?: SharedFunction[]
-): FormulaDebugInfo {
-  const mathFunctionsList = ['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor'];
-  const availableFunctions = functions || [];
-
-  // Parse function calls to get function names
-  const functionCalls = parseFunctionCalls(formula);
-  const functionNames = new Set<string>();
-  const functionCallsFormatted: Array<{ name: string; arguments: string[]; fullMatch: string }> = [];
-  functionCalls.forEach(call => {
-    functionNames.add(call.functionName);
-    functionCallsFormatted.push({
-      name: call.functionName,
-      arguments: call.arguments,
-      fullMatch: call.fullMatch,
-    });
-  });
-
-  // Parse property references using same logic as validateFormula
-  const fieldPropertyRefs = parseFieldPropertyReferences(formula, availableVariables);
-  const materialPropertyRefs = parseMaterialPropertyReferences(formula);
-
-  // Filter out material property refs that were already handled as field property refs
-  const filteredMaterialPropertyRefs = materialPropertyRefs.filter(ref =>
-    !fieldPropertyRefs.some(fpr => fpr.fullMatch === ref.fullMatch)
-  );
-
-  // Format property references for debug output
-  const fieldPropertyRefsFormatted = fieldPropertyRefs.map(ref => ({
-    full: ref.fullMatch,
-    fieldVar: ref.fieldVar,
-    property: ref.propertyName,
-  }));
-
-  const materialPropertyRefsFormatted = filteredMaterialPropertyRefs.map(ref => ({
-    full: ref.fullMatch,
-    materialVar: ref.materialVar,
-    property: ref.propertyName,
-  }));
-
-  // Parse all identifiers using same regex as validation
-  // Also parse computed output references (out.variableName) as single tokens
-  const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\b/g;
-  const matches = formula.match(variableRegex) || [];
-  
-  // Separate computed output references from regular identifiers
-  const computedOutputRefs = matches.filter(m => m.startsWith('out.'));
-  const regularMatches = matches.filter(m => !m.startsWith('out.'));
-
-  // Track which full property references exist
-  const allPropertyRefs = new Set([
-    ...fieldPropertyRefs.map(ref => ref.fullMatch),
-    ...filteredMaterialPropertyRefs.map(ref => ref.fullMatch)
-  ]);
-
-  // Collect all available variables (including computed outputs with 'out.' prefix)
-  const allAvailableVars = [
-    ...availableVariables,
-    ...materials.map(m => m.variableName),
-    ...mathFunctionsList
-  ];
-
-  // Collect ALL function names (from calls + available functions)
-  const allFunctionNames = new Set([
-    ...functionNames, // Function names from calls in this formula
-    ...availableFunctions.map(f => f.name) // All available function names from store
-  ]);
-
-  const variables: string[] = [];
-  const computedOutputs: string[] = [];
-  const mathFunctions: string[] = [];
-  const unknownVariables: string[] = [];
-  
-  // Add computed output references to computedOutputs array (separate from regular variables)
-  computedOutputRefs.forEach(ref => {
-    if (allAvailableVars.includes(ref)) {
-      computedOutputs.push(ref);
-    } else {
-      unknownVariables.push(ref);
-    }
-  });
-
-  for (const match of regularMatches) {
-    // Skip if it's a number
-    if (!isNaN(Number(match))) continue;
-
-    // Check if it's a math function
-    if (mathFunctionsList.includes(match)) {
-      mathFunctions.push(match);
-      continue;
-    }
-
-    // Skip if it's a user-defined function name
-    if (allFunctionNames.has(match)) {
-      continue; // Don't add to unknown variables
-    }
-
-    // Skip if this identifier is a full property reference (e.g., "paint.coverage_per_liters")
-    // Property references are tracked separately and shouldn't be in unknown variables
-    if (allPropertyRefs.has(match)) {
-      continue;
-    }
-
-    // Skip if this identifier is part of a property reference
-    // Only skip the property part (after dot), not the base part
-    let isPartOfPropertyRef = false;
-    for (const propRef of allPropertyRefs) {
-      const parts = propRef.split('.');
-      if (parts.length === 2 && parts[1] === match) {
-        // This is a property part (e.g., "width" from "wallboard.width")
-        isPartOfPropertyRef = true;
-        break;
-      }
-    }
-
-    if (isPartOfPropertyRef) {
-      continue;
-    }
-
-    // Check if it's a known variable
-    if (allAvailableVars.includes(match)) {
-      variables.push(match);
-    } else {
-      unknownVariables.push(match);
-    }
-  }
-
-  return {
-    fieldPropertyRefs: fieldPropertyRefsFormatted,
-    materialPropertyRefs: materialPropertyRefsFormatted,
-    variables: [...new Set(variables)], // Remove duplicates
-    computedOutputs: [...new Set(computedOutputs)], // Computed output references (out.variableName)
-    mathFunctions: [...new Set(mathFunctions)], // Remove duplicates
-    functionCalls: functionCallsFormatted, // Function calls found in formula
-    unknownVariables: [...new Set(unknownVariables)], // Remove duplicates
-  };
 }
