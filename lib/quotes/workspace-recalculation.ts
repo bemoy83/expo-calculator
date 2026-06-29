@@ -23,14 +23,34 @@ export function recalculateWorkspaceModuleInstances(input: {
   resolvedValues: Record<string, Record<string, any>>;
   brokenLinks: BrokenFieldLink[];
 } {
-  const { resolvedValues, brokenLinks } = resolveFieldLinksWithMetadata(input.workspaceModules);
-  const cleanedModules = removeBrokenFieldLinks(input.workspaceModules, brokenLinks);
+  const modulesWithComputedOutputs = calculateInstances(input.workspaceModules, input);
+  const { resolvedValues, brokenLinks } = resolveFieldLinksWithMetadata(modulesWithComputedOutputs);
+  const cleanedModules = removeBrokenFieldLinks(modulesWithComputedOutputs, brokenLinks);
 
-  const workspaceModules = cleanedModules.map((moduleInstance) => {
+  const workspaceModules = calculateInstances(cleanedModules, input, resolvedValues);
+
+  return {
+    workspaceModules,
+    resolvedValues,
+    brokenLinks,
+  };
+}
+
+function calculateInstances(
+  workspaceModules: QuoteModuleInstance[],
+  input: {
+    modules: CalculationModule[];
+    materials: Material[];
+    labor: Labor[];
+    functions: SharedFunction[];
+  },
+  resolvedValues?: Record<string, Record<string, any>>
+): QuoteModuleInstance[] {
+  return workspaceModules.map((moduleInstance) => {
     const moduleDef = input.modules.find((module) => module.id === moduleInstance.moduleId);
     if (!moduleDef) return moduleInstance;
 
-    const resolved = resolvedValues[moduleInstance.id] || moduleInstance.fieldValues;
+    const resolved = resolvedValues?.[moduleInstance.id] || moduleInstance.fieldValues;
     const calculation = calculateModuleInstance({
       moduleDef,
       fieldValues: resolved,
@@ -48,10 +68,4 @@ export function recalculateWorkspaceModuleInstances(input: {
       calculatedCost: calculation.errors.length > 0 ? 0 : calculation.cost,
     };
   });
-
-  return {
-    workspaceModules,
-    resolvedValues,
-    brokenLinks,
-  };
 }

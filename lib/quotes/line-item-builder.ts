@@ -7,8 +7,8 @@ import type {
   QuoteModuleInstance,
   SharedFunction,
 } from '../types';
-import { convertFromBase } from '../units';
 import { generateId } from '../utils';
+import { buildLineItemSummaries } from './line-item-summary';
 
 export function buildQuoteLineItem(input: {
   instance: QuoteModuleInstance;
@@ -31,66 +31,12 @@ export function buildQuoteLineItem(input: {
   }
 
   const resolvedWithComputed = calculation.fieldValues;
-  const checkedOutputs = input.moduleDef.computedOutputs?.filter((output) => output.showInQuote) || [];
-  let primarySummary: string | undefined;
-
-  if (checkedOutputs.length > 0) {
-    const outputSummaries = checkedOutputs
-      .map((output) => {
-        const value = resolvedWithComputed[`out.${output.variableName}`];
-        if (value !== null && value !== undefined) {
-          const unitStr = output.unitSymbol ? ` ${output.unitSymbol}` : '';
-          return `${output.label}: ${value}${unitStr}`;
-        }
-        return null;
-      })
-      .filter((summary): summary is string => summary !== null);
-
-    if (outputSummaries.length > 0) {
-      let summary = outputSummaries.join(', ');
-      const materialField = input.moduleDef.fields.find((field) => field.type === 'material');
-      if (materialField) {
-        const materialVarName = input.resolvedFieldValues[materialField.variableName];
-        if (typeof materialVarName === 'string') {
-          const material = input.materials.find((item) => item.variableName === materialVarName);
-          if (material) {
-            summary += ` — ${material.name}`;
-          }
-        }
-      }
-      primarySummary = summary;
-    }
-  }
-
-  const dimensionFields: Array<{ label: string; value: number | string; unitSymbol: string }> = [];
-  input.moduleDef.fields.forEach((field) => {
-    const value = input.resolvedFieldValues[field.variableName];
-    if (value !== null && value !== undefined && field.unitCategory === 'length' && field.unitSymbol) {
-      const displayValue = typeof value === 'number'
-        ? convertFromBase(value, field.unitSymbol)
-        : value;
-
-      dimensionFields.push({
-        label: field.label,
-        value: displayValue,
-        unitSymbol: field.unitSymbol,
-      });
-    }
+  const summaries = buildLineItemSummaries({
+    moduleDef: input.moduleDef,
+    resolvedFieldValues: input.resolvedFieldValues,
+    fieldValuesWithComputed: resolvedWithComputed,
+    materials: input.materials,
   });
-
-  const secondarySummary = dimensionFields.length > 0
-    ? dimensionFields.map((dimension) => `${dimension.label}: ${dimension.value} ${dimension.unitSymbol}`).join(' - ')
-    : undefined;
-
-  const summaryParts: string[] = [];
-  input.moduleDef.fields.slice(0, 4).forEach((field) => {
-    const value = input.resolvedFieldValues[field.variableName];
-    if (value !== null && value !== undefined) {
-      summaryParts.push(`${field.label}: ${value}`);
-    }
-  });
-
-  const fieldSummary = summaryParts.join(', ') || 'No details';
 
   return {
     lineItem: {
@@ -98,9 +44,9 @@ export function buildQuoteLineItem(input: {
       moduleId: input.instance.moduleId,
       moduleName: input.moduleDef.name,
       fieldValues: { ...resolvedWithComputed },
-      fieldSummary: fieldSummary || 'No details',
-      primarySummary,
-      secondarySummary,
+      fieldSummary: summaries.fieldSummary,
+      primarySummary: summaries.primarySummary,
+      secondarySummary: summaries.secondarySummary,
       cost: calculation.cost,
       createdAt: new Date().toISOString(),
     },
