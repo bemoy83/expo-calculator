@@ -8,6 +8,13 @@
 
 import { QuoteModuleInstance, Field, CalculationModule } from '../types';
 
+export type BrokenFieldLink = { instanceId: string; fieldName: string };
+
+export interface FieldLinkResolution {
+  resolvedValues: Record<string, Record<string, any>>;
+  brokenLinks: BrokenFieldLink[];
+}
+
 /**
  * Check if two field types are compatible for linking
  */
@@ -230,9 +237,9 @@ export function canLinkFields(
  * @param instances - Array of module instances with field links
  * @returns Resolved field values mapped by instance ID and field name
  */
-export function resolveFieldLinks(
+export function resolveFieldLinksWithMetadata(
   instances: QuoteModuleInstance[]
-): Record<string, Record<string, any>> {
+): FieldLinkResolution {
   const resolved: Record<string, Record<string, any>> = {};
   const brokenLinks: Array<{ instanceId: string; fieldName: string }> = [];
   
@@ -266,6 +273,15 @@ export function resolveFieldLinks(
       return instance.fieldValues[fieldName];
     }
     
+    // Computed outputs are stored directly in fieldValues after module calculation.
+    if (link.fieldVariableName.startsWith('out.')) {
+      if (!(link.fieldVariableName in targetInstance.fieldValues)) {
+        brokenLinks.push({ instanceId, fieldName });
+        return instance.fieldValues[fieldName];
+      }
+      return targetInstance.fieldValues[link.fieldVariableName];
+    }
+
     // Check if target field exists
     if (!(link.fieldVariableName in targetInstance.fieldValues)) {
       brokenLinks.push({ instanceId, fieldName });
@@ -291,22 +307,42 @@ export function resolveFieldLinks(
     });
   });
   
-  // Note: Broken links are tracked but not auto-removed here
-  // The caller should handle broken link cleanup if needed
-  
-  return resolved;
+  return { resolvedValues: resolved, brokenLinks };
 }
 
+export function resolveFieldLinks(
+  instances: QuoteModuleInstance[]
+): Record<string, Record<string, any>> {
+  const { resolvedValues } = resolveFieldLinksWithMetadata(instances);
+  return resolvedValues;
+}
 
+export function removeBrokenFieldLinks(
+  instances: QuoteModuleInstance[],
+  brokenLinks: BrokenFieldLink[]
+): QuoteModuleInstance[] {
+  if (brokenLinks.length === 0) return instances;
 
+  const brokenByInstance = new Map<string, Set<string>>();
+  brokenLinks.forEach(({ instanceId, fieldName }) => {
+    const fields = brokenByInstance.get(instanceId) ?? new Set<string>();
+    fields.add(fieldName);
+    brokenByInstance.set(instanceId, fields);
+  });
 
+  return instances.map((instance) => {
+    const brokenFields = brokenByInstance.get(instance.id);
+    if (!brokenFields || !instance.fieldLinks) return instance;
 
+    const links = { ...instance.fieldLinks };
+    brokenFields.forEach((fieldName) => {
+      delete links[fieldName];
+    });
 
-
-
-
-
-
-
-
+    return {
+      ...instance,
+      fieldLinks: Object.keys(links).length > 0 ? links : undefined,
+    };
+  });
+}
 

@@ -1,10 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Quote, QuoteModuleInstance, QuoteLineItem, FieldLink, Field, ModuleTemplate } from '../types';
+import { Quote, QuoteModuleInstance, FieldLink, Field, ModuleTemplate } from '../types';
 import { generateId } from '../utils';
-import { convertFromBase } from '../units';
-import { calculateModuleInstance } from '../calculations/module-calculator';
 import { calculateQuoteTotals, roundMoney, roundRate } from '../calculations/money';
+import { buildQuoteLineItem } from '../quotes/line-item-builder';
+import {
+  createTemplateDataFromQuote,
+  getRestorableTemplateLinks,
+} from '../quotes/template-helpers';
+import { recalculateWorkspaceModuleInstances } from '../quotes/workspace-recalculation';
+import {
+  areTypesCompatible,
+  canLinkFields,
+  detectCircularReference,
+  removeBrokenFieldLinks,
+  resolveFieldLinksWithMetadata,
+} from '../utils/field-linking';
 import { useModulesStore } from './modules-store';
 import { useMaterialsStore } from './materials-store';
 import { useTemplatesStore } from './templates-store';
@@ -291,190 +302,33 @@ export const useQuotesStore = create<QuotesStore>()(
         get().recalculateWorkspaceModules();
       },
       
-      // Validation helper functions
       canLinkFields: (instanceId, fieldName, targetInstanceId, targetFieldName) => {
         const current = get().currentQuote;
         if (!current) return { valid: false, error: 'No quote selected' };
-        
-        // Prevent self-linking
-        if (instanceId === targetInstanceId && fieldName === targetFieldName) {
-          return { valid: false, error: 'Cannot link field to itself' };
-        }
-        
-        // Find source and target instances
-        const sourceInstance = current.workspaceModules.find((m) => m.id === instanceId);
-        const targetInstance = current.workspaceModules.find((m) => m.id === targetInstanceId);
-        
-        if (!sourceInstance) {
-          return { valid: false, error: 'Source module instance not found' };
-        }
-        if (!targetInstance) {
-          return { valid: false, error: 'Target module instance not found' };
-        }
-        
-        // Get module definitions
-        const sourceModule = useModulesStore.getState().getModule(sourceInstance.moduleId);
-        const targetModule = useModulesStore.getState().getModule(targetInstance.moduleId);
-        
-        if (!sourceModule || !targetModule) {
-          return { valid: false, error: 'Module definition not found' };
-        }
-        
-        // Find field definitions
-        const sourceField = sourceModule.fields.find((f) => f.variableName === fieldName);
-        
-        if (!sourceField) {
-          return { valid: false, error: 'Source field not found' };
-        }
-        
-        // Check if target is a computed output (starts with 'out.')
-        if (targetFieldName.startsWith('out.')) {
-          const outputVarName = targetFieldName.replace('out.', '');
-          const computedOutput = targetModule.computedOutputs?.find(
-            (o) => o.variableName === outputVarName
-          );
-          
-          if (!computedOutput) {
-            return { valid: false, error: 'Computed output not found' };
-          }
-          
-          // Check type compatibility (computed outputs are always numbers)
-          if (sourceField.type !== 'number') {
-            return { valid: false, error: `Cannot link computed output to ${sourceField.type} field` };
-          }
-          
-          // Check unit compatibility if both have units
-          if (computedOutput.unitCategory && sourceField.unitCategory) {
-            if (computedOutput.unitCategory !== sourceField.unitCategory) {
-              return {
-                valid: false,
-                error: `Cannot link computed output with ${computedOutput.unitCategory} unit to field with ${sourceField.unitCategory} unit`,
-              };
-            }
-          }
-          
-          // Check for circular references
-          const cycle = get().detectCircularReference(instanceId, fieldName, targetInstanceId, targetFieldName);
-          if (cycle) {
-            return { valid: false, error: `Circular reference detected: ${cycle}` };
-          }
-          
-          return { valid: true };
-        }
-        
-        // Regular field linking
-        const targetField = targetModule.fields.find((f) => f.variableName === targetFieldName);
-        
-        if (!targetField) {
-          return { valid: false, error: 'Target field not found' };
-        }
-        
-        // Check type compatibility
-        if (!get().areTypesCompatible(sourceField, targetField)) {
-          return { valid: false, error: `Cannot link ${sourceField.type} field to ${targetField.type} field` };
-        }
-        
-        // Check for circular references
-        const cycle = get().detectCircularReference(instanceId, fieldName, targetInstanceId, targetFieldName);
-        if (cycle) {
-          return { valid: false, error: `Circular reference detected: ${cycle}` };
-        }
-        
-        return { valid: true };
+        return canLinkFields(
+          current.workspaceModules,
+          useModulesStore.getState().modules,
+          instanceId,
+          fieldName,
+          targetInstanceId,
+          targetFieldName
+        );
       },
       
       areTypesCompatible: (sourceField: Field, targetField: Field): boolean => {
-        // Material types cannot be linked (per spec)
-        if (sourceField.type === 'material' || targetField.type === 'material') {
-          return false;
-        }
-        
-        // Numeric types are compatible
-        if (sourceField.type === 'number' && targetField.type === 'number') {
-          // Check unit compatibility if both have unit categories
-          if (sourceField.unitCategory && targetField.unitCategory) {
-            return sourceField.unitCategory === targetField.unitCategory;
-          }
-          return true; // No units or one missing unit = compatible
-        }
-        
-        // Boolean types are compatible
-        if (sourceField.type === 'boolean' && targetField.type === 'boolean') {
-          return true;
-        }
-        
-        // String types (future - skip for MVP)
-        // Dropdown types: only compatible if same type
-        if (sourceField.type === 'dropdown' && targetField.type === 'dropdown') {
-          return true;
-        }
-        
-        return false;
+        return areTypesCompatible(sourceField, targetField);
       },
       
       detectCircularReference: (instanceId, fieldName, targetInstanceId, targetFieldName): string | null => {
         const current = get().currentQuote;
         if (!current) return null;
-        
-        // Build dependency graph
-        const graph: Record<string, string[]> = {};
-        current.workspaceModules.forEach((instance) => {
-          Object.keys(instance.fieldValues).forEach((fName) => {
-            const key = `${instance.id}.${fName}`;
-            const link = instance.fieldLinks?.[fName];
-            if (link) {
-              const targetKey = `${link.moduleInstanceId}.${link.fieldVariableName}`;
-              if (!graph[key]) {
-                graph[key] = [];
-              }
-              graph[key].push(targetKey);
-            }
-          });
-        });
-        
-        // Add the proposed link temporarily
-        const sourceKey = `${instanceId}.${fieldName}`;
-        const targetKey = `${targetInstanceId}.${targetFieldName}`;
-        if (!graph[sourceKey]) {
-          graph[sourceKey] = [];
-        }
-        graph[sourceKey].push(targetKey);
-        
-        // DFS to detect cycles
-        const visited = new Set<string>();
-        const recStack = new Set<string>();
-        const path: string[] = [];
-        
-        function dfs(node: string): string | null {
-          if (recStack.has(node)) {
-            // Cycle detected
-            const cycleStart = path.indexOf(node);
-            const cycle = [...path.slice(cycleStart), node].join(' → ');
-            return cycle;
-          }
-          
-          if (visited.has(node)) {
-            return null;
-          }
-          
-          visited.add(node);
-          recStack.add(node);
-          path.push(node);
-          
-          const neighbors = graph[node] || [];
-          for (const neighbor of neighbors) {
-            const cycle = dfs(neighbor);
-            if (cycle) {
-              return cycle;
-            }
-          }
-          
-          recStack.delete(node);
-          path.pop();
-          return null;
-        }
-        
-        return dfs(sourceKey);
+        return detectCircularReference(
+          current.workspaceModules,
+          instanceId,
+          fieldName,
+          targetInstanceId,
+          targetFieldName
+        );
       },
       
       // Line item management - these are committed items included in totals
@@ -488,126 +342,31 @@ export const useQuotesStore = create<QuotesStore>()(
         const moduleDef = useModulesStore.getState().getModule(instance.moduleId);
         if (!moduleDef) return false;
         
-        // Resolve field links to get actual values (need all modules to resolve cross-module links)
         const resolvedValues = get().resolveFieldLinks(current.workspaceModules);
         const resolved = resolvedValues[instance.id] || instance.fieldValues;
         
         const materials = useMaterialsStore.getState().materials;
         const functions = useFunctionsStore.getState().functions;
-        
         const labor = useLaborStore.getState().labor;
-        const calculation = calculateModuleInstance({
+
+        const result = buildQuoteLineItem({
+          instance,
           moduleDef,
-          fieldValues: resolved,
+          resolvedFieldValues: resolved,
           materials,
           labor,
           functions,
         });
 
-        if (calculation.errors.length > 0) {
-          alert(`Cannot add item: ${calculation.errors[0].message}`);
+        if (!result.lineItem) {
+          alert(`Cannot add item: ${result.error || 'Calculation failed'}`);
           return false;
         }
-
-        const resolvedWithComputed = calculation.fieldValues;
-        const cost = calculation.cost;
-        
-        // Step 3: Generate summaries
-        // Primary summary: all checked computed outputs with labels + material name (if material field exists)
-        let primarySummary: string | undefined;
-        
-        // Get all computed outputs marked to show in quote
-        const checkedOutputs = moduleDef.computedOutputs?.filter(o => o.showInQuote) || [];
-
-        if (checkedOutputs.length > 0) {
-          const outputSummaries = checkedOutputs
-            .map((output) => {
-              const value = resolvedWithComputed[`out.${output.variableName}`];
-              if (value !== null && value !== undefined) {
-                const unitStr = output.unitSymbol ? ` ${output.unitSymbol}` : '';
-                return `${output.label}: ${value}${unitStr}`;
-            }
-              return null;
-            })
-            .filter((summary): summary is string => summary !== null);
-
-          if (outputSummaries.length > 0) {
-            let summary = outputSummaries.join(', ');
-
-            // Find material field and add material display name (only add once, not per output)
-            const materialField = moduleDef.fields.find(f => f.type === 'material');
-            if (materialField) {
-              const materialVarName = resolved[materialField.variableName];
-              if (typeof materialVarName === 'string') {
-                const material = materials.find(m => m.variableName === materialVarName);
-                if (material) {
-                  summary += ` — ${material.name}`;
-                }
-              }
-            }
-
-            primarySummary = summary;
-          }
-        }
-
-        // Secondary summary: Group dimension fields (length units) with × separator, include field labels
-        const dimensionFields: Array<{ label: string; value: number | string; unitSymbol: string }> = [];
-
-        moduleDef.fields.forEach((field) => {
-          const value = resolved[field.variableName];
-          if (value !== null && value !== undefined) {
-            // Check if field has length unit category (dimension)
-            if (field.unitCategory === 'length' && field.unitSymbol) {
-              // Convert from base unit (meters) to display unit
-              const displayValue = typeof value === 'number'
-                ? convertFromBase(value, field.unitSymbol)
-                : value;
-
-              dimensionFields.push({
-                label: field.label,
-                value: displayValue,
-                unitSymbol: field.unitSymbol,
-              });
-            }
-          }
-        });
-
-        // Group dimensions with × separator, include labels (e.g., "Width: 2.4 m × Height: 3.0 m × Depth: 18 mm")
-        const secondarySummary = dimensionFields.length > 0
-          ? dimensionFields.map((d) => `${d.label}: ${d.value} ${d.unitSymbol}`).join(' - ')
-          : undefined;
-
-        // Field summary: fallback if no computed outputs (keep for backward compatibility)
-        const summaryParts: string[] = [];
-
-        // Add regular fields (limit to 3-4 items)
-        moduleDef.fields
-          .slice(0, 4)
-            .forEach((field) => {
-              const value = resolved[field.variableName];
-              if (value !== null && value !== undefined) {
-                summaryParts.push(`${field.label}: ${value}`);
-              }
-            });
-        
-        const fieldSummary = summaryParts.join(', ') || 'No details';
-        
-        const lineItem: QuoteLineItem = {
-            id: generateId(),
-            moduleId: instance.moduleId,
-            moduleName: moduleDef.name,
-          fieldValues: { ...resolvedWithComputed }, // Snapshot of resolved values including computed outputs
-          fieldSummary: fieldSummary || 'No details', // Fallback if no computed outputs
-          primarySummary, // Only if computed outputs exist
-          secondarySummary, // Grouped dimensions + other fields
-          cost,
-          createdAt: new Date().toISOString(),
-        };
         
         set({
           currentQuote: {
             ...current,
-            lineItems: [...current.lineItems, lineItem],
+            lineItems: [...current.lineItems, result.lineItem],
             updatedAt: new Date().toISOString(),
           },
         });
@@ -631,152 +390,41 @@ export const useQuotesStore = create<QuotesStore>()(
         get().recalculateQuote();
       },
       
-      // Resolve field links to get final values for evaluation
       resolveFieldLinks: (instances: QuoteModuleInstance[]): Record<string, Record<string, any>> => {
-        const resolved: Record<string, Record<string, any>> = {};
-        const brokenLinks: Array<{ instanceId: string; fieldName: string }> = [];
-        
-        function resolve(instanceId: string, fieldName: string, path: string[]): any {
-          const key = `${instanceId}.${fieldName}`;
-          
-          // Detect cycles
-          if (path.includes(key)) {
-            const cycleStart = path.indexOf(key);
-            const cycle = [...path.slice(cycleStart), key].join(' → ');
-            console.warn(`Circular reference detected: ${cycle}`);
-            throw new Error(`Circular reference: ${cycle}`);
-          }
-          
-          const instance = instances.find((i) => i.id === instanceId);
-          if (!instance) {
-            throw new Error(`Instance ${instanceId} not found`);
-          }
-          
-          const link = instance.fieldLinks?.[fieldName];
-          if (!link) {
-            // No link, return direct value
-            return instance.fieldValues[fieldName];
-          }
-          
-          // Check if target exists
-          const targetInstance = instances.find((i) => i.id === link.moduleInstanceId);
-          if (!targetInstance) {
-            brokenLinks.push({ instanceId, fieldName });
-            // Return direct value as fallback
-            return instance.fieldValues[fieldName];
-          }
-          
-          // Check if link target is a computed output (starts with 'out.')
-          // Computed outputs are stored directly in fieldValues, don't recurse
-          if (link.fieldVariableName.startsWith('out.')) {
-            if (!(link.fieldVariableName in targetInstance.fieldValues)) {
-              brokenLinks.push({ instanceId, fieldName });
-              return instance.fieldValues[fieldName];
-            }
-            return targetInstance.fieldValues[link.fieldVariableName];
-          }
-          
-          // Check if target field exists
-          if (!(link.fieldVariableName in targetInstance.fieldValues)) {
-            brokenLinks.push({ instanceId, fieldName });
-            // Return direct value as fallback
-            return instance.fieldValues[fieldName];
-          }
-          
-          // Resolve linked value recursively (regular field)
-          return resolve(link.moduleInstanceId, link.fieldVariableName, [...path, key]);
-        }
-        
-        // Resolve all fields for all instances
-        instances.forEach((instance) => {
-          resolved[instance.id] = {};
-          Object.keys(instance.fieldValues).forEach((fieldName) => {
-            try {
-              resolved[instance.id][fieldName] = resolve(instance.id, fieldName, []);
-            } catch (error: any) {
-              // Handle broken links or cycles - use direct value
-              console.warn(`Error resolving link for ${instance.id}.${fieldName}:`, error.message);
-              resolved[instance.id][fieldName] = instance.fieldValues[fieldName];
-            }
-          });
-        });
-        
-        // Clean up broken links
-        if (brokenLinks.length > 0) {
+        const resolution = resolveFieldLinksWithMetadata(instances);
+        if (resolution.brokenLinks.length > 0) {
           const current = get().currentQuote;
           if (current) {
-            let updatedModules = [...current.workspaceModules];
-            brokenLinks.forEach(({ instanceId, fieldName }) => {
-              updatedModules = updatedModules.map((module) =>
-                module.id === instanceId
-                  ? {
-                      ...module,
-                      fieldLinks: (() => {
-                        const links = { ...(module.fieldLinks || {}) };
-                        delete links[fieldName];
-                        return Object.keys(links).length > 0 ? links : undefined;
-                      })(),
-                    }
-                  : module
-              );
-            });
-            
             set({
               currentQuote: {
                 ...current,
-                workspaceModules: updatedModules,
+                workspaceModules: removeBrokenFieldLinks(current.workspaceModules, resolution.brokenLinks),
                 updatedAt: new Date().toISOString(),
               },
             });
           }
         }
         
-        return resolved;
+        return resolution.resolvedValues;
       },
       
       // Recalculate workspace modules (for display only, not totals)
       recalculateWorkspaceModules: () => {
         const current = get().currentQuote;
         if (!current) return;
-        
-        const materials = useMaterialsStore.getState().materials;
-        
-        // Resolve all field links first
-        const resolvedValues = get().resolveFieldLinks(current.workspaceModules);
-        
-        const functions = useFunctionsStore.getState().functions;
-        
-        // Use resolved values for evaluation
-        const updatedModules = current.workspaceModules.map((moduleInstance) => {
-          const moduleDef = useModulesStore.getState().getModule(moduleInstance.moduleId);
-          if (!moduleDef) return moduleInstance;
-          
-          const resolved = resolvedValues[moduleInstance.id] || moduleInstance.fieldValues;
-          
-	          const labor = useLaborStore.getState().labor;
-	          const calculation = calculateModuleInstance({
-	            moduleDef,
-	            fieldValues: resolved,
-	            materials,
-	            labor,
-	            functions,
-	          });
-	          const updatedFieldValues = {
-	            ...moduleInstance.fieldValues,
-	            ...calculation.computedValues,
-	          };
-	          
-	          return {
-	            ...moduleInstance,
-	            fieldValues: updatedFieldValues,
-	            calculatedCost: calculation.errors.length > 0 ? 0 : calculation.cost,
-	          };
-	        });
+
+        const result = recalculateWorkspaceModuleInstances({
+          workspaceModules: current.workspaceModules,
+          modules: useModulesStore.getState().modules,
+          materials: useMaterialsStore.getState().materials,
+          labor: useLaborStore.getState().labor,
+          functions: useFunctionsStore.getState().functions,
+        });
         
         set({
           currentQuote: {
             ...current,
-            workspaceModules: updatedModules,
+            workspaceModules: result.workspaceModules,
             updatedAt: new Date().toISOString(),
           },
         });
@@ -838,46 +486,17 @@ export const useQuotesStore = create<QuotesStore>()(
       // Template management
       createTemplateFromWorkspace: (name, description) => {
         const current = get().currentQuote;
-        if (!current || current.workspaceModules.length === 0) {
-          return null;
-        }
+        if (!current) return null;
 
-        // Serialize module instances with new ID-based format
-        // This matches the template editor's serializeForSave format
-        const moduleInstances = current.workspaceModules.map(instance => {
-          return {
-            id: instance.id, // Preserve instance ID for stable references
-            moduleId: instance.moduleId,
-            fieldValues: { ...instance.fieldValues }, // Save field values
-            fieldLinks: instance.fieldLinks && Object.keys(instance.fieldLinks).length > 0
-              ? { ...instance.fieldLinks } // Keep ID-based links as-is
-              : undefined,
-          };
-        });
-        
-        // Derive categories from module definitions
-        const categories = Array.from(new Set(
-          current.workspaceModules
-            .map(instance => {
-              const moduleDef = useModulesStore.getState().getModule(instance.moduleId);
-              return moduleDef?.category;
-            })
-            .filter(Boolean) as string[]
-        ));
-        
-        // Create template via templates store
-        const template: Omit<ModuleTemplate, 'id' | 'createdAt' | 'updatedAt'> = {
+        const template = createTemplateDataFromQuote({
+          quote: current,
+          getModule: useModulesStore.getState().getModule,
           name,
           description,
-          moduleInstances,
-          categories,
-          createdFromQuoteId: current.id,
-        };
-        
-        const createdTemplate = useTemplatesStore.getState().addTemplate(template);
-        
-        // Return the created template
-        return createdTemplate;
+        });
+        if (!template) return null;
+
+        return useTemplatesStore.getState().addTemplate(template);
       },
       
       applyTemplate: (templateId) => {
@@ -924,95 +543,26 @@ export const useQuotesStore = create<QuotesStore>()(
           }
         }
         
-        // Second pass: Restore field links
-        // The fieldLinks in template reference moduleInstanceId from original workspace
-        // We need to map these to the new instance IDs by finding which template module they refer to
         const finalQuote = get().currentQuote;
         if (finalQuote) {
-          // Build a map of old instance IDs to template indices
-          // Since we can't know the old instance IDs, we'll use the order:
-          // Links reference instance IDs, but we only have module order
-          // We'll need to match by finding instances with matching moduleIds in order
-          
-          template.moduleInstances.forEach((templateInstance, sourceIndex) => {
-            const sourceInstanceId = instanceMap.get(sourceIndex);
-            if (!sourceInstanceId) return; // Skip if module wasn't added
-            
-            const sourceInstance = finalQuote.workspaceModules.find(i => i.id === sourceInstanceId);
-            if (!sourceInstance) return;
-            
-            // Restore field links
-            if (templateInstance.fieldLinks) {
-              Object.entries(templateInstance.fieldLinks).forEach(([fieldName, link]) => {
-                // Check link format and find target index
-                let targetIndex: number | undefined;
+          const restorable = getRestorableTemplateLinks({
+            template,
+            workspaceModules: finalQuote.workspaceModules,
+            instanceMap,
+            getModule: useModulesStore.getState().getModule,
+            canLink: get().canLinkFields,
+          });
+          warnings.push(...restorable.warnings);
 
-                if (link.moduleInstanceId.startsWith('__index_')) {
-                  // OLD FORMAT: Index-based (from legacy createTemplateFromWorkspace)
-                  const indexStr = link.moduleInstanceId.replace('__index_', '').replace('__', '');
-                  const parsedIndex = parseInt(indexStr, 10);
-                  if (isNaN(parsedIndex)) {
-                    warnings.push(`Link from "${fieldName}" could not be restored: invalid index format`);
-                    return;
-                  }
-                  targetIndex = parsedIndex;
-                } else {
-                  // NEW FORMAT: ID-based (from template editor)
-                  // Find which template instance has this ID
-                  const targetTemplateIndex = template.moduleInstances.findIndex(
-                    (inst: any) => inst.id === link.moduleInstanceId
-                  );
-                  if (targetTemplateIndex === -1) {
-                    warnings.push(`Link from "${fieldName}" could not be restored: target instance not found in template`);
-                    return;
-                  }
-                  targetIndex = targetTemplateIndex;
-                }
-                
-                if (targetIndex === undefined || targetIndex < 0 || targetIndex >= template.moduleInstances.length) {
-                  warnings.push(`Link from "${fieldName}" could not be restored: invalid target index`);
-                  return;
-                }
-                
-                const targetInstanceId = instanceMap.get(targetIndex);
-                if (!targetInstanceId) {
-                  warnings.push(`Link from "${fieldName}" could not be restored: target module was not added`);
-                  return;
-                }
-                
-                // Validate source field exists
-                const sourceModule = useModulesStore.getState().getModule(templateInstance.moduleId);
-                if (!sourceModule) return;
-                
-                const sourceField = sourceModule.fields.find(f => f.variableName === fieldName);
-                if (!sourceField) return;
-                
-                // Validate target field exists
-                const targetInstance = finalQuote.workspaceModules.find(i => i.id === targetInstanceId);
-                if (!targetInstance) return;
-                
-                const targetModule = useModulesStore.getState().getModule(targetInstance.moduleId);
-                if (!targetModule) return;
-                
-                const targetField = targetModule.fields.find(f => f.variableName === link.fieldVariableName);
-                if (!targetField) {
-                  warnings.push(`Link from "${fieldName}" could not be restored: target field "${link.fieldVariableName}" not found`);
-                  return;
-                }
-                
-                // Check type compatibility
-                const canLink = get().canLinkFields(sourceInstanceId, fieldName, targetInstanceId, link.fieldVariableName);
-                if (!canLink.valid) {
-                  warnings.push(`Link from "${fieldName}" could not be restored: ${canLink.error || 'incompatible types'}`);
-                  return;
-                }
-                
-                // Restore the link
-                const linkResult = get().linkField(sourceInstanceId, fieldName, targetInstanceId, link.fieldVariableName);
-                if (!linkResult.valid) {
-                  warnings.push(`Link from "${fieldName}" could not be restored: ${linkResult.error || 'unknown error'}`);
-                }
-              });
+          restorable.links.forEach((link) => {
+            const linkResult = get().linkField(
+              link.sourceInstanceId,
+              link.fieldName,
+              link.targetInstanceId,
+              link.targetFieldName
+            );
+            if (!linkResult.valid) {
+              warnings.push(`Link from "${link.fieldName}" could not be restored: ${linkResult.error || 'unknown error'}`);
             }
           });
         }
