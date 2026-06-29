@@ -13,6 +13,7 @@ export default function MaterialsPage() {
   const materials = useMaterialsStore((state) => state.materials);
   const addMaterial = useMaterialsStore((state) => state.addMaterial);
   const updateMaterial = useMaterialsStore((state) => state.updateMaterial);
+  const reorderMaterials = useMaterialsStore((state) => state.reorderMaterials);
   const deleteMaterial = useMaterialsStore((state) => state.deleteMaterial);
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -85,7 +86,7 @@ export default function MaterialsPage() {
       canReorder={catalog.canReorder}
       onAdd={() => openEditor()}
       onReorder={(oldIndex, newIndex) =>
-        catalog.reorder(oldIndex, newIndex, (id, order) => updateMaterial(id, { order }))
+        catalog.reorder(oldIndex, newIndex, reorderMaterials)
       }
       renderItem={(material, disableDrag) => (
         <MaterialItem

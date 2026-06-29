@@ -7,6 +7,7 @@ interface LaborStore {
   labor: Labor[];
   addLabor: (labor: Omit<Labor, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateLabor: (id: string, labor: Partial<Labor>) => void;
+  reorderLabor: (labor: Labor[]) => void;
   deleteLabor: (id: string) => void;
   getLabor: (id: string) => Labor | undefined;
   getLaborByVariableName: (variableName: string) => Labor | undefined;
@@ -41,6 +42,17 @@ export const useLaborStore = create<LaborStore>()(
           ),
         }));
       },
+
+      reorderLabor: (orderedLabor) => {
+        const now = new Date().toISOString();
+        set({
+          labor: orderedLabor.map((item, index) =>
+            item.order === index
+              ? item
+              : { ...item, order: index, updatedAt: now }
+          ),
+        });
+      },
       
       deleteLabor: (id) => {
         set((state) => ({
@@ -61,4 +73,3 @@ export const useLaborStore = create<LaborStore>()(
     }
   )
 );
-

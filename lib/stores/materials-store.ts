@@ -7,6 +7,7 @@ interface MaterialsStore {
   materials: Material[];
   addMaterial: (material: Omit<Material, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateMaterial: (id: string, material: Partial<Material>) => void;
+  reorderMaterials: (materials: Material[]) => void;
   deleteMaterial: (id: string) => void;
   getMaterial: (id: string) => Material | undefined;
   getMaterialByVariableName: (variableName: string) => Material | undefined;
@@ -17,30 +18,41 @@ export const useMaterialsStore = create<MaterialsStore>()(
     (set, get) => ({
       materials: [],
       
-  addMaterial: (materialData) => {
-    const now = new Date().toISOString();
-    const nextOrder = get().materials.length;
-    const newMaterial: Material = {
-      ...materialData,
-      id: generateId(),
-      order: nextOrder,
-      createdAt: now,
-      updatedAt: now,
-    };
+      addMaterial: (materialData) => {
+        const now = new Date().toISOString();
+        const nextOrder = get().materials.length;
+        const newMaterial: Material = {
+          ...materialData,
+          id: generateId(),
+          order: nextOrder,
+          createdAt: now,
+          updatedAt: now,
+        };
         set((state) => ({
           materials: [...state.materials, newMaterial],
         }));
       },
       
-  updateMaterial: (id, updates) => {
-    set((state) => ({
-      materials: state.materials.map((material) =>
-        material.id === id
-          ? { ...material, ...updates, updatedAt: new Date().toISOString() }
-          : material
-      ),
-    }));
-  },
+      updateMaterial: (id, updates) => {
+        set((state) => ({
+          materials: state.materials.map((material) =>
+            material.id === id
+              ? { ...material, ...updates, updatedAt: new Date().toISOString() }
+              : material
+          ),
+        }));
+      },
+
+      reorderMaterials: (orderedMaterials) => {
+        const now = new Date().toISOString();
+        set({
+          materials: orderedMaterials.map((material, index) =>
+            material.order === index
+              ? material
+              : { ...material, order: index, updatedAt: now }
+          ),
+        });
+      },
       
       deleteMaterial: (id) => {
         set((state) => ({

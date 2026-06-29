@@ -94,7 +94,7 @@ export function useCatalogListState<T extends CatalogItemBase>({
   const reorder = (
     oldIndex: number,
     newIndex: number,
-    updateOrder: (id: string, order: number) => void
+    onReorderItems: (orderedItems: T[]) => void
   ) => {
     if (!canReorder) return;
 
@@ -103,11 +103,7 @@ export function useCatalogListState<T extends CatalogItemBase>({
     if (!moved) return;
     ordered.splice(newIndex, 0, moved);
 
-    ordered.forEach((item, index) => {
-      if (item.order !== index) {
-        updateOrder(item.id, index);
-      }
-    });
+    onReorderItems(ordered);
   };
 
   return {

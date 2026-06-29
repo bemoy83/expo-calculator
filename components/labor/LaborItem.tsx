@@ -40,14 +40,18 @@ export function LaborItem({
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? "none" : (transform ? transition : "none"),
     opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 20 : "auto",
+    zIndex: isDragging ? 40 : "auto",
   };
+
+  const stableRef = React.useCallback((el: HTMLDivElement | null) => {
+    setNodeRef(el);
+  }, [setNodeRef]);
 
   return (
     <ModuleCardShell
-      cardRef={setNodeRef}
+      cardRef={stableRef}
       style={style}
       dragHandleProps={disableDrag ? { attributes: {}, listeners: {} } : { attributes, listeners }}
       title={labor.name}
@@ -130,4 +134,3 @@ export function LaborItem({
     </ModuleCardShell>
   );
 }
-

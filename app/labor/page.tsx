@@ -13,6 +13,7 @@ export default function LaborPage() {
   const labor = useLaborStore((state) => state.labor);
   const addLabor = useLaborStore((state) => state.addLabor);
   const updateLabor = useLaborStore((state) => state.updateLabor);
+  const reorderLabor = useLaborStore((state) => state.reorderLabor);
   const deleteLabor = useLaborStore((state) => state.deleteLabor);
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -83,7 +84,7 @@ export default function LaborPage() {
       canReorder={catalog.canReorder}
       onAdd={() => openEditor()}
       onReorder={(oldIndex, newIndex) =>
-        catalog.reorder(oldIndex, newIndex, (id, order) => updateLabor(id, { order }))
+        catalog.reorder(oldIndex, newIndex, reorderLabor)
       }
       renderItem={(laborItem, disableDrag) => (
         <LaborItem
