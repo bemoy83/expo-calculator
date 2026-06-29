@@ -1,38 +1,38 @@
-/**
- * Formula Evaluator Tests
- * 
- * These are example test cases for the formula evaluator.
- * In a production environment, these would be run with a testing framework like Jest.
- */
-
+import assert from 'node:assert/strict';
 import { evaluateFormula, parseFunctionCalls, validateFormula, analyzeFormulaVariables, type EvaluationContext } from './formula-evaluator';
 import { calculateModuleInstance } from './calculations/module-calculator';
 import { calculateQuoteTotals } from './calculations/money';
 import { CalculationModule, QuoteLineItem, SharedFunction } from './types';
 
-// Test helper function
 function testFormula(
   formula: string,
   expected: number,
   context: EvaluationContext = { fieldValues: {}, materials: [] }
 ) {
-  try {
-    const result = evaluateFormula(formula, context);
-    const passed = Math.abs(result - expected) < 0.0001; // Allow for floating point precision
-    console.log(`${passed ? '✓' : '✗'} ${formula} = ${result} (expected: ${expected})`);
-    return passed;
-  } catch (error: any) {
-    console.log(`✗ ${formula} - Error: ${error.message}`);
-    return false;
-  }
+  const result = evaluateFormula(formula, context);
+  assert.ok(
+    Math.abs(result - expected) < 0.0001,
+    `${formula} expected ${expected}, got ${result}`
+  );
+  console.log(`✓ ${formula} = ${result} (expected: ${expected})`);
 }
 
-function logCheck(label: string, passed: boolean, detail?: string) {
-  console.log(`${passed ? '✓' : '✗'} ${label}${detail ? ` - ${detail}` : ''}`);
-  return passed;
+function assertCheck(label: string, passed: boolean, detail?: string) {
+  assert.ok(passed, detail ? `${label}: ${detail}` : label);
+  console.log(`✓ ${label}${detail ? ` - ${detail}` : ''}`);
 }
 
-// Rounding function tests
+function assertThrowsFormula(label: string, formula: string, expectedMessage: string) {
+  assert.throws(
+    () => evaluateFormula(formula, { fieldValues: {}, materials: [] }),
+    (error: unknown) =>
+      error instanceof Error &&
+      error.message.includes(expectedMessage),
+    `${label} should throw "${expectedMessage}"`
+  );
+  console.log(`✓ ${label} correctly throws`);
+}
+
 console.log('=== Rounding Function Tests ===');
 
 // round() with 1 argument
@@ -72,33 +72,10 @@ testFormula('round(10.5 / 3, 2)', 3.5);
 
 // Error handling tests
 console.log('\n=== Error Handling Tests ===');
-try {
-  evaluateFormula('round()', { fieldValues: {}, materials: [] });
-  console.log('✗ round() without arguments should throw error');
-} catch (error: any) {
-  console.log(`✓ round() without arguments correctly throws: ${error.message}`);
-}
-
-try {
-  evaluateFormula('round(3.14, 2, 3)', { fieldValues: {}, materials: [] });
-  console.log('✗ round() with 3 arguments should throw error');
-} catch (error: any) {
-  console.log(`✓ round() with 3 arguments correctly throws: ${error.message}`);
-}
-
-try {
-  evaluateFormula('ceil()', { fieldValues: {}, materials: [] });
-  console.log('✗ ceil() without arguments should throw error');
-} catch (error: any) {
-  console.log(`✓ ceil() without arguments correctly throws: ${error.message}`);
-}
-
-try {
-  evaluateFormula('floor(3, 4)', { fieldValues: {}, materials: [] });
-  console.log('✗ floor() with 2 arguments should throw error');
-} catch (error: any) {
-  console.log(`✓ floor() with 2 arguments correctly throws: ${error.message}`);
-}
+assertThrowsFormula('round() without arguments', 'round()', 'round() requires at least 1 argument');
+assertThrowsFormula('round() with 3 arguments', 'round(3.14, 2, 3)', 'round() accepts at most 2 arguments');
+assertThrowsFormula('ceil() without arguments', 'ceil()', 'ceil() expects exactly 1 argument');
+assertThrowsFormula('floor() with 2 arguments', 'floor(3, 4)', 'floor() expects exactly 1 argument');
 
 console.log('\n=== Overlapping Names Regression ===');
 testFormula(
@@ -326,9 +303,13 @@ const lineItems: QuoteLineItem[] = [
   },
 ];
 const totals = calculateQuoteTotals({ lineItems, markupPercent: 10, taxRate: 0.25 });
-console.log(
-  `${totals.subtotal === 30.01 && totals.markupAmount === 3 && totals.taxAmount === 8.25 && totals.total === 41.26 ? '✓' : '✗'} totals = ${JSON.stringify(totals)}`
-);
+assert.deepEqual(totals, {
+  subtotal: 30.01,
+  markupAmount: 3,
+  taxAmount: 8.25,
+  total: 41.26,
+});
+console.log(`✓ totals = ${JSON.stringify(totals)}`);
 
 console.log('\n=== Computed Output Failure Regression ===');
 const moduleWithBadOutput: CalculationModule = {
@@ -353,13 +334,14 @@ const calculation = calculateModuleInstance({
   materials: [],
   functions: [],
 });
-console.log(
-  `${calculation.errors.length > 0 && calculation.computedValues['out.area'] === undefined ? '✓' : '✗'} computed output failure is reported without zero fallback`
+assertCheck(
+  'computed output failure is reported without zero fallback',
+  calculation.errors.length > 0 && calculation.computedValues['out.area'] === undefined
 );
 
 console.log('\n=== Parser and Validation Regression ===');
 const siblingCalls = parseFunctionCalls('add(width, height) + double(depth)');
-logCheck(
+assertCheck(
   'parses sibling function calls',
   siblingCalls.length === 2 &&
     siblingCalls[0].functionName === 'add' &&
@@ -367,7 +349,7 @@ logCheck(
 );
 
 const nestedCalls = parseFunctionCalls('double(add(width, height))');
-logCheck(
+assertCheck(
   'parses nested function calls',
   nestedCalls.length === 2 &&
     nestedCalls.some((call) => call.fullMatch === 'double(add(width, height))') &&
@@ -399,7 +381,7 @@ const debugInfo = analyzeFormulaVariables(
   ],
   [{ variableName: 'wallboard', type: 'material' }]
 );
-logCheck(
+assertCheck(
   'analyzes field/material/computed references',
   debugInfo.fieldPropertyRefs.some((ref) => ref.full === 'wallboard.width') &&
     debugInfo.materialPropertyRefs.some((ref) => ref.full === 'mat_board.length') &&
@@ -407,7 +389,7 @@ logCheck(
 );
 
 const missingValidation = validateFormula('width + missing', ['width'], [], []);
-logCheck(
+assertCheck(
   'validates missing variables',
   !missingValidation.valid && missingValidation.error === 'Undefined variable: missing',
   missingValidation.error
@@ -431,7 +413,7 @@ const materialFieldValidation = validateFormula(
   ],
   [{ variableName: 'material', type: 'material' }]
 );
-logCheck('validates material field properties', materialFieldValidation.valid, materialFieldValidation.error);
+assertCheck('validates material field properties', materialFieldValidation.valid, materialFieldValidation.error);
 
 const laborFieldValidation = validateFormula(
   'installer.m2_per_hr',
@@ -452,10 +434,10 @@ const laborFieldValidation = validateFormula(
     },
   ]
 );
-logCheck('validates labor field properties', laborFieldValidation.valid, laborFieldValidation.error);
+assertCheck('validates labor field properties', laborFieldValidation.valid, laborFieldValidation.error);
 
 const computedOutputValidation = validateFormula('out.area * 2', ['out.area'], [], []);
-logCheck('validates computed output references', computedOutputValidation.valid, computedOutputValidation.error);
+assertCheck('validates computed output references', computedOutputValidation.valid, computedOutputValidation.error);
 
 const unitMismatchValidation = validateFormula(
   'width + weight',
@@ -466,7 +448,7 @@ const unitMismatchValidation = validateFormula(
     { variableName: 'weight', type: 'number', unitCategory: 'weight', unitSymbol: 'kg' },
   ]
 );
-logCheck(
+assertCheck(
   'validates unit mismatch',
   !unitMismatchValidation.valid && !!unitMismatchValidation.error?.includes('Cannot add length'),
   unitMismatchValidation.error
