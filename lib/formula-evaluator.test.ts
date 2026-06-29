@@ -12,6 +12,11 @@ import {
   serializeTemplateWorkspace,
 } from './templates/template-instance-helpers';
 import {
+  analyzeTemplateLinks,
+  calculateTemplateLinkConfidence,
+  getTemplateLinkMatchReason,
+} from './templates/template-link-analysis';
+import {
   addTemplateWorkspaceModule,
   linkTemplateWorkspaceField,
   recalculateTemplateWorkspace,
@@ -952,6 +957,159 @@ assertCheck(
   'recalculates template workspaces directly',
   recalculatedTemplateWorkspace[0].fieldValues['out.area'] === 18 &&
     recalculatedTemplateWorkspace[1].calculatedCost === 19
+);
+
+console.log('\n=== Template Link Analysis Regression ===');
+const analysisModules: CalculationModule[] = [
+  {
+    id: 'analysis-source',
+    name: 'Analysis Source',
+    fields: [
+      { id: 'analysis-width', label: 'Width', type: 'number', variableName: 'width', unitCategory: 'length', unitSymbol: 'm' },
+      { id: 'analysis-material', label: 'Material', type: 'material', variableName: 'material' },
+      { id: 'analysis-enabled', label: 'Enabled', type: 'boolean', variableName: 'enabled' },
+    ],
+    formula: 'width * 2',
+    computedOutputs: [
+      {
+        id: 'analysis-area',
+        label: 'Area',
+        variableName: 'area',
+        expression: 'width * 3',
+        unitCategory: 'length',
+        unitSymbol: 'm',
+      },
+    ],
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: 'analysis-target',
+    name: 'Analysis Target',
+    fields: [
+      { id: 'analysis-target-width', label: 'Width', type: 'number', variableName: 'width', unitCategory: 'length', unitSymbol: 'm' },
+      { id: 'analysis-target-height', label: 'Height', type: 'number', variableName: 'height', unitCategory: 'length', unitSymbol: 'm' },
+      { id: 'analysis-target-material', label: 'Material', type: 'material', variableName: 'material' },
+      { id: 'analysis-target-enabled', label: 'Enabled', type: 'boolean', variableName: 'enabled' },
+    ],
+    formula: 'width + height',
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: 'analysis-third',
+    name: 'Analysis Third',
+    fields: [
+      { id: 'analysis-third-width', label: 'Width', type: 'number', variableName: 'width', unitCategory: 'length', unitSymbol: 'm' },
+    ],
+    formula: 'width',
+    createdAt: '',
+    updatedAt: '',
+  },
+];
+const analysisWorkspace: QuoteModuleInstance[] = [
+  {
+    id: 'analysis-source-instance',
+    moduleId: 'analysis-source',
+    fieldValues: { width: 2, material: 'wood_a', enabled: true, 'out.area': 6 },
+    calculatedCost: 4,
+  },
+  {
+    id: 'analysis-target-instance',
+    moduleId: 'analysis-target',
+    fieldValues: { width: 0, height: 1, material: 'wood_a', enabled: false },
+    fieldLinks: {
+      width: {
+        moduleInstanceId: 'analysis-source-instance',
+        fieldVariableName: 'width',
+      },
+      height: {
+        moduleInstanceId: 'analysis-source-instance',
+        fieldVariableName: 'out.area',
+      },
+    },
+    calculatedCost: 7,
+  },
+  {
+    id: 'analysis-third-instance',
+    moduleId: 'analysis-third',
+    fieldValues: { width: 3 },
+    calculatedCost: 3,
+  },
+];
+const linkAnalysis = analyzeTemplateLinks({
+  workspaceModules: analysisWorkspace,
+  modules: analysisModules,
+});
+assertCheck(
+  'detects template link analysis primary module and stats',
+  linkAnalysis.primaryModule?.id === 'analysis-source-instance' &&
+    linkAnalysis.primaryModule.fieldsAsSource === 1 &&
+    linkAnalysis.primaryModule.computedOutputsAsSource === 1 &&
+    linkAnalysis.stats.totalModules === 3 &&
+    linkAnalysis.stats.totalFields === 8 &&
+    linkAnalysis.stats.totalComputedOutputs === 1 &&
+    linkAnalysis.stats.linkedFields === 2 &&
+    linkAnalysis.stats.unlinkedFields === 6 &&
+    linkAnalysis.stats.coveragePercent === 25
+);
+const regularSource = linkAnalysis.linkSources.find(
+  (source) => source.fieldVariableName === 'width' && !source.isComputedOutput
+);
+const computedSource = linkAnalysis.linkSources.find(
+  (source) => source.fieldVariableName === 'out.area'
+);
+assertCheck(
+  'detects regular and computed template link sources',
+  regularSource?.linkedBy[0].fieldLabel === 'Width' &&
+    regularSource.linkedBy[0].hasLocalValue === false &&
+    computedSource?.isComputedOutput === true &&
+    computedSource.linkedBy[0].fieldLabel === 'Height' &&
+    computedSource.unitSymbol === 'm'
+);
+const thirdWidthOpportunity = linkAnalysis.linkOpportunities.find(
+  (opportunity) => opportunity.moduleInstanceId === 'analysis-third-instance' &&
+    opportunity.fieldVariableName === 'width'
+);
+assertCheck(
+  'finds template link opportunities only from earlier modules',
+  !!thirdWidthOpportunity &&
+    thirdWidthOpportunity.suggestedSources.length >= 2 &&
+    thirdWidthOpportunity.suggestedSources.every(
+      (source) => source.moduleOrder < thirdWidthOpportunity.moduleOrder
+    ) &&
+    thirdWidthOpportunity.suggestedSources.some(
+      (source) => source.fieldVariableName === 'width' && !source.isComputedOutput
+    ) &&
+    thirdWidthOpportunity.suggestedSources.some(
+      (source) => source.fieldVariableName === 'out.area' && source.isComputedOutput
+    )
+);
+assertCheck(
+  'skips material fields in template link opportunities',
+  !linkAnalysis.linkOpportunities.some((opportunity) => opportunity.fieldVariableName === 'material') &&
+    !thirdWidthOpportunity?.suggestedSources.some((source) => source.fieldVariableName === 'material')
+);
+const exactConfidence = calculateTemplateLinkConfidence(
+  analysisModules[0].fields[0],
+  analysisModules[2].fields[0],
+  'width'
+);
+const similarConfidence = calculateTemplateLinkConfidence(
+  { ...analysisModules[0].fields[0], variableName: 'w' },
+  analysisModules[2].fields[0],
+  'w'
+);
+const computedReason = getTemplateLinkMatchReason(
+  analysisModules[0].computedOutputs![0],
+  analysisModules[2].fields[0],
+  'area'
+);
+assertCheck(
+  'scores template link confidence and reasons',
+  exactConfidence === 100 &&
+    similarConfidence === 80 &&
+    computedReason === 'Matching unit (m) • Compatible type'
 );
 
 console.log('\n=== Tests Complete ===');
