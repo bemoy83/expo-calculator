@@ -7,6 +7,7 @@ import type {
   QuoteModuleInstance,
   SharedFunction,
 } from "../types";
+import { getInitialFieldValue } from "../field-defaults";
 import { generateId } from "../utils";
 import { canLinkFields as validateFieldLink } from "../utils/field-linking";
 
@@ -24,22 +25,7 @@ export function getDefaultQuoteFieldValues(
 
   fields.forEach((field) => {
     if (!field.variableName) return;
-
-    if (field.defaultValue !== undefined) {
-      defaults[field.variableName] = field.defaultValue;
-      return;
-    }
-
-    switch (field.type) {
-      case "number":
-        defaults[field.variableName] = 0;
-        break;
-      case "boolean":
-        defaults[field.variableName] = false;
-        break;
-      default:
-        defaults[field.variableName] = "";
-    }
+    defaults[field.variableName] = getInitialFieldValue(field);
   });
 
   return defaults;

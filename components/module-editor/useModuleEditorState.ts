@@ -7,6 +7,7 @@ import { useFormulaValidation } from '@/hooks/use-formula-validation';
 import { useFormulaVariables } from '@/hooks/use-formula-variables';
 import { usePreviewCost } from '@/hooks/use-preview-cost';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
+import { getInitialFieldValue } from '@/lib/field-defaults';
 import type { CalculationModule, ComputedOutput, Labor, Material } from '@/lib/types';
 import { generateId } from '@/lib/utils';
 import {
@@ -181,29 +182,16 @@ export function useModuleEditorState({
     fields.forEach((field) => {
       if (!field.variableName) return;
 
-      if (field.defaultValue !== undefined) {
-        defaults[field.variableName] = field.defaultValue;
+      if (field.type === 'material') {
+        let candidateMaterials = materials;
+        if (field.materialCategory && field.materialCategory.trim()) {
+          candidateMaterials = materials.filter((m) => m.category === field.materialCategory);
+        }
+        defaults[field.variableName] = candidateMaterials.length > 0 ? candidateMaterials[0].variableName : '';
         return;
       }
 
-      switch (field.type) {
-        case 'number':
-        case 'dropdown':
-        case 'text':
-          defaults[field.variableName] = '';
-          break;
-        case 'boolean':
-          defaults[field.variableName] = false;
-          break;
-        case 'material': {
-          let candidateMaterials = materials;
-          if (field.materialCategory && field.materialCategory.trim()) {
-            candidateMaterials = materials.filter((m) => m.category === field.materialCategory);
-          }
-          defaults[field.variableName] = candidateMaterials.length > 0 ? candidateMaterials[0].variableName : '';
-          break;
-        }
-      }
+      defaults[field.variableName] = getInitialFieldValue(field);
     });
     setPreviewFieldValues(defaults);
     setShowPreview(true);

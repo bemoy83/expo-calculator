@@ -6,6 +6,9 @@ import {
   getQuoteExportFileName,
 } from '../quotes/export';
 import { buildQuoteLineItem } from '../quotes/line-item-builder';
+import { buildLineItemSummaries } from '../quotes/line-item-summary';
+import { getDefaultQuoteFieldValues } from '../quotes/workspace-actions';
+import { getInitialFieldValue, resolveFieldValuesWithDefaults } from '../field-defaults';
 import { applyTemplateToQuoteWorkspace } from '../quotes/template-application';
 import { getRestorableTemplateLinks } from '../quotes/template-helpers';
 import {
@@ -128,6 +131,47 @@ assertCheck(
   !!lineItemResult.lineItem &&
     lineItemResult.lineItem.primarySummary === 'Area: 6 m' &&
     lineItemResult.lineItem.secondarySummary === 'Width: 2 m'
+);
+
+const floatSummary = buildLineItemSummaries({
+  moduleDef: {
+    ...quoteModules[0],
+    computedOutputs: [
+      {
+        id: 'lumber-count',
+        label: 'lumber Count',
+        variableName: 'lumber_count',
+        expression: 'width * 3',
+        unitCategory: 'length',
+        unitSymbol: 'm',
+        showInQuote: true,
+      },
+    ],
+  },
+  resolvedFieldValues: {},
+  fieldValuesWithComputed: { 'out.lumber_count': 30.800000000000004 },
+  materials: [],
+});
+assertCheck(
+  'formats computed output without float artifacts',
+  floatSummary.primarySummary === 'lumber Count: 30.8 m'
+);
+
+const textDefaultField = {
+  id: 'notes',
+  label: 'Notes',
+  type: 'text' as const,
+  variableName: 'notes',
+  defaultValue: 'Standard note',
+};
+assertCheck(
+  'starts text fields empty while keeping configured defaults',
+  getInitialFieldValue(textDefaultField) === '' &&
+    getDefaultQuoteFieldValues([textDefaultField]).notes === ''
+);
+assertCheck(
+  'resolves empty text fields to configured defaults for calculations',
+  resolveFieldValuesWithDefaults([textDefaultField], { notes: '' }).notes === 'Standard note'
 );
 
 const templateForLinks: ModuleTemplate = {

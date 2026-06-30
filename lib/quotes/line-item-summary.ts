@@ -1,5 +1,11 @@
 import type { CalculationModule, Material } from "../types";
+import { resolveFieldValuesWithDefaults } from "../field-defaults";
+import { formatDisplayNumber } from "../utils";
 import { convertFromBase } from "../units";
+
+function formatSummaryValue(value: unknown): string {
+  return typeof value === "number" ? formatDisplayNumber(value) : String(value);
+}
 
 export function buildLineItemSummaries(input: {
   moduleDef: CalculationModule;
@@ -34,7 +40,7 @@ function buildPrimarySummary(input: {
       if (value === null || value === undefined) return null;
 
       const unitStr = output.unitSymbol ? ` ${output.unitSymbol}` : "";
-      return `${output.label}: ${value}${unitStr}`;
+      return `${output.label}: ${formatSummaryValue(value)}${unitStr}`;
     })
     .filter((summary): summary is string => summary !== null);
 
@@ -61,7 +67,9 @@ function buildSecondarySummary(
     if (field.unitCategory !== "length" || !field.unitSymbol) return [];
 
     const displayValue =
-      typeof value === "number" ? convertFromBase(value, field.unitSymbol) : value;
+      typeof value === "number"
+        ? formatDisplayNumber(convertFromBase(value, field.unitSymbol))
+        : String(value);
 
     return [`${field.label}: ${displayValue} ${field.unitSymbol}`];
   });
@@ -73,10 +81,11 @@ function buildFieldSummary(
   moduleDef: CalculationModule,
   resolvedFieldValues: Record<string, any>
 ): string {
+  const effectiveValues = resolveFieldValuesWithDefaults(moduleDef.fields, resolvedFieldValues);
   const summaryParts = moduleDef.fields.slice(0, 4).flatMap((field) => {
-    const value = resolvedFieldValues[field.variableName];
+    const value = effectiveValues[field.variableName];
     if (value === null || value === undefined) return [];
-    return [`${field.label}: ${value}`];
+    return [`${field.label}: ${formatSummaryValue(value)}`];
   });
 
   return summaryParts.join(", ") || "No details";

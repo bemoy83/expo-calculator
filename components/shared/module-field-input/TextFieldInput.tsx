@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/Input";
+import { getFieldInputPlaceholder, handleSelectDefaultOnFocus } from "@/lib/field-defaults";
 import { FieldInputShell } from "./FieldInputShell";
 import { FieldLinkBadge } from "./FieldLinkBadge";
 import { FieldLinkSelect } from "./FieldLinkSelect";
@@ -44,6 +45,8 @@ export function TextFieldInput({
         <Input
           label=""
           value={value?.toString() || ""}
+          placeholder={getFieldInputPlaceholder(field)}
+          onFocus={(event) => handleSelectDefaultOnFocus(event, field, value)}
           onChange={(e) => {
             onChange(e.target.value);
           }}

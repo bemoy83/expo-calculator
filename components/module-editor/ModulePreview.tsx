@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Chip } from '@/components/ui/Chip';
 import { normalizeToBase, convertFromBase } from '@/lib/units';
+import { getFieldInputPlaceholder, handleSelectDefaultOnFocus } from '@/lib/field-defaults';
 import { X } from 'lucide-react';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 
@@ -116,6 +117,7 @@ export function ModulePreview({
                       <Input
                         type="number"
                         value={isNaN(displayValue) ? '' : displayValue.toString()}
+                        onFocus={(event) => handleSelectDefaultOnFocus(event, field, displayValue)}
                         onChange={(e) => {
                           const inputValue = e.target.value === '' ? '' : Number(e.target.value) || 0;
                           const baseValue = field.unitSymbol && typeof inputValue === 'number'
@@ -299,6 +301,8 @@ export function ModulePreview({
                       <Input
                         label=""
                         value={value?.toString() || ''}
+                        placeholder={getFieldInputPlaceholder(field)}
+                        onFocus={(event) => handleSelectDefaultOnFocus(event, field, value)}
                         onChange={(e) => {
                           onFieldValueChange(field.variableName, e.target.value);
                         }}

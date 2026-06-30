@@ -9,6 +9,7 @@ import type {
   QuoteModuleInstance,
   SharedFunction,
 } from "../types";
+import { getInitialFieldValue } from "../field-defaults";
 import { generateId } from "../utils";
 
 export function getDefaultTemplateFieldValues(
@@ -21,27 +22,17 @@ export function getDefaultTemplateFieldValues(
   fields.forEach((field) => {
     if (!field.variableName) return;
 
-    if (field.defaultValue !== undefined) {
-      defaults[field.variableName] = field.defaultValue;
+    if (field.type === "material") {
+      defaults[field.variableName] = getFirstMaterialVariableName(field, materials);
       return;
     }
 
-    switch (field.type) {
-      case "number":
-      case "dropdown":
-      case "text":
-        defaults[field.variableName] = "";
-        break;
-      case "boolean":
-        defaults[field.variableName] = false;
-        break;
-      case "material":
-        defaults[field.variableName] = getFirstMaterialVariableName(field, materials);
-        break;
-      case "labor":
-        defaults[field.variableName] = getFirstLaborVariableName(field, labor);
-        break;
+    if (field.type === "labor") {
+      defaults[field.variableName] = getFirstLaborVariableName(field, labor);
+      return;
     }
+
+    defaults[field.variableName] = getInitialFieldValue(field);
   });
 
   return defaults;

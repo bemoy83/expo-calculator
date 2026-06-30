@@ -1,4 +1,5 @@
 import { evaluateFormula } from '../formula-evaluator';
+import { resolveFieldValuesWithDefaults } from '../field-defaults';
 import {
   CalculationError,
   CalculationModule,
@@ -34,9 +35,13 @@ export function calculateModuleInstance(input: {
 }): CalculationResult {
   const functions = input.functions ?? [];
   const labor = input.labor ?? [];
+  const resolvedFieldValues = resolveFieldValuesWithDefaults(
+    input.moduleDef.fields,
+    input.fieldValues
+  );
   const computedResult = evaluateComputedOutputs(
     input.moduleDef,
-    input.fieldValues,
+    resolvedFieldValues,
     input.materials,
     functions,
     labor
@@ -44,6 +49,10 @@ export function calculateModuleInstance(input: {
 
   const fieldValues = {
     ...input.fieldValues,
+    ...computedResult.computedValues,
+  };
+  const evaluationFieldValues = {
+    ...resolvedFieldValues,
     ...computedResult.computedValues,
   };
 
@@ -62,7 +71,7 @@ export function calculateModuleInstance(input: {
 
   try {
     const cost = evaluateFormula(input.moduleDef.formula, {
-      fieldValues,
+      fieldValues: evaluationFieldValues,
       materials: input.materials,
       labor,
       fields: input.moduleDef.fields.map((field) => ({

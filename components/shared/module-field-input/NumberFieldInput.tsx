@@ -1,5 +1,7 @@
 import { Input } from "@/components/ui/Input";
+import { handleSelectDefaultOnFocus } from "@/lib/field-defaults";
 import { convertFromBase, normalizeToBase } from "@/lib/units";
+import { formatDisplayNumber } from "@/lib/utils";
 import { FieldInputShell } from "./FieldInputShell";
 import { FieldLinkBadge } from "./FieldLinkBadge";
 import { FieldLinkSelect } from "./FieldLinkSelect";
@@ -26,8 +28,9 @@ export function NumberFieldInput({
         <div className="relative h-[46px] flex items-center overflow-visible">
           <Input
             type="number"
-            value={displayValue.toString()}
+            value={formatDisplayNumber(displayValue)}
             disabled={true}
+            onFocus={(event) => handleSelectDefaultOnFocus(event, field, displayValue)}
             className="w-full pr-32"
           />
           <FieldLinkBadge linkProps={linkProps} />
@@ -51,7 +54,8 @@ export function NumberFieldInput({
       <div className="relative h-[46px] flex items-center overflow-visible">
         <Input
           type="number"
-          value={displayValue.toString()}
+          value={formatDisplayNumber(displayValue)}
+          onFocus={(event) => handleSelectDefaultOnFocus(event, field, displayValue)}
           onChange={(e) => {
             const inputValue = e.target.value === "" ? 0 : Number(e.target.value) || 0;
             const baseValue =

@@ -37,7 +37,7 @@ const templateDefaults = getDefaultTemplateFieldValues(
   templateLabor
 );
 assert.deepEqual(templateDefaults, {
-  number_value: '',
+  number_value: 0,
   enabled: false,
   choice: '',
   note: '',
@@ -54,7 +54,7 @@ const templateInstance = createTemplateModuleInstance({
 assertCheck(
   'creates new template module instances with defaults',
   templateInstance.moduleId === 'source-module' &&
-    templateInstance.fieldValues.width === '' &&
+    templateInstance.fieldValues.width === 0 &&
     templateInstance.calculatedCost === 0
 );
 
@@ -174,7 +174,7 @@ assertCheck(
   'adds template workspace modules with defaults and recalculates',
   addedTemplateWorkspace.length === initializedTemplateModules.length + 1 &&
     addedTemplateWorkspace[2].moduleId === 'source-module' &&
-    addedTemplateWorkspace[2].fieldValues.width === '' &&
+    addedTemplateWorkspace[2].fieldValues.width === 0 &&
     addedTemplateWorkspace[2].calculatedCost === 0
 );
 
