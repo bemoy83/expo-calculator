@@ -1,4 +1,3 @@
-import { recalculateWorkspaceModuleInstances } from "./workspace-recalculation";
 import type {
   CalculationModule,
   Field,
@@ -9,14 +8,18 @@ import type {
 } from "../types";
 import { getInitialFieldValue } from "../field-defaults";
 import { generateId } from "../utils";
-import { canLinkFields as validateFieldLink } from "../utils/field-linking";
+import {
+  linkModuleWorkspaceField,
+  ModuleWorkspaceContext,
+  recalculateModuleWorkspace,
+  removeModuleWorkspaceFieldLink,
+  removeModuleWorkspaceInstance,
+  unlinkModuleWorkspaceField,
+  updateModuleWorkspaceFieldValue,
+  validateModuleWorkspaceFieldLink,
+} from "../workspace/workspace-actions";
 
-export interface QuoteWorkspaceContext {
-  modules: CalculationModule[];
-  materials: Material[];
-  labor: Labor[];
-  functions: SharedFunction[];
-}
+export type QuoteWorkspaceContext = ModuleWorkspaceContext;
 
 export function getDefaultQuoteFieldValues(
   fields: Field[]
@@ -46,15 +49,7 @@ export function recalculateQuoteWorkspace(
   workspaceModules: QuoteModuleInstance[],
   context: QuoteWorkspaceContext
 ): QuoteModuleInstance[] {
-  if (workspaceModules.length === 0) return workspaceModules;
-
-  return recalculateWorkspaceModuleInstances({
-    workspaceModules,
-    modules: context.modules,
-    materials: context.materials,
-    labor: context.labor,
-    functions: context.functions,
-  }).workspaceModules;
+  return recalculateModuleWorkspace(workspaceModules, context);
 }
 
 export function addQuoteWorkspaceModule(
@@ -74,10 +69,7 @@ export function removeQuoteWorkspaceModule(
   context: QuoteWorkspaceContext,
   instanceId: string
 ): QuoteModuleInstance[] {
-  return recalculateQuoteWorkspace(
-    workspaceModules.filter((instance) => instance.id !== instanceId),
-    context
-  );
+  return removeModuleWorkspaceInstance(workspaceModules, context, instanceId);
 }
 
 export function reorderQuoteWorkspaceModules(
@@ -94,19 +86,7 @@ export function updateQuoteWorkspaceFieldValue(
   fieldName: string,
   value: string | number | boolean
 ): QuoteModuleInstance[] {
-  const updated = workspaceModules.map((instance) =>
-    instance.id === instanceId
-      ? {
-          ...instance,
-          fieldValues: {
-            ...instance.fieldValues,
-            [fieldName]: value,
-          },
-        }
-      : instance
-  );
-
-  return recalculateQuoteWorkspace(updated, context);
+  return updateModuleWorkspaceFieldValue(workspaceModules, context, instanceId, fieldName, value);
 }
 
 export function validateQuoteWorkspaceFieldLink(
@@ -117,9 +97,9 @@ export function validateQuoteWorkspaceFieldLink(
   targetInstanceId: string,
   targetFieldName: string
 ): { valid: boolean; error?: string } {
-  return validateFieldLink(
+  return validateModuleWorkspaceFieldLink(
     workspaceModules,
-    context.modules,
+    context,
     instanceId,
     fieldName,
     targetInstanceId,
@@ -135,7 +115,7 @@ export function linkQuoteWorkspaceField(
   targetInstanceId: string,
   targetFieldName: string
 ): { valid: boolean; error?: string; workspaceModules: QuoteModuleInstance[] } {
-  const validation = validateQuoteWorkspaceFieldLink(
+  return linkModuleWorkspaceField(
     workspaceModules,
     context,
     instanceId,
@@ -143,33 +123,6 @@ export function linkQuoteWorkspaceField(
     targetInstanceId,
     targetFieldName
   );
-
-  if (!validation.valid) {
-    return {
-      ...validation,
-      workspaceModules,
-    };
-  }
-
-  const updated = workspaceModules.map((instance) =>
-    instance.id === instanceId
-      ? {
-          ...instance,
-          fieldLinks: {
-            ...(instance.fieldLinks || {}),
-            [fieldName]: {
-              moduleInstanceId: targetInstanceId,
-              fieldVariableName: targetFieldName,
-            },
-          },
-        }
-      : instance
-  );
-
-  return {
-    valid: true,
-    workspaceModules: recalculateQuoteWorkspace(updated, context),
-  };
 }
 
 export function unlinkQuoteWorkspaceField(
@@ -178,23 +131,12 @@ export function unlinkQuoteWorkspaceField(
   instanceId: string,
   fieldName: string
 ): QuoteModuleInstance[] {
-  const updated = workspaceModules.map((instance) =>
-    instance.id === instanceId
-      ? {
-          ...instance,
-          fieldLinks: removeQuoteFieldLink(instance.fieldLinks, fieldName),
-        }
-      : instance
-  );
-
-  return recalculateQuoteWorkspace(updated, context);
+  return unlinkModuleWorkspaceField(workspaceModules, context, instanceId, fieldName);
 }
 
 export function removeQuoteFieldLink(
   fieldLinks: QuoteModuleInstance["fieldLinks"],
   fieldName: string
 ): QuoteModuleInstance["fieldLinks"] {
-  const links = { ...(fieldLinks || {}) };
-  delete links[fieldName];
-  return Object.keys(links).length > 0 ? links : undefined;
+  return removeModuleWorkspaceFieldLink(fieldLinks, fieldName);
 }

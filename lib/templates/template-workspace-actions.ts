@@ -1,4 +1,3 @@
-import { recalculateWorkspaceModuleInstances } from "../quotes/workspace-recalculation";
 import type {
   CalculationModule,
   Labor,
@@ -6,29 +5,25 @@ import type {
   QuoteModuleInstance,
   SharedFunction,
 } from "../types";
-import { canLinkFields as validateFieldLink } from "../utils/field-linking";
+import {
+  linkModuleWorkspaceField,
+  ModuleWorkspaceContext,
+  recalculateModuleWorkspace,
+  removeModuleWorkspaceFieldLink,
+  removeModuleWorkspaceInstance,
+  unlinkModuleWorkspaceField,
+  updateModuleWorkspaceFieldValue,
+  validateModuleWorkspaceFieldLink,
+} from "../workspace/workspace-actions";
 import { createTemplateModuleInstance } from "./template-instance-helpers";
 
-export interface TemplateWorkspaceContext {
-  modules: CalculationModule[];
-  materials: Material[];
-  labor: Labor[];
-  functions: SharedFunction[];
-}
+export type TemplateWorkspaceContext = ModuleWorkspaceContext;
 
 export function recalculateTemplateWorkspace(
   workspaceModules: QuoteModuleInstance[],
   context: TemplateWorkspaceContext
 ): QuoteModuleInstance[] {
-  if (workspaceModules.length === 0) return workspaceModules;
-
-  return recalculateWorkspaceModuleInstances({
-    workspaceModules,
-    modules: context.modules,
-    materials: context.materials,
-    labor: context.labor,
-    functions: context.functions,
-  }).workspaceModules;
+  return recalculateModuleWorkspace(workspaceModules, context);
 }
 
 export function updateTemplateWorkspaceFieldValue(
@@ -38,19 +33,7 @@ export function updateTemplateWorkspaceFieldValue(
   fieldName: string,
   value: string | number | boolean
 ): QuoteModuleInstance[] {
-  const updated = workspaceModules.map((instance) =>
-    instance.id === instanceId
-      ? {
-          ...instance,
-          fieldValues: {
-            ...instance.fieldValues,
-            [fieldName]: value,
-          },
-        }
-      : instance
-  );
-
-  return recalculateTemplateWorkspace(updated, context);
+  return updateModuleWorkspaceFieldValue(workspaceModules, context, instanceId, fieldName, value);
 }
 
 export function addTemplateWorkspaceModule(
@@ -76,10 +59,7 @@ export function removeTemplateWorkspaceModule(
   context: TemplateWorkspaceContext,
   instanceId: string
 ): QuoteModuleInstance[] {
-  return recalculateTemplateWorkspace(
-    workspaceModules.filter((instance) => instance.id !== instanceId),
-    context
-  );
+  return removeModuleWorkspaceInstance(workspaceModules, context, instanceId);
 }
 
 export function reorderTemplateWorkspaceModules(
@@ -107,9 +87,9 @@ export function validateTemplateWorkspaceFieldLink(
   targetInstanceId: string,
   targetFieldName: string
 ): { valid: boolean; error?: string } {
-  return validateFieldLink(
+  return validateModuleWorkspaceFieldLink(
     workspaceModules,
-    context.modules,
+    context,
     instanceId,
     fieldName,
     targetInstanceId,
@@ -125,7 +105,7 @@ export function linkTemplateWorkspaceField(
   targetInstanceId: string,
   targetFieldName: string
 ): { valid: boolean; error?: string; workspaceModules: QuoteModuleInstance[] } {
-  const validation = validateTemplateWorkspaceFieldLink(
+  return linkModuleWorkspaceField(
     workspaceModules,
     context,
     instanceId,
@@ -133,33 +113,6 @@ export function linkTemplateWorkspaceField(
     targetInstanceId,
     targetFieldName
   );
-
-  if (!validation.valid) {
-    return {
-      ...validation,
-      workspaceModules,
-    };
-  }
-
-  const updated = workspaceModules.map((instance) =>
-    instance.id === instanceId
-      ? {
-          ...instance,
-          fieldLinks: {
-            ...(instance.fieldLinks || {}),
-            [fieldName]: {
-              moduleInstanceId: targetInstanceId,
-              fieldVariableName: targetFieldName,
-            },
-          },
-        }
-      : instance
-  );
-
-  return {
-    valid: true,
-    workspaceModules: recalculateTemplateWorkspace(updated, context),
-  };
 }
 
 export function unlinkTemplateWorkspaceField(
@@ -168,23 +121,12 @@ export function unlinkTemplateWorkspaceField(
   instanceId: string,
   fieldName: string
 ): QuoteModuleInstance[] {
-  const updated = workspaceModules.map((instance) =>
-    instance.id === instanceId
-      ? {
-          ...instance,
-          fieldLinks: removeTemplateFieldLink(instance.fieldLinks, fieldName),
-        }
-      : instance
-  );
-
-  return recalculateTemplateWorkspace(updated, context);
+  return unlinkModuleWorkspaceField(workspaceModules, context, instanceId, fieldName);
 }
 
 export function removeTemplateFieldLink(
   fieldLinks: QuoteModuleInstance["fieldLinks"],
   fieldName: string
 ): QuoteModuleInstance["fieldLinks"] {
-  const links = { ...(fieldLinks || {}) };
-  delete links[fieldName];
-  return Object.keys(links).length > 0 ? links : undefined;
+  return removeModuleWorkspaceFieldLink(fieldLinks, fieldName);
 }

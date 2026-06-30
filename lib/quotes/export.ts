@@ -40,11 +40,12 @@ export function buildQuotePrintHtml(input: {
   formatCurrency: (amount: number) => string;
 }): string {
   const { quote, formatCurrency } = input;
+  const quoteName = escapeHtml(quote.name);
   let html = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Quote: ${quote.name}</title>
+        <title>Quote: ${quoteName}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
           h1 { color: #1a1a1a; border-bottom: 2px solid #333; padding-bottom: 10px; }
@@ -56,7 +57,7 @@ export function buildQuotePrintHtml(input: {
         </style>
       </head>
       <body>
-        <h1>${quote.name}</h1>
+        <h1>${quoteName}</h1>
         <p><strong>Date:</strong> ${new Date(quote.createdAt).toLocaleDateString()}</p>
         <table>
           <thead>
@@ -72,9 +73,9 @@ export function buildQuotePrintHtml(input: {
   quote.lineItems.forEach((item) => {
     html += `
         <tr>
-          <td>${item.moduleName}</td>
-          <td>${item.fieldSummary}</td>
-          <td class="right-align">${formatCurrency(item.cost)}</td>
+          <td>${escapeHtml(item.moduleName)}</td>
+          <td>${escapeHtml(item.fieldSummary)}</td>
+          <td class="right-align">${escapeHtml(formatCurrency(item.cost))}</td>
         </tr>
       `;
   });
@@ -84,7 +85,7 @@ export function buildQuotePrintHtml(input: {
           <tfoot>
             <tr>
               <td colspan="2" class="right-align"><strong>Subtotal:</strong></td>
-              <td class="right-align">${formatCurrency(quote.subtotal)}</td>
+              <td class="right-align">${escapeHtml(formatCurrency(quote.subtotal))}</td>
             </tr>
     `;
 
@@ -92,7 +93,7 @@ export function buildQuotePrintHtml(input: {
     html += `
             <tr>
               <td colspan="2" class="right-align"><strong>Markup (${quote.markupPercent.toFixed(2)}%):</strong></td>
-              <td class="right-align">${formatCurrency(quote.markupAmount || 0)}</td>
+              <td class="right-align">${escapeHtml(formatCurrency(quote.markupAmount || 0))}</td>
             </tr>
       `;
   }
@@ -100,11 +101,11 @@ export function buildQuotePrintHtml(input: {
   html += `
             <tr>
               <td colspan="2" class="right-align"><strong>Tax (${(quote.taxRate * 100).toFixed(2)}%):</strong></td>
-              <td class="right-align">${formatCurrency(quote.taxAmount)}</td>
+              <td class="right-align">${escapeHtml(formatCurrency(quote.taxAmount))}</td>
             </tr>
             <tr class="total-row">
               <td colspan="2" class="right-align"><strong>Total:</strong></td>
-              <td class="right-align"><strong>${formatCurrency(quote.total)}</strong></td>
+              <td class="right-align"><strong>${escapeHtml(formatCurrency(quote.total))}</strong></td>
             </tr>
           </tfoot>
         </table>
@@ -113,4 +114,13 @@ export function buildQuotePrintHtml(input: {
     `;
 
   return html;
+}
+
+export function escapeHtml(value: unknown): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

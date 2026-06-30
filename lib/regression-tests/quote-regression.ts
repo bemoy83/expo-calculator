@@ -7,7 +7,6 @@ import {
 } from '../quotes/export';
 import { buildQuoteLineItem } from '../quotes/line-item-builder';
 import { buildLineItemSummaries } from '../quotes/line-item-summary';
-import { getDefaultQuoteFieldValues } from '../quotes/workspace-actions';
 import { getInitialFieldValue, resolveFieldValuesWithDefaults } from '../field-defaults';
 import { applyTemplateToQuoteWorkspace } from '../quotes/template-application';
 import { getRestorableTemplateLinks } from '../quotes/template-helpers';
@@ -370,6 +369,7 @@ const templateApplication = applyTemplateToQuoteWorkspace({
       {
         id: 'template-source',
         moduleId: 'source-module',
+        fieldValues: { width: 9 },
       },
       {
         id: 'template-target',
@@ -401,6 +401,7 @@ assertCheck(
   'applies quote templates with legacy links and missing-module warnings',
   templateApplication.appliedModules === 2 &&
     templateApplication.workspaceModules.length === 2 &&
+    templateApplication.workspaceModules[0].fieldValues.width === 0 &&
     templateApplication.workspaceModules[1].fieldLinks?.linked_width.moduleInstanceId ===
       templateApplication.workspaceModules[0].id &&
     templateApplication.warnings.includes('Module "missing-module" no longer exists')
@@ -457,6 +458,27 @@ assertCheck(
     quotePrintHtml.includes('Markup (10.00%)') &&
     quotePrintHtml.includes('Tax (25.00%)') &&
     quotePrintHtml.includes('<strong>$13.76</strong>')
+);
+const escapedQuotePrintHtml = buildQuotePrintHtml({
+  quote: {
+    ...exportQuote,
+    name: '<img src=x onerror=alert(1)>',
+    lineItems: [
+      {
+        ...exportQuote.lineItems[0],
+        moduleName: '<script>alert(1)</script>',
+        fieldSummary: 'Width < 5 & height > 2',
+      },
+    ],
+  },
+  formatCurrency: (amount) => `$${amount.toFixed(2)}`,
+});
+assertCheck(
+  'escapes quote print HTML text',
+  escapedQuotePrintHtml.includes('&lt;img src=x onerror=alert(1)&gt;') &&
+    escapedQuotePrintHtml.includes('&lt;script&gt;alert(1)&lt;/script&gt;') &&
+    escapedQuotePrintHtml.includes('Width &lt; 5 &amp; height &gt; 2') &&
+    !escapedQuotePrintHtml.includes('<script>alert(1)</script>')
 );
 assertCheck(
   'builds quote JSON export file names',

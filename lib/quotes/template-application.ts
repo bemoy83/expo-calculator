@@ -46,6 +46,8 @@ export function applyTemplateToQuoteWorkspace(input: {
     }
 
     const beforeCount = workspaceModules.length;
+    // Applying quote templates intentionally creates fresh quote workspace defaults.
+    // Saved template field values are preserved for template editing, not restored into quotes.
     workspaceModules = addQuoteWorkspaceModule(workspaceModules, context, templateInstance.moduleId);
 
     if (workspaceModules.length > beforeCount) {
