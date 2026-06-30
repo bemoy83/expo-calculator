@@ -5,14 +5,6 @@ import { SortableList } from '@/components/shared/SortableList';
 import { SortableModuleCard } from '@/components/SortableModuleCard';
 import type { QuoteModuleInstance, CalculationModule, Field } from '@/lib/types';
 
-/**
- * WorkspaceModulesManager Component
- *
- * Manages the list of workspace module instances in a quote.
- * Supports drag-to-reorder, field value editing, and adding to quote.
- * Follows the same pattern as ModuleInstancesManager and FieldsManager.
- */
-
 export interface WorkspaceModulesManagerProps {
   workspaceModules: QuoteModuleInstance[];
   modules: CalculationModule[];
@@ -36,8 +28,7 @@ export function WorkspaceModulesManager({
   onReorder,
   renderFieldInput,
 }: WorkspaceModulesManagerProps) {
-  // Memoize module lookups to prevent unnecessary re-renders during drag operations
-  // This ensures stable references and prevents visual jumps when reordering
+  // Stable lookups prevent drag cards from jumping when the list settles.
   const moduleMap = useMemo(() => {
     const map = new Map<string, CalculationModule>();
     modules.forEach((m) => map.set(m.id, m));

@@ -1,17 +1,23 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Quote, QuoteModuleInstance, FieldLink, Field, ModuleTemplate } from '../types';
+import { Quote, QuoteModuleInstance, Field, ModuleTemplate } from '../types';
 import { generateId } from '../utils';
 import { calculateQuoteTotals, roundMoney, roundRate } from '../calculations/money';
 import { buildQuoteLineItem } from '../quotes/line-item-builder';
+import { applyTemplateToQuoteWorkspace } from '../quotes/template-application';
+import { createTemplateDataFromQuote } from '../quotes/template-helpers';
 import {
-  createTemplateDataFromQuote,
-  getRestorableTemplateLinks,
-} from '../quotes/template-helpers';
-import { recalculateWorkspaceModuleInstances } from '../quotes/workspace-recalculation';
+  addQuoteWorkspaceModule,
+  linkQuoteWorkspaceField,
+  recalculateQuoteWorkspace,
+  removeQuoteWorkspaceModule,
+  reorderQuoteWorkspaceModules,
+  unlinkQuoteWorkspaceField,
+  updateQuoteWorkspaceFieldValue,
+  validateQuoteWorkspaceFieldLink,
+} from '../quotes/workspace-actions';
 import {
   areTypesCompatible,
-  canLinkFields,
   detectCircularReference,
   removeBrokenFieldLinks,
   resolveFieldLinksWithMetadata,
@@ -21,6 +27,15 @@ import { useMaterialsStore } from './materials-store';
 import { useTemplatesStore } from './templates-store';
 import { useFunctionsStore } from './functions-store';
 import { useLaborStore } from './labor-store';
+
+function getQuoteWorkspaceContext() {
+  return {
+    modules: useModulesStore.getState().modules,
+    materials: useMaterialsStore.getState().materials,
+    labor: useLaborStore.getState().labor,
+    functions: useFunctionsStore.getState().functions,
+  };
+}
 
 /**
  * Quotes Store
@@ -91,112 +106,56 @@ export const useQuotesStore = create<QuotesStore>()(
         };
         set({ currentQuote: newQuote });
       },
-  
-  updateCurrentQuote: (updates) => {
-    const current = get().currentQuote;
-    if (current) {
-      set({
-        currentQuote: {
-          ...current,
-          ...updates,
-          updatedAt: new Date().toISOString(),
-        },
-      });
-      get().recalculateQuote();
-    }
-  },
+
+      updateCurrentQuote: (updates) => {
+        const current = get().currentQuote;
+        if (current) {
+          set({
+            currentQuote: {
+              ...current,
+              ...updates,
+              updatedAt: new Date().toISOString(),
+            },
+          });
+          get().recalculateQuote();
+        }
+      },
   
       // Workspace module management - these are editable and NOT included in totals
       addWorkspaceModule: (moduleId) => {
-        const moduleDef = useModulesStore.getState().getModule(moduleId);
-        if (!moduleDef) return;
+        const context = getQuoteWorkspaceContext();
+        if (!context.modules.some((module) => module.id === moduleId)) return;
         
         const current = get().currentQuote;
         if (!current) {
           get().createQuote('New Quote');
           return get().addWorkspaceModule(moduleId);
         }
-        
-        // Initialize field values with defaults
-        const fieldValues: Record<string, string | number | boolean> = {};
-        for (const field of moduleDef.fields) {
-          if (field.defaultValue !== undefined) {
-            fieldValues[field.variableName] = field.defaultValue;
-          } else {
-            switch (field.type) {
-              case 'number':
-                fieldValues[field.variableName] = 0;
-                break;
-              case 'boolean':
-                fieldValues[field.variableName] = false;
-                break;
-              default:
-                fieldValues[field.variableName] = '';
-            }
-          }
-        }
-        
-        const instance: QuoteModuleInstance = {
-          id: generateId(),
-          moduleId,
-          fieldValues,
-          calculatedCost: 0,
-        };
-        
+
         set({
           currentQuote: {
             ...current,
-            workspaceModules: [...current.workspaceModules, instance],
+            workspaceModules: addQuoteWorkspaceModule(current.workspaceModules, context, moduleId),
             updatedAt: new Date().toISOString(),
           },
         });
-        
-        get().recalculateWorkspaceModules();
       },
       
       removeWorkspaceModule: (instanceId) => {
         const current = get().currentQuote;
         if (!current) return;
-        
-        // Break any links pointing to this module
-        const updatedModules = current.workspaceModules.map((module) => {
-          if (module.id === instanceId) {
-            return module; // Will be filtered out
-          }
-          
-          // Check if this module has links pointing to the deleted module
-          const links = module.fieldLinks || {};
-          const hasBrokenLink = Object.values(links).some(
-            (link) => link.moduleInstanceId === instanceId
-          );
-          
-          if (hasBrokenLink) {
-            // Remove broken links
-            const cleanedLinks: Record<string, FieldLink> = {};
-            Object.entries(links).forEach(([fieldName, link]) => {
-              if (link.moduleInstanceId !== instanceId) {
-                cleanedLinks[fieldName] = link;
-              }
-            });
-            
-            return {
-              ...module,
-              fieldLinks: Object.keys(cleanedLinks).length > 0 ? cleanedLinks : undefined,
-            };
-          }
-          
-          return module;
-        });
-        
+
         set({
           currentQuote: {
             ...current,
-            workspaceModules: updatedModules.filter((m) => m.id !== instanceId),
+            workspaceModules: removeQuoteWorkspaceModule(
+              current.workspaceModules,
+              getQuoteWorkspaceContext(),
+              instanceId
+            ),
             updatedAt: new Date().toISOString(),
           },
         });
-        
-        get().recalculateWorkspaceModules();
       },
       
       reorderWorkspaceModules: (newOrder) => {
@@ -206,73 +165,53 @@ export const useQuotesStore = create<QuotesStore>()(
         set({
           currentQuote: {
             ...current,
-            workspaceModules: newOrder,
+            workspaceModules: reorderQuoteWorkspaceModules(newOrder, getQuoteWorkspaceContext()),
             updatedAt: new Date().toISOString(),
           },
         });
-        
-        get().recalculateWorkspaceModules();
       },
       
       updateWorkspaceModuleFieldValue: (instanceId, fieldName, value) => {
         const current = get().currentQuote;
         if (!current) return;
-        
+
         set({
           currentQuote: {
             ...current,
-            workspaceModules: current.workspaceModules.map((module) =>
-              module.id === instanceId
-                ? {
-                    ...module,
-                    fieldValues: {
-                      ...module.fieldValues,
-                      [fieldName]: value,
-                    },
-                  }
-                : module
+            workspaceModules: updateQuoteWorkspaceFieldValue(
+              current.workspaceModules,
+              getQuoteWorkspaceContext(),
+              instanceId,
+              fieldName,
+              value
             ),
             updatedAt: new Date().toISOString(),
           },
         });
-        
-        get().recalculateWorkspaceModules();
       },
       
       // Link management
       linkField: (instanceId, fieldName, targetInstanceId, targetFieldName) => {
         const current = get().currentQuote;
         if (!current) return { valid: false, error: 'No quote selected' };
-        
-        // Validate the link
-        const validation = get().canLinkFields(instanceId, fieldName, targetInstanceId, targetFieldName);
-        if (!validation.valid) {
-          return validation;
-        }
-        
-        // Update the field link
+        const result = linkQuoteWorkspaceField(
+          current.workspaceModules,
+          getQuoteWorkspaceContext(),
+          instanceId,
+          fieldName,
+          targetInstanceId,
+          targetFieldName
+        );
+        if (!result.valid) return result;
+
         set({
           currentQuote: {
             ...current,
-            workspaceModules: current.workspaceModules.map((module) =>
-              module.id === instanceId
-                ? {
-                    ...module,
-                    fieldLinks: {
-                      ...(module.fieldLinks || {}),
-                      [fieldName]: {
-                        moduleInstanceId: targetInstanceId,
-                        fieldVariableName: targetFieldName,
-                      },
-                    },
-                  }
-                : module
-            ),
+            workspaceModules: result.workspaceModules,
             updatedAt: new Date().toISOString(),
           },
         });
-        
-        get().recalculateWorkspaceModules();
+
         return { valid: true };
       },
       
@@ -283,31 +222,23 @@ export const useQuotesStore = create<QuotesStore>()(
         set({
           currentQuote: {
             ...current,
-            workspaceModules: current.workspaceModules.map((module) =>
-              module.id === instanceId
-                ? {
-                    ...module,
-                    fieldLinks: (() => {
-                      const links = { ...(module.fieldLinks || {}) };
-                      delete links[fieldName];
-                      return Object.keys(links).length > 0 ? links : undefined;
-                    })(),
-                  }
-                : module
+            workspaceModules: unlinkQuoteWorkspaceField(
+              current.workspaceModules,
+              getQuoteWorkspaceContext(),
+              instanceId,
+              fieldName
             ),
             updatedAt: new Date().toISOString(),
           },
         });
-        
-        get().recalculateWorkspaceModules();
       },
       
       canLinkFields: (instanceId, fieldName, targetInstanceId, targetFieldName) => {
         const current = get().currentQuote;
         if (!current) return { valid: false, error: 'No quote selected' };
-        return canLinkFields(
+        return validateQuoteWorkspaceFieldLink(
           current.workspaceModules,
-          useModulesStore.getState().modules,
+          getQuoteWorkspaceContext(),
           instanceId,
           fieldName,
           targetInstanceId,
@@ -413,18 +344,13 @@ export const useQuotesStore = create<QuotesStore>()(
         const current = get().currentQuote;
         if (!current) return;
 
-        const result = recalculateWorkspaceModuleInstances({
-          workspaceModules: current.workspaceModules,
-          modules: useModulesStore.getState().modules,
-          materials: useMaterialsStore.getState().materials,
-          labor: useLaborStore.getState().labor,
-          functions: useFunctionsStore.getState().functions,
-        });
-        
         set({
           currentQuote: {
             ...current,
-            workspaceModules: result.workspaceModules,
+            workspaceModules: recalculateQuoteWorkspace(
+              current.workspaceModules,
+              getQuoteWorkspaceContext()
+            ),
             updatedAt: new Date().toISOString(),
           },
         });
@@ -435,46 +361,46 @@ export const useQuotesStore = create<QuotesStore>()(
       recalculateQuote: () => {
         const current = get().currentQuote;
         if (!current) return;
-        
-	        const totals = calculateQuoteTotals({
-	          lineItems: current.lineItems,
-	          markupPercent: current.markupPercent,
-	          taxRate: current.taxRate,
-	        });
-	        
-	        set({
-	          currentQuote: {
-	            ...current,
-	            ...totals,
-	            updatedAt: new Date().toISOString(),
-	          },
-	        });
-	      },
-	  
-	      setTaxRate: (rate) => {
-	        get().updateCurrentQuote({ taxRate: roundRate(rate) });
-	      },
-	      
-	      setMarkupPercent: (percent) => {
-	        const clampedPercent = Math.max(0, percent || 0);
-	        get().updateCurrentQuote({ markupPercent: roundMoney(clampedPercent) });
-	      },
+
+        const totals = calculateQuoteTotals({
+          lineItems: current.lineItems,
+          markupPercent: current.markupPercent,
+          taxRate: current.taxRate,
+        });
+
+        set({
+          currentQuote: {
+            ...current,
+            ...totals,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      },
+
+      setTaxRate: (rate) => {
+        get().updateCurrentQuote({ taxRate: roundRate(rate) });
+      },
+
+      setMarkupPercent: (percent) => {
+        const clampedPercent = Math.max(0, percent || 0);
+        get().updateCurrentQuote({ markupPercent: roundMoney(clampedPercent) });
+      },
       
       saveQuote: () => {
-    const current = get().currentQuote;
-    if (!current) return;
-    
-    set((state) => {
-      const existingIndex = state.quotes.findIndex((q) => q.id === current.id);
-      const updatedQuotes = existingIndex >= 0
-        ? state.quotes.map((q, i) => (i === existingIndex ? current : q))
-        : [...state.quotes, current];
-      
-      return {
-        quotes: updatedQuotes,
-      };
-    });
-  },
+        const current = get().currentQuote;
+        if (!current) return;
+
+        set((state) => {
+          const existingIndex = state.quotes.findIndex((q) => q.id === current.id);
+          const updatedQuotes = existingIndex >= 0
+            ? state.quotes.map((q, i) => (i === existingIndex ? current : q))
+            : [...state.quotes, current];
+
+          return {
+            quotes: updatedQuotes,
+          };
+        });
+      },
   
       deleteQuote: (id) => {
         set((state) => ({
@@ -515,61 +441,30 @@ export const useQuotesStore = create<QuotesStore>()(
         if (!current) {
           get().createQuote('New Quote');
         }
-        
-        // Track created instances: map template index -> new instance ID
-        const instanceMap: Map<number, string> = new Map();
-        
-        // First pass: Add all modules and track their new instance IDs
-        for (let i = 0; i < template.moduleInstances.length; i++) {
-          const templateInstance = template.moduleInstances[i];
-          const moduleDef = useModulesStore.getState().getModule(templateInstance.moduleId);
-          if (!moduleDef) {
-            warnings.push(`Module "${templateInstance.moduleId}" no longer exists`);
-            continue;
-          }
-          
-          // Store current workspace length to find the new instance
-          const beforeCount = get().currentQuote?.workspaceModules.length || 0;
-          
-          // Add module to workspace (creates new instance with default values)
-          get().addWorkspaceModule(templateInstance.moduleId);
-          
-          // Get the newly created instance
-          const updatedQuote = get().currentQuote;
-          if (updatedQuote && updatedQuote.workspaceModules.length > beforeCount) {
-            const newInstance = updatedQuote.workspaceModules[updatedQuote.workspaceModules.length - 1];
-            instanceMap.set(i, newInstance.id);
-            appliedModules++;
-          }
-        }
-        
+
         const finalQuote = get().currentQuote;
         if (finalQuote) {
-          const restorable = getRestorableTemplateLinks({
+          const result = applyTemplateToQuoteWorkspace({
             template,
             workspaceModules: finalQuote.workspaceModules,
-            instanceMap,
+            modules: useModulesStore.getState().modules,
+            materials: useMaterialsStore.getState().materials,
+            labor: useLaborStore.getState().labor,
+            functions: useFunctionsStore.getState().functions,
             getModule: useModulesStore.getState().getModule,
-            canLink: get().canLinkFields,
           });
-          warnings.push(...restorable.warnings);
+          warnings.push(...result.warnings);
+          appliedModules = result.appliedModules;
 
-          restorable.links.forEach((link) => {
-            const linkResult = get().linkField(
-              link.sourceInstanceId,
-              link.fieldName,
-              link.targetInstanceId,
-              link.targetFieldName
-            );
-            if (!linkResult.valid) {
-              warnings.push(`Link from "${link.fieldName}" could not be restored: ${linkResult.error || 'unknown error'}`);
-            }
+          set({
+            currentQuote: {
+              ...finalQuote,
+              workspaceModules: result.workspaceModules,
+              updatedAt: new Date().toISOString(),
+            },
           });
         }
-        
-        // Recalculate workspace modules
-        get().recalculateWorkspaceModules();
-        
+
         return {
           success: appliedModules > 0,
           warnings,
