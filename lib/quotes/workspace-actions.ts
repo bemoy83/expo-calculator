@@ -145,11 +145,10 @@ export function commitQuoteWorkspaceModule(
     return { ok: false, error: result.error || "Calculation failed" };
   }
 
-  const withFrozenLinks = freezeLinksToQuoteWorkspaceModule(workspaceModules, instanceId);
   return {
     ok: true,
     lineItem: result.lineItem,
-    workspaceModules: removeQuoteWorkspaceModule(withFrozenLinks, context, instanceId),
+    workspaceModules: removeQuoteWorkspaceModule(workspaceModules, context, instanceId),
   };
 }
 
@@ -211,12 +210,17 @@ export function addQuoteWorkspaceModule(
   return recalculateQuoteWorkspace([...workspaceModules, newInstance], context);
 }
 
+// Drafts linked to the removed one keep their current values instead of falling back to stale ones.
 export function removeQuoteWorkspaceModule(
   workspaceModules: QuoteModuleInstance[],
   context: QuoteWorkspaceContext,
   instanceId: string
 ): QuoteModuleInstance[] {
-  return removeModuleWorkspaceInstance(workspaceModules, context, instanceId);
+  return removeModuleWorkspaceInstance(
+    freezeLinksToQuoteWorkspaceModule(workspaceModules, instanceId),
+    context,
+    instanceId
+  );
 }
 
 export function reorderQuoteWorkspaceModules(

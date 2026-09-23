@@ -342,10 +342,11 @@ const removedQuoteWorkspace = removeQuoteWorkspaceModule(
   linkedQuoteWorkspace.workspaceModules[0].id
 );
 assertCheck(
-  'removes quote workspace modules and cleans broken links',
+  'removes quote workspace modules, keeping linked values in dependent drafts',
   removedQuoteWorkspace.length === 1 &&
     !removedQuoteWorkspace[0].fieldLinks?.linked_width &&
-    removedQuoteWorkspace[0].calculatedCost === 1
+    removedQuoteWorkspace[0].fieldValues.linked_width === 15 &&
+    removedQuoteWorkspace[0].calculatedCost === 16
 );
 
 const reorderedQuoteWorkspace = reorderQuoteWorkspaceModules(

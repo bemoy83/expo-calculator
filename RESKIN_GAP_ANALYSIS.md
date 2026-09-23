@@ -29,7 +29,8 @@ Low / Moderate / High effort, not story points.
     fields link to it keeps the value it currently resolves to, as a plain value, and the
     link is dropped. The source is now locked, so the value is final. Without this, the
     dependents would fall back to stale values and their costs would change without
-    warning.
+    warning. **Discard follows the same rule** (decided after the move change): removing a
+    draft also leaves its dependents at their current values instead of falling back.
   - **Duplicate replaces "add it again."** Under copy semantics, one draft could be added
     several times. With moves, that workflow becomes Duplicate on the draft, which the
     mockups already show (2a) but which didn't exist in the code.
@@ -290,9 +291,10 @@ that's already correct, not proposing a new one.
   header.
 - Accessible labels use "Module, Nickname" (`formatInstanceLabel`); visible text uses
   "Module · Nickname" (`formatInstanceName`). Screen readers may read "·" aloud.
-- Not changed: Discard (removing a draft) still lets drafts linked to it fall back to their
-  own stored values, as before. If Discard should also keep linked values, that's a
-  separate decision.
+- Discard (removing a draft) keeps linked values too: `removeQuoteWorkspaceModule` now
+  calls `freezeLinksToQuoteWorkspaceModule` itself, so Add to Quote and Discard share one
+  rule. Quote Builder only — the template editor removes instances through its own path
+  (`lib/templates/template-workspace-actions.ts`) and still drops links, as before.
 - Regression tests: "Quote Commit (Move) & Duplicate Regression".
 
 ## Module Editor — Detailed (2b) — High
