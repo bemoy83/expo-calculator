@@ -12,6 +12,15 @@ import { applyTemplateToQuoteWorkspace } from '../quotes/template-application';
 import { getRestorableTemplateLinks } from '../quotes/template-helpers';
 import { formatInstanceName } from '../quotes/nickname';
 import {
+  estimateTemplateCost,
+  filterQuotesByName,
+  formatEditedAt,
+  getBoardQuotes,
+  getQuoteDraftSummary,
+  isPristineQuote,
+  stashQuote,
+} from '../quotes/quote-board';
+import {
   addQuoteWorkspaceModule,
   commitQuoteWorkspaceModule,
   createWorkspaceInstanceFromLineItem,
@@ -706,4 +715,113 @@ assertCheck(
     quoteCatalog.filteredModules.length === 1 &&
     quoteCatalog.filteredModules[0].id === 'source-module' &&
     quoteCatalog.filteredTemplates.length === 1
+);
+
+console.log('\n=== Quote Board Regression ===');
+const boardQuote = (id: string, overrides: Partial<Quote> = {}): Quote => ({
+  id,
+  name: `Quote ${id}`,
+  workspaceModules: [],
+  lineItems: [],
+  subtotal: 0,
+  markupPercent: 0,
+  markupAmount: 0,
+  taxRate: 0,
+  taxAmount: 0,
+  total: 0,
+  createdAt: '2026-09-01T10:00:00.000Z',
+  updatedAt: '2026-09-01T10:00:00.000Z',
+  ...overrides,
+});
+const pristineQuote = boardQuote('pristine', { name: 'New Quote' });
+const savedOld = boardQuote('old', { updatedAt: '2026-08-28T10:00:00.000Z' });
+const savedNew = boardQuote('new', { updatedAt: '2026-09-18T10:00:00.000Z' });
+const openCopyOfOld = {
+  ...savedOld,
+  name: 'Old, edited',
+  lineItems: [lineItems[0]],
+  updatedAt: '2026-09-23T10:00:00.000Z',
+};
+
+assertCheck(
+  'treats an empty, unsaved, unnamed quote as pristine only',
+  isPristineQuote(pristineQuote, []) &&
+    !isPristineQuote(pristineQuote, [pristineQuote]) &&
+    !isPristineQuote({ ...pristineQuote, name: 'Hall B' }, []) &&
+    !isPristineQuote({ ...pristineQuote, workspaceModules: [quoteInstances[0]] }, [])
+);
+
+const savedList = [savedOld, savedNew];
+assertCheck(
+  'stashing skips pristine quotes, appends new ones, and replaces saved copies',
+  stashQuote(savedList, pristineQuote) === savedList &&
+    stashQuote(savedList, null) === savedList &&
+    stashQuote(savedList, boardQuote('fresh', { name: 'Fresh' })).length === 3 &&
+    stashQuote(savedList, openCopyOfOld).length === 2 &&
+    stashQuote(savedList, openCopyOfOld)[0].name === 'Old, edited'
+);
+
+const board = getBoardQuotes(savedList, openCopyOfOld);
+assertCheck(
+  'board shows the open quote live, once, sorted by most recently edited',
+  board.map((quote) => quote.id).join(',') === 'old,new' && board[0].name === 'Old, edited'
+);
+assertCheck(
+  'board leaves out a pristine open quote',
+  getBoardQuotes(savedList, pristineQuote).map((quote) => quote.id).join(',') === 'new,old'
+);
+
+const draftSummary = getQuoteDraftSummary(
+  boardQuote('drafts', {
+    workspaceModules: [
+      { ...quoteInstances[0], calculatedCost: 10.005 },
+      { ...quoteInstances[1], calculatedCost: 5 },
+    ],
+  })
+);
+assertCheck(
+  'summarizes drafts (count and uncounted cost)',
+  draftSummary.count === 2 && draftSummary.cost === 15.01,
+  JSON.stringify(draftSummary)
+);
+
+assertCheck(
+  'filters quotes by name, case-insensitively',
+  filterQuotesByName(board, '  EDITED ').length === 1 && filterQuotesByName(board, '').length === 2
+);
+
+const now = new Date('2026-09-23T12:00:00.000Z');
+assertCheck(
+  'formats edited times relative, then as a date',
+  formatEditedAt('2026-09-23T11:59:40.000Z', now) === 'just now' &&
+    formatEditedAt('2026-09-23T11:48:00.000Z', now) === '12 min ago' &&
+    formatEditedAt('2026-09-23T09:00:00.000Z', now) === '3 h ago' &&
+    formatEditedAt('2026-09-18T09:00:00.000Z', now) === '18 Sep' &&
+    formatEditedAt('2025-09-18T09:00:00.000Z', now) === '18 Sep 2025' &&
+    formatEditedAt('not a date', now) === ''
+);
+
+const estimatedTemplateCost = estimateTemplateCost({
+  template: {
+    id: 'estimate-template',
+    name: 'Estimate',
+    // Target's formula is `linked_width + 1`, so each instance costs 1 at its defaults.
+    moduleInstances: [
+      { moduleId: 'target-module' },
+      { moduleId: 'target-module' },
+      { moduleId: 'missing-module' },
+    ],
+    categories: [],
+    createdAt: '',
+    updatedAt: '',
+  },
+  modules: quoteModules,
+  materials: templateMaterials,
+  labor: templateLabor,
+  functions: [],
+});
+assertCheck(
+  'estimates a template at applied defaults, skipping missing modules',
+  estimatedTemplateCost === 2,
+  String(estimatedTemplateCost)
 );

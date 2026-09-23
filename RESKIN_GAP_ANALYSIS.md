@@ -121,7 +121,7 @@ footnote — but it's cheaper than it looks:
   which would have covered the sidebar). **Any new sticky or fixed chrome must use
   these tokens, not hardcoded pixel offsets.**
 - No "Dashboard" nav item, matching the mockups; the brand links to `/`. "Quotes"
-  points at `/quotes` for now — see Dashboard section for the follow-up.
+  pointed at `/quotes` until step 3 moved it to `/` (see Dashboard section).
 - The footer menu is labelled "Settings". Its old "Switch to Light/Dark" item was
   dropped since the persistent Light/Dark control replaces it; `ThemeToggle.tsx`
   (imported by the old layout but never rendered) was deleted for the same reason.
@@ -364,7 +364,62 @@ it's assembly and layout over data that already exists.
 **Follow-up from the navigation shell**: the mockups show the sidebar's "Quotes" item
 active on this board, i.e. the board *is* the Quotes landing page. Once `/` becomes the
 quotes board, change the "Quotes" nav item in `components/AppSidebar.tsx` to link to
-`/` and treat it as active on both `/` and `/quotes`.
+`/` and treat it as active on both `/` and `/quotes`. **Done in step 3** (see below).
+
+**Correction to the gap above**: "no new store logic" turned out to be wrong. The store
+held one open quote (`currentQuote`) plus a `quotes` list that "Save Quote" copied into,
+and nothing ever read `quotes`. There was no way to open a saved quote, and
+`createQuote` replaced the open quote without saving it. A board that opens quotes needs
+two small store actions (below). There is still no schema change.
+
+**Implementation notes (step 3, structure only — quotes board)**:
+- `app/page.tsx` renders `components/dashboard/QuoteBoard.tsx`, which replaces the old
+  stat cards and Quick Start guide. Layout follows 2d: a header ("Quotes", "N total · M
+  with open drafts", search, New quote), a 2-column quote grid with a full-width resume
+  card, and a 288px template rail (`lg:w-72`) that stacks below the grid under `lg`.
+- **Switching quotes saves the open one.** New store actions `openQuote(id)` and
+  `startNewQuote(name?)` first call `stashQuote` (`lib/quotes/quote-board.ts`), which
+  puts the open quote into `quotes`, replacing its older saved copy, so opening another
+  quote never drops unsaved work. The exception is a *pristine* quote (never saved, no
+  drafts, no line items, name blank or "New Quote"), which is discarded instead of
+  cluttering the board. `createQuote` is unchanged. The builder's "Save Quote" button
+  still works, but switching now saves too.
+- **The board shows the open quote's live state.** `getBoardQuotes` merges `quotes` with
+  `currentQuote` (live copy wins, pristine left out), sorted by `updatedAt` descending.
+  The sidebar's Quotes count uses the same function, so it matches the board. It
+  previously counted only `quotes.length`, which missed a never-saved open quote.
+- **Resume card** ("Pick up where you left off") is the quote open in the builder, or
+  the most recently edited saved quote if the open one is pristine. It shows the quote
+  total and, when drafts exist, "+X uncounted" (sum of the drafts' `calculatedCost`) and
+  an "N drafts open" badge. Quote cards with drafts get the same badge and an amber left
+  edge. While searching, the resume card is hidden and every match is listed as a card.
+- **Quote cards** open the quote on click anywhere (stretched `::after` button) and have
+  a Delete row action (`.row-action`, `ConfirmDialog`). Delete wasn't in the mockup, but
+  switching now adds quotes to the list, and nothing else in the app can remove them.
+  The resume card has no Delete.
+- **Not in the data model, left out**: the mockup's client name ("Nordic Systems AS")
+  and "sent" status/date. Cards show "N items · <edited time>" instead: "just now",
+  "12 min ago", "3 h ago", then "18 Sep" (with the year when it isn't this year). Month
+  names are fixed, not locale-formatted, because ICU versions disagree ("Sep"/"Sept").
+- **Template rail**: "Start quote" calls `startNewQuote(template.name)` then
+  `applyTemplate`, and opens the builder. Template warnings (e.g. a deleted module) go
+  through `notify()`, because the builder's own warning banner doesn't survive the
+  navigation. The "≈ X" estimate (`estimateTemplateCost`) is the sum of the drafts'
+  costs when the template is applied, i.e. at default field values (templates don't
+  restore saved values into quotes). Markup and tax are not included. The first
+  template gets the primary button and the rest get outlined ones, as in the mockup.
+- **Sidebar**: "Quotes" links to `/` and is active on `/` and `/quotes`
+  (`NavItem.alsoActiveOn`). The brand still links to `/`.
+- Board content renders after mount, like the sidebar counts, to avoid hydration
+  mismatches from the synchronously hydrated stores.
+- **Style-pass notes for step 6**: the draft edge uses `!border-l-warning`, because the
+  dark theme's `.dark .border-md-outline` rule in `globals.css` otherwise outranks it.
+  Amber text on the light theme (`--warning`, #FFC107) is low contrast. Both go away
+  once these move to the `--draft`/`--draft-bg` tokens. Numbers already use `font-mono
+  tabular-nums`, pending `.font-numeric`.
+- Regression tests: "Quote Board Regression" in `lib/regression-tests/quote-regression.ts`
+  (pristine detection, stashing, board merge/sort, draft summary, search, edited-time
+  formatting, template estimate).
 
 ## Sequencing strategy: structure before style
 

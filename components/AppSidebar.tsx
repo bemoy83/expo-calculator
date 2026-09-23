@@ -14,12 +14,15 @@ import { useLaborStore } from '@/lib/stores/labor-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
+import { getBoardQuotes } from '@/lib/quotes/quote-board';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 
 interface NavItem {
   name: string;
   href: string;
   count: number;
+  /** Other routes that mark this item active, besides `href` and its subpaths. */
+  alsoActiveOn?: string[];
 }
 
 interface AppSidebarProps {
@@ -54,7 +57,8 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onOpenThemeSetti
   // to keep the prerendered HTML and the first client render identical.
   const [mounted, setMounted] = useState(false);
 
-  const quotesCount = useQuotesStore((state) => state.quotes.length);
+  // Same count as the board: saved quotes plus the open one if it isn't an untouched new quote.
+  const quotesCount = useQuotesStore((state) => getBoardQuotes(state.quotes, state.currentQuote).length);
   const templatesCount = useTemplatesStore((state) => state.templates.length);
   const modulesCount = useModulesStore((state) => state.modules.length);
   const functionsCount = useFunctionsStore((state) => state.functions.length);
@@ -72,7 +76,8 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onOpenThemeSetti
   }, [isOpen]);
 
   const primaryItems: NavItem[] = [
-    { name: 'Quotes', href: '/quotes', count: quotesCount },
+    // The quotes board is the home page; the builder at /quotes belongs to it too.
+    { name: 'Quotes', href: '/', count: quotesCount, alsoActiveOn: ['/quotes'] },
     { name: 'Templates', href: '/templates', count: templatesCount },
   ];
 
@@ -83,7 +88,10 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onOpenThemeSetti
     { name: 'Labor', href: '/labor', count: laborCount },
   ];
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const matchesRoute = (href: string) =>
+    pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
+  const isActive = (item: NavItem) =>
+    matchesRoute(item.href) || (item.alsoActiveOn ?? []).some(matchesRoute);
 
   return (
     <div
@@ -135,13 +143,13 @@ function NavList({
   showCounts,
 }: {
   items: NavItem[];
-  isActive: (href: string) => boolean;
+  isActive: (item: NavItem) => boolean;
   showCounts: boolean;
 }) {
   return (
     <ul className="space-y-0.5">
       {items.map((item) => {
-        const active = isActive(item.href);
+        const active = isActive(item);
         return (
           <li key={item.href}>
             <Link

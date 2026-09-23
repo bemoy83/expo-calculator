@@ -31,6 +31,7 @@ import { useTemplatesStore } from './templates-store';
 import { useFunctionsStore } from './functions-store';
 import { useLaborStore } from './labor-store';
 import { notify } from './notifications-store';
+import { DEFAULT_QUOTE_NAME, stashQuote } from '../quotes/quote-board';
 
 function getQuoteWorkspaceContext() {
   return {
@@ -59,6 +60,9 @@ interface QuotesStore {
   quotes: Quote[];
   currentQuote: Quote | null;
   createQuote: (name: string) => void;
+  // Switching quotes saves the open one first (see stashQuote), so no work is lost.
+  openQuote: (id: string) => boolean;
+  startNewQuote: (name?: string) => void;
   updateCurrentQuote: (updates: Partial<Quote>) => void;
   // Workspace module management (editable, not in totals)
   addWorkspaceModule: (moduleId: string) => void;
@@ -112,6 +116,21 @@ export const useQuotesStore = create<QuotesStore>()(
           updatedAt: now,
         };
         set({ currentQuote: newQuote });
+      },
+
+      openQuote: (id) => {
+        const { quotes, currentQuote } = get();
+        if (currentQuote?.id === id) return true;
+        const target = quotes.find((quote) => quote.id === id);
+        if (!target) return false;
+        set({ quotes: stashQuote(quotes, currentQuote), currentQuote: target });
+        return true;
+      },
+
+      startNewQuote: (name = DEFAULT_QUOTE_NAME) => {
+        const { quotes, currentQuote } = get();
+        set({ quotes: stashQuote(quotes, currentQuote) });
+        get().createQuote(name);
       },
 
       updateCurrentQuote: (updates) => {
