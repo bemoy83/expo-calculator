@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useId } from "react";
 import { cn } from "@/lib/utils";
 
 // Shared card styling constants
@@ -76,6 +76,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     },
     ref
   ) => {
+    const generatedTitleId = useId();
     const variantStyles = VARIANT_STYLES[variant];
     const appliedElevation = elevation ?? variantStyles.elevation;
 
@@ -89,9 +90,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     const autoInteractive =
       interactive ?? Boolean(rest.onClick || rest.role === "button");
 
-    const titleId = title
-      ? `card-title-${Math.random().toString(36).slice(2)}`
-      : undefined;
+    const titleId = title ? `card-title-${generatedTitleId}` : undefined;
 
     return (
       <div
