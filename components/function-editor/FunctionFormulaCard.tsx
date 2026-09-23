@@ -82,7 +82,7 @@ export function FunctionFormulaCard({
   ).length;
 
   return (
-    <Card elevation={1} className="sticky top-[88px] z-40" title="Formula">
+    <Card elevation={1} className="sticky top-sticky-offset z-40" title="Formula">
       <div className="space-y-4">
         {visibleParameters.length > 0 ? (
           <div>

@@ -42,7 +42,7 @@ export function TemplatePreviewSidebar({
 
   return (
     <div className="lg:col-span-2">
-      <Card className="sticky top-[88px] z-40">
+      <Card className="sticky top-sticky-offset z-40">
         <div className="space-y-4">
           <TemplatePreviewHeader
             stats={stats}

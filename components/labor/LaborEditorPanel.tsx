@@ -186,7 +186,7 @@ export function LaborEditorPanel({
 
   return (
     <div className="lg:col-span-2">
-      <Card className="sticky top-[88px] z-40" title={isCreating ? 'Create Labor' : 'Edit Labor'}>
+      <Card className="sticky top-sticky-offset z-40" title={isCreating ? 'Create Labor' : 'Edit Labor'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             label="Labor Name"

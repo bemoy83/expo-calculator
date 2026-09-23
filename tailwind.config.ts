@@ -77,6 +77,13 @@ const config: Config = {
       borderColor: {
         DEFAULT: "rgb(var(--md-outline) / <alpha-value>)",
       },
+      spacing: {
+        sidebar: 'var(--app-sidebar-w)',
+        'app-header': 'var(--app-header-h)',
+      },
+      inset: {
+        'sticky-offset': 'calc(var(--app-header-h) + 1.5rem)',
+      },
       borderRadius: {
         'none': 'var(--md-shape-corner-none)',
         'xs': 'var(--md-shape-corner-extra-small)',

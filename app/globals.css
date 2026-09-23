@@ -11,6 +11,19 @@
   display: none;
 }
 
+/* App shell chrome: mobile top bar below lg, fixed left sidebar at lg and up */
+:root {
+  --app-header-h: 3.5rem;
+  --app-sidebar-w: 0px;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --app-header-h: 0px;
+    --app-sidebar-w: 196px;
+  }
+}
+
 :root {
   /* Light - from Material Theme Builder JSON */
   --md-sys-color-primary: 0 74 198;

@@ -9,10 +9,11 @@ Low / Moderate / High effort, not story points.
 
 ## Open decisions before implementation starts
 
-- **Blocking.** Where do Export Data, Import Data, and custom theme import/management
-  land in the new sidebar? No mockup shows this (today they live in a hamburger menu —
-  see Navigation shell below). Get this answered before building the sidebar; don't
-  decide it unilaterally during implementation.
+- ~~Blocking: where do Export Data, Import Data, and custom theme import/management
+  land in the new sidebar?~~ **Resolved.** Keep today's behavior and modals
+  (`DataImporter`, `ThemeImporter`) unchanged — relocate the trigger button to a menu
+  pinned at the bottom of the new sidebar, near the Light/Dark toggle. No new route, no
+  restructuring of the existing modal flows.
 - **Non-blocking, default given.** `ink-faint` (Foundations, dark token set): derive it
   as `ink-muted` at reduced opacity rather than a new hardcoded value, unless the
   designer has a specific reason it needs an independent hue. See Foundations below.
@@ -79,19 +80,40 @@ footnote — but it's cheaper than it looks:
   elsewhere (e.g. the current dashboard's stat cards in `app/page.tsx`).
 - The grouping (Quotes/Templates vs. Catalog) is a data/ordering change to the
   existing `navigation` array, not new logic.
-- The persistent theme toggle reuses the existing `next-themes` wiring
-  (`ThemeToggle.tsx`, `handleThemeToggle` in `Layout.tsx`) — it just needs to move out
-  of the hamburger menu into an always-visible segmented control.
+- The persistent theme toggle reuses the existing `next-themes` wiring — it only calls
+  `setTheme`; `ThemeSync` in `components/ThemeProvider.tsx` already re-applies any
+  imported custom theme whenever light/dark changes — so it just needs to move out of
+  the hamburger menu into an always-visible segmented control.
 - Real cost is layout/responsive work: converting every page's content area from a
   top-nav-plus-centered-max-width shell to a sidebar-plus-flex-content shell, and
   giving the sidebar its own mobile/collapse behavior (today's hamburger already
   handles mobile nav for the top bar; an off-canvas or collapsing left column needs
   its own treatment).
-- **Open question the design doc doesn't answer**: today's hamburger menu also holds
-  Export Data, Import Data, and custom theme import/management (`Layout.tsx:234-267`).
-  None of the mockups show where these land in the new sidebar. Needs a decision
-  (settings page, a menu still pinned to the sidebar footer, etc.) before this is
-  fully spec'd — flag to the designer rather than deciding unilaterally during build.
+- **Resolved**: the old hamburger menu also held Export Data, Import Data, and custom
+  theme import/management, which no mockup shows a home for. Decision: keep the
+  existing menu and its modals as-is, just relocate the trigger to the bottom of the
+  new sidebar (near the Light/Dark toggle) rather than the old top-bar hamburger icon.
+
+**Implementation notes (step 1, structure only — built on branch
+`reskin/navigation-shell`)**:
+- Sidebar lives in `components/AppSidebar.tsx`; `components/Layout.tsx` now only
+  composes it with a mobile top bar, a mobile drawer backdrop, and the two existing
+  modals. Below `lg` the sidebar is an off-canvas drawer opened from the top bar.
+- Shell dimensions are CSS variables in `app/globals.css` — `--app-header-h` (3.5rem
+  mobile top bar, 0 at `lg`) and `--app-sidebar-w` (0 mobile, 196px at `lg`) — exposed
+  to Tailwind as `sidebar`/`app-header` spacing and a `sticky-offset` inset. Every
+  sticky card now uses `top-sticky-offset` (was a hardcoded `top-[88px]` tied to the
+  old 64px bar) and every fixed bottom action bar uses `left-sidebar` (was `left-0`,
+  which would have covered the sidebar). **Any new sticky or fixed chrome must use
+  these tokens, not hardcoded pixel offsets.**
+- No "Dashboard" nav item, matching the mockups; the brand links to `/`. "Quotes"
+  points at `/quotes` for now — see Dashboard section for the follow-up.
+- The footer menu is labelled "Settings". Its old "Switch to Light/Dark" item was
+  dropped since the persistent Light/Dark control replaces it; `ThemeToggle.tsx`
+  (imported by the old layout but never rendered) was deleted for the same reason.
+- Nav counts and the Light/Dark control's active state render only after mount — the
+  stores hydrate synchronously from localStorage, so rendering them during the static
+  prerender would mismatch on every page load.
 
 ## Foundations — Moderate
 
@@ -276,6 +298,11 @@ this is closer to **building a new component** (a quotes list/grid, sorted by
 `updatedAt`, with a derived "most recently edited" resume card) than restyling one.
 Effort is moderate rather than high because no new store logic or schema is needed —
 it's assembly and layout over data that already exists.
+
+**Follow-up from the navigation shell**: the mockups show the sidebar's "Quotes" item
+active on this board, i.e. the board *is* the Quotes landing page. Once `/` becomes the
+quotes board, change the "Quotes" nav item in `components/AppSidebar.tsx` to link to
+`/` and treat it as active on both `/` and `/quotes`.
 
 ## Sequencing strategy: structure before style
 

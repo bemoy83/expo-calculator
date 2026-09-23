@@ -52,7 +52,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
   /** ▼ NEW: sticky helper */
   sticky?: boolean;
-  stickyTop?: number; // default → 88
+  stickyTop?: number; // px below the app header, default → 24
 }
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
@@ -70,7 +70,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       density = "default",
 
       sticky = false,
-      stickyTop = 88,
+      stickyTop = 24,
 
       ...rest
     },
@@ -111,7 +111,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           className
         )}
         style={{
-          ...(sticky ? { top: stickyTop } : {}),
+          ...(sticky ? { top: `calc(var(--app-header-h) + ${stickyTop}px)` } : {}),
           ...(rest.style ?? {}), // ensure dnd-kit transform is preserved
         }}
       >

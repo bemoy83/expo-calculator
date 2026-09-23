@@ -23,7 +23,7 @@ export function QuoteSummaryCard({
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
 
   return (
-    <Card className="sticky top-[88px] z-40" title="Quote Summary">
+    <Card className="sticky top-sticky-offset z-40" title="Quote Summary">
       <div className="space-y-5">
         {/* Financial Breakdown */}
         <div className="space-y-3">
