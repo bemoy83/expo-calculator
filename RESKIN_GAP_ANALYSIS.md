@@ -1,0 +1,338 @@
+# Reskin Gap Analysis — "Estimator Redesign" design doc
+
+Source: `Estimator Redesign.dc.html`, two revisions — the first with resolved screens
+2a–2d and foundations 1a (light mode + a partial dark set); the second adding turn 3,
+"Dark mode — full token set," which completes and formalizes the color tokens into 21
+light/dark variable pairs with an explicit mapping table. Compares the proposed design
+against the current implementation to size the work required to adopt it. Ratings are
+Low / Moderate / High effort, not story points.
+
+## Open decisions before implementation starts
+
+- **Blocking.** Where do Export Data, Import Data, and custom theme import/management
+  land in the new sidebar? No mockup shows this (today they live in a hamburger menu —
+  see Navigation shell below). Get this answered before building the sidebar; don't
+  decide it unilaterally during implementation.
+- **Non-blocking, default given.** `ink-faint` (Foundations, dark token set): derive it
+  as `ink-muted` at reduced opacity rather than a new hardcoded value, unless the
+  designer has a specific reason it needs an independent hue. See Foundations below.
+- **Naming note, not a decision.** The role informally called "draft/warn" elsewhere in
+  this analysis and in conversation is named `--draft` (and `--draft-bg`) in the actual
+  token mapping table (turn 3) — use `--draft`, not `--draft-warn`, in code.
+
+## Out of scope for this pass
+
+- **Cost mix (materials vs. labor split)** shown in the Quote Builder totals footer
+  (2a) is **deferred**. No code today attributes a line item's cost to material vs.
+  labor sources — `CalculationResult`, `QuoteLineItem`, and `calculateQuoteTotals`
+  (`lib/types.ts`, `lib/calculations/money.ts`) all carry a single opaque `cost`/`total`
+  number. Building this needs new derivation logic (tag or infer which computed-output
+  steps draw from material vs. labor variables), not a restyle. Track separately.
+
+## Required new actions
+
+These are not optional polish — the adjacent screen work depends on them and shouldn't
+be signed off as "done" without them.
+
+- **`reopenLineItem(lineItemId)`** (Quote Builder, see detail below) is **required**.
+  Without it, the redesign ships a "Reopen" button with no way to correct a committed
+  line item except deleting it and retyping every field from scratch — which
+  reintroduces exactly the friction the workspace/line-item split was meant to remove,
+  and actively discourages people from fixing quotes carefully. `Lock in` and `Reopen`
+  are a matched pair in the design; shipping one without the other is an incomplete
+  feature, not a smaller version of it.
+
+## Summary by screen
+
+| Screen | Effort | Why |
+| --- | --- | --- |
+| Navigation shell (left sidebar) | Low–Moderate | Doesn't exist — current nav is a horizontal top bar; used in every mockup |
+| Foundations (tokens, type, fonts) | Moderate | New palette + type scale layered over MD3 system; two new webfonts |
+| Primitives (Button/Card/Input/Select/Checkbox/Chip/Textarea) | Low | Restyle only, confirmed no prop-API changes needed |
+| Quote Builder (2a, minus cost mix) | Low–Moderate | Structure already matches; two small new pieces (reopen, nickname) |
+| Module Editor — Detailed (2b) | High | New chip-based formula surface; no existing analog in the app |
+| Module Editor — Simple (2c) | High | New screen entirely; Simple/Detailed toggle doesn't exist today |
+| Materials catalog (1f, "unchanged, as picked") | Very low | Current page already matches the proposed structure |
+| Dashboard (2d) | Moderate | Data exists in the quotes store; current component renders none of it |
+
+## Navigation shell (left sidebar) — Low–Moderate
+
+**Current state** (`components/Layout.tsx`): a horizontal top nav bar — logo/title,
+7 flat pill links (Dashboard, Materials, Labor, Functions, Modules, Templates, Quote
+Builder) all at the same level, no grouping, no item counts. Theme switching lives
+inside a hamburger dropdown alongside Export/Import Data and custom theme management —
+it is not a visible, one-click control.
+
+**Proposed**: every mockup (2a–2d) replaces this with a fixed-width (~196px) left
+sidebar: logo block, **Quotes** and **Templates** as a primary group each showing a
+live count, a **Catalog** section header grouping Modules/Functions/Materials/Labor
+(each with a count), and a persistent Light/Dark segmented control pinned at the
+bottom of the column.
+
+**Gap**: this is used in literally every mockup, so it's foundational rather than a
+footnote — but it's cheaper than it looks:
+- It's a **single change point**. Every page renders through `<Layout>`, so
+  reorienting the shell from top bar to left column touches one component, not every
+  page.
+- The counts are trivial — `materials.length`, `modules.length`, `functions.length`,
+  `labor.length`, `quotes.length`, `templates.length` are already read this way
+  elsewhere (e.g. the current dashboard's stat cards in `app/page.tsx`).
+- The grouping (Quotes/Templates vs. Catalog) is a data/ordering change to the
+  existing `navigation` array, not new logic.
+- The persistent theme toggle reuses the existing `next-themes` wiring
+  (`ThemeToggle.tsx`, `handleThemeToggle` in `Layout.tsx`) — it just needs to move out
+  of the hamburger menu into an always-visible segmented control.
+- Real cost is layout/responsive work: converting every page's content area from a
+  top-nav-plus-centered-max-width shell to a sidebar-plus-flex-content shell, and
+  giving the sidebar its own mobile/collapse behavior (today's hamburger already
+  handles mobile nav for the top bar; an off-canvas or collapsing left column needs
+  its own treatment).
+- **Open question the design doc doesn't answer**: today's hamburger menu also holds
+  Export Data, Import Data, and custom theme import/management (`Layout.tsx:234-267`).
+  None of the mockups show where these land in the new sidebar. Needs a decision
+  (settings page, a menu still pinned to the sidebar footer, etc.) before this is
+  fully spec'd — flag to the designer rather than deciding unilaterally during build.
+
+## Foundations — Moderate
+
+**Current state** (`tailwind.config.ts`, `app/globals.css`): a full Material Design 3
+token system — `--md-sys-color-*` → `--md-*` → Tailwind `md.*` color scale, MD3 shape
+corners, MD3 elevation. System font stack only (`-apple-system, ... Segoe UI, Roboto...`),
+no monospace type anywhere (`app/globals.css:286`).
+
+**Proposed**: originally 10 semantic roles; the dark-mode follow-up (turn 3 of the design
+doc) formalized this to **21 named variables** in light + dark, with an explicit
+light→dark mapping table — `canvas`, `surface`, `surface-sunken`, `surface-raised`,
+`border`, `border-strong`, `ink`, `ink-muted`, `ink-faint`, `ink-onAccent`, and
+foreground/background pairs for the four semantic accents (`action`/`action-solid`/
+`action-bg`, `committed`/`committed-bg`, `draft`/`draft-bg`, `danger`/`danger-bg`), plus
+`focus-ring` and two shadow tokens (`shadow-panel`, `shadow-card`). This is mostly
+formalizing color usages that already existed implicitly in the original light mockups
+(chip backgrounds, button fills) rather than new surface area. Also: a 5-step type scale
+(display/title/body/label/numeric), and a hard rule that **all numbers — money, quantity,
+unit, variable — render in monospace** (Archivo for UI text, IBM Plex Mono for values).
+
+**Dark mode is now fully specified** — the design doc's turn 3 supplies all 21 variables'
+dark values plus rationale (elevation moves from shadow to border-weight in dark since
+shadows barely register on near-black; accents split into a light foreground + a deep
+tinted background rather than reusing the light theme's saturated hex, which would
+vibrate against dark ground). It also resolves an overlap in the first dark pass, where
+`#2a2723` served as both `surface-sunken` and a row-divider/border color — `border`/
+`border-strong` and `surface`/`surface-raised` are now genuinely distinct tiers instead
+of one value doing double duty. No longer an open item.
+
+**Gap**:
+- The MD3 token *system* is more elaborate than what the design needs (MD3 has ~30
+  roles across primary/secondary/tertiary/surface-container tiers; the design's 21
+  variables are still a subset). Adopting the design means either (a) mapping the new
+  roles onto existing `--md-*` variables and leaving the rest unused, or (b) replacing
+  the token file outright.
+- **(a) is required, not just lower-risk — the theme import feature depends on it**, and
+  the expanded 21-variable set actually maps onto MD3 *better* than the original 10 did.
+  `ThemeImporter`/`applyTheme()` (`lib/themes/theme-applier.ts`) sets exactly 27
+  `--md-*` CSS custom properties at runtime from an uploaded Material Theme Builder
+  JSON (4 each for primary/secondary/tertiary/error incl. their `-container` and
+  `on-*` pairs, 4 for surface, 2 for outline, 5 surface-container tiers). The
+  `-container` pair for primary/secondary/tertiary/error is what makes the difference
+  here:
+  - `danger`/`danger-bg` → `--md-error`/`--md-error-container` (both set by
+    `applyTheme()`) and `action`/`action-bg` → `--md-primary`/`--md-primary-container`
+    map cleanly and stay theme-import-compatible, including their `-bg` variants.
+  - `border`/`border-strong` → `--md-outline`/`--md-outline-variant`,
+    `surface`/`surface-raised` → the surface-container tiers, and `ink`/`ink-muted` →
+    `--md-on-surface`/`--md-on-surface-variant` all have natural MD3 homes.
+  - **Residual, unavoidable under either option**: `committed`(+`-bg`) and
+    `draft`(+`-bg`) — 4 of the 21 — have no equivalent in the Material Theme Builder
+    JSON schema at all (no MD3 success/warning concept), so an imported theme can never
+    recolor them. Matches how `--success`/`--warning` already behave today
+    (`app/globals.css:139-140`, commented "no MD3 equivalent," untouched by
+    `applyTheme()`) — continuity of an accepted constraint, not a new regression. Do
+    **not** alias these to MD3's `tertiary` just because a slot exists — an imported
+    theme's tertiary color is arbitrary brand accent, not guaranteed to read as
+    "success" or "warning," so borrowing it would misattach meaning to an arbitrary hue.
+  - `ink-faint` is a judgment call: either a new bespoke variable (same precedent as
+    `--success`/`--warning`), or derived as `ink-muted` at reduced opacity — the latter
+    is actually *more* theme-compatible, since it moves automatically if `ink-muted`
+    does under an imported theme. Recommend the derived approach unless the designer has
+    a reason `ink-faint` needs an independent hue.
+- Two new webfonts need to be added (Google Fonts `<link>` or self-hosted via
+  `next/font`) — not present in `app/layout.tsx` or `globals.css` today. Given this is a
+  local-first, offline-capable app, self-hosting via `next/font/google` (which inlines
+  the font at build time) is preferable to a runtime Google Fonts fetch.
+- The "numbers are always tabular mono" rule needs to land as a utility class
+  (e.g. `.font-numeric`) applied consistently — mechanical but touches every screen that
+  prints a value, which is most of the app.
+
+## Primitives — Low
+
+`components/ui/{Button,Card,Input,Select,Checkbox,Chip,Textarea}.tsx` already accept
+children/leading-icon content generically enough to support the design's compound chip
+content (e.g. `width` + `2400 mm` in one pill — see `FormulaVariableToken.tsx` already
+composing a `Chip` with a `leadingIcon` and mixed-weight children). No prop-API changes
+identified — this is a class/token restyle of existing components, consistent with the
+design doc's own claim.
+
+## Quote Builder (2a) — Low–Moderate
+
+**Current state** (`app/quotes/page.tsx`, `components/quotes/QuoteBuilderWorkspace.tsx`):
+already a two-pane layout — `WorkspaceModulesManager` (draft modules, `lg:col-span-3`)
+on the left, `QuoteSummaryCard` (line items + totals) on the right. The workspace/line-item
+data separation the design leans on already exists at the store level: totals are
+computed only from `lineItems`, never `workspaceModules` (`quotes-store.ts:40-52`).
+This is the single biggest
+reason this screen is cheaper than it looks — the design is refining an architecture
+that's already correct, not proposing a new one.
+
+**Gaps**:
+1. **Visual language for the state split** (sunken/dashed bench vs. raised/sealed
+   ledger, amber "N drafts · not in total" badge, green "in the quote" badge, footer
+   "excludes N drafts (X kr)" line) — pure styling + a couple of small derived-count
+   displays (`workspaceModules.length`, sum of their `calculatedCost`). Low effort.
+2. **`reopenLineItem` — REQUIRED.** "Reopen" (send a committed line item back to the
+   workspace for editing) **does not exist today.** `removeLineItem` only deletes;
+   `addLineItem` commits a snapshot but never removes or references the originating
+   workspace instance afterward (they're independent once committed —
+   `quotes-store.ts:266-307`). A `reopenLineItem(lineItemId)` action is buildable from
+   data that already exists on `QuoteLineItem` (`moduleId`, `fieldValues`) —
+   reconstruct a `QuoteModuleInstance`, push it to `workspaceModules`, remove the line
+   item — but it is a **new store action**, not a relabeled existing one. Moderate,
+   self-contained, and a hard prerequisite for shipping the "Reopen" button at all (see
+   Required new actions above).
+3. **Per-instance nickname** ("North wall", shown next to `#2` in the draft card, and
+   surfacing later in the committed line item's summary) — **no such field exists**.
+   `QuoteModuleInstance` and `QuoteLineItem` (`lib/types.ts:158-182`) have no
+   `nickname`/label field today; instance disambiguation currently relies only on field
+   values shown in the card. This is the one real (if small) **data model addition**
+   needed for this screen: an optional `nickname?: string` on both types, an input to
+   edit it, and carrying it through `buildQuoteLineItem` (`lib/quotes/line-item-builder.ts`)
+   when a draft is committed. **Status relative to `reopenLineItem`**: not marked
+   hard-blocking in the "Required new actions" section above, since the screen still
+   functions without it — but it's what the design doc's own rationale says actually
+   disambiguates multiple instances of the same module ("what actually tells four 'Wall'
+   entries apart"). Recommend shipping it alongside `reopenLineItem` in the same pass
+   rather than treating it as separable polish; don't let its softer "required" status
+   read as license to defer it indefinitely.
+
+## Module Editor — Detailed (2b) — High
+
+**Current state**: one editor, one view. `FormulaBuilder.tsx` already has the raw
+ingredients — chip-based variable insertion (`FormulaVariableToken.tsx`), sectioned
+variable browsing by origin (fields/materials/labor — `FormulaVariableSections.tsx`),
+autocomplete — but the formula itself is authored and *displayed* as a plain-text
+`<textarea>` (`FormulaEditorPanel`), not as an inline sequence of value-carrying chips.
+
+**Gap**: rendering the formula itself as colored, value-and-unit-carrying chips (rather
+than plain text with a chip palette beside it) is a materially different editing widget —
+effectively a small structured/token editor over the same underlying formula string. It
+needs to: tokenize the string formula into chip spans, keep cursor/edit semantics usable
+inline, resolve and inject each variable's live value + unit for display, and add the
+plain-English restatement + unit-derivation line (this last part can likely reuse
+`FormulaDebugPanel`'s existing analysis, per `lib/formula/debug-analysis.ts`, rather than
+being computed from scratch). No changes needed to `formula-evaluator`/`mathjs` — this is
+entirely a new presentation layer over the existing string-based formula and evaluation
+engine.
+
+## Module Editor — Simple (2c) — High
+
+**Does not exist in any form today** — there is no Simple/Detailed toggle anywhere in
+`components/module-editor/` or `components/formula/`. This is a new screen, not a
+modification of an existing one.
+
+The good news: the "named steps" model maps directly onto
+`CalculationModule.computedOutputs`, which the engine already evaluates
+sequentially with forward references (`lib/utils/evaluate-computed-outputs.ts:51-74`),
+plus the module's final `formula` treated as an implicit last "Σ Module cost" step. No
+evaluator or schema change is required to represent this — but building the actual step-
+list editor (add/reorder/remove step, per-step operand/operator pickers, referencing an
+earlier step by its label rather than its raw `out.` variable, live per-step preview,
+"Show in quote" toggle already backed by `ComputedOutput.showInQuote`) is a full new
+component tree, comparable in size to the Detailed view, built in parallel with it.
+
+Sequencing note: since both views edit the same underlying module, Detailed (2b) is the
+safer one to build first — it's an evolution of `FormulaBuilder`'s existing pieces —
+before committing to Simple (2c), which is greenfield.
+
+## Materials catalog (1f) — Very low
+
+**Current state** (`app/materials/page.tsx`): already `CatalogPageShell` (list) +
+`MaterialEditorPanel` (side panel), i.e. the exact "dense table + side panel" structure
+the design specifies — which is presumably why the design doc kept this screen
+"unchanged, as picked" rather than remocking it. Gap here is a restyle of existing
+components only.
+
+## Dashboard (2d) — Moderate
+
+**Current state** (`app/page.tsx`): three static stat cards (Materials / Modules /
+Quotes counts) linking to each section. No quote list, no "resume" affordance, no
+template launch rail.
+
+**Proposed**: a quotes-first board — a "pick up where you left off" resume card, a grid
+of recent quotes with totals and draft-count badges, and a template launch rail.
+
+**Gap**: the underlying data is already available — `quotes` array has `lineItems`,
+`workspaceModules`, `total`, `updatedAt`; `templates` store has what's needed for the
+launch rail. But the current dashboard component doesn't render any of it today, so
+this is closer to **building a new component** (a quotes list/grid, sorted by
+`updatedAt`, with a derived "most recently edited" resume card) than restyling one.
+Effort is moderate rather than high because no new store logic or schema is needed —
+it's assembly and layout over data that already exists.
+
+## Sequencing strategy: structure before style
+
+Not every gap above decouples the same way from the token/font work in Foundations.
+Splitting them matters for cost, not just ordering preference:
+
+- **Structure-only items** — `reopenLineItem`, the nickname field, dashboard
+  quote-list rendering, and the sidebar's grouping/counts — carry their value in logic
+  and data-wiring, not in the new palette. They can be built and shipped entirely on
+  the *current* MD3 tokens and existing primitives. Building these first means real
+  product value (a fixable line item, disambiguated instances, a dashboard that
+  actually shows your quotes, a navigable sidebar) ships without waiting on font
+  licensing, the dark-mode token gap, or design sign-off — and keeps the diffs small
+  enough that a logic bug is never tangled up with a simultaneous className rewrite.
+  If the visual reskin ever stalls, these fixes still ship; they're not hostage to a
+  full visual sign-off.
+- **Visually load-bearing items** — the workspace/line-item spatial-and-color split
+  (sunken dashed bench vs. raised sealed ledger, amber vs. green) and the Module
+  Editor Detailed view's colored value-carrying chips — don't meaningfully decouple.
+  The signal *is* the visual treatment; a "structural-only" version of either is just
+  today's UI with no new value. Build these once, after Foundations, rather than
+  building a placeholder and redoing it.
+
+**Caution**: don't ship the intermediate state (new sidebar/dashboard rendered in old
+MD3 colors) to real users — it reads as an unfinished migration, not a deliberate
+design. Keep it on a branch/staging until the token pass catches up, unless this app
+currently has no external users to confuse.
+
+## Recommended build order
+
+1. **Navigation shell (structure only)** — build the sidebar's grouping, counts, and
+   layout on current tokens; resolve the open question about where Export/Import Data
+   and theme management land. Every other screen renders inside it, so this unblocks
+   everything downstream regardless of token status.
+2. **Quote Builder required actions (structure only)** — `reopenLineItem` and the
+   nickname field, built on current styling. Highest daily-use payoff of anything in
+   this list, and independent of Foundations entirely.
+3. **Dashboard rebuild (structure only)** — quote list/grid and resume card, on
+   current styling. No new store logic needed, just assembly over existing data.
+4. **Foundations** — tokens + fonts, once the structural work above has proven out
+   the interactions it depends on.
+5. **Materials catalog** restyle — cheapest possible visual win, validates the
+   token/primitive restyle approach on a screen that needs no structural change.
+6. **Navigation shell and Dashboard — style pass** — apply the new tokens to the
+   structural work already shipped in steps 1 and 3 (colors, type, spacing on the
+   sidebar and the quote list/resume card). Does not include Quote Builder's visual
+   language — that's step 7, a separate and larger piece of work, not a continuation of
+   this pass.
+7. **Quote Builder — visual language** — apply new tokens to the `reopenLineItem`/
+   nickname UI shipped in step 2, *and* build the sunken-bench/sealed-ledger spatial
+   treatment (Gap #1 in the Quote Builder section) for the first time — this piece never
+   existed in any structural form, so there's no earlier step it's "finishing." Build it
+   once, directly on Foundations, since — per Sequencing strategy above — it doesn't
+   decouple from styling.
+8. **Module Editor — Detailed** — highest-value formula-approachability work; also
+   doesn't decouple from styling, so build it after Foundations rather than twice.
+9. **Module Editor — Simple** — defer until Detailed ships and the chip/value pattern
+   is validated with real use; largest net-new surface.
+10. **Cost mix** — separate initiative, needs its own scoping for cost-attribution
+    logic.

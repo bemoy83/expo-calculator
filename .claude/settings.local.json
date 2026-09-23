@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(curl -s https://api.github.com/repos/bemoy83/expo-calculator/pages)",
+      "Bash(curl -sI https://bemoy83.github.io/expo-calculator/)",
+      "Bash(curl -s https://bemoy83.github.io/expo-calculator/)",
+      "Bash(curl -s \"https://api.github.com/repos/bemoy83/expo-calculator/actions/runs?per_page=5\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"https://api.github.com/repos/bemoy83/expo-calculator/actions/runs?per_page=20\")",
+      "Bash(curl -s \"https://api.github.com/repos/bemoy83/expo-calculator/actions/runs?per_page=4\")"
+    ]
+  }
+}
