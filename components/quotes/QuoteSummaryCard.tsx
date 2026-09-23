@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Trash2, Send, Calculator } from "lucide-react";
 import { Quote, QuoteLineItem } from "@/lib/types";
 import { formatInstanceLabel } from "@/lib/quotes/nickname";
+import { notify } from "@/lib/stores/notifications-store";
 import { useCurrencyStore } from "@/lib/stores/currency-store";
 
 interface QuoteSummaryCardProps {
@@ -155,7 +156,10 @@ export function QuoteSummaryCard({
             variant="primary"
             className="w-full rounded-full"
             onClick={() => {
-              alert("Send Quote functionality would integrate with your email/CRM system.");
+              notify({
+                variant: "info",
+                message: "Send Quote functionality would integrate with your email/CRM system.",
+              });
             }}
           >
             <Send className="h-4 w-4 mr-2" />

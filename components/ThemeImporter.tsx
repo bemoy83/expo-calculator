@@ -10,6 +10,7 @@ import type { MaterialThemeBuilderJSON } from '@/lib/themes/types';
 export function ThemeImporter() {
   const [themeName, setThemeName] = useState('');
   const [jsonText, setJsonText] = useState('');
+  const [parseError, setParseError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     importTheme,
@@ -25,7 +26,8 @@ export function ThemeImporter() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+    setParseError(null);
+
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -37,11 +39,11 @@ export function ThemeImporter() {
         e.target.value = '';
       } catch (err) {
         console.error('Failed to parse JSON:', err);
-        alert('Invalid JSON file. Please ensure it\'s a valid Material Theme Builder JSON export.');
+        setParseError('Invalid JSON file. Please ensure it\'s a valid Material Theme Builder JSON export.');
       }
     };
     reader.onerror = () => {
-      alert('Failed to read file');
+      setParseError('Failed to read file');
     };
     reader.readAsText(file);
   };
@@ -51,6 +53,7 @@ export function ThemeImporter() {
   };
   
   const handleJsonPaste = () => {
+    setParseError(null);
     try {
       const json = JSON.parse(jsonText) as MaterialThemeBuilderJSON;
       const name = themeName.trim() || 'Imported Theme';
@@ -59,7 +62,7 @@ export function ThemeImporter() {
       setThemeName('');
     } catch (err) {
       console.error('Failed to parse JSON:', err);
-      alert('Invalid JSON. Please ensure it\'s a valid Material Theme Builder JSON export.');
+      setParseError('Invalid JSON. Please ensure it\'s a valid Material Theme Builder JSON export.');
     }
   };
   
@@ -118,9 +121,9 @@ export function ThemeImporter() {
           </div>
         </div>
         
-        {error && (
-          <div className="mt-3 p-3 bg-md-error-container text-md-on-error-container rounded-md text-sm">
-            {error}
+        {(parseError || error) && (
+          <div role="alert" className="mt-3 p-3 bg-md-error-container text-md-on-error-container rounded-md text-sm">
+            {parseError || error}
           </div>
         )}
       </div>

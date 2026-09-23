@@ -30,6 +30,7 @@ import { useMaterialsStore } from './materials-store';
 import { useTemplatesStore } from './templates-store';
 import { useFunctionsStore } from './functions-store';
 import { useLaborStore } from './labor-store';
+import { notify } from './notifications-store';
 
 function getQuoteWorkspaceContext() {
   return {
@@ -315,7 +316,7 @@ export const useQuotesStore = create<QuotesStore>()(
         );
         if (!result.ok) {
           if (result.error) {
-            alert(`Cannot add item: ${result.error}`);
+            notify({ variant: 'error', message: `Cannot add item: ${result.error}` });
           }
           return false;
         }

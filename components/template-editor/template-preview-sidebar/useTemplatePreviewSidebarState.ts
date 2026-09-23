@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { notify } from "@/lib/stores/notifications-store";
 import type { LinkFieldHandler, LinkOpportunity, SidebarSection } from "./types";
 
 export function useTemplatePreviewSidebarState(
@@ -63,7 +64,7 @@ export function useTemplatePreviewSidebarState(
     const eligibleLinks = getEligibleBatchLinks(linkOpportunities, minConfidence);
 
     if (eligibleLinks.length === 0) {
-      alert(`No suggestions with confidence ≥${minConfidence}%`);
+      notify({ variant: "info", message: `No suggestions with confidence ≥${minConfidence}%` });
       return;
     }
 
@@ -97,7 +98,10 @@ export function useTemplatePreviewSidebarState(
     });
 
     if (failCount > 0) {
-      alert(`Batch link complete:\n✓ ${successCount} succeeded\n✗ ${failCount} failed (see console)`);
+      notify({
+        variant: "warning",
+        message: `Batch link complete:\n✓ ${successCount} succeeded\n✗ ${failCount} failed (see console)`,
+      });
     }
   };
 

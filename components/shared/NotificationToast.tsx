@@ -66,6 +66,34 @@ const variantConfig = {
   },
 };
 
+export function NotificationToastCard({
+  message,
+  variant = 'success',
+  onDismiss,
+  showDismissButton = false,
+}: Pick<NotificationToastProps, 'message' | 'variant' | 'onDismiss' | 'showDismissButton'>) {
+  const config = variantConfig[variant];
+  const Icon = config.icon;
+
+  return (
+    <Card className={config.cardClass}>
+      <div className="flex items-center gap-2 p-3">
+        <Icon className={`h-4 w-4 ${config.iconClass} shrink-0`} />
+        <p className={`text-sm whitespace-pre-line ${config.textClass}`}>{message}</p>
+        {showDismissButton && onDismiss && (
+          <button
+            onClick={onDismiss}
+            className={`ml-2 ${config.textClass} hover:opacity-70 transition-opacity`}
+            aria-label="Dismiss notification"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export function NotificationToast({
   message,
   variant = 'success',
@@ -74,9 +102,6 @@ export function NotificationToast({
   autoHideDuration = 3000,
   showDismissButton = false,
 }: NotificationToastProps) {
-  const config = variantConfig[variant];
-  const Icon = config.icon;
-
   // Auto-dismiss effect
   useEffect(() => {
     if (isVisible && autoHideDuration > 0 && onDismiss) {
@@ -92,21 +117,12 @@ export function NotificationToast({
 
   return (
     <div className="fixed bottom-24 right-4 z-50 animate-in slide-in-from-right duration-300">
-      <Card className={config.cardClass}>
-        <div className="flex items-center gap-2 p-3">
-          <Icon className={`h-4 w-4 ${config.iconClass} shrink-0`} />
-          <p className={`text-sm ${config.textClass}`}>{message}</p>
-          {showDismissButton && onDismiss && (
-            <button
-              onClick={onDismiss}
-              className={`ml-2 ${config.textClass} hover:opacity-70 transition-opacity`}
-              aria-label="Dismiss notification"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </Card>
+      <NotificationToastCard
+        message={message}
+        variant={variant}
+        onDismiss={onDismiss}
+        showDismissButton={showDismissButton}
+      />
     </div>
   );
 }

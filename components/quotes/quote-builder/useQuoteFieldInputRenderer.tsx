@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { ModuleFieldInput } from "@/components/shared/ModuleFieldInput";
 import { useQuoteFieldLinking } from "@/hooks/use-quote-field-linking";
+import { notify } from "@/lib/stores/notifications-store";
 import type {
   CalculationModule,
   Field,
@@ -112,7 +113,7 @@ export function useQuoteFieldInputRenderer(input: {
 
       const result = linkField(instance.id, fieldName, targetInstanceId, targetFieldName);
       if (!result.valid && result.error) {
-        alert(result.error);
+        notify({ variant: 'error', message: result.error });
       } else {
         closeLinkUI(instance.id, fieldName);
       }

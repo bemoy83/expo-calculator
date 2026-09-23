@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { DataImporter } from '@/components/DataImporter';
 import { ThemeImporter } from '@/components/ThemeImporter';
 import { AppBrand, AppSidebar } from '@/components/AppSidebar';
+import { NotificationHost } from '@/components/shared/NotificationHost';
 import { Menu, X } from 'lucide-react';
 
 interface LayoutProps {
@@ -161,6 +162,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+      <NotificationHost />
     </div>
   );
 };
