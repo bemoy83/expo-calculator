@@ -21,6 +21,7 @@ export default function QuotesPage() {
   const updateCurrentQuote = useQuotesStore((state) => state.updateCurrentQuote);
   const addWorkspaceModule = useQuotesStore((state) => state.addWorkspaceModule);
   const removeWorkspaceModule = useQuotesStore((state) => state.removeWorkspaceModule);
+  const duplicateWorkspaceModule = useQuotesStore((state) => state.duplicateWorkspaceModule);
   const updateWorkspaceModuleFieldValue = useQuotesStore((state) => state.updateWorkspaceModuleFieldValue);
   const updateWorkspaceModuleNickname = useQuotesStore((state) => state.updateWorkspaceModuleNickname);
   const reorderWorkspaceModules = useQuotesStore((state) => state.reorderWorkspaceModules);
@@ -51,6 +52,7 @@ export default function QuotesPage() {
     updateCurrentQuote,
     addWorkspaceModule,
     removeWorkspaceModule,
+    duplicateWorkspaceModule,
     updateWorkspaceModuleFieldValue,
     updateWorkspaceModuleNickname,
     reorderWorkspaceModules,

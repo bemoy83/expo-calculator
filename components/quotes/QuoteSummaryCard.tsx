@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Trash2, Send, Calculator } from "lucide-react";
 import { Quote, QuoteLineItem } from "@/lib/types";
-import { formatInstanceName } from "@/lib/quotes/nickname";
+import { formatInstanceLabel } from "@/lib/quotes/nickname";
 import { useCurrencyStore } from "@/lib/stores/currency-store";
 
 interface QuoteSummaryCardProps {
@@ -81,7 +81,7 @@ export function QuoteSummaryCard({
           <h4 className="text-sm font-semibold text-md-primary mb-3">Line Items</h4>
           <div className="space-y-2">
             {quote.lineItems.map((item) => {
-              const itemName = formatInstanceName(item.moduleName, item.nickname);
+              const itemName = formatInstanceLabel(item.moduleName, item.nickname);
               const canReopen = canReopenLineItem ? canReopenLineItem(item) : true;
               return (
                 <div

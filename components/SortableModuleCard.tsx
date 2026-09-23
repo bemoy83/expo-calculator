@@ -3,14 +3,14 @@
 import { useCallback, useMemo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CheckCircle2, Plus } from 'lucide-react';
+import { Copy, Plus } from 'lucide-react';
 import { ActionIconButton } from '@/components/shared/ActionIconButton';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
 import { QuoteModuleInstance, CalculationModule, Field } from '@/lib/types';
 import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
-import { formatInstanceName, normalizeNickname } from '@/lib/quotes/nickname';
+import { formatInstanceLabel, formatInstanceName, normalizeNickname } from '@/lib/quotes/nickname';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 
 interface SortableModuleCardProps {
@@ -21,9 +21,9 @@ interface SortableModuleCardProps {
   onRemove: (id: string) => void;
   renderFieldInput: (instance: QuoteModuleInstance, field: Field) => React.ReactNode;
   // Optional props for quotes page
+  onDuplicate?: (id: string) => void;
   onNicknameChange?: (id: string, nickname: string) => void;
   onAddToQuote?: (id: string) => void;
-  addedItems?: Set<string>;
   // Optional styling props
   contentClassName?: string;
   gridClassName?: string;
@@ -37,15 +37,16 @@ export function SortableModuleCard({
   onToggleCollapse,
   onRemove,
   renderFieldInput,
+  onDuplicate,
   onNicknameChange,
   onAddToQuote,
-  addedItems,
   contentClassName = 'px-4 pb-6',
   gridClassName = 'grid grid-cols-1 md:grid-cols-2 gap-4 mb-5',
   borderClassName = 'border-border',
 }: SortableModuleCardProps) {
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
-  const isAdded = addedItems?.has(instance.id) ?? false;
+  const instanceName = formatInstanceName(module.name, instance.nickname);
+  const instanceLabel = formatInstanceLabel(module.name, instance.nickname);
   const {
     attributes,
     listeners,
@@ -105,18 +106,26 @@ export function SortableModuleCard({
       isCollapsed={isCollapsed}
       onToggle={() => onToggleCollapse(instance.id)}
       onRemove={() => onRemove(instance.id)}
-      removeConfirmMessage={`Remove ${formatInstanceName(module.name, instance.nickname)} from quote?`}
+      removeConfirmMessage={`Remove ${instanceName} from quote?`}
       rightExtras={
         <>
           <span className="text-sm font-semibold text-success tabular-nums">
             {formatCurrency(instance.calculatedCost)}
           </span>
-          {onAddToQuote && addedItems && (
+          {onAddToQuote && (
             <ActionIconButton
               icon={Plus}
               actionType="custom"
               onAction={() => onAddToQuote(instance.id)}
-              ariaLabel={isAdded ? 'Added to quote' : 'Add to quote'}
+              ariaLabel={`Add ${instanceLabel} to quote`}
+            />
+          )}
+          {onDuplicate && (
+            <ActionIconButton
+              icon={Copy}
+              actionType="duplicate"
+              onAction={() => onDuplicate(instance.id)}
+              ariaLabel={`Duplicate ${instanceLabel}`}
             />
           )}
         </>
@@ -155,16 +164,11 @@ export function SortableModuleCard({
               <Button
                 type="button"
                 onClick={() => onAddToQuote(instance.id)}
-                disabled={isAdded}
                 className="w-full sm:w-auto"
-                variant={isAdded ? 'secondary' : 'primary'}
+                variant="primary"
               >
-                {isAdded ? (
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                ) : (
-                  <Plus className="h-4 w-4 mr-2" />
-                )}
-                {isAdded ? 'Added to Quote' : 'Add to Quote'}
+                <Plus className="h-4 w-4 mr-2" />
+                Add to Quote
               </Button>
             )}
           </div>

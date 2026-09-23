@@ -13,7 +13,10 @@ import { getRestorableTemplateLinks } from '../quotes/template-helpers';
 import { formatInstanceName } from '../quotes/nickname';
 import {
   addQuoteWorkspaceModule,
+  commitQuoteWorkspaceModule,
   createWorkspaceInstanceFromLineItem,
+  duplicateQuoteWorkspaceModule,
+  freezeLinksToQuoteWorkspaceModule,
   getDefaultQuoteFieldValues,
   linkQuoteWorkspaceField,
   recalculateQuoteWorkspace,
@@ -485,6 +488,107 @@ assertCheck(
 assertCheck(
   'formats instance names with and without nicknames',
   formatInstanceName('Wall', ' North ') === 'Wall · North' && formatInstanceName('Wall', '  ') === 'Wall'
+);
+
+console.log('\n=== Quote Commit (Move) & Duplicate Regression ===');
+// linkedQuoteWorkspace: [source (width 5, out.area 15, cost 10), target (linked_width -> source out.area, cost 16)]
+const [commitSource, commitTarget] = linkedQuoteWorkspace.workspaceModules;
+const committed = commitQuoteWorkspaceModule(
+  linkedQuoteWorkspace.workspaceModules,
+  quoteWorkspaceContext,
+  commitSource.id
+);
+assertCheck(
+  'commits a draft into a line item and moves it out of the workspace',
+  committed.ok &&
+    committed.lineItem.moduleId === 'source-module' &&
+    committed.lineItem.cost === 10 &&
+    committed.workspaceModules.length === 1 &&
+    committed.workspaceModules[0].id === commitTarget.id
+);
+assertCheck(
+  'keeps dependent drafts at their linked value when the source is committed',
+  committed.ok &&
+    !committed.workspaceModules[0].fieldLinks?.linked_width &&
+    committed.workspaceModules[0].fieldValues.linked_width === 15 &&
+    committed.workspaceModules[0].calculatedCost === 16
+);
+
+const frozen = freezeLinksToQuoteWorkspaceModule(linkedQuoteWorkspace.workspaceModules, commitSource.id);
+assertCheck(
+  'freezing leaves the source draft itself untouched',
+  frozen[0] === commitSource && frozen[1].fieldValues.linked_width === 15 && !frozen[1].fieldLinks
+);
+
+const chainWorkspace = addQuoteWorkspaceModule(
+  linkedQuoteWorkspace.workspaceModules,
+  quoteWorkspaceContext,
+  'target-module'
+);
+const chainLinked = linkQuoteWorkspaceField(
+  chainWorkspace,
+  quoteWorkspaceContext,
+  chainWorkspace[2].id,
+  'linked_width',
+  chainWorkspace[1].id,
+  'linked_width'
+);
+assert.ok(chainLinked.valid, chainLinked.error);
+const committedChain = commitQuoteWorkspaceModule(
+  chainLinked.workspaceModules,
+  quoteWorkspaceContext,
+  commitSource.id
+);
+assertCheck(
+  'keeps links between remaining drafts when an upstream source is committed',
+  committedChain.ok &&
+    committedChain.workspaceModules.length === 2 &&
+    committedChain.workspaceModules[1].fieldLinks?.linked_width.moduleInstanceId ===
+      committedChain.workspaceModules[0].id &&
+    committedChain.workspaceModules[1].calculatedCost === 16
+);
+assertCheck(
+  'reports a missing draft without an error message',
+  (() => {
+    const result = commitQuoteWorkspaceModule(
+      linkedQuoteWorkspace.workspaceModules,
+      quoteWorkspaceContext,
+      'missing-instance'
+    );
+    return !result.ok && result.error === undefined;
+  })()
+);
+
+const nicknamedTargetWorkspace = setQuoteWorkspaceModuleNickname(
+  linkedQuoteWorkspace.workspaceModules,
+  commitTarget.id,
+  'East'
+);
+const duplicated = duplicateQuoteWorkspaceModule(
+  nicknamedTargetWorkspace,
+  quoteWorkspaceContext,
+  commitTarget.id
+);
+assertCheck(
+  'duplicates a draft right after the original with its values, links, and a "(copy)" nickname',
+  duplicated.length === 3 &&
+    duplicated[1].id === commitTarget.id &&
+    duplicated[2].id !== commitTarget.id &&
+    duplicated[2].fieldLinks?.linked_width.moduleInstanceId === commitSource.id &&
+    duplicated[2].calculatedCost === 16 &&
+    duplicated[2].nickname === 'East (copy)'
+);
+const duplicatedWithoutNickname = duplicateQuoteWorkspaceModule(
+  linkedQuoteWorkspace.workspaceModules,
+  quoteWorkspaceContext,
+  commitSource.id
+);
+assertCheck(
+  'duplicates a draft without a nickname without adding one',
+  duplicatedWithoutNickname.length === 3 &&
+    duplicatedWithoutNickname[1].moduleId === 'source-module' &&
+    !('nickname' in duplicatedWithoutNickname[1]) &&
+    duplicatedWithoutNickname[1].fieldValues.width === 5
 );
 
 console.log('\n=== Quote UI Helper Regression ===');

@@ -20,14 +20,19 @@ Low / Moderate / High effort, not story points.
 - **Naming note, not a decision.** The role informally called "draft/warn" elsewhere in
   this analysis and in conversation is named `--draft` (and `--draft-bg`) in the actual
   token mapping table (turn 3) — use `--draft`, not `--draft-warn`, in code.
-- **Open, needed before the Quote Builder visual-language step (build order step 7).**
-  Should "Add to Quote" / "Lock into quote" *move* a draft out of the workspace, or keep
-  copying it? Today `addLineItem` copies: the draft stays in the workspace (with a 2s
-  "Added" check), so one draft can be committed several times. The mockups show a move —
-  "Drafts stay here until you lock them in," and the workspace count drops as items are
-  locked in. `reopenLineItem` works either way, but under copy semantics, reopening an
-  item whose draft is still in the workspace leaves two drafts of it. Decide this before
-  building the sunken-bench/sealed-ledger treatment, since that design assumes a move.
+- ~~Should "Add to Quote" move a draft out of the workspace, or keep copying it?~~
+  **Resolved: move.** A draft lives in exactly one place, the workspace or the quote.
+  Copying would make the design's "Excludes N drafts (X kr)" footer count money that's
+  already in the quote, and reopening would create duplicate drafts. Moving has two
+  consequences, both part of the same change:
+  - **Linked values are kept.** When a draft moves into the quote, any other draft whose
+    fields link to it keeps the value it currently resolves to, as a plain value, and the
+    link is dropped. The source is now locked, so the value is final. Without this, the
+    dependents would fall back to stale values and their costs would change without
+    warning.
+  - **Duplicate replaces "add it again."** Under copy semantics, one draft could be added
+    several times. With moves, that workflow becomes Duplicate on the draft, which the
+    mockups already show (2a) but which didn't exist in the code.
 
 ## Out of scope for this pass
 
@@ -263,6 +268,32 @@ that's already correct, not proposing a new one.
   touch. The old Remove button was invisible to keyboard users and on tablets.
 - Regression tests: "Quote Reopen & Nickname Regression" in
   `lib/regression-tests/quote-regression.ts`.
+
+**Implementation notes (step 2b, structure only — lock-in moves, Duplicate)**:
+- `addLineItem` now calls `commitQuoteWorkspaceModule` (`lib/quotes/workspace-actions.ts`).
+  It builds the line item from resolved values, calls `freezeLinksToQuoteWorkspaceModule`
+  so every draft linked to the committed one keeps its current value as a plain value,
+  then removes the committed draft. Links between the remaining drafts are untouched: if
+  C links to B and B linked to the committed A, B is frozen and C still follows B.
+- `duplicateWorkspaceModule` inserts a copy directly after the original, with the same
+  values and outgoing links. A nickname gets " (copy)" appended; a draft without one stays
+  without one. Links *to* the original are not redirected to the copy.
+- Removed the 2-second "Added to Quote" confirmation state (`useAddedItemFeedback`). It
+  can't be seen anymore because the draft leaves the workspace when added.
+  `components/module-editor/ModulesManager.tsx`, an unused older duplicate of
+  `WorkspaceModulesManager`, was deleted rather than updated.
+- Found while testing: the shared card header (`ModuleCardShell`) couldn't shrink below
+  the full width of a module's description, so on modules with long descriptions (e.g.
+  "Paint") the header's cost and Add/Duplicate/Remove buttons overflowed under the sticky
+  Quote Summary and couldn't be clicked. Fixed with `min-w-0`; the description truncates
+  as intended. This existed before this step; it affects every screen using the shared
+  header.
+- Accessible labels use "Module, Nickname" (`formatInstanceLabel`); visible text uses
+  "Module · Nickname" (`formatInstanceName`). Screen readers may read "·" aloud.
+- Not changed: Discard (removing a draft) still lets drafts linked to it fall back to their
+  own stored values, as before. If Discard should also keep linked values, that's a
+  separate decision.
+- Regression tests: "Quote Commit (Move) & Duplicate Regression".
 
 ## Module Editor — Detailed (2b) — High
 

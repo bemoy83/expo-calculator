@@ -9,6 +9,8 @@ import type {
 } from "../types";
 import { getInitialFieldValue } from "../field-defaults";
 import { generateId } from "../utils";
+import { resolveFieldLinks } from "../utils/field-linking";
+import { buildQuoteLineItem } from "./line-item-builder";
 import { normalizeNickname } from "./nickname";
 import {
   linkModuleWorkspaceField,
@@ -79,6 +81,103 @@ export function reopenQuoteLineItem(
 
   const reopened = createWorkspaceInstanceFromLineItem(lineItem, moduleDef);
   return recalculateQuoteWorkspace([...workspaceModules, reopened], context);
+}
+
+// Replaces links pointing at `sourceInstanceId` with the values they currently resolve to.
+export function freezeLinksToQuoteWorkspaceModule(
+  workspaceModules: QuoteModuleInstance[],
+  sourceInstanceId: string
+): QuoteModuleInstance[] {
+  const resolvedValues = resolveFieldLinks(workspaceModules);
+
+  return workspaceModules.map((instance) => {
+    if (instance.id === sourceInstanceId || !instance.fieldLinks) return instance;
+
+    const linkedFields = Object.entries(instance.fieldLinks)
+      .filter(([, link]) => link.moduleInstanceId === sourceInstanceId)
+      .map(([fieldName]) => fieldName);
+    if (linkedFields.length === 0) return instance;
+
+    const fieldLinks = { ...instance.fieldLinks };
+    const fieldValues = { ...instance.fieldValues };
+    linkedFields.forEach((fieldName) => {
+      delete fieldLinks[fieldName];
+      const resolved = resolvedValues[instance.id]?.[fieldName];
+      if (resolved !== undefined) {
+        fieldValues[fieldName] = resolved;
+      }
+    });
+
+    return {
+      ...instance,
+      fieldValues,
+      fieldLinks: Object.keys(fieldLinks).length > 0 ? fieldLinks : undefined,
+    };
+  });
+}
+
+export type CommitQuoteWorkspaceModuleResult =
+  | { ok: true; lineItem: QuoteLineItem; workspaceModules: QuoteModuleInstance[] }
+  | { ok: false; error?: string };
+
+// Moves a draft out of the workspace into a line item; drafts linked to it keep their current values.
+export function commitQuoteWorkspaceModule(
+  workspaceModules: QuoteModuleInstance[],
+  context: QuoteWorkspaceContext,
+  instanceId: string
+): CommitQuoteWorkspaceModuleResult {
+  const instance = workspaceModules.find((item) => item.id === instanceId);
+  if (!instance) return { ok: false };
+
+  const moduleDef = context.modules.find((module) => module.id === instance.moduleId);
+  if (!moduleDef) return { ok: false };
+
+  const resolvedValues = resolveFieldLinks(workspaceModules);
+  const result = buildQuoteLineItem({
+    instance,
+    moduleDef,
+    resolvedFieldValues: resolvedValues[instance.id] || instance.fieldValues,
+    materials: context.materials,
+    labor: context.labor,
+    functions: context.functions,
+  });
+  if (!result.lineItem) {
+    return { ok: false, error: result.error || "Calculation failed" };
+  }
+
+  const withFrozenLinks = freezeLinksToQuoteWorkspaceModule(workspaceModules, instanceId);
+  return {
+    ok: true,
+    lineItem: result.lineItem,
+    workspaceModules: removeQuoteWorkspaceModule(withFrozenLinks, context, instanceId),
+  };
+}
+
+export function duplicateQuoteWorkspaceModule(
+  workspaceModules: QuoteModuleInstance[],
+  context: QuoteWorkspaceContext,
+  instanceId: string
+): QuoteModuleInstance[] {
+  const index = workspaceModules.findIndex((item) => item.id === instanceId);
+  if (index === -1) return workspaceModules;
+
+  const original = workspaceModules[index];
+  const copy: QuoteModuleInstance = {
+    ...original,
+    id: generateId(),
+    fieldValues: { ...original.fieldValues },
+    fieldLinks: original.fieldLinks ? { ...original.fieldLinks } : undefined,
+  };
+  const nickname = normalizeNickname(original.nickname);
+  if (nickname) {
+    copy.nickname = `${nickname} (copy)`;
+  } else {
+    delete copy.nickname;
+  }
+
+  const next = [...workspaceModules];
+  next.splice(index + 1, 0, copy);
+  return recalculateQuoteWorkspace(next, context);
 }
 
 export function setQuoteWorkspaceModuleNickname(

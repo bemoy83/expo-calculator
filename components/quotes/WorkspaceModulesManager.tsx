@@ -11,9 +11,9 @@ export interface WorkspaceModulesManagerProps {
   collapsedModules: Set<string>;
   onToggleCollapse: (id: string) => void;
   onRemoveModule: (id: string) => void;
+  onDuplicateModule?: (id: string) => void;
   onNicknameChange?: (id: string, nickname: string) => void;
   onAddLineItem?: (id: string) => void;
-  addedItems?: Set<string>;
   onReorder: (oldIndex: number, newIndex: number) => void;
   renderFieldInput: (instance: QuoteModuleInstance, field: Field) => React.ReactNode;
 }
@@ -24,9 +24,9 @@ export function WorkspaceModulesManager({
   collapsedModules,
   onToggleCollapse,
   onRemoveModule,
+  onDuplicateModule,
   onNicknameChange,
   onAddLineItem,
-  addedItems,
   onReorder,
   renderFieldInput,
 }: WorkspaceModulesManagerProps) {
@@ -64,9 +64,9 @@ export function WorkspaceModulesManager({
               isCollapsed={collapsedModules.has(instance.id)}
               onToggleCollapse={onToggleCollapse}
               onRemove={onRemoveModule}
+              onDuplicate={onDuplicateModule}
               onNicknameChange={onNicknameChange}
               onAddToQuote={onAddLineItem}
-              addedItems={addedItems}
               renderFieldInput={renderFieldInput}
               gridClassName="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 items-start"
               borderClassName="border-border"

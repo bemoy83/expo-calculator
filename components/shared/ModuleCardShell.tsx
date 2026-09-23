@@ -65,7 +65,7 @@ export function ModuleCardShell({
         </button>
 
         <div
-          className="flex items-center justify-between flex-1 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-extra-large"
+          className="flex items-center justify-between flex-1 min-w-0 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-extra-large"
           onClick={onToggle}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {

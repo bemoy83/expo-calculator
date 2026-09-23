@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAddedItemFeedback } from '@/components/quotes/quote-builder/useAddedItemFeedback';
 import { useQuoteCatalogFilter } from '@/components/quotes/quote-builder/useQuoteCatalogFilter';
 import { useQuoteFieldInputRenderer } from '@/components/quotes/quote-builder/useQuoteFieldInputRenderer';
 import { useQuoteTemplateUi } from '@/components/quotes/quote-builder/useQuoteTemplateUi';
@@ -37,6 +36,7 @@ interface UseQuoteBuilderStateOptions {
   updateCurrentQuote: (updates: Partial<Quote>) => void;
   addWorkspaceModule: (moduleId: string) => void;
   removeWorkspaceModule: (instanceId: string) => void;
+  duplicateWorkspaceModule: (instanceId: string) => void;
   updateWorkspaceModuleFieldValue: (
     instanceId: string,
     fieldName: string,
@@ -76,6 +76,7 @@ export function useQuoteBuilderState({
   updateCurrentQuote,
   addWorkspaceModule,
   removeWorkspaceModule,
+  duplicateWorkspaceModule,
   updateWorkspaceModuleFieldValue,
   updateWorkspaceModuleNickname,
   reorderWorkspaceModules,
@@ -104,7 +105,6 @@ export function useQuoteBuilderState({
     currentQuote,
     reorderWorkspaceModules,
   });
-  const addedItemFeedback = useAddedItemFeedback({ addLineItem });
   const templateUi = useQuoteTemplateUi({
     createTemplateFromWorkspace,
     applyTemplate,
@@ -190,7 +190,6 @@ export function useQuoteBuilderState({
     formData,
     errors,
     showAddModule,
-    addedItems: addedItemFeedback.addedItems,
     collapsedModules: workspaceUi.collapsedModules,
     showSaveTemplateModal: templateUi.showSaveTemplateModal,
     templateName: templateUi.templateName,
@@ -213,8 +212,9 @@ export function useQuoteBuilderState({
     handleApplyTemplate: templateUi.handleApplyTemplate,
     handleReorder: workspaceUi.handleReorder,
     toggleModuleCollapse: workspaceUi.toggleModuleCollapse,
-    handleAddLineItem: addedItemFeedback.handleAddLineItem,
+    handleAddLineItem: addLineItem,
     removeWorkspaceModule,
+    duplicateWorkspaceModule,
     updateWorkspaceModuleNickname,
     removeLineItem,
     reopenLineItem,

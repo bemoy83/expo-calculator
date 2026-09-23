@@ -116,9 +116,9 @@ export function QuoteBuilderWorkspace({
               collapsedModules={builder.collapsedModules}
               onToggleCollapse={builder.toggleModuleCollapse}
               onRemoveModule={builder.removeWorkspaceModule}
+              onDuplicateModule={builder.duplicateWorkspaceModule}
               onNicknameChange={builder.updateWorkspaceModuleNickname}
               onAddLineItem={builder.handleAddLineItem}
-              addedItems={builder.addedItems}
               onReorder={builder.handleReorder}
               renderFieldInput={builder.renderFieldInput}
             />

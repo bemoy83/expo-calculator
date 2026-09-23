@@ -3,11 +3,12 @@ import { persist } from 'zustand/middleware';
 import { Quote, QuoteModuleInstance, Field, ModuleTemplate } from '../types';
 import { generateId } from '../utils';
 import { calculateQuoteTotals, roundMoney, roundRate } from '../calculations/money';
-import { buildQuoteLineItem } from '../quotes/line-item-builder';
 import { applyTemplateToQuoteWorkspace } from '../quotes/template-application';
 import { createTemplateDataFromQuote } from '../quotes/template-helpers';
 import {
   addQuoteWorkspaceModule,
+  commitQuoteWorkspaceModule,
+  duplicateQuoteWorkspaceModule,
   linkQuoteWorkspaceField,
   recalculateQuoteWorkspace,
   removeQuoteWorkspaceModule,
@@ -61,6 +62,7 @@ interface QuotesStore {
   // Workspace module management (editable, not in totals)
   addWorkspaceModule: (moduleId: string) => void;
   removeWorkspaceModule: (instanceId: string) => void;
+  duplicateWorkspaceModule: (instanceId: string) => void;
   updateWorkspaceModuleFieldValue: (instanceId: string, fieldName: string, value: string | number | boolean) => void;
   updateWorkspaceModuleNickname: (instanceId: string, nickname: string) => void;
   reorderWorkspaceModules: (newOrder: QuoteModuleInstance[]) => void;
@@ -162,6 +164,23 @@ export const useQuotesStore = create<QuotesStore>()(
         });
       },
       
+      duplicateWorkspaceModule: (instanceId) => {
+        const current = get().currentQuote;
+        if (!current) return;
+
+        set({
+          currentQuote: {
+            ...current,
+            workspaceModules: duplicateQuoteWorkspaceModule(
+              current.workspaceModules,
+              getQuoteWorkspaceContext(),
+              instanceId
+            ),
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      },
+
       reorderWorkspaceModules: (newOrder) => {
         const current = get().currentQuote;
         if (!current) return;
@@ -283,46 +302,33 @@ export const useQuotesStore = create<QuotesStore>()(
         );
       },
       
-      // Line item management - these are committed items included in totals
+      // Line item management - these are committed items included in totals.
+      // Adding moves the draft out of the workspace (see commitQuoteWorkspaceModule).
       addLineItem: (instanceId) => {
         const current = get().currentQuote;
         if (!current) return false;
-        
-        const instance = current.workspaceModules.find((m) => m.id === instanceId);
-        if (!instance) return false;
-        
-        const moduleDef = useModulesStore.getState().getModule(instance.moduleId);
-        if (!moduleDef) return false;
-        
-        const resolvedValues = get().resolveFieldLinks(current.workspaceModules);
-        const resolved = resolvedValues[instance.id] || instance.fieldValues;
-        
-        const materials = useMaterialsStore.getState().materials;
-        const functions = useFunctionsStore.getState().functions;
-        const labor = useLaborStore.getState().labor;
 
-        const result = buildQuoteLineItem({
-          instance,
-          moduleDef,
-          resolvedFieldValues: resolved,
-          materials,
-          labor,
-          functions,
-        });
-
-        if (!result.lineItem) {
-          alert(`Cannot add item: ${result.error || 'Calculation failed'}`);
+        const result = commitQuoteWorkspaceModule(
+          current.workspaceModules,
+          getQuoteWorkspaceContext(),
+          instanceId
+        );
+        if (!result.ok) {
+          if (result.error) {
+            alert(`Cannot add item: ${result.error}`);
+          }
           return false;
         }
-        
+
         set({
           currentQuote: {
             ...current,
+            workspaceModules: result.workspaceModules,
             lineItems: [...current.lineItems, result.lineItem],
             updatedAt: new Date().toISOString(),
           },
         });
-        
+
         get().recalculateQuote();
         return true;
       },
