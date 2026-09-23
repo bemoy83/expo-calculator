@@ -22,12 +22,14 @@ export default function QuotesPage() {
   const addWorkspaceModule = useQuotesStore((state) => state.addWorkspaceModule);
   const removeWorkspaceModule = useQuotesStore((state) => state.removeWorkspaceModule);
   const updateWorkspaceModuleFieldValue = useQuotesStore((state) => state.updateWorkspaceModuleFieldValue);
+  const updateWorkspaceModuleNickname = useQuotesStore((state) => state.updateWorkspaceModuleNickname);
   const reorderWorkspaceModules = useQuotesStore((state) => state.reorderWorkspaceModules);
   const linkField = useQuotesStore((state) => state.linkField);
   const unlinkField = useQuotesStore((state) => state.unlinkField);
   const canLinkFields = useQuotesStore((state) => state.canLinkFields);
   const addLineItem = useQuotesStore((state) => state.addLineItem);
   const removeLineItem = useQuotesStore((state) => state.removeLineItem);
+  const reopenLineItem = useQuotesStore((state) => state.reopenLineItem);
   const setTaxRate = useQuotesStore((state) => state.setTaxRate);
   const setMarkupPercent = useQuotesStore((state) => state.setMarkupPercent);
   const saveQuote = useQuotesStore((state) => state.saveQuote);
@@ -50,12 +52,14 @@ export default function QuotesPage() {
     addWorkspaceModule,
     removeWorkspaceModule,
     updateWorkspaceModuleFieldValue,
+    updateWorkspaceModuleNickname,
     reorderWorkspaceModules,
     linkField,
     unlinkField,
     canLinkFields,
     addLineItem,
     removeLineItem,
+    reopenLineItem,
     setTaxRate,
     setMarkupPercent,
     saveQuote,

@@ -11,7 +11,9 @@ import {
   linkQuoteWorkspaceField,
   recalculateQuoteWorkspace,
   removeQuoteWorkspaceModule,
+  reopenQuoteLineItem,
   reorderQuoteWorkspaceModules,
+  setQuoteWorkspaceModuleNickname,
   unlinkQuoteWorkspaceField,
   updateQuoteWorkspaceFieldValue,
   validateQuoteWorkspaceFieldLink,
@@ -60,6 +62,7 @@ interface QuotesStore {
   addWorkspaceModule: (moduleId: string) => void;
   removeWorkspaceModule: (instanceId: string) => void;
   updateWorkspaceModuleFieldValue: (instanceId: string, fieldName: string, value: string | number | boolean) => void;
+  updateWorkspaceModuleNickname: (instanceId: string, nickname: string) => void;
   reorderWorkspaceModules: (newOrder: QuoteModuleInstance[]) => void;
   recalculateWorkspaceModules: () => void;
   // Link management
@@ -72,6 +75,7 @@ interface QuotesStore {
   // Line item management (committed items, included in totals)
   addLineItem: (instanceId: string) => boolean;
   removeLineItem: (lineItemId: string) => void;
+  reopenLineItem: (lineItemId: string) => boolean;
   recalculateQuote: () => void;
   setTaxRate: (rate: number) => void;
   setMarkupPercent: (percent: number) => void;
@@ -189,7 +193,24 @@ export const useQuotesStore = create<QuotesStore>()(
           },
         });
       },
-      
+
+      updateWorkspaceModuleNickname: (instanceId, nickname) => {
+        const current = get().currentQuote;
+        if (!current) return;
+
+        set({
+          currentQuote: {
+            ...current,
+            workspaceModules: setQuoteWorkspaceModuleNickname(
+              current.workspaceModules,
+              instanceId,
+              nickname
+            ),
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      },
+
       // Link management
       linkField: (instanceId, fieldName, targetInstanceId, targetFieldName) => {
         const current = get().currentQuote;
@@ -309,7 +330,7 @@ export const useQuotesStore = create<QuotesStore>()(
       removeLineItem: (lineItemId) => {
         const current = get().currentQuote;
         if (!current) return;
-        
+
         set({
           currentQuote: {
             ...current,
@@ -317,8 +338,37 @@ export const useQuotesStore = create<QuotesStore>()(
             updatedAt: new Date().toISOString(),
           },
         });
-        
+
         get().recalculateQuote();
+      },
+
+      // Moves a committed line item back into the workspace as an editable draft,
+      // so it drops out of the totals until it is added to the quote again.
+      reopenLineItem: (lineItemId) => {
+        const current = get().currentQuote;
+        if (!current) return false;
+
+        const lineItem = current.lineItems.find((item) => item.id === lineItemId);
+        if (!lineItem) return false;
+
+        const workspaceModules = reopenQuoteLineItem(
+          current.workspaceModules,
+          getQuoteWorkspaceContext(),
+          lineItem
+        );
+        if (!workspaceModules) return false;
+
+        set({
+          currentQuote: {
+            ...current,
+            workspaceModules,
+            lineItems: current.lineItems.filter((item) => item.id !== lineItemId),
+            updatedAt: new Date().toISOString(),
+          },
+        });
+
+        get().recalculateQuote();
+        return true;
       },
       
       resolveFieldLinks: (instances: QuoteModuleInstance[]): Record<string, Record<string, any>> => {

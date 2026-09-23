@@ -10,13 +10,17 @@ import { buildLineItemSummaries } from '../quotes/line-item-summary';
 import { getInitialFieldValue, resolveFieldValuesWithDefaults } from '../field-defaults';
 import { applyTemplateToQuoteWorkspace } from '../quotes/template-application';
 import { getRestorableTemplateLinks } from '../quotes/template-helpers';
+import { formatInstanceName } from '../quotes/nickname';
 import {
   addQuoteWorkspaceModule,
+  createWorkspaceInstanceFromLineItem,
   getDefaultQuoteFieldValues,
   linkQuoteWorkspaceField,
   recalculateQuoteWorkspace,
   removeQuoteWorkspaceModule,
+  reopenQuoteLineItem,
   reorderQuoteWorkspaceModules,
+  setQuoteWorkspaceModuleNickname,
   unlinkQuoteWorkspaceField,
   updateQuoteWorkspaceFieldValue,
 } from '../quotes/workspace-actions';
@@ -407,6 +411,82 @@ assertCheck(
     templateApplication.warnings.includes('Module "missing-module" no longer exists')
 );
 
+console.log('\n=== Quote Reopen & Nickname Regression ===');
+const nicknamedWorkspace = setQuoteWorkspaceModuleNickname(
+  quoteWorkspaceWithTarget,
+  quoteWorkspaceWithTarget[0].id,
+  '  North wall  '
+);
+assertCheck(
+  'sets a nickname on one workspace instance only',
+  nicknamedWorkspace[0].nickname === '  North wall  ' && nicknamedWorkspace[1].nickname === undefined
+);
+assertCheck(
+  'clears a workspace nickname set to an empty string',
+  setQuoteWorkspaceModuleNickname(nicknamedWorkspace, nicknamedWorkspace[0].id, '')[0].nickname === undefined
+);
+
+const nicknamedLineItem = buildQuoteLineItem({
+  instance: nicknamedWorkspace[0],
+  moduleDef: quoteModules[0],
+  resolvedFieldValues: nicknamedWorkspace[0].fieldValues,
+  materials: templateMaterials,
+  labor: templateLabor,
+  functions: [],
+}).lineItem;
+assertCheck(
+  'carries a trimmed nickname onto the committed line item',
+  nicknamedLineItem?.nickname === 'North wall' && nicknamedLineItem.cost === 10
+);
+const blankNicknameLineItem = buildQuoteLineItem({
+  instance: { ...nicknamedWorkspace[0], nickname: '   ' },
+  moduleDef: quoteModules[0],
+  resolvedFieldValues: nicknamedWorkspace[0].fieldValues,
+  materials: templateMaterials,
+  labor: templateLabor,
+  functions: [],
+}).lineItem;
+assertCheck(
+  'omits whitespace-only nicknames from line items',
+  !!blankNicknameLineItem && !('nickname' in blankNicknameLineItem)
+);
+
+const reopenedWorkspace = reopenQuoteLineItem([], quoteWorkspaceContext, nicknamedLineItem!);
+assertCheck(
+  'reopens a line item as a recalculated workspace draft with its nickname',
+  reopenedWorkspace?.length === 1 &&
+    reopenedWorkspace[0].id !== nicknamedLineItem!.id &&
+    reopenedWorkspace[0].moduleId === 'source-module' &&
+    reopenedWorkspace[0].fieldValues.width === 5 &&
+    reopenedWorkspace[0].fieldValues['out.area'] === 15 &&
+    reopenedWorkspace[0].calculatedCost === 10 &&
+    reopenedWorkspace[0].nickname === 'North wall'
+);
+
+const staleLineItem: QuoteLineItem = {
+  id: 'stale-line-item',
+  moduleId: 'target-module',
+  moduleName: 'Target',
+  fieldValues: { linked_width: 4, removed_field: 7, 'out.old_output': 99 },
+  fieldSummary: '',
+  cost: 5,
+  createdAt: '',
+};
+const restoredInstance = createWorkspaceInstanceFromLineItem(staleLineItem, quoteModules[1]);
+assert.deepEqual(restoredInstance.fieldValues, { linked_width: 4, weight: 0 });
+assertCheck(
+  'restores only current module fields when reopening (defaults for new, drops removed)',
+  restoredInstance.nickname === undefined && !restoredInstance.fieldLinks
+);
+assertCheck(
+  'refuses to reopen a line item whose module no longer exists',
+  reopenQuoteLineItem([], quoteWorkspaceContext, { ...staleLineItem, moduleId: 'missing-module' }) === null
+);
+assertCheck(
+  'formats instance names with and without nicknames',
+  formatInstanceName('Wall', ' North ') === 'Wall · North' && formatInstanceName('Wall', '  ') === 'Wall'
+);
+
 console.log('\n=== Quote UI Helper Regression ===');
 const exportQuote: Quote = {
   id: 'quote-export',
@@ -479,6 +559,19 @@ assertCheck(
     escapedQuotePrintHtml.includes('&lt;script&gt;alert(1)&lt;/script&gt;') &&
     escapedQuotePrintHtml.includes('Width &lt; 5 &amp; height &gt; 2') &&
     !escapedQuotePrintHtml.includes('<script>alert(1)</script>')
+);
+const nicknamedExportQuote: Quote = {
+  ...exportQuote,
+  lineItems: [{ ...exportQuote.lineItems[0], nickname: 'North <wall>' }],
+};
+assertCheck(
+  'includes line item nicknames in JSON export and escaped print HTML',
+  buildQuoteExportData({ quote: nicknamedExportQuote, getModule: () => undefined }).quote.lineItems[0]
+    .nickname === 'North <wall>' &&
+    buildQuotePrintHtml({
+      quote: nicknamedExportQuote,
+      formatCurrency: (amount) => `$${amount.toFixed(2)}`,
+    }).includes('<td>Source · North &lt;wall&gt;</td>')
 );
 assertCheck(
   'builds quote JSON export file names',

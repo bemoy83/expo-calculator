@@ -4,7 +4,8 @@ import React from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Trash2, Send, Calculator } from "lucide-react";
-import { Quote } from "@/lib/types";
+import { Quote, QuoteLineItem } from "@/lib/types";
+import { formatInstanceName } from "@/lib/quotes/nickname";
 import { useCurrencyStore } from "@/lib/stores/currency-store";
 
 interface QuoteSummaryCardProps {
@@ -12,6 +13,8 @@ interface QuoteSummaryCardProps {
   setMarkupPercent: (percent: number) => void;
   setTaxRate: (rate: number) => void;
   removeLineItem: (id: string) => void;
+  reopenLineItem?: (id: string) => void;
+  canReopenLineItem?: (item: QuoteLineItem) => boolean;
 }
 
 export function QuoteSummaryCard({
@@ -19,6 +22,8 @@ export function QuoteSummaryCard({
   setMarkupPercent,
   setTaxRate,
   removeLineItem,
+  reopenLineItem,
+  canReopenLineItem,
 }: QuoteSummaryCardProps) {
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
 
@@ -75,45 +80,64 @@ export function QuoteSummaryCard({
         <div className="pt-5 border-t border-border">
           <h4 className="text-sm font-semibold text-md-primary mb-3">Line Items</h4>
           <div className="space-y-2">
-            {quote.lineItems.map((item) => (
-              <div
-                key={item.id}
-                className="group flex items-start justify-between gap-3 pb-3 rounded-lg transition-smooth"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-md-on-surface text-sm mb-0.5 break-words">
-                    {item.moduleName}
-                  </div>
-                  {item.primarySummary && (
-                    <div className="text-md-on-surface text-xs break-words mb-0.5">
-                      {item.primarySummary}
+            {quote.lineItems.map((item) => {
+              const itemName = formatInstanceName(item.moduleName, item.nickname);
+              const canReopen = canReopenLineItem ? canReopenLineItem(item) : true;
+              return (
+                <div
+                  key={item.id}
+                  className="group flex items-start justify-between gap-3 pb-3 rounded-lg transition-smooth"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-md-on-surface text-sm mb-0.5 break-words">
+                      {item.moduleName}
+                      {item.nickname && (
+                        <span className="font-normal text-md-on-surface-variant"> · {item.nickname}</span>
+                      )}
                     </div>
-                  )}
-                  {item.secondarySummary ? (
-                    <div className="text-md-on-surface-variant text-[10px] break-words">
-                      {item.secondarySummary}
-                    </div>
-                  ) : (
+                    {item.primarySummary && (
+                      <div className="text-md-on-surface text-xs break-words mb-0.5">
+                        {item.primarySummary}
+                      </div>
+                    )}
+                    {item.secondarySummary ? (
                       <div className="text-md-on-surface-variant text-[10px] break-words">
-                      {item.fieldSummary}
-                    </div>
-                  )}
+                        {item.secondarySummary}
+                      </div>
+                    ) : (
+                      <div className="text-md-on-surface-variant text-[10px] break-words">
+                        {item.fieldSummary}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-semibold text-md-on-surface text-sm tabular-nums">
+                      {formatCurrency(item.cost)}
+                    </span>
+                    {reopenLineItem && (
+                      <button
+                        type="button"
+                        onClick={() => reopenLineItem(item.id)}
+                        disabled={!canReopen}
+                        className="row-action transition-opacity rounded px-1 text-xs font-medium text-md-primary hover:underline disabled:text-md-on-surface-variant disabled:no-underline disabled:cursor-not-allowed"
+                        title={canReopen ? "Move back to the workspace to edit" : "This item's module no longer exists"}
+                        aria-label={`Reopen line item for editing: ${itemName}`}
+                      >
+                        Reopen
+                      </button>
+                    )}
+                    <button
+                      onClick={() => removeLineItem(item.id)}
+                      className="row-action transition-opacity hover:bg-md-error/10 rounded-full p-1 text-destructive"
+                      title="Remove item"
+                      aria-label={`Remove line item: ${itemName}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-semibold text-md-on-surface text-sm tabular-nums">
-                    {formatCurrency(item.cost)}
-                  </span>
-                  <button
-                    onClick={() => removeLineItem(item.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-md-error/10 rounded-full p-1 text-destructive"
-                    title="Remove item"
-                    aria-label={`Remove line item: ${item.moduleName}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {quote.lineItems.length === 0 && (
               <div className="text-center py-8">
                 <Calculator className="h-8 w-8 text-md-on-surface-variant mx-auto mb-2 opacity-50" />

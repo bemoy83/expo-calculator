@@ -3,11 +3,13 @@ import type {
   Field,
   Labor,
   Material,
+  QuoteLineItem,
   QuoteModuleInstance,
   SharedFunction,
 } from "../types";
 import { getInitialFieldValue } from "../field-defaults";
 import { generateId } from "../utils";
+import { normalizeNickname } from "./nickname";
 import {
   linkModuleWorkspaceField,
   ModuleWorkspaceContext,
@@ -43,6 +45,52 @@ export function createQuoteWorkspaceModuleInstance(
     fieldValues: getDefaultQuoteFieldValues(moduleDef.fields),
     calculatedCost: 0,
   };
+}
+
+// Restores only the module's current fields (new ones get defaults); links aren't restored because line items hold resolved values.
+export function createWorkspaceInstanceFromLineItem(
+  lineItem: QuoteLineItem,
+  moduleDef: CalculationModule
+): QuoteModuleInstance {
+  const fieldValues = getDefaultQuoteFieldValues(moduleDef.fields);
+  moduleDef.fields.forEach((field) => {
+    if (field.variableName && field.variableName in lineItem.fieldValues) {
+      fieldValues[field.variableName] = lineItem.fieldValues[field.variableName];
+    }
+  });
+
+  const nickname = normalizeNickname(lineItem.nickname);
+  return {
+    id: generateId(),
+    moduleId: moduleDef.id,
+    fieldValues,
+    calculatedCost: 0,
+    ...(nickname ? { nickname } : {}),
+  };
+}
+
+export function reopenQuoteLineItem(
+  workspaceModules: QuoteModuleInstance[],
+  context: QuoteWorkspaceContext,
+  lineItem: QuoteLineItem
+): QuoteModuleInstance[] | null {
+  const moduleDef = context.modules.find((module) => module.id === lineItem.moduleId);
+  if (!moduleDef) return null;
+
+  const reopened = createWorkspaceInstanceFromLineItem(lineItem, moduleDef);
+  return recalculateQuoteWorkspace([...workspaceModules, reopened], context);
+}
+
+export function setQuoteWorkspaceModuleNickname(
+  workspaceModules: QuoteModuleInstance[],
+  instanceId: string,
+  nickname: string
+): QuoteModuleInstance[] {
+  return workspaceModules.map((instance) =>
+    instance.id === instanceId
+      ? { ...instance, nickname: nickname === "" ? undefined : nickname }
+      : instance
+  );
 }
 
 export function recalculateQuoteWorkspace(

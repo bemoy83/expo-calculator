@@ -163,6 +163,7 @@ export interface QuoteModuleInstance {
   functionOutputs?: Record<string, FunctionOutput>; // Maps output name -> function output
   functionInputs?: Record<string, FunctionLink>; // Maps field name -> function link
   calculatedCost: number;
+  nickname?: string; // User label telling instances of the same module apart (e.g. "North wall")
 }
 
 /**
@@ -173,6 +174,7 @@ export interface QuoteLineItem {
   id: string;
   moduleId: string;
   moduleName: string;
+  nickname?: string; // Carried over from the workspace instance when it was committed
   fieldValues: Record<string, string | number | boolean>;
   fieldSummary: string; // Brief summary of key input values (fallback if no computed outputs)
   primarySummary?: string; // Top computed output (e.g., "12 m lumber" or "45 m² paint area") - only if computed outputs exist

@@ -1,5 +1,6 @@
 import { roundMoney } from "../calculations/money";
 import type { CalculationModule, Quote } from "../types";
+import { formatInstanceName } from "./nickname";
 
 export function buildQuoteExportData(input: {
   quote: Quote;
@@ -11,6 +12,7 @@ export function buildQuoteExportData(input: {
       createdAt: input.quote.createdAt,
       lineItems: input.quote.lineItems.map((item) => ({
         moduleName: item.moduleName,
+        nickname: item.nickname,
         fields: Object.entries(item.fieldValues).map(([key, value]) => {
           const moduleDef = input.getModule(item.moduleId);
           const field = moduleDef?.fields.find((candidate) => candidate.variableName === key);
@@ -73,7 +75,7 @@ export function buildQuotePrintHtml(input: {
   quote.lineItems.forEach((item) => {
     html += `
         <tr>
-          <td>${escapeHtml(item.moduleName)}</td>
+          <td>${escapeHtml(formatInstanceName(item.moduleName, item.nickname))}</td>
           <td>${escapeHtml(item.fieldSummary)}</td>
           <td class="right-align">${escapeHtml(formatCurrency(item.cost))}</td>
         </tr>

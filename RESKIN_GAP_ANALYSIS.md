@@ -20,6 +20,14 @@ Low / Moderate / High effort, not story points.
 - **Naming note, not a decision.** The role informally called "draft/warn" elsewhere in
   this analysis and in conversation is named `--draft` (and `--draft-bg`) in the actual
   token mapping table (turn 3) — use `--draft`, not `--draft-warn`, in code.
+- **Open, needed before the Quote Builder visual-language step (build order step 7).**
+  Should "Add to Quote" / "Lock into quote" *move* a draft out of the workspace, or keep
+  copying it? Today `addLineItem` copies: the draft stays in the workspace (with a 2s
+  "Added" check), so one draft can be committed several times. The mockups show a move —
+  "Drafts stay here until you lock them in," and the workspace count drops as items are
+  locked in. `reopenLineItem` works either way, but under copy semantics, reopening an
+  item whose draft is still in the workspace leaves two drafts of it. Decide this before
+  building the sunken-bench/sealed-ledger treatment, since that design assumes a move.
 
 ## Out of scope for this pass
 
@@ -234,6 +242,27 @@ that's already correct, not proposing a new one.
    entries apart"). Recommend shipping it alongside `reopenLineItem` in the same pass
    rather than treating it as separable polish; don't let its softer "required" status
    read as license to defer it indefinitely.
+
+**Implementation notes (step 2, structure only — `reopenLineItem` and nickname)**:
+- `reopenLineItem(lineItemId)` in `quotes-store.ts` rebuilds a draft via
+  `createWorkspaceInstanceFromLineItem` (`lib/quotes/workspace-actions.ts`), appends it
+  to the workspace, removes the line item, and recalculates totals. Only the module's
+  *current* fields are restored: fields added since the item was committed get their
+  defaults, and values for fields since removed are dropped. Field links are not restored,
+  because line items store resolved values, not links. If the item's module has since
+  been deleted, Reopen is disabled.
+- `nickname?: string` is on `QuoteModuleInstance` and `QuoteLineItem`. It's stored raw
+  while typing (so spaces work), trimmed when committed, and dropped when blank.
+  `formatInstanceName` (`lib/quotes/nickname.ts`) renders "Module · Nickname"
+  consistently in the workspace card header, line items, the field-link picker (which
+  previously showed identical labels for two instances of the same module), JSON export,
+  and print/PDF export (HTML-escaped). Templates don't carry nicknames yet — templates
+  have their own instance type and editor, left for later.
+- Line-item row actions (Reopen and Remove) use a `.row-action` rule in `globals.css`:
+  hidden until row hover or keyboard focus on devices that can hover, always visible on
+  touch. The old Remove button was invisible to keyboard users and on tablets.
+- Regression tests: "Quote Reopen & Nickname Regression" in
+  `lib/regression-tests/quote-regression.ts`.
 
 ## Module Editor — Detailed (2b) — High
 

@@ -18,6 +18,7 @@ import type {
   Material,
   ModuleTemplate,
   Quote,
+  QuoteLineItem,
   QuoteModuleInstance,
 } from '@/lib/types';
 
@@ -41,6 +42,7 @@ interface UseQuoteBuilderStateOptions {
     fieldName: string,
     value: string | number | boolean
   ) => void;
+  updateWorkspaceModuleNickname: (instanceId: string, nickname: string) => void;
   reorderWorkspaceModules: (newOrder: QuoteModuleInstance[]) => void;
   linkField: (
     instanceId: string,
@@ -57,6 +59,7 @@ interface UseQuoteBuilderStateOptions {
   ) => { valid: boolean; error?: string };
   addLineItem: (instanceId: string) => boolean;
   removeLineItem: (lineItemId: string) => void;
+  reopenLineItem: (lineItemId: string) => boolean;
   setTaxRate: (rate: number) => void;
   setMarkupPercent: (percent: number) => void;
   saveQuote: () => void;
@@ -74,12 +77,14 @@ export function useQuoteBuilderState({
   addWorkspaceModule,
   removeWorkspaceModule,
   updateWorkspaceModuleFieldValue,
+  updateWorkspaceModuleNickname,
   reorderWorkspaceModules,
   linkField,
   unlinkField,
   canLinkFields,
   addLineItem,
   removeLineItem,
+  reopenLineItem,
   setTaxRate,
   setMarkupPercent,
   saveQuote,
@@ -146,6 +151,9 @@ export function useQuoteBuilderState({
     addWorkspaceModule(moduleId);
   };
 
+  const canReopenLineItem = (item: QuoteLineItem) =>
+    modules.some((module) => module.id === item.moduleId);
+
   const handleExport = () => {
     if (!currentQuote) return;
 
@@ -207,7 +215,10 @@ export function useQuoteBuilderState({
     toggleModuleCollapse: workspaceUi.toggleModuleCollapse,
     handleAddLineItem: addedItemFeedback.handleAddLineItem,
     removeWorkspaceModule,
+    updateWorkspaceModuleNickname,
     removeLineItem,
+    reopenLineItem,
+    canReopenLineItem,
     setMarkupPercent,
     setTaxRate,
     openSaveTemplateModal: templateUi.openSaveTemplateModal,

@@ -11,6 +11,7 @@ export interface WorkspaceModulesManagerProps {
   collapsedModules: Set<string>;
   onToggleCollapse: (id: string) => void;
   onRemoveModule: (id: string) => void;
+  onNicknameChange?: (id: string, nickname: string) => void;
   onAddLineItem?: (id: string) => void;
   addedItems?: Set<string>;
   onReorder: (oldIndex: number, newIndex: number) => void;
@@ -23,6 +24,7 @@ export function WorkspaceModulesManager({
   collapsedModules,
   onToggleCollapse,
   onRemoveModule,
+  onNicknameChange,
   onAddLineItem,
   addedItems,
   onReorder,
@@ -62,6 +64,7 @@ export function WorkspaceModulesManager({
               isCollapsed={collapsedModules.has(instance.id)}
               onToggleCollapse={onToggleCollapse}
               onRemove={onRemoveModule}
+              onNicknameChange={onNicknameChange}
               onAddToQuote={onAddLineItem}
               addedItems={addedItems}
               renderFieldInput={renderFieldInput}

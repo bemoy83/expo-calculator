@@ -16,6 +16,7 @@ export interface ModuleCardShellProps {
   style?: React.CSSProperties;
   dragHandleProps: DragHandleProps;
   title: string;
+  titleDetail?: string;
   category?: string;
   metaChips?: React.ReactNode[];
   subtitle?: string;
@@ -36,6 +37,7 @@ export function ModuleCardShell({
   style,
   dragHandleProps,
   title,
+  titleDetail,
   category,
   metaChips,
   subtitle,
@@ -47,6 +49,7 @@ export function ModuleCardShell({
   children,
 }: ModuleCardShellProps) {
   const chips = metaChips?.filter(Boolean);
+  const accessibleTitle = titleDetail ? `${title}, ${titleDetail}` : title;
 
   return (
     <Card ref={cardRef} style={style}>
@@ -55,7 +58,7 @@ export function ModuleCardShell({
           {...dragHandleProps.attributes}
           {...(dragHandleProps.listeners || {})}
           className="text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none transition-smooth"
-          aria-label={`Drag to reorder ${title}`}
+          aria-label={`Drag to reorder ${accessibleTitle}`}
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical className="h-5 w-5" />
@@ -73,11 +76,14 @@ export function ModuleCardShell({
           role="button"
           tabIndex={0}
           aria-expanded={!isCollapsed}
-          aria-label={`${isCollapsed ? "Expand" : "Collapse"} module ${title}`}
+          aria-label={`${isCollapsed ? "Expand" : "Collapse"} module ${accessibleTitle}`}
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-md-primary">{title}</span>
+              {titleDetail && (
+                <span className="text-sm text-md-on-surface-variant break-words">· {titleDetail}</span>
+              )}
               {category && <Chip variant="default" size="sm">{category}</Chip>}
               {chips?.map((chip, idx) => (
                 <React.Fragment key={idx}>{chip}</React.Fragment>
@@ -97,7 +103,7 @@ export function ModuleCardShell({
                 icon={Trash2}
                 actionType="delete"
                 onAction={onRemove}
-                ariaLabel={`Remove ${title}`}
+                ariaLabel={`Remove ${accessibleTitle}`}
                 confirmationMessage={removeConfirmMessage}
               />
             )}

@@ -116,6 +116,7 @@ export function QuoteBuilderWorkspace({
               collapsedModules={builder.collapsedModules}
               onToggleCollapse={builder.toggleModuleCollapse}
               onRemoveModule={builder.removeWorkspaceModule}
+              onNicknameChange={builder.updateWorkspaceModuleNickname}
               onAddLineItem={builder.handleAddLineItem}
               addedItems={builder.addedItems}
               onReorder={builder.handleReorder}
@@ -130,6 +131,8 @@ export function QuoteBuilderWorkspace({
             setMarkupPercent={builder.setMarkupPercent}
             setTaxRate={builder.setTaxRate}
             removeLineItem={builder.removeLineItem}
+            reopenLineItem={builder.reopenLineItem}
+            canReopenLineItem={builder.canReopenLineItem}
           />
         </div>
       </div>

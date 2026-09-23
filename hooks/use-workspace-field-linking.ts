@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { CalculationModule, FieldType, QuoteModuleInstance } from "@/lib/types";
+import { formatInstanceName } from "@/lib/quotes/nickname";
 
 interface UseWorkspaceFieldLinkingOptions {
   workspaceModules: QuoteModuleInstance[];
@@ -78,7 +79,7 @@ export function useWorkspaceFieldLinking({
         );
         if (!computedOutput) return "source unavailable";
         const unitStr = computedOutput.unitSymbol ? ` (${computedOutput.unitSymbol})` : "";
-        return `${targetModule.name} — Computed: ${computedOutput.label}${unitStr}`;
+        return `${formatInstanceName(targetModule.name, targetInstance.nickname)} — Computed: ${computedOutput.label}${unitStr}`;
       }
 
       const targetField = targetModule.fields.find(
@@ -86,7 +87,7 @@ export function useWorkspaceFieldLinking({
       );
       if (!targetField) return "source unavailable";
 
-      return `${targetModule.name} — ${targetField.label}`;
+      return `${formatInstanceName(targetModule.name, targetInstance.nickname)} — ${targetField.label}`;
     },
     [modules, workspaceModules]
   );
@@ -105,7 +106,7 @@ export function useWorkspaceFieldLinking({
 
         options.push({
           value: `sep-${otherInstance.id}`,
-          label: `--- ${otherModule.name} ---`,
+          label: `--- ${formatInstanceName(otherModule.name, otherInstance.nickname)} ---`,
         });
 
         otherModule.fields.forEach((otherField) => {

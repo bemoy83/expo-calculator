@@ -7,8 +7,10 @@ import { CheckCircle2, Plus } from 'lucide-react';
 import { ActionIconButton } from '@/components/shared/ActionIconButton';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
+import { Input } from '@/components/ui/Input';
 import { QuoteModuleInstance, CalculationModule, Field } from '@/lib/types';
 import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
+import { formatInstanceName, normalizeNickname } from '@/lib/quotes/nickname';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 
 interface SortableModuleCardProps {
@@ -19,6 +21,7 @@ interface SortableModuleCardProps {
   onRemove: (id: string) => void;
   renderFieldInput: (instance: QuoteModuleInstance, field: Field) => React.ReactNode;
   // Optional props for quotes page
+  onNicknameChange?: (id: string, nickname: string) => void;
   onAddToQuote?: (id: string) => void;
   addedItems?: Set<string>;
   // Optional styling props
@@ -34,6 +37,7 @@ export function SortableModuleCard({
   onToggleCollapse,
   onRemove,
   renderFieldInput,
+  onNicknameChange,
   onAddToQuote,
   addedItems,
   contentClassName = 'px-4 pb-6',
@@ -94,13 +98,14 @@ export function SortableModuleCard({
       style={style}
       dragHandleProps={{ attributes, listeners }}
       title={module.name}
+      titleDetail={normalizeNickname(instance.nickname)}
       category={module.category}
       metaChips={requiredUnlinkedChip ? [requiredUnlinkedChip] : undefined}
       subtitle={module.description || undefined}
       isCollapsed={isCollapsed}
       onToggle={() => onToggleCollapse(instance.id)}
       onRemove={() => onRemove(instance.id)}
-      removeConfirmMessage={`Remove ${module.name} from quote?`}
+      removeConfirmMessage={`Remove ${formatInstanceName(module.name, instance.nickname)} from quote?`}
       rightExtras={
         <>
           <span className="text-sm font-semibold text-success tabular-nums">
@@ -120,6 +125,17 @@ export function SortableModuleCard({
       {/* Module Content */}
       {!isCollapsed && (
         <div className={contentClassName}>
+          {onNicknameChange && (
+            <div className="mb-5 md:w-1/2 md:pr-2">
+              <Input
+                label="Nickname (optional)"
+                placeholder="e.g. North wall"
+                maxLength={60}
+                value={instance.nickname ?? ''}
+                onChange={(event) => onNicknameChange(instance.id, event.target.value)}
+              />
+            </div>
+          )}
           <div className={gridClassName}>
             {module.fields.map((field) => (
               <div key={field.id} className={onAddToQuote ? 'flex flex-col' : ''}>

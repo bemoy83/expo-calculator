@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import { generateId } from '../utils';
 import { buildLineItemSummaries } from './line-item-summary';
+import { normalizeNickname } from './nickname';
 
 export function buildQuoteLineItem(input: {
   instance: QuoteModuleInstance;
@@ -37,12 +38,14 @@ export function buildQuoteLineItem(input: {
     fieldValuesWithComputed: resolvedWithComputed,
     materials: input.materials,
   });
+  const nickname = normalizeNickname(input.instance.nickname);
 
   return {
     lineItem: {
       id: generateId(),
       moduleId: input.instance.moduleId,
       moduleName: input.moduleDef.name,
+      ...(nickname ? { nickname } : {}),
       fieldValues: { ...resolvedWithComputed },
       fieldSummary: summaries.fieldSummary,
       primarySummary: summaries.primarySummary,

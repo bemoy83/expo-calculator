@@ -24,6 +24,18 @@
   }
 }
 
+/* Row actions inside a `.group`: always visible on touch, revealed by hover or keyboard focus elsewhere */
+@media (hover: hover) {
+  .row-action {
+    opacity: 0;
+  }
+
+  .group:hover .row-action,
+  .group:focus-within .row-action {
+    opacity: 1;
+  }
+}
+
 :root {
   /* Light - from Material Theme Builder JSON */
   --md-sys-color-primary: 0 74 198;
