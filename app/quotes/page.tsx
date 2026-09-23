@@ -37,10 +37,19 @@ export default function QuotesPage() {
   const createTemplateFromWorkspace = useQuotesStore((state) => state.createTemplateFromWorkspace);
   const applyTemplate = useQuotesStore((state) => state.applyTemplate);
 
+  // Check the live store, not `currentQuote`: during hydration zustand serves the pre-persist
+  // initial state (currentQuote: null), and acting on that would overwrite the saved quote.
   useEffect(() => {
-    if (!currentQuote) {
-      createQuote('New Quote');
+    const ensureQuote = () => {
+      if (!useQuotesStore.getState().currentQuote) {
+        createQuote('New Quote');
+      }
+    };
+    if (useQuotesStore.persist.hasHydrated()) {
+      ensureQuote();
+      return;
     }
+    return useQuotesStore.persist.onFinishHydration(ensureQuote);
   }, [createQuote, currentQuote]);
 
   const builder = useQuoteBuilderState({
