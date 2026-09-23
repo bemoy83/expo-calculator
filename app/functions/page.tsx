@@ -23,10 +23,9 @@ export default function FunctionsPage() {
     setEditingFunctionId(func.id);
   };
 
+  // Confirmation is handled by the delete action's confirmationMessage below.
   const handleDelete = (func: SharedFunction) => {
-    if (confirm(`Are you sure you want to delete function "${func.displayName || func.name}"?`)) {
-      deleteFunction(func.id);
-    }
+    deleteFunction(func.id);
   };
 
   const handleCloseEditor = () => {

@@ -60,6 +60,7 @@ export function LaborItem({
       onToggle={() => onToggleCollapse(labor.id)}
       onRemove={() => onDelete(labor.id)}
       removeConfirmMessage={`Are you sure you want to delete "${labor.name}"?`}
+      removeConfirmLabel="Delete"
       rightExtras={
         <>
           <span className="text-xl font-semibold text-success tabular-nums">

@@ -65,6 +65,7 @@ export function MaterialItem({
       onToggle={() => onToggleCollapse(material.id)}
       onRemove={() => onDelete(material.id)}
       removeConfirmMessage={`Are you sure you want to delete "${material.name}"?`}
+      removeConfirmLabel="Delete"
       rightExtras={
         <>
           <span className="text-xl font-semibold text-success tabular-nums">

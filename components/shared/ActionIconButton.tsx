@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+
 /**
  * ActionIconButton Component
  *
@@ -53,8 +56,10 @@ export interface ActionIconButtonProps {
   onAction: () => void;
   /** Accessible label describing the action (required for accessibility) */
   ariaLabel: string;
-  /** Optional confirmation message - shows window.confirm dialog before action */
+  /** Optional confirmation message - shows an in-app confirmation dialog before the action */
   confirmationMessage?: string;
+  /** Label for the dialog's confirm button (defaults to "Delete" for delete actions, else "Confirm") */
+  confirmLabel?: string;
   /** Button shape variant */
   shape?: 'circle' | 'rounded';
   /** Additional CSS classes for custom styling or positioning */
@@ -95,9 +100,11 @@ export function ActionIconButton({
   onAction,
   ariaLabel,
   confirmationMessage,
+  confirmLabel,
   shape = 'circle',
   className = '',
 }: ActionIconButtonProps) {
+  const [isConfirming, setIsConfirming] = useState(false);
   const styles = actionTypeStyles[actionType];
   const shapeClass = shapeStyles[shape];
 
@@ -105,24 +112,36 @@ export function ActionIconButton({
     // Stop propagation to prevent triggering parent click handlers
     e.stopPropagation();
 
-    // Show confirmation dialog if message is provided
     if (confirmationMessage) {
-      if (window.confirm(confirmationMessage)) {
-        onAction();
-      }
+      setIsConfirming(true);
     } else {
       onAction();
     }
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className={`p-2 text-md-on-surface-variant ${styles.hoverText} ${styles.hoverBg} ${shapeClass} transition-smooth active:scale-95 z-10 ${className}`}
-      aria-label={ariaLabel}
-    >
-      <Icon className="h-4 w-4" aria-hidden="true" />
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={handleClick}
+        className={`p-2 text-md-on-surface-variant ${styles.hoverText} ${styles.hoverBg} ${shapeClass} transition-smooth active:scale-95 z-10 ${className}`}
+        aria-label={ariaLabel}
+      >
+        <Icon className="h-4 w-4" aria-hidden="true" />
+      </button>
+      {confirmationMessage && (
+        <ConfirmDialog
+          isOpen={isConfirming}
+          title={confirmationMessage}
+          confirmLabel={confirmLabel ?? (actionType === 'delete' ? 'Delete' : 'Confirm')}
+          destructive={actionType === 'delete'}
+          onConfirm={() => {
+            setIsConfirming(false);
+            onAction();
+          }}
+          onCancel={() => setIsConfirming(false)}
+        />
+      )}
+    </>
   );
 }

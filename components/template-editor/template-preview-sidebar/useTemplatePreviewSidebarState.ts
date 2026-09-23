@@ -12,6 +12,10 @@ export function useTemplatePreviewSidebarState(
     quickActions: false,
   });
   const [expandedOpportunities, setExpandedOpportunities] = useState<Set<number>>(new Set());
+  const [pendingBatchLink, setPendingBatchLink] = useState<{
+    minConfidence: number;
+    links: EligibleBatchLink[];
+  } | null>(null);
 
   const confidenceCounts = useMemo(
     () => ({
@@ -63,22 +67,15 @@ export function useTemplatePreviewSidebarState(
       return;
     }
 
-    const preview = eligibleLinks
-      .map(
-        (link) =>
-          `  • ${link.targetField} ← ${link.sourceField} (${link.confidence}%)${
-            link.isComputed ? " [Computed]" : ""
-          }`
-      )
-      .join("\n");
+    setPendingBatchLink({ minConfidence, links: eligibleLinks });
+  };
 
-    const confirmed = confirm(
-      `Link ${eligibleLinks.length} field${
-        eligibleLinks.length > 1 ? "s" : ""
-      } with confidence ≥${minConfidence}%?\n\n${preview}\n\nThis action cannot be undone.`
-    );
+  const cancelBatchLink = () => setPendingBatchLink(null);
 
-    if (!confirmed) return;
+  const confirmBatchLink = () => {
+    if (!pendingBatchLink) return;
+    const eligibleLinks = pendingBatchLink.links;
+    setPendingBatchLink(null);
 
     let successCount = 0;
     let failCount = 0;
@@ -104,7 +101,26 @@ export function useTemplatePreviewSidebarState(
     }
   };
 
+  const batchLinkConfirmation = pendingBatchLink
+    ? {
+        title: `Link ${pendingBatchLink.links.length} field${
+          pendingBatchLink.links.length > 1 ? "s" : ""
+        } with confidence ≥${pendingBatchLink.minConfidence}%?`,
+        message: `${pendingBatchLink.links
+          .map(
+            (link) =>
+              `• ${link.targetField} ← ${link.sourceField} (${link.confidence}%)${
+                link.isComputed ? " [Computed]" : ""
+              }`
+          )
+          .join("\n")}\n\nThis action cannot be undone.`,
+      }
+    : null;
+
   return {
+    batchLinkConfirmation,
+    confirmBatchLink,
+    cancelBatchLink,
     expandedSections,
     expandedOpportunities,
     excellentCount: confidenceCounts.excellentCount,
@@ -124,6 +140,8 @@ function countOpportunitiesAtConfidence(
     (opportunity) => opportunity.suggestedSources[0]?.confidence >= minConfidence
   ).length;
 }
+
+type EligibleBatchLink = ReturnType<typeof getEligibleBatchLinks>[number];
 
 function getEligibleBatchLinks(linkOpportunities: LinkOpportunity[], minConfidence: number) {
   return linkOpportunities

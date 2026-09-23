@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Card } from "@/components/ui/Card";
 import { useTemplateLinkAnalysis } from "@/hooks/use-template-link-analysis";
 import type { CalculationModule, QuoteModuleInstance } from "@/lib/types";
@@ -26,6 +27,9 @@ export function TemplatePreviewSidebar({
   const analysis = useTemplateLinkAnalysis(workspaceModules, modules);
   const { stats, primaryModule, linkSources, linkOpportunities } = analysis;
   const {
+    batchLinkConfirmation,
+    confirmBatchLink,
+    cancelBatchLink,
     expandedSections,
     expandedOpportunities,
     excellentCount,
@@ -80,6 +84,14 @@ export function TemplatePreviewSidebar({
           />
         </div>
       </Card>
+      <ConfirmDialog
+        isOpen={!!batchLinkConfirmation}
+        title={batchLinkConfirmation?.title ?? ""}
+        message={batchLinkConfirmation?.message}
+        confirmLabel="Link fields"
+        onConfirm={confirmBatchLink}
+        onCancel={cancelBatchLink}
+      />
     </div>
   );
 }
