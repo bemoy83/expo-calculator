@@ -30,11 +30,11 @@ export function ModuleEditorActions({
     <div data-bottom-action-bar className="fixed bottom-0 left-sidebar right-0 bg-md-surface-container-high/95 backdrop-blur-md border-t border-border px-4 py-4 z-40 elevation-2">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button onClick={onAddField} className="rounded-full">
+          <Button onClick={onAddField}>
             <Plus className="h-4 w-4 mr-2" />
             Add Field
           </Button>
-          <Button variant="primary" onClick={onAddComputedOutput} className="rounded-full">
+          <Button variant="primary" onClick={onAddComputedOutput}>
             <Plus className="h-4 w-4 mr-2" />
             Add Computed Output
           </Button>
@@ -44,15 +44,14 @@ export function ModuleEditorActions({
             variant="secondary"
             onClick={onPreview}
             disabled={!formulaValidationValid || fields.length === 0}
-            className="rounded-full"
           >
             <Eye className="h-4 w-4 mr-2" />
             Preview
           </Button>
-          <Button variant="ghost" onClick={onCancel} className="rounded-full">
+          <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button onClick={onSubmit} className="rounded-full">
+          <Button onClick={onSubmit}>
             {editingModuleId === 'new' ? 'Create' : 'Update'} Module
           </Button>
         </div>

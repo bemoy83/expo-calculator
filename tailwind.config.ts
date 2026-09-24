@@ -128,6 +128,10 @@ const config: Config = {
         ui: ["var(--font-ui)", "system-ui", "sans-serif"],
         mono: ["var(--font-numeric)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
+      boxShadow: {
+        card: 'var(--shadow-card)',
+        panel: 'var(--shadow-panel)',
+      },
       spacing: {
         sidebar: 'var(--app-sidebar-w)',
         'app-header': 'var(--app-header-h)',

@@ -42,7 +42,7 @@ export function FieldsManager({
             <p className="text-sm text-md-on-surface-variant mb-3">
               Fields define the inputs required for your calculation formula. Each field becomes a variable you can use in your formula.
             </p>
-            <Button size="sm" onClick={onAddField} className="rounded-full">
+            <Button size="sm" onClick={onAddField}>
               <Plus className="h-4 w-4 mr-2" />
               Add Your First Field
             </Button>

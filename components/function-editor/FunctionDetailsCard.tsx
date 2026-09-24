@@ -146,10 +146,10 @@ export function FunctionDetailsCard({
                     }}
                     autoFocus
                   />
-                  <Button onClick={handleAddCategory} disabled={!newCategoryName.trim()} size="sm" className="rounded-full">
+                  <Button onClick={handleAddCategory} disabled={!newCategoryName.trim()} size="sm">
                     Add
                   </Button>
-                  <Button onClick={handleCancelAddCategory} variant="ghost" size="sm" className="rounded-full">
+                  <Button onClick={handleCancelAddCategory} variant="ghost" size="sm">
                     Cancel
                   </Button>
                 </div>

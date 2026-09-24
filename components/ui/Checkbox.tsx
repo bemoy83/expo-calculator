@@ -23,18 +23,17 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         required={required}
         aria-required={required}
         className={cn(
-          'w-4 h-4 bg-md-surface-container border-md-outline rounded',
-          'text-md-primary focus:ring-action focus:ring-2',
-          'checked:bg-md-primary checked:border-md-primary',
-          'cursor-pointer disabled-overlay disabled:cursor-not-allowed',
+          'h-4 w-4 rounded-sm border-border-strong accent-action-solid cursor-pointer',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
+          'disabled:cursor-not-allowed disabled:opacity-50',
           className
         )}
         {...props}
       />
       {label && (
         <label htmlFor={checkboxId} className={cn(
-          'ml-2 text-sm text-md-on-surface cursor-pointer',
-          props.disabled && 'cursor-not-allowed opacity-[0.38]'
+          'ml-2 text-sm text-ink cursor-pointer',
+          props.disabled && 'cursor-not-allowed text-ink-faint'
         )}>
           {label}
         </label>

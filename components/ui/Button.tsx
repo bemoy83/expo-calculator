@@ -6,6 +6,22 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
 }
 
+// Design primitives (mockup 1a / 3a): 6px control radius, 13px semibold label.
+// primary = solid action · secondary = surface with strong border · ghost = quiet text ·
+// danger = surface with danger text and border.
+const variants = {
+  primary: 'bg-action-solid text-on-accent border-transparent hover:bg-action-solid/85',
+  secondary: 'bg-surface text-ink border-border-strong hover:bg-surface-hover',
+  danger: 'bg-surface text-danger border-danger-border hover:bg-danger-bg',
+  ghost: 'bg-transparent text-ink-muted border-transparent hover:text-ink hover:bg-surface-hover',
+};
+
+const sizes = {
+  sm: 'h-8 px-3 text-xs',
+  md: 'h-9 px-4 text-[13px]',
+  lg: 'h-10 px-5 text-sm',
+};
+
 export const Button: React.FC<ButtonProps> = ({
   children,
   className,
@@ -13,28 +29,19 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   ...props
 }) => {
-  const baseStyles = 'font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] disabled-overlay disabled:cursor-not-allowed';
-  
-  const variants = {
-    primary: 'bg-md-primary hover:bg-md-primary/90 text-md-on-primary focus:ring-action elevation-1 hover-glow',
-    secondary: 'bg-md-secondary hover:bg-md-secondary/90 text-md-on-secondary focus:ring-action elevation-1 hover-glow',
-    danger: 'bg-md-error text-md-on-error focus:ring-md-error elevation-1 hover-glow hover-overlay',
-    ghost: 'bg-transparent text-md-on-surface-variant hover:text-md-on-surface focus:ring-action hover-overlay',
-  };
-  
-  const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg',
-  };
-  
   return (
     <button
-      className={cn(baseStyles, variants[variant], sizes[size], className)}
+      className={cn(
+        'inline-flex items-center justify-center rounded-md border font-semibold whitespace-nowrap transition-colors',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
+        'disabled:bg-sunken disabled:text-ink-faint disabled:border-transparent disabled:cursor-not-allowed',
+        variants[variant],
+        sizes[size],
+        className
+      )}
       {...props}
     >
       {children}
     </button>
   );
 };
-

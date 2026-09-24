@@ -1,5 +1,6 @@
 import React, { useId, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { FIELD_ERROR, FIELD_LABEL, fieldClasses } from './field-styles';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
@@ -39,7 +40,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={textareaId} className="block text-sm font-medium text-md-on-surface mb-1.5">
+        <label htmlFor={textareaId} className={FIELD_LABEL}>
           {label}
         </label>
       )}
@@ -51,21 +52,15 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         aria-required={required}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={errorId}
-        className={cn(
-          'w-full px-4 py-2.5 bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-2xl',
-          'text-md-on-surface placeholder-md-on-surface-variant',
-          'focus:outline-none focus:ring-2 focus:ring-action/50',
-          'transition-smooth',
-          autoGrow ? 'overflow-hidden resize-none' : 'resize-none',
-          'disabled-overlay disabled:cursor-not-allowed',
-          error && 'focus:ring-md-error/50',
-          className
+        className={fieldClasses(
+          !!error,
+          cn('px-2.5 py-2 resize-none', autoGrow && 'overflow-hidden', className)
         )}
         {...props}
       />
 
       {error && (
-        <p id={errorId} className="mt-1 text-sm text-md-error" role="alert">
+        <p id={errorId} className={FIELD_ERROR} role="alert">
           {error}
         </p>
       )}

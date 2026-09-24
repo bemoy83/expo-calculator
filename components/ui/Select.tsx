@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { FIELD_ERROR, FIELD_LABEL, fieldClasses } from './field-styles';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -24,7 +24,7 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={selectId} className="block text-sm font-medium text-md-on-surface mb-1.5">
+        <label htmlFor={selectId} className={FIELD_LABEL}>
           {label}
         </label>
       )}
@@ -35,23 +35,7 @@ export const Select: React.FC<SelectProps> = ({
           aria-required={required}
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={errorId}
-          className={cn(
-            // Base
-            'w-full text-md-on-surface-variant appearance-none transition-smooth',
-            'bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-full px-4 py-2.5',
-          
-            // Focus ring like Input
-            'focus:outline-none focus:ring-2 focus:ring-action/50 focus:border-md-primary',
-          
-            // Disabled
-            'disabled-overlay disabled:cursor-not-allowed',
-          
-            // Error
-            error && 'focus:ring-md-error/50 border-md-error/50',
-          
-            className
-          )}
-          
+          className={fieldClasses(!!error, `h-[38px] pl-2.5 pr-8 appearance-none cursor-pointer ${className ?? ''}`)}
           {...props}
         >
           {options.map((option) => (
@@ -61,12 +45,12 @@ export const Select: React.FC<SelectProps> = ({
           ))}
         </select>
         <ChevronDown 
-          className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-md-on-surface-variant pointer-events-none" 
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted pointer-events-none" 
           aria-hidden="true"
         />
       </div>
       {error && (
-        <p id={errorId} className="mt-1 text-sm text-md-error" role="alert">
+        <p id={errorId} className={FIELD_ERROR} role="alert">
           {error}
         </p>
       )}

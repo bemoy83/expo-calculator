@@ -16,7 +16,7 @@ import { Card } from '@/components/ui/Card';
  *   title="No Modules Yet"
  *   description="Create your first calculation module to get started building professional estimates."
  *   actions={
- *     <Button onClick={handleCreate} className="rounded-full">
+ *     <Button onClick={handleCreate}>
  *       <Plus className="h-4 w-4 mr-2" />
  *       Create Module
  *     </Button>

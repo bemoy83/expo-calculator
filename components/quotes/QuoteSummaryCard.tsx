@@ -154,7 +154,7 @@ export function QuoteSummaryCard({
         <div className="pt-5 border-t border-border">
           <Button
             variant="primary"
-            className="w-full rounded-full"
+            className="w-full"
             onClick={() => {
               notify({
                 variant: "info",

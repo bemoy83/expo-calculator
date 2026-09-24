@@ -1,38 +1,22 @@
 import React, { forwardRef, useId } from "react";
 import { cn } from "@/lib/utils";
 
-// Shared card styling constants
-export const CARD_BACKGROUND = 'bg-md-surface-container';
-export const CARD_BORDER = 'border border-md-outline';
-export const CARD_ROUNDED = 'rounded-extra-large';
-
+// Design primitives (mockup 1a / 3a): cards are a surface with a hairline border and a
+// 10px radius; elevation is border weight plus a faint shadow (none in dark). Only
+// raised/overlay cards (panels, popovers) cast the panel shadow.
 const VARIANT_STYLES = {
-  default: {
-    background: CARD_BACKGROUND,
-    border: "",
-    elevation: 1,
-  },
-  flat: {
-    background: CARD_BACKGROUND,
-    border: "",
-    elevation: 0,
-  },
-  outlined: {
-    background: CARD_BACKGROUND,
-    border: CARD_BORDER,
-    elevation: 0,
-  },
-  raised: {
-    background: CARD_BACKGROUND,
-    border: "",
-    elevation: 3,
-  },
-  overlay: {
-    background: "bg-md-surface-container-highest",
-    border: "",
-    elevation: 8,
-  },
+  default: "bg-surface border border-border shadow-card",
+  flat: "bg-surface border border-border",
+  outlined: "bg-surface border border-border-strong",
+  raised: "bg-surface border border-border-strong shadow-panel",
+  overlay: "bg-surface border border-border-strong shadow-panel",
 } as const;
+
+// The old MD3 elevation levels, mapped onto the two design shadows.
+function elevationShadow(elevation: number) {
+  if (elevation === 0) return "shadow-none";
+  return elevation >= 3 ? "shadow-panel" : "shadow-card";
+}
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -78,14 +62,13 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
   ) => {
     const generatedTitleId = useId();
     const variantStyles = VARIANT_STYLES[variant];
-    const appliedElevation = elevation ?? variantStyles.elevation;
 
     const paddingClass =
       density === "dense"
         ? "p-4"
         : density === "roomy"
-        ? "p-8"
-        : "p-6";
+        ? "p-6"
+        : "p-5";
 
     const autoInteractive =
       interactive ?? Boolean(rest.onClick || rest.role === "button");
@@ -99,13 +82,11 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         aria-labelledby={titleId}
         {...rest}
         className={cn(
-          CARD_ROUNDED,
-          "transition-all relative",
+          "rounded-[10px] relative transition-colors",
           paddingClass,
-          variantStyles.background,
-          variantStyles.border,
-          `elevation-${appliedElevation}`,
-          autoInteractive && "hover-overlay cursor-pointer",
+          variantStyles,
+          elevation !== undefined && elevationShadow(elevation),
+          autoInteractive && "hover:bg-surface-hover cursor-pointer",
           sticky && "sticky z-[50]", // valid class
           className
         )}
@@ -115,11 +96,11 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         }}
       >
         {(title || actions) && (
-          <div className="flex items-center justify-between mb-5 relative z-10">
+          <div className="flex items-center justify-between mb-4 relative z-10">
             {title && (
               <h3
                 id={titleId}
-                className="text-lg font-bold text-md-on-surface tracking-tight"
+                className="text-base font-semibold text-ink tracking-tight"
               >
                 {title}
               </h3>

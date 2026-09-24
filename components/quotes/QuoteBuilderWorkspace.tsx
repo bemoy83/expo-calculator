@@ -35,15 +35,15 @@ export function QuoteBuilderWorkspace({
         subtitle="Build comprehensive construction cost estimates"
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="secondary" onClick={() => builder.saveQuote()} className="rounded-full">
+            <Button variant="secondary" onClick={() => builder.saveQuote()}>
               <Save className="h-4 w-4 mr-2" />
               Save Quote
             </Button>
-            <Button variant="secondary" onClick={builder.handleExport} className="rounded-full">
+            <Button variant="secondary" onClick={builder.handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Export JSON
             </Button>
-            <Button variant="secondary" onClick={builder.handleExportPDF} className="rounded-full">
+            <Button variant="secondary" onClick={builder.handleExportPDF}>
               <Download className="h-4 w-4 mr-2" />
               Print/PDF
             </Button>
@@ -89,7 +89,7 @@ export function QuoteBuilderWorkspace({
                 <p className="text-sm text-md-on-surface-variant mb-3">
                   Add calculation modules to build your quote. Your workspace is where you configure modules before adding them to the quote.
                 </p>
-                <Button size="sm" onClick={() => builder.setShowAddModule(true)} className="rounded-full">
+                <Button size="sm" onClick={() => builder.setShowAddModule(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Your First Module
                 </Button>
@@ -101,7 +101,7 @@ export function QuoteBuilderWorkspace({
             <Card>
               <Button
                 onClick={() => builder.setShowAddModule(true)}
-                className="rounded-full w-full"
+                className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Module
@@ -158,7 +158,6 @@ export function QuoteBuilderWorkspace({
       <EditorActionBar justifyContent="end">
         <Button
           onClick={builder.openSaveTemplateModal}
-          className="rounded-full"
           disabled={quote.workspaceModules.length === 0}
           variant="secondary"
         >
@@ -167,7 +166,6 @@ export function QuoteBuilderWorkspace({
         </Button>
         <Button
           onClick={() => builder.setShowAddModule(true)}
-          className="rounded-full"
           disabled={builder.showAddModule}
         >
           <Plus className="h-4 w-4 mr-2" />

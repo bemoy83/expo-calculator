@@ -37,7 +37,7 @@ export function ParametersManager({
             <p className="text-sm text-md-on-surface-variant mb-3">
               Parameters define the inputs required for your function. Each parameter becomes a variable you can use in your formula.
             </p>
-            <Button size="sm" onClick={onAddParameter} className="rounded-full">
+            <Button size="sm" onClick={onAddParameter}>
               <Plus className="h-4 w-4 mr-2" />
               Add Your First Parameter
             </Button>
@@ -64,7 +64,7 @@ export function ParametersManager({
               />
             );
           })}
-          <Button variant="ghost" onClick={onAddParameter} className="rounded-full">
+          <Button variant="ghost" onClick={onAddParameter}>
             <Plus className="h-4 w-4 mr-2" />
             Add Parameter
           </Button>

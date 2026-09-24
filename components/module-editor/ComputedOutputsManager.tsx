@@ -146,7 +146,7 @@ export function ComputedOutputsManager({
                             Computed outputs are named expressions that calculate values before your main formula.
                             They can be linked to other modules and displayed in quote summaries.
                         </p>
-                        <Button size="sm" onClick={onAddOutput} className="rounded-full">
+                        <Button size="sm" onClick={onAddOutput}>
                             <Plus className="h-4 w-4 mr-2" />
                             Add Your First Computed Output
                         </Button>

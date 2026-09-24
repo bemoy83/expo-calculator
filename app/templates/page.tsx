@@ -87,7 +87,7 @@ export default function TemplatesPage() {
         title="Templates"
         subtitle="Manage reusable module combinations and field links"
         actions={
-          <Button onClick={() => setEditingTemplateId('new')} className="rounded-full">
+          <Button onClick={() => setEditingTemplateId('new')}>
             <Plus className="h-4 w-4 mr-2" />
             Create Template
           </Button>
@@ -100,7 +100,7 @@ export default function TemplatesPage() {
           title="No Templates Yet"
           description="Create templates from your Quote Builder workspace to save module combinations and field links for reuse."
           actions={
-            <Button onClick={() => setEditingTemplateId('new')} className="rounded-full">
+            <Button onClick={() => setEditingTemplateId('new')}>
               <Plus className="h-4 w-4 mr-2" />
               Create Template
             </Button>

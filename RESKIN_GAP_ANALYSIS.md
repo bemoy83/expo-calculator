@@ -314,6 +314,36 @@ composing a `Chip` with a `leadingIcon` and mixed-weight children). No prop-API 
 identified — this is a class/token restyle of existing components, consistent with the
 design doc's own claim.
 
+**Implementation notes (primitives restyle — done after step 5, ahead of step 6)**:
+- `Button`, `Input`, `Select`, `Textarea`, `Checkbox`, `Chip`, and `Card` in
+  `components/ui/` now follow 1a / 3a "Controls — every state". The prop API is unchanged,
+  except `Input`'s unused `variant="underline"`, which was removed.
+  - Button: 6px radius, 13px semibold, `h-9` (md). primary = `action-solid`,
+    secondary = surface + `border-strong`, ghost = quiet ink-muted text, danger = surface
+    with danger text and `danger-border` (1a's outlined "Remove", now also the confirm
+    button of destructive dialogs). Disabled = sunken fill + faint text. Keyboard focus =
+    2px action ring with an offset (`focus-visible`, so no ring on mouse clicks). The MD3
+    glow, elevation, and press-scale effects are gone.
+  - Input/Select/Textarea share `components/ui/field-styles.ts`: 38px, surface fill,
+    `border-strong`, 6px radius; focus = action border + 3px `action/20` ring; error =
+    danger border; disabled = sunken + faint. Labels are 12px ink-muted. `type="number"`
+    inputs render in `font-numeric` automatically.
+  - Chip: pills in design roles — neutral (`sunken`), solid action, tonal action
+    (fields), tonal committed (`success` is now the tonal green "Locked" style, not a
+    solid fill), tonal/solid danger, outline, ghost.
+  - Card: 10px radius, surface + `border`, `shadow-card`; raised/overlay use
+    `border-strong` + `shadow-panel`. Cards no longer emit MD3 `elevation-N` classes, so
+    dark cards lose the white tonal overlay. The `elevation` prop maps to the two shadows.
+- New tokens `--shadow-card` / `--shadow-panel` (Tailwind `shadow-card`, `shadow-panel`)
+  with turn-3 values (card `0 1 2 / .05` light, none dark; panel `0 8 24`, `.10` light,
+  `.55` dark). Turn 4 dropped them in favor of hardcoded shadows; tokens keep dark mode right.
+- Removed 43 `className="rounded-full"` overrides from `<Button>` call sites (the old pill
+  convention), which would otherwise have kept those buttons round.
+- Leftovers for per-screen restyles: about 14 non-primitive components still use MD3
+  `elevation-N` classes directly (e.g. `ModulePickerCard`, `EditorActionBar`,
+  `EmptyState`, `QuoteBoard`, module-editor pieces), and the quote board's search field is
+  still a pill. `ModalDialog` (used by `ConfirmDialog`) has its own MD3 surface styles.
+
 ## Quote Builder (2a) — Low–Moderate
 
 **Current state** (`app/quotes/page.tsx`, `components/quotes/QuoteBuilderWorkspace.tsx`):

@@ -33,41 +33,36 @@ export const Chip: React.FC<ChipProps> = ({
   ...rest
 }) => {
 
+  // Pills (999 radius). Roles follow mockup 1a: neutral, solid action, tonal action
+  // (fields), tonal committed/green (materials, locked), tonal danger.
   const sizes = {
-    sm: 'text-xs px-2.5 py-1 rounded-full',
-    md: 'text-sm px-3 py-1.5 rounded-full',
-    lg: 'text-base px-4 py-2 rounded-full'
+    sm: 'text-[11px] px-2 py-0.5 rounded-full',
+    md: 'text-xs px-2.5 py-1 rounded-full',
+    lg: 'text-sm px-3 py-1.5 rounded-full'
   }
 
   const variants = {
-
-    flat: 'bg-md-secondary text-md-on-secondary',
-
-    default: 'bg-md-tertiary text-md-on-tertiary',
-
-    muted: 'bg-md-muted text-md-on-muted',
+    // neutral
+    default: 'bg-sunken text-ink-body',
+    flat: 'bg-sunken text-ink-body',
+    muted: 'bg-sunken text-ink-muted',
 
     // strong emphasis
-    primary: 'bg-md-primary text-md-on-primary',
-    error: 'bg-md-error text-md-on-error',
-    success: 'bg-success text-md-on-primary-container',
+    primary: 'bg-action-solid text-on-accent',
+    selected: 'bg-action-solid text-on-accent',
+    error: 'bg-danger text-on-accent',
 
-    // md3 tonal emphasis
-    primaryTonal: 'bg-md-primary-container text-md-on-primary-container',
-    errorTonal: 'bg-md-error-container text-md-on-error-container',
-
-    // selection state
-    selected: 'bg-md-primary text-md-on-primary elevation-1',
+    // tonal emphasis
+    primaryTonal: 'bg-action-bg text-action',
+    errorTonal: 'bg-danger-bg text-danger',
+    success: 'bg-committed-bg text-committed',
 
     // structural emphasis
-    outline:
-      'bg-md-surface-container-high text-md-on-surface border border-md-outline',
-    dashed:
-      'bg-md-surface-container-high text-md-on-surface border border-md-outline border-dashed',
+    outline: 'bg-surface text-ink-body border border-border-strong',
+    dashed: 'bg-surface text-ink-body border border-border-strong border-dashed',
 
     // minimal
-    ghost:
-      'bg-transparent text-md-on-surface border border-transparent hover:bg-md-surface-variant/40'
+    ghost: 'bg-transparent text-ink-body border border-transparent hover:bg-surface-hover'
   }
 
 
@@ -81,13 +76,11 @@ if (isInteractive) {
       type="button"
       disabled={disabled}
       className={cn(
-        'inline-flex items-center gap-1 select-none transition-smooth cursor-pointer',
-        'focus:outline-none focus:ring-2 focus:ring-action/50',
-        // interaction motion
-        'active:scale-[0.96] hover:elevation-2 active:elevation-1',
+        'inline-flex items-center gap-1 font-medium select-none transition-opacity cursor-pointer hover:opacity-80',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
         sizes[size],
         variants[variant],
-        disabled && 'opacity-60 cursor-not-allowed active:scale-100 hover:elevation-0',
+        disabled && 'opacity-50 cursor-not-allowed hover:opacity-50',
         className
       )}
     >
@@ -103,7 +96,7 @@ if (isInteractive) {
     <div
       {...rest}
       className={cn(
-        'inline-flex items-center gap-1 select-none transition-smooth',
+        'inline-flex items-center gap-1 font-medium select-none',
         sizes[size],
         variants[variant],
         disabled && 'opacity-60',

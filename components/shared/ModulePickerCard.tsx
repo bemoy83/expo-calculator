@@ -46,7 +46,6 @@ export function ModulePickerCard({
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className="rounded-full"
         >
           Cancel
         </Button>

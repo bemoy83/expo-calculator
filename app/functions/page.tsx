@@ -49,7 +49,7 @@ export default function FunctionsPage() {
         title="Functions Library"
         subtitle="Manage reusable calculation functions"
         actions={
-          <Button onClick={() => setShowCreate(true)} className="rounded-full">
+          <Button onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Create Function
           </Button>
@@ -62,7 +62,7 @@ export default function FunctionsPage() {
           title="No functions yet"
           description="Create reusable functions to use across your modules and formulas."
           actions={
-            <Button onClick={() => setShowCreate(true)} className="rounded-full">
+            <Button onClick={() => setShowCreate(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Function
             </Button>

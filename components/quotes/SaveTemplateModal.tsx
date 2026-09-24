@@ -71,14 +71,12 @@ export function SaveTemplateModal({
           <Button
             variant="ghost"
             onClick={onClose}
-            className="rounded-full"
           >
             Cancel
           </Button>
           <Button
             onClick={onSave}
             disabled={!templateName.trim()}
-            className="rounded-full"
           >
             <Save className="h-4 w-4 mr-2" />
             Save Template

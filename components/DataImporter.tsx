@@ -114,10 +114,10 @@ export function DataImporter({ onClose }: DataImporterProps) {
           </div>
         </div>
         <div className="flex gap-3 justify-end">
-          <Button variant="ghost" onClick={handleCancelReplace} className="rounded-full">
+          <Button variant="ghost" onClick={handleCancelReplace}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={handleConfirmReplace} className="rounded-full">
+          <Button variant="danger" onClick={handleConfirmReplace}>
             Replace All Data
           </Button>
         </div>
@@ -143,7 +143,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
           </div>
         </div>
         <div className="flex justify-end">
-          <Button onClick={onClose} className="rounded-full">
+          <Button onClick={onClose}>
             Close
           </Button>
         </div>
@@ -227,7 +227,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
             <Button
               onClick={handleJsonPaste}
               disabled={!jsonText.trim()}
-              className="w-full rounded-full"
+              className="w-full"
             >
               Import from Text
             </Button>

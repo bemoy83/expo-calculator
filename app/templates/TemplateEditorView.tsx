@@ -202,7 +202,7 @@ export function TemplateEditorView({ templateId, onClose }: TemplateEditorViewPr
                 <p className="text-sm text-md-on-surface-variant mb-3">
                   Add calculation modules to build your template. Each module represents a calculation that can be reused across quotes.
                 </p>
-                <Button size="sm" onClick={() => setShowModulePicker(true)} className="rounded-full">
+                <Button size="sm" onClick={() => setShowModulePicker(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Your First Module
                 </Button>
@@ -215,7 +215,7 @@ export function TemplateEditorView({ templateId, onClose }: TemplateEditorViewPr
             <Card>
               <Button
                 onClick={() => setShowModulePicker(true)}
-                className="rounded-full w-full"
+                className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Module
@@ -255,17 +255,17 @@ export function TemplateEditorView({ templateId, onClose }: TemplateEditorViewPr
 
       <EditorActionBar justifyContent="between">
         {!showModulePicker && (
-          <Button onClick={() => setShowModulePicker(true)} className="rounded-full" variant="secondary">
+          <Button onClick={() => setShowModulePicker(true)} variant="secondary">
             <Plus className="h-4 w-4 mr-2" />
             Add Module
           </Button>
         )}
         {showModulePicker && <div />}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onClose} className="rounded-full">
+          <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave} className="rounded-full">
+          <Button onClick={handleSave}>
             {isNew ? 'Create' : 'Update'} Template
           </Button>
         </div>

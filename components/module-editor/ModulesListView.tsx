@@ -28,7 +28,7 @@ export function ModulesListView({
           <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">Calculation Modules</h1>
           <p className="text-lg text-md-on-surface-variant">Create reusable calculation modules with custom fields and formulas</p>
         </div>
-        <Button onClick={onCreate} className="rounded-full">
+        <Button onClick={onCreate}>
           <Plus className="h-4 w-4 mr-2" />
           Create Module
         </Button>
@@ -42,7 +42,7 @@ export function ModulesListView({
             </div>
             <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">No Modules Yet</h3>
             <p className="text-base text-md-on-surface-variant mb-8 max-w-md mx-auto leading-relaxed">Create your first calculation module to get started building professional estimates.</p>
-            <Button onClick={onCreate} className="rounded-full">
+            <Button onClick={onCreate}>
               <Plus className="h-4 w-4 mr-2" />
               Create Module
             </Button>

@@ -1,68 +1,40 @@
 import React, { useId } from 'react';
 import { cn } from '@/lib/utils';
+import { FIELD_ERROR, FIELD_LABEL, fieldClasses } from './field-styles';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
-  variant?: 'default' | 'underline';
 }
 
-export const Input: React.FC<InputProps> = ({
-  label,
-  error,
-  id,
-  className,
-  variant = 'default',
-  required,
-  ...props
-}) => {
+export const Input: React.FC<InputProps> = ({ label, error, id, className, required, type, ...props }) => {
   const generatedId = useId();
   const inputId = id || generatedId;
   const errorId = error ? `${inputId}-error` : undefined;
 
-  const isUnderline = variant === 'underline';
-
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-md-on-surface mb-1.5">
+        <label htmlFor={inputId} className={FIELD_LABEL}>
           {label}
         </label>
       )}
       <input
         id={inputId}
+        type={type}
         required={required}
         aria-required={required}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={errorId}
-        className={cn(
-          'w-full text-md-on-surface-variant placeholder-md-on-surface-variant transition-smooth',
-          'disabled-overlay disabled:cursor-not-allowed',
-          isUnderline
-            ? [
-                'bg-md-surface-variant/70 dark:bg-md-surface-variant/50 border-0 border-b rounded-t-md',
-                'px-2 py-1',
-                'border-md-outline dark:border-white/10',
-                'hover:!border-md-primary hover:!border-b-2',
-                'focus:outline-none focus:!border-md-primary focus:!border-b-2',
-                'focus:ring-0',
-                error && '!border-md-error focus:!border-md-error hover:!border-md-error',
-              ]
-            : [
-                'px-4 py-2.5 bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-full',
-                'focus:outline-none focus:ring-2 focus:ring-action/50 focus:border-md-primary',
-                error && 'focus:ring-md-error/50 border-md-error/50',
-              ],
-          className
-        )}
+        // Numbers are always set in tabular mono.
+        className={fieldClasses(!!error, cn('h-[38px] px-2.5', type === 'number' && 'font-numeric', className))}
         {...props}
       />
       {error && (
-        <p id={errorId} className="mt-1 text-sm text-md-error" role="alert">
+        <p id={errorId} className={FIELD_ERROR} role="alert">
           {error}
         </p>
       )}
     </div>
   );
 };
-

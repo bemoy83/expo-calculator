@@ -35,7 +35,7 @@ export function CatalogEditorPanel({
   return (
     <aside
       aria-label={title}
-      className="flex flex-col rounded-lg border border-border-strong bg-surface shadow-[0_8px_24px_rgb(0_0_0/0.08)] lg:max-h-[calc(100vh-var(--app-header-h)-3rem)]"
+      className="flex flex-col rounded-lg border border-border-strong bg-surface shadow-panel lg:max-h-[calc(100vh-var(--app-header-h)-3rem)]"
     >
       <form onSubmit={onSubmit} className="flex flex-col min-h-0" noValidate>
         <div className="flex items-start gap-3 px-4 py-3 border-b border-border">

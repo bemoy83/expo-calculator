@@ -110,7 +110,6 @@ export function ModuleDetailsCard({
                 onClick={handleAddCategory}
                 disabled={!newCategoryName.trim()}
                 size="sm"
-                className="rounded-full"
               >
                 Add
               </Button>
@@ -118,7 +117,6 @@ export function ModuleDetailsCard({
                 onClick={handleCancelAddCategory}
                 variant="ghost"
                 size="sm"
-                className="rounded-full"
               >
                 Cancel
               </Button>
