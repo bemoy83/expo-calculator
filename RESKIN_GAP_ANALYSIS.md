@@ -861,11 +861,91 @@ width", "Link all exact matches") on tokens; the editor in the step-8 shell; lis
   de-duplicated before), "N modules · M links", and a delete message noting that quotes
   already started from the template aren't affected.
 - `FieldLinkBadge` (shared with the Quote Builder's field-link inputs) is on tokens.
-- **Still MD3 after step 10** (candidates for a final cleanup pass): the shared overlays
+- **Still MD3 after step 10** (planned as step 11, "MD3 leftover cleanup"): the shared overlays
   (`ModalDialog`, `ConfirmDialog`, `NotificationToast`, `AlertBanner`, `ClickTooltip`,
   `ActionIconButton`), `SaveTemplateModal`, `DataImporter` / `ThemeImporter`, the catalog
   `PropertyForm` / `LaborPropertyForm`, `QuoteBuilderLoading`, and possibly-unused
   `SearchFilterBar` and `ui/resizable-panel`.
+
+## Data export/import (step 12) — done before step 11
+
+Found in the leftover assessment after step 10. It's a data-loss fix, not a reskin item,
+so the data-layer changes are in scope.
+
+**Problem**:
+- Export Data (`exportAllData`, `lib/utils/data-export.ts`) left templates out; the
+  `templates` key existed but was documented as "not exported/imported". Quotes weren't
+  exported either.
+- Import in Replace mode cleared templates and never imported any, so every template was
+  deleted, while the dialog only said "Delete all existing data and import new data" and
+  "Templates are not imported as they reference module IDs that change during import."
+- Replace mode didn't clear labor but re-added the file's labor, duplicating every item.
+- The obstacle to importing templates: module IDs change on import (`addModule` generates
+  new ones; merge skips modules whose name exists and keeps the existing module's ID), and
+  each template instance stores a `moduleId`.
+
+**Decisions**:
+- Templates are exported and imported, with their module IDs remapped. `EXPORT_VERSION`
+  is now `1.1.0`; 1.0.0 files (no `templates` key) still import.
+- Templates whose modules can't be found are imported anyway, with a warning naming the
+  template and the missing modules (applying one already skips missing modules). Merge
+  skips templates whose name exists (case-insensitive), like the other entities.
+- **Quotes stay out of export/import** (user's choice, option (a)): not exported, never
+  cleared or changed by an import, and the dialog says so. Including them (remapping draft
+  `moduleId`s the same way) is possible later if backups of quotes are wanted.
+- Template `fieldValues` are carried through as-is (unused by design; see step 10).
+
+**Implementation notes**:
+- Pure helpers in `lib/utils/data-import-remap.ts`: `buildModuleIdMap` (file module ID →
+  ID after the import: the added module's new ID, else the existing module with the same
+  name, case-insensitive) and `remapTemplateModules` (rewrites each instance's `moduleId`,
+  keeps instance IDs and `fieldLinks`, which point at other instances of the same template
+  by ID or `__index_N__`, so links survive untouched). Unmapped instances keep their old
+  `moduleId` and are reported by module name when the file knows it.
+- `addModule` now returns the created module, so the import records old → new IDs.
+- **Replace replaces only the kinds of data the file contains.** Modules, materials, and
+  categories are always in a file; labor, functions, and templates are cleared only when
+  the file has that key. An older file without templates keeps the current templates and
+  points them at the imported modules with the same names (with a note that they were
+  kept, plus missing-module warnings). Before, a pre-labor or pre-functions file wiped
+  those too. This also fixes the labor duplication.
+- Merge-mode caveat: a skipped module is the *existing* module with that name, which may
+  differ from the file's version; template links to fields it lacks are reported when the
+  template is applied (existing behavior).
+- `ImportResult` gained `warnings`. The success view lists labor and template counts and
+  the warnings, and doesn't auto-close when there are warnings.
+- Copy: the intro lists everything imported, says templates are reconnected to their
+  modules and that quotes are never changed; Replace's description and confirmation say
+  exactly what is deleted, that labor/functions/templates missing from older files are
+  kept, and that drafts in a quote's workspace belong to the deleted modules and will no
+  longer show (the workspace hides drafts whose module is missing).
+- Known follow-up (not built): those hidden drafts stay in the quote's data after a
+  Replace; nothing surfaces or cleans them up.
+- Regression tests: "Data Export/Import Regression" (`data-import-regression.ts`, run
+  with the stores over an in-memory `localStorage` from `memory-local-storage.ts`): round
+  trip in replace and merge, links restored when the imported templates are applied,
+  legacy `__index_N__` links, labor not duplicated, missing-module warnings, 1.0.0 files.
+- The dialog's own styling (MD3 leftovers, title shown twice) is left for step 11.
+
+## MD3 leftover cleanup (step 11) — planned, next
+
+Assessed after step 10. Not built yet:
+1. `components/shared/ModalDialog.tsx` uses a fixed `id="modal-title"` (duplicate IDs when
+   dialogs stack) and doesn't trap focus.
+2. `components/shared/ActionIconButton.tsx` passes its whole confirmation sentence as the
+   `ConfirmDialog` *title* (e.g. the Functions list delete message becomes the heading);
+   it needs a short title plus a message.
+3. Toasts sit at `bottom-24`, spacing for fixed bottom bars that no longer exist. There
+   are two toast paths: `NotificationToast` rendered directly in `app/templates/page.tsx`
+   and `components/quotes/QuoteBuilderWorkspace.tsx`, and `notify()` / `NotificationHost`.
+   Make them one.
+4. Restyle only: `ModalDialog`, `ConfirmDialog`, `NotificationToast`, `AlertBanner`,
+   `ClickTooltip`, `ActionIconButton`, `SaveTemplateModal`, `QuoteBuilderLoading`, one
+   class each in `components/materials/PropertyForm.tsx` and
+   `components/labor/LaborPropertyForm.tsx`, and `DataImporter` / `ThemeImporter` (they
+   already look consistent; Import Data shows its title twice).
+5. Delete the unused `components/shared/SearchFilterBar.tsx` and
+   `components/ui/resizable-panel.tsx`.
 
 ## Sequencing strategy: structure before style
 
@@ -933,6 +1013,9 @@ currently has no external users to confuse.
 9. **Functions — reskin + safety/UX fixes** *(done)* (see "Functions and Templates").
 10. **Templates — reskin + UX fixes; templates as module chains** *(done)* (see "Functions and
     Templates").
-11. **Module Editor — Simple** — on hold (see its section).
-12. **Cost mix** — separate initiative, needs its own scoping for cost-attribution
+11. **MD3 leftover cleanup** — planned, next (see "MD3 leftover cleanup (step 11)").
+12. **Data export/import includes templates** *(done, before step 11)* (see "Data
+    export/import (step 12)").
+13. **Module Editor — Simple** — on hold (see its section).
+14. **Cost mix** — separate initiative, needs its own scoping for cost-attribution
     logic.

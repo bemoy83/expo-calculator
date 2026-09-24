@@ -14,14 +14,15 @@ export interface ExportedData {
   labor?: Labor[];
   customCategories: string[];
   functions?: SharedFunction[]; // Optional for backward compatibility
-  templates?: ModuleTemplate[]; // Optional for backward compatibility, but not exported/imported
+  templates?: ModuleTemplate[]; // Since 1.1.0; files from 1.0.0 have none
 }
 
-const EXPORT_VERSION = '1.0.0';
+// 1.1.0: templates are exported (module IDs are remapped on import).
+export const EXPORT_VERSION = '1.1.0';
 
 /**
- * Export all application data (Modules, Materials, Categories, Functions)
- * Excludes Templates (module ID references break on import) and Quotes
+ * Export all application data (Modules, Materials, Labor, Categories, Functions, Templates).
+ * Quotes are not exported: they stay on this device and an import leaves them alone.
  */
 export function exportAllData(): ExportedData {
   const modules = useModulesStore.getState().modules;
@@ -29,6 +30,7 @@ export function exportAllData(): ExportedData {
   const labor = useLaborStore.getState().labor;
   const customCategories = useCategoriesStore.getState().customCategories;
   const functions = useFunctionsStore.getState().functions;
+  const templates = useTemplatesStore.getState().templates;
 
   return {
     version: EXPORT_VERSION,
@@ -38,6 +40,7 @@ export function exportAllData(): ExportedData {
     labor,
     customCategories,
     functions,
+    templates,
   };
 }
 

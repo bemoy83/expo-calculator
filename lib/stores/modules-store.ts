@@ -6,7 +6,7 @@ import { sanitizeLegacyModule, regenerateComputedOutputVariableNames } from '../
 
 interface ModulesStore {
   modules: CalculationModule[];
-  addModule: (module: Omit<CalculationModule, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  addModule: (module: Omit<CalculationModule, 'id' | 'createdAt' | 'updatedAt'>) => CalculationModule;
   updateModule: (id: string, module: Partial<CalculationModule>) => void;
   deleteModule: (id: string) => void;
   getModule: (id: string) => CalculationModule | undefined;
@@ -32,6 +32,7 @@ export const useModulesStore = create<ModulesStore>()(
         set((state) => ({
           modules: [...state.modules, newModule],
         }));
+        return newModule;
       },
       
       updateModule: (id, updates) => {

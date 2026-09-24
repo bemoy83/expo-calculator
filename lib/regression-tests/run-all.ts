@@ -5,5 +5,6 @@ import './template-regression';
 import './catalog-regression';
 import './module-sample-regression';
 import './function-usage-regression';
+import './data-import-regression';
 
 console.log('\n=== Tests Complete ===');

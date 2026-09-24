@@ -82,10 +82,12 @@ export function DataImporter({ onClose }: DataImporterProps) {
       // Clear form on success
       setJsonText('');
       setPendingData(null);
-      // Auto-close after 3 seconds
-      setTimeout(() => {
-        onClose();
-      }, 3000);
+      // Auto-close after 3 seconds, unless there are warnings to read
+      if (!result.warnings) {
+        setTimeout(() => {
+          onClose();
+        }, 3000);
+      }
     }
   };
 
@@ -109,7 +111,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
           <div className="flex-1">
             <h4 className="font-semibold text-md-error mb-1">Replace All Data?</h4>
             <p className="text-sm text-md-on-error-container">
-              This will delete all existing modules, materials, categories, and functions, then import the new data. This action cannot be undone.
+              This deletes your modules, materials, categories, labor, functions, and templates, then imports the ones in the file. Labor, functions, or templates are kept if the file doesn&apos;t include them (older exports). Quotes and their line items are kept, but drafts still in a quote&apos;s workspace belong to the deleted modules and will no longer show. This can&apos;t be undone.
             </p>
           </div>
         </div>
@@ -135,13 +137,20 @@ export function DataImporter({ onClose }: DataImporterProps) {
             <div className="text-sm text-success space-y-1">
               <p>• {importResult.modulesAdded} module{importResult.modulesAdded !== 1 ? 's' : ''} imported</p>
               <p>• {importResult.materialsAdded} material{importResult.materialsAdded !== 1 ? 's' : ''} imported</p>
+              {importResult.laborAdded > 0 && (
+                <p>• {importResult.laborAdded} labor item{importResult.laborAdded !== 1 ? 's' : ''} imported</p>
+              )}
               <p>• {importResult.categoriesAdded} categor{importResult.categoriesAdded !== 1 ? 'ies' : 'y'} imported</p>
               {importResult.functionsAdded > 0 && (
                 <p>• {importResult.functionsAdded} function{importResult.functionsAdded !== 1 ? 's' : ''} imported</p>
               )}
+              {importResult.templatesAdded > 0 && (
+                <p>• {importResult.templatesAdded} template{importResult.templatesAdded !== 1 ? 's' : ''} imported</p>
+              )}
             </div>
           </div>
         </div>
+        {importResult.warnings && <ImportWarnings warnings={importResult.warnings} />}
         <div className="flex justify-end">
           <Button onClick={onClose}>
             Close
@@ -156,7 +165,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
       <div>
         <h3 className="text-lg font-semibold mb-2 text-md-on-surface">Import Data</h3>
         <p className="text-sm text-md-on-surface-variant mb-4">
-          Import modules, materials, categories, and functions from an exported JSON file. Note: Templates are not imported as they reference module IDs that change during import.
+          Import modules, materials, labor, categories, functions, and templates from an exported JSON file. Templates are reconnected to their modules. Quotes aren&apos;t part of an export and are never changed by an import.
         </p>
 
         <div className="space-y-4">
@@ -177,7 +186,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
                 />
                 <div>
                   <span className="text-sm font-medium text-md-on-surface">Merge with existing</span>
-                  <p className="text-xs text-md-on-surface-variant">Add imported data to existing data (skip duplicates)</p>
+                  <p className="text-xs text-md-on-surface-variant">Add imported data to existing data, skipping anything whose name already exists</p>
                 </div>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -191,7 +200,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
                 />
                 <div>
                   <span className="text-sm font-medium text-md-on-surface">Replace all data</span>
-                  <p className="text-xs text-md-on-surface-variant">Delete all existing data and import new data</p>
+                  <p className="text-xs text-md-on-surface-variant">Delete your modules, materials, labor, categories, functions, and templates, then import the file&apos;s. Quotes are kept.</p>
                 </div>
               </label>
             </div>
@@ -248,11 +257,17 @@ export function DataImporter({ onClose }: DataImporterProps) {
                 <li key={idx}>{err}</li>
               ))}
             </ul>
-            {(importResult.modulesAdded > 0 || importResult.materialsAdded > 0 || importResult.categoriesAdded > 0 || importResult.functionsAdded > 0) && (
+            {(importResult.modulesAdded > 0 || importResult.materialsAdded > 0 || importResult.laborAdded > 0 || importResult.categoriesAdded > 0 || importResult.functionsAdded > 0 || importResult.templatesAdded > 0) && (
               <p className="mt-2 text-xs">
-                Partial import: {importResult.modulesAdded} modules, {importResult.materialsAdded} materials, {importResult.categoriesAdded} categories{importResult.functionsAdded > 0 ? `, ${importResult.functionsAdded} functions` : ''} imported.
+                Partial import: {importResult.modulesAdded} modules, {importResult.materialsAdded} materials, {importResult.laborAdded} labor items, {importResult.categoriesAdded} categories, {importResult.functionsAdded} functions, {importResult.templatesAdded} templates imported.
               </p>
             )}
+          </div>
+        )}
+
+        {importResult && !importResult.success && importResult.warnings && (
+          <div className="mt-3">
+            <ImportWarnings warnings={importResult.warnings} />
           </div>
         )}
       </div>
@@ -260,3 +275,15 @@ export function DataImporter({ onClose }: DataImporterProps) {
   );
 }
 
+function ImportWarnings({ warnings }: { warnings: string[] }) {
+  return (
+    <div className="flex items-start gap-3 p-4 bg-draft-bg border border-draft-border rounded-lg">
+      <AlertCircle className="h-5 w-5 text-draft shrink-0 mt-0.5" />
+      <ul className="flex-1 text-sm text-ink space-y-1">
+        {warnings.map((warning, idx) => (
+          <li key={idx}>{warning}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}

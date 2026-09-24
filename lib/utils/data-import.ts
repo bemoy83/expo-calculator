@@ -6,6 +6,11 @@ import { useTemplatesStore } from '../stores/templates-store';
 import { useFunctionsStore } from '../stores/functions-store';
 import { useLaborStore } from '../stores/labor-store';
 import type { ExportedData } from './data-export';
+import {
+  buildModuleIdMap,
+  formatMissingModulesWarning,
+  remapTemplateModules,
+} from './data-import-remap';
 
 export interface ImportOptions {
   mode: 'replace' | 'merge';
@@ -20,6 +25,8 @@ export interface ImportResult {
   functionsAdded: number;
   templatesAdded: number;
   errors?: string[];
+  /** Things the user should know that didn't stop the import, e.g. templates with missing modules. */
+  warnings?: string[];
 }
 
 /**
@@ -133,19 +140,25 @@ export function validateImportedData(json: unknown): json is ExportedData {
     }
   }
 
-  // Validate templates structure (if present, but templates are not imported)
+  // Validate templates structure (if present; files before 1.1.0 have none)
   if (data.templates !== undefined) {
     if (!Array.isArray(data.templates)) {
       return false;
     }
     for (const template of data.templates) {
       if (
+        !template ||
         typeof template !== 'object' ||
         typeof (template as ModuleTemplate).id !== 'string' ||
         typeof (template as ModuleTemplate).name !== 'string' ||
         !Array.isArray((template as ModuleTemplate).moduleInstances)
       ) {
         return false;
+      }
+      for (const instance of (template as ModuleTemplate).moduleInstances) {
+        if (!instance || typeof instance !== 'object' || typeof instance.moduleId !== 'string') {
+          return false;
+        }
       }
     }
   }
@@ -154,71 +167,64 @@ export function validateImportedData(json: unknown): json is ExportedData {
 }
 
 /**
- * Import data with replace or merge mode
+ * Import data with replace or merge mode.
+ *
+ * Replace deletes each kind of data the file contains, then imports it. Kinds an older
+ * export file doesn't contain (labor, functions, templates) are left as they are;
+ * templates kept that way are pointed at the imported modules with the same names.
+ * Merge adds what's new and skips anything whose name (or variable name) is taken.
+ * Quotes are never touched.
  */
 export function importData(
   data: ExportedData,
   options: ImportOptions
 ): ImportResult {
   const errors: string[] = [];
+  const warnings: string[] = [];
   let modulesAdded = 0;
   let materialsAdded = 0;
   let laborAdded = 0;
   let categoriesAdded = 0;
   let functionsAdded = 0;
   let templatesAdded = 0;
+  const isReplace = options.mode === 'replace';
 
   try {
-    if (options.mode === 'replace') {
-      // Clear all stores
+    // Modules as they were before the import: kept templates (older files) are remapped from these.
+    const modulesBeforeImport = useModulesStore.getState().modules;
+
+    if (isReplace) {
       useModulesStore.setState({ modules: [] });
       useMaterialsStore.setState({ materials: [] });
       useCategoriesStore.setState({ customCategories: [] });
-      useFunctionsStore.setState({ functions: [] });
-      useTemplatesStore.setState({ templates: [] });
+      if (data.labor !== undefined) useLaborStore.setState({ labor: [] });
+      if (data.functions !== undefined) useFunctionsStore.setState({ functions: [] });
+      if (data.templates !== undefined) useTemplatesStore.setState({ templates: [] });
     }
 
-    // Import modules
-    if (options.mode === 'replace') {
-      // In replace mode, add all modules
-      data.modules.forEach((mod) => {
-        try {
-          useModulesStore.getState().addModule({
-            name: mod.name,
-            description: mod.description,
-            category: mod.category,
-            fields: mod.fields,
-            formula: mod.formula,
-            computedOutputs: mod.computedOutputs,
-          });
-          modulesAdded++;
-        } catch (err) {
-          errors.push(`Failed to import module "${mod.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
-        }
-      });
-    } else {
-      // Merge mode: skip duplicates by name (case-insensitive)
-      const existingModules = useModulesStore.getState().modules;
-      const existingNames = new Set(existingModules.map((m) => m.name.toLowerCase()));
+    // Import modules, recording each added module's new ID so templates can follow it.
+    // Merge mode skips duplicates by name (case-insensitive).
+    const existingModules = useModulesStore.getState().modules;
+    const existingModuleNames = new Set(existingModules.map((m) => m.name.toLowerCase()));
+    const addedModuleIds = new Map<string, string>();
 
-      data.modules.forEach((mod) => {
-        if (!existingNames.has(mod.name.toLowerCase())) {
-          try {
-            useModulesStore.getState().addModule({
-              name: mod.name,
-              description: mod.description,
-              category: mod.category,
-              fields: mod.fields,
-              formula: mod.formula,
-              computedOutputs: mod.computedOutputs,
-            });
-            modulesAdded++;
-          } catch (err) {
-            errors.push(`Failed to import module "${mod.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
-          }
-        }
-      });
-    }
+    data.modules.forEach((mod) => {
+      if (!isReplace && existingModuleNames.has(mod.name.toLowerCase())) return;
+      try {
+        const added = useModulesStore.getState().addModule({
+          name: mod.name,
+          description: mod.description,
+          category: mod.category,
+          fields: mod.fields,
+          formula: mod.formula,
+          computedOutputs: mod.computedOutputs,
+        });
+        addedModuleIds.set(mod.id, added.id);
+        modulesAdded++;
+      } catch (err) {
+        errors.push(`Failed to import module "${mod.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    });
 
     // Import materials
     if (options.mode === 'replace') {
@@ -375,9 +381,52 @@ export function importData(
       }
     }
 
-    // Templates are not imported because they reference module IDs which get regenerated on import
-    // This would break template functionality. Templates must be recreated manually after importing modules.
-    // templatesAdded remains 0
+    // Import templates, pointing their module instances at the modules' IDs after the import.
+    // Merge mode skips duplicates by name (case-insensitive).
+    const moduleIdMap = buildModuleIdMap(data.modules, existingModules, addedModuleIds);
+    const moduleNames = new Map(data.modules.map((m) => [m.id, m.name]));
+
+    if (data.templates !== undefined) {
+      const existingTemplateNames = new Set(
+        useTemplatesStore.getState().templates.map((t) => t.name.toLowerCase())
+      );
+
+      data.templates.forEach((template) => {
+        if (!isReplace && existingTemplateNames.has(template.name.toLowerCase())) return;
+        try {
+          const remapped = remapTemplateModules(template, moduleIdMap, moduleNames);
+          useTemplatesStore.getState().addTemplate(remapped.template);
+          templatesAdded++;
+          if (remapped.missingModules.length > 0) {
+            warnings.push(formatMissingModulesWarning(template.name, remapped.missingModules));
+          }
+        } catch (err) {
+          errors.push(`Failed to import template "${template.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      });
+    } else if (isReplace) {
+      // Older file without templates: the current templates were kept, but their modules were
+      // just replaced. Follow each module to the imported module with the same name.
+      const keptModuleIdMap = buildModuleIdMap(
+        modulesBeforeImport,
+        useModulesStore.getState().modules,
+        new Map()
+      );
+      const keptModuleNames = new Map(modulesBeforeImport.map((m) => [m.id, m.name]));
+      const keptTemplates = useTemplatesStore.getState().templates.map((template) => {
+        const remapped = remapTemplateModules(template, keptModuleIdMap, keptModuleNames);
+        if (remapped.missingModules.length > 0) {
+          warnings.push(formatMissingModulesWarning(template.name, remapped.missingModules));
+        }
+        return { ...template, moduleInstances: remapped.template.moduleInstances };
+      });
+      useTemplatesStore.setState({ templates: keptTemplates });
+      if (keptTemplates.length > 0) {
+        warnings.unshift(
+          `This file has no templates (it was exported before templates were included), so your ${keptTemplates.length} existing template${keptTemplates.length === 1 ? ' was' : 's were'} kept.`
+        );
+      }
+    }
 
     return {
       success: errors.length === 0,
@@ -388,6 +437,7 @@ export function importData(
       functionsAdded,
       templatesAdded,
       errors: errors.length > 0 ? errors : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined,
     };
   } catch (err) {
     return {
@@ -399,6 +449,7 @@ export function importData(
       functionsAdded,
       templatesAdded,
       errors: [err instanceof Error ? err.message : 'Unknown error during import'],
+      warnings: warnings.length > 0 ? warnings : undefined,
     };
   }
 }
