@@ -37,15 +37,15 @@ export function AppBrand() {
   return (
     <Link
       href="/"
-      className="flex items-center gap-2.5 min-w-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+      className="flex items-center gap-2.5 min-w-0 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
     >
       <span
-        className="flex items-center justify-center w-8 h-8 rounded-lg bg-md-primary/10 shrink-0"
+        className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-ink shrink-0"
         aria-hidden="true"
       >
-        <FileText className="h-4 w-4 text-md-primary" />
+        <FileText className="h-3.5 w-3.5 text-canvas" />
       </span>
-      <span className="text-base font-bold text-md-on-surface truncate">Cost Estimator</span>
+      <span className="text-sm font-bold tracking-tight text-ink truncate">Cost Estimator</span>
     </Link>
   );
 }
@@ -98,7 +98,7 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onOpenThemeSetti
       id={id}
       className={cn(
         'fixed inset-y-0 left-0 z-50 lg:z-[45] w-64 lg:w-sidebar flex flex-col',
-        'bg-md-surface-container border-r border-md-outline',
+        'bg-sunken-2 border-r border-border',
         // Visible immediately on open (so focus can move in), hidden only after the slide-out on close.
         isOpen
           ? 'translate-x-0 visible [transition:transform_200ms_ease-out]'
@@ -106,7 +106,7 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onOpenThemeSetti
         'lg:translate-x-0 lg:visible'
       )}
     >
-      <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-5">
+      <div className="flex items-center justify-between gap-2 px-[18px] pt-4 pb-[18px]">
         <AppBrand />
         <button
           ref={closeButtonRef}
@@ -115,21 +115,21 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onOpenThemeSetti
           aria-label="Close navigation"
           // transition-colors, not transition-smooth (`all`): transitioning the inherited
           // visibility would leave this hidden, and unfocusable, at the moment the drawer opens.
-          className="lg:hidden p-2 -mr-2 rounded-full text-md-on-surface-variant hover:text-md-on-surface hover-overlay transition-colors"
+          className="lg:hidden p-2 -mr-2 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
       </div>
 
       <nav aria-label="Main navigation" className="flex-1 min-h-0 overflow-y-auto px-3">
-        <NavList items={primaryItems} isActive={isActive} showCounts={mounted} />
-        <p className="px-3 pt-6 pb-2 text-[11px] font-semibold uppercase tracking-wider text-md-on-surface-variant">
+        <NavList items={primaryItems} isActive={isActive} showCounts={mounted} itemHeight="h-9" />
+        <p className="px-2.5 pt-[22px] pb-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
           Catalog
         </p>
-        <NavList items={catalogItems} isActive={isActive} showCounts={mounted} />
+        <NavList items={catalogItems} isActive={isActive} showCounts={mounted} itemHeight="h-[34px]" />
       </nav>
 
-      <div className="px-3 pt-3 pb-4 space-y-3 border-t border-md-outline">
+      <div className="px-3 pt-3 pb-4 space-y-3 border-t border-border">
         <SettingsMenu onImportData={onImportData} onOpenThemeSettings={onOpenThemeSettings} />
         <ColorModeSwitch mounted={mounted} />
       </div>
@@ -141,10 +141,12 @@ function NavList({
   items,
   isActive,
   showCounts,
+  itemHeight,
 }: {
   items: NavItem[];
   isActive: (item: NavItem) => boolean;
   showCounts: boolean;
+  itemHeight: string;
 }) {
   return (
     <ul className="space-y-0.5">
@@ -156,18 +158,20 @@ function NavList({
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex items-center justify-between gap-2 h-9 px-3 rounded-lg text-sm font-medium transition-smooth',
+                'flex items-center justify-between gap-2 px-2.5 rounded-md text-[13px] transition-colors',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
+                itemHeight,
                 active
-                  ? 'bg-md-primary text-md-on-primary'
-                  : 'text-md-on-surface-variant hover:text-md-on-surface hover-overlay'
+                  ? 'bg-action-solid text-on-accent font-semibold'
+                  : 'text-ink-body font-medium hover:text-ink hover:bg-surface-hover'
               )}
             >
               <span className="truncate">{item.name}</span>
               {showCounts && (
                 <span
                   className={cn(
-                    'text-xs font-mono tabular-nums',
-                    active ? 'text-md-on-primary/80' : 'text-md-on-surface-variant'
+                    'text-[11px] font-numeric',
+                    active ? 'text-action-border font-medium' : 'text-ink-faint'
                   )}
                 >
                   {item.count}
@@ -186,7 +190,7 @@ function ColorModeSwitch({ mounted }: { mounted: boolean }) {
   const activeMode = mounted ? resolvedTheme : undefined;
 
   return (
-    <div role="group" aria-label="Color mode" className="flex gap-1 p-1 rounded-full bg-md-surface-container-high">
+    <div role="group" aria-label="Color mode" className="flex gap-1 p-1 rounded-full bg-border">
       {(['light', 'dark'] as const).map((mode) => {
         const active = activeMode === mode;
         return (
@@ -196,10 +200,11 @@ function ColorModeSwitch({ mounted }: { mounted: boolean }) {
             aria-pressed={active}
             onClick={() => setTheme(mode)}
             className={cn(
-              'flex-1 py-1.5 rounded-full text-xs font-medium transition-smooth',
+              'flex-1 py-1.5 rounded-full text-[11px] transition-colors',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
               active
-                ? 'bg-md-surface text-md-on-surface elevation-1'
-                : 'text-md-on-surface-variant hover:text-md-on-surface'
+                ? 'bg-surface text-ink font-semibold shadow-card'
+                : 'text-ink-muted font-medium hover:text-ink'
             )}
           >
             {mode === 'light' ? 'Light' : 'Dark'}
@@ -251,7 +256,7 @@ function SettingsMenu({
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-controls="app-settings-menu"
-        className="w-full flex items-center gap-2 h-9 px-3 rounded-lg text-sm font-medium text-md-on-surface-variant hover:text-md-on-surface hover-overlay transition-smooth"
+        className="w-full flex items-center gap-2 h-[34px] px-2.5 rounded-md text-[13px] font-medium text-ink-body hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
       >
         <Settings className="h-4 w-4" aria-hidden="true" />
         Settings
@@ -295,10 +300,10 @@ function SettingsMenuPanel({
   return (
     <div
       id={id}
-      className="absolute bottom-full left-0 mb-2 w-64 bg-md-surface-container border border-md-outline rounded-xl shadow-lg elevation-8 z-50 overflow-hidden"
+      className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border-strong rounded-[10px] shadow-panel z-50 overflow-hidden"
     >
       <div className="p-2 max-h-[70vh] overflow-y-auto">
-        <div className="px-3 py-2 text-xs font-semibold text-md-on-surface-variant uppercase tracking-wide border-b border-md-outline mb-1">
+        <div className="px-2.5 pt-2 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
           Theme
         </div>
 
@@ -306,10 +311,10 @@ function SettingsMenuPanel({
           type="button"
           onClick={() => handleThemeSelect(null)}
           className={cn(
-            'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-smooth mb-1',
+            'w-full flex items-center justify-between h-[34px] px-2.5 rounded-md text-[13px] transition-colors mb-0.5',
             isDefaultTheme
-              ? 'bg-md-primary-container text-md-on-primary-container'
-              : 'text-md-on-surface hover:bg-md-surface-variant'
+              ? 'bg-action-bg text-action font-medium'
+              : 'text-ink-body hover:text-ink hover:bg-surface-hover'
           )}
         >
           <div className="flex items-center gap-2">
@@ -325,16 +330,16 @@ function SettingsMenuPanel({
             type="button"
             onClick={() => handleThemeSelect(storedTheme.name)}
             className={cn(
-              'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-smooth mb-1',
+              'w-full flex items-center justify-between h-[34px] px-2.5 rounded-md text-[13px] transition-colors mb-0.5',
               activeTheme?.name === storedTheme.name
-                ? 'bg-md-primary-container text-md-on-primary-container'
-                : 'text-md-on-surface hover:bg-md-surface-variant'
+                ? 'bg-action-bg text-action font-medium'
+                : 'text-ink-body hover:text-ink hover:bg-surface-hover'
             )}
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <Palette className="h-4 w-4 shrink-0" />
               <span className="font-medium truncate">{storedTheme.name}</span>
-              <span className="text-xs text-md-on-surface-variant shrink-0">({storedTheme.source})</span>
+              <span className="text-xs text-ink-faint shrink-0">({storedTheme.source})</span>
             </div>
             {activeTheme?.name === storedTheme.name && <CheckCircle2 className="h-4 w-4 shrink-0" />}
           </button>
@@ -346,20 +351,20 @@ function SettingsMenuPanel({
             onClose();
             onOpenThemeSettings();
           }}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-md-on-surface hover:bg-md-surface-variant transition-smooth mb-2"
+          className="w-full flex items-center gap-2 h-[34px] px-2.5 rounded-md text-[13px] text-ink-body hover:text-ink hover:bg-surface-hover transition-colors mb-1"
         >
           <Upload className="h-4 w-4" />
           Import Theme
         </button>
 
-        <div className="mt-2 pt-2 border-t border-md-outline">
-          <div className="px-3 py-2 text-xs font-semibold text-md-on-surface-variant uppercase tracking-wide border-b border-md-outline mb-1">
+        <div className="mt-1 pt-1 border-t border-border">
+          <div className="px-2.5 pt-2 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Data
           </div>
           <button
             type="button"
             onClick={handleExport}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-md-on-surface hover:bg-md-surface-variant transition-smooth"
+            className="w-full flex items-center gap-2 h-[34px] px-2.5 rounded-md text-[13px] text-ink-body hover:text-ink hover:bg-surface-hover transition-colors"
           >
             <Download className="h-4 w-4" />
             Export Data
@@ -370,7 +375,7 @@ function SettingsMenuPanel({
               onClose();
               onImportData();
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-md-on-surface hover:bg-md-surface-variant transition-smooth"
+            className="w-full flex items-center gap-2 h-[34px] px-2.5 rounded-md text-[13px] text-ink-body hover:text-ink hover:bg-surface-hover transition-colors"
           >
             <Upload className="h-4 w-4" />
             Import Data

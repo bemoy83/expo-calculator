@@ -40,19 +40,19 @@ export interface EmptyStateProps {
 
 const iconSizeStyles = {
   small: {
+    container: 'w-14 h-14',
+    icon: 'h-7 w-7',
+    padding: 'py-14',
+  },
+  medium: {
     container: 'w-16 h-16',
     icon: 'h-8 w-8',
     padding: 'py-16',
   },
-  medium: {
+  large: {
     container: 'w-20 h-20',
     icon: 'h-10 w-10',
     padding: 'py-20',
-  },
-  large: {
-    container: 'w-24 h-24',
-    icon: 'h-12 w-12',
-    padding: 'py-24',
   },
 };
 
@@ -69,15 +69,15 @@ export function EmptyState({
     <Card>
       <div className={`text-center ${styles.padding}`}>
         <div
-          className={`inline-flex items-center justify-center ${styles.container} rounded-full bg-md-surface-variant elevation-4 mb-6`}
+          className={`inline-flex items-center justify-center ${styles.container} rounded-full bg-sunken mb-4`}
           aria-hidden="true"
         >
-          <Icon className={`${styles.icon} text-md-on-surface-variant`} />
+          <Icon className={`${styles.icon} text-ink-muted`} />
         </div>
-        <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
+        <h3 className="text-base font-semibold text-ink mb-1">
           {title}
         </h3>
-        <p className="text-base text-md-on-surface-variant mb-8 max-w-md mx-auto leading-relaxed">
+        <p className="text-sm text-ink-muted mb-5 max-w-md mx-auto">
           {description}
         </p>
         {actions}

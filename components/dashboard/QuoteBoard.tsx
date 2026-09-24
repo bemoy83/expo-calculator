@@ -28,7 +28,7 @@ import type { ModuleTemplate, Quote } from '@/lib/types';
 type FormatMoney = (amount: number) => string;
 
 // Amber left edge on quotes with open drafts, repeating the builder's "not in the total" signal.
-const DRAFT_EDGE = 'border-l-4 border-l-warning';
+const DRAFT_EDGE = 'border-l-[3px] border-l-draft';
 
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
@@ -115,17 +115,17 @@ export function QuoteBoard() {
 
   return (
     <>
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1 min-w-0">
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">Quotes</h1>
-          <p className="text-sm text-md-on-surface-variant mt-1">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Quotes</h1>
+          <p className="text-xs text-ink-muted">
             {boardQuotes.length} total · {withDraftsCount} with open drafts
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:w-56 sm:flex-none">
+          <div className="relative flex-1 sm:w-[210px] sm:flex-none">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-md-on-surface-variant pointer-events-none"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint pointer-events-none"
               aria-hidden="true"
             />
             <input
@@ -134,11 +134,11 @@ export function QuoteBoard() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search quotes…"
               aria-label="Search quotes"
-              className="w-full h-10 pl-9 pr-3 rounded-full bg-md-surface-container border border-md-outline text-sm text-md-on-surface placeholder-md-on-surface-variant focus:outline-none focus:ring-2 focus:ring-action"
+              className="w-full h-9 pl-8 pr-3 rounded-md bg-surface border border-border-strong text-[13px] text-ink placeholder:text-ink-subtle focus:outline-none focus:border-action focus:ring-[3px] focus:ring-action/20"
             />
           </div>
           <Button onClick={handleNewQuote} className="shrink-0">
-            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
+            <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
             New quote
           </Button>
         </div>
@@ -160,7 +160,7 @@ export function QuoteBoard() {
               }
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 content-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 content-start">
               {!isSearching && resumeQuote && (
                 <ResumeCard quote={resumeQuote} formatMoney={formatCurrency} onOpen={handleOpen} />
               )}
@@ -174,7 +174,7 @@ export function QuoteBoard() {
                 />
               ))}
               {isSearching && listedQuotes.length === 0 && (
-                <p className="md:col-span-2 py-8 text-center text-sm text-md-on-surface-variant">
+                <p className="md:col-span-2 py-8 text-center text-sm text-ink-muted">
                   No quotes match “{search.trim()}”.
                 </p>
               )}
@@ -205,13 +205,15 @@ export function QuoteBoard() {
 
 function DraftBadge({ count, suffix = '' }: { count: number; suffix?: string }) {
   return (
-    <span className="shrink-0 px-2 py-0.5 rounded-full bg-warning/15 text-warning text-xs font-medium">
+    <span className="shrink-0 px-2 py-0.5 rounded-full bg-draft-bg text-draft text-[10.5px] font-medium">
       {pluralize(count, 'draft')}
       {suffix}
     </span>
   );
 }
 
+// Mockup 2d: surface card, strong hairline, 10px radius; money in mono, the quote total in
+// committed green (it's what the client pays) and uncounted draft money in amber.
 function ResumeCard({
   quote,
   formatMoney,
@@ -227,37 +229,33 @@ function ResumeCard({
     <section
       aria-labelledby="resume-quote-heading"
       className={cn(
-        'md:col-span-2 flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-extra-large',
-        'bg-md-surface-container border border-md-outline elevation-1',
+        'md:col-span-2 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 px-[18px] py-4 rounded-[10px]',
+        'bg-surface border border-border-strong shadow-card',
         drafts.count > 0 && DRAFT_EDGE
       )}
     >
       <div className="flex-1 min-w-0">
         <p
           id="resume-quote-heading"
-          className="text-[11px] font-semibold uppercase tracking-wider text-md-on-surface-variant mb-2"
+          className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-2"
         >
           Pick up where you left off
         </p>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
-          <h2 className="min-w-0 text-lg font-semibold text-md-on-surface break-words">{quote.name}</h2>
+          <h2 className="min-w-0 text-[15px] font-semibold text-ink break-words">{quote.name}</h2>
           {drafts.count > 0 && <DraftBadge count={drafts.count} suffix=" open" />}
         </div>
-        <p className="text-xs font-mono text-md-on-surface-variant">
+        <p className="text-[11.5px] font-numeric text-ink-muted">
           {pluralize(quote.lineItems.length, 'item')} · edited {formatEditedAt(quote.updatedAt)}
         </p>
       </div>
       <div className="sm:text-right">
-        <p className="text-xl font-semibold font-mono tabular-nums text-md-on-surface">
-          {formatMoney(quote.total)}
-        </p>
+        <p className="text-xl font-semibold font-numeric text-committed">{formatMoney(quote.total)}</p>
         {drafts.count > 0 && (
-          <p className="text-xs font-mono tabular-nums text-warning">
-            +{formatMoney(drafts.cost)} uncounted
-          </p>
+          <p className="text-[10.5px] font-numeric text-draft">+{formatMoney(drafts.cost)} uncounted</p>
         )}
       </div>
-      <Button onClick={() => onOpen(quote)} aria-label={`Continue ${quote.name}`} className="shrink-0">
+      <Button onClick={() => onOpen(quote)} aria-label={`Continue ${quote.name}`} className="shrink-0 h-[38px]">
         Continue
       </Button>
     </section>
@@ -280,17 +278,17 @@ function QuoteCard({
   return (
     <div
       className={cn(
-        'group relative p-4 rounded-extra-large bg-md-surface-container border border-md-outline',
-        'hover:border-md-primary focus-within:border-md-primary transition-smooth',
+        'group relative px-4 py-3.5 rounded-[10px] bg-surface border border-border-strong transition-colors',
+        'hover:bg-surface-hover',
         drafts.count > 0 && DRAFT_EDGE
       )}
     >
-      <div className="flex items-start gap-2 mb-1">
+      <div className="flex items-start gap-2 mb-0.5">
         {/* The ::after overlay makes the whole card open the quote; Delete sits above it. */}
         <button
           type="button"
           onClick={() => onOpen(quote)}
-          className="flex-1 min-w-0 text-left text-sm font-semibold text-md-on-surface truncate focus:outline-none after:absolute after:inset-0 after:rounded-extra-large focus-visible:after:ring-2 focus-visible:after:ring-action"
+          className="flex-1 min-w-0 text-left text-[13.5px] font-semibold text-ink truncate focus:outline-none after:absolute after:inset-0 after:rounded-[10px] focus-visible:after:ring-2 focus-visible:after:ring-action"
         >
           {quote.name}
         </button>
@@ -299,21 +297,21 @@ function QuoteCard({
           type="button"
           onClick={() => onDelete(quote)}
           aria-label={`Delete ${quote.name}`}
-          className="row-action relative z-10 -mr-1 -mt-1 p-1 rounded-full text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-opacity"
+          className="row-action relative z-10 -mr-1 -mt-0.5 p-1 rounded-md text-ink-muted hover:text-danger hover:bg-danger-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-opacity"
         >
           <Trash2 className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
-      <p className="text-xs font-mono text-md-on-surface-variant mb-3">
+      <p className="text-[11px] font-numeric text-ink-faint mb-2.5">
         {pluralize(quote.lineItems.length, 'item')} · {formatEditedAt(quote.updatedAt)}
       </p>
-      <p className="text-lg font-semibold font-mono tabular-nums text-md-on-surface">
-        {formatMoney(quote.total)}
-      </p>
+      <p className="text-lg font-semibold font-numeric text-ink">{formatMoney(quote.total)}</p>
     </div>
   );
 }
 
+// Mockup 2d's permanent launch rail. `sunken-2` rather than `sunken`: in dark mode `sunken`
+// is darker than the canvas, which reads as a hole rather than a tray.
 function TemplateRail({
   templates,
   estimates,
@@ -326,16 +324,16 @@ function TemplateRail({
   onStart: (template: ModuleTemplate) => void;
 }) {
   return (
-    <aside aria-labelledby="template-rail-heading" className="w-full lg:w-72 shrink-0">
-      <div className="p-4 rounded-extra-large bg-md-surface-container-low border border-md-outline">
+    <aside aria-labelledby="template-rail-heading" className="w-full lg:w-[290px] shrink-0">
+      <div className="flex flex-col gap-2.5 p-3.5 rounded-[10px] bg-sunken-2 border border-border-strong">
         <h2
           id="template-rail-heading"
-          className="text-[11px] font-semibold uppercase tracking-wider text-md-on-surface-variant mb-3"
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted"
         >
           Launch a template
         </h2>
         {templates.length === 0 ? (
-          <p className="text-sm text-md-on-surface-variant">
+          <p className="text-[13px] text-ink-muted">
             No templates yet. Save a quote&apos;s workspace as a template from the Quote Builder.
           </p>
         ) : (
@@ -343,19 +341,19 @@ function TemplateRail({
             {templates.map((template, index) => (
               <li
                 key={template.id}
-                className="p-3 rounded-xl bg-md-surface-container border border-md-outline"
+                className="px-[13px] py-3 rounded-lg bg-surface border border-border-strong"
               >
-                <p className="text-sm font-semibold text-md-on-surface truncate">{template.name}</p>
-                <p className="text-xs font-mono text-md-on-surface-variant mb-2">
+                <p className="text-[13px] font-semibold text-ink truncate">{template.name}</p>
+                <p className="text-[10.5px] font-numeric text-ink-muted mb-2">
                   {pluralize(template.moduleInstances.length, 'module')} · ≈{' '}
                   {formatMoney(estimates.get(template.id) ?? 0)}
                 </p>
                 <Button
                   size="sm"
-                  variant={index === 0 ? 'primary' : 'ghost'}
+                  variant={index === 0 ? 'primary' : 'secondary'}
                   onClick={() => onStart(template)}
                   aria-label={`Start quote from ${template.name}`}
-                  className={cn('w-full', index !== 0 && 'border border-md-outline text-md-primary')}
+                  className={cn('w-full', index !== 0 && 'text-action')}
                 >
                   Start quote
                 </Button>
@@ -363,7 +361,7 @@ function TemplateRail({
             ))}
           </ul>
         )}
-        <p className="mt-4 text-xs text-md-on-surface-variant">
+        <p className="mt-1.5 text-[11px] text-ink-muted">
           Templates carry their field links, so a value typed once feeds every module linked to it.
         </p>
       </div>

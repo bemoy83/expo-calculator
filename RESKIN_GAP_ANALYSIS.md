@@ -610,6 +610,31 @@ two small store actions (below). There is still no schema change.
   (pristine detection, stashing, board merge/sort, draft summary, search, edited-time
   formatting, template estimate).
 
+**Implementation notes (step 6 — sidebar and board style pass)**:
+- Sidebar (`components/AppSidebar.tsx`) follows 2a's token-driven sidebar: `sunken-2`
+  column with a `border` hairline, a 26px ink logo square, 36px primary items and 34px
+  catalog items (6px radius, 13px, `ink-body`), mono counts in `ink-faint`. The active item
+  is `action-solid` with its count in `action-border`, a 10.5px caps "Catalog" label in
+  `ink-faint`, and the Light/Dark control as a pill track in `border` with the active
+  option on `surface`. The Settings menu is a `surface` popover with `shadow-panel`; the
+  active theme row uses `action-bg`.
+- Layout (`components/Layout.tsx`): page background `canvas`, the mobile top bar matches
+  the sidebar (`sunken-2`), and the Import Data / Theme Settings modal frames are `surface`
+  + `border-strong` + `shadow-panel` with 10px corners. The body base style is
+  `bg-canvas text-ink`.
+- Board (`components/dashboard/QuoteBoard.tsx`) follows 2d's measurements: 24px title, a
+  34px search field in the field style, cards with 10px radius and `border-strong`, and a
+  3px `draft` left edge on quotes with drafts. The draft badge is `draft-bg`/`draft`. The
+  resume card's total is in `committed` green, as in 2d (it's what the client pays), and
+  uncounted draft money is in `draft`. Quote cards use `surface-hover` on hover.
+  - Template rail: `sunken-2` rather than 2d's sunken tray color, because Ink's dark
+    `sunken` is darker than the canvas and read as a hole. The first template gets the
+    primary button; the rest get secondary with `action` text, as in 2d.
+- `EmptyState` (shared: board, functions, templates, template preview) moved onto tokens
+  with smaller icon circles and 16px titles; its MD3 `elevation-4` is gone.
+- The board no longer uses `warning` or any MD3 classes; the step-3 note about
+  `!border-l-warning` is obsolete.
+
 ## Sequencing strategy: structure before style
 
 Not every gap above decouples the same way from the token/font work in Foundations.
@@ -660,7 +685,7 @@ currently has no external users to confuse.
    token/primitive restyle approach on a screen that needs no structural change.
    *(Done, with Labor; turned out to need a structural rebuild — see its section.
    Primitives were not restyled; see below.)*
-6. **Navigation shell and Dashboard — style pass** — apply the new tokens to the
+6. **Navigation shell and Dashboard — style pass** *(done)* — apply the new tokens to the
    structural work already shipped in steps 1 and 3 (colors, type, spacing on the
    sidebar and the quote list/resume card). Does not include Quote Builder's visual
    language — that's step 7, a separate and larger piece of work, not a continuation of

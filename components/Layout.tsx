@@ -51,15 +51,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-md-surface text-md-on-surface">
+    <div className="min-h-screen bg-canvas text-ink">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-md-primary focus:text-md-on-primary focus:rounded focus:ring-2 focus:ring-action focus:ring-offset-2"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-action-solid focus:text-on-accent focus:rounded-md focus:ring-2 focus:ring-action focus:ring-offset-2"
       >
         Skip to main content
       </a>
 
-      <header className="lg:hidden sticky top-0 z-30 h-app-header flex items-center gap-3 px-4 bg-md-surface-container border-b border-md-outline">
+      <header className="lg:hidden sticky top-0 z-30 h-app-header flex items-center gap-3 px-4 bg-sunken-2 border-b border-border">
         <button
           ref={navTriggerRef}
           type="button"
@@ -67,7 +67,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           aria-label="Open navigation"
           aria-expanded={isNavOpen}
           aria-controls="app-sidebar"
-          className="p-2 -ml-2 rounded-full text-md-on-surface-variant hover:text-md-on-surface hover-overlay transition-smooth"
+          className="p-2 -ml-2 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -106,18 +106,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           }}
           tabIndex={-1}
         >
-          <div className="bg-md-surface-container border border-md-outline rounded-xl elevation-24 max-w-2xl w-full max-h-[90vh] flex flex-col my-auto">
-            <div className="sticky top-0 border-b border-md-outline px-6 py-4 flex items-center justify-between shrink-0 z-10">
-              <h2 className="text-xl font-bold text-md-on-surface">Import Data</h2>
+          <div className="bg-surface border border-border-strong rounded-[10px] shadow-panel max-w-2xl w-full max-h-[90vh] flex flex-col my-auto">
+            <div className="sticky top-0 border-b border-border px-5 py-3.5 flex items-center justify-between shrink-0 z-10">
+              <h2 className="text-base font-semibold text-ink">Import Data</h2>
               <button
                 onClick={() => setShowImportModal(false)}
-                className="p-2 rounded-full hover:bg-md-surface-variant text-md-on-surface-variant hover:text-md-on-surface transition-smooth"
+                className="p-1.5 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-6 overflow-y-auto flex-1 min-h-0">
+            <div className="p-5 overflow-y-auto flex-1 min-h-0">
               <DataImporter onClose={() => setShowImportModal(false)} />
             </div>
           </div>
@@ -140,18 +140,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           }}
           tabIndex={-1}
         >
-          <div className="bg-md-surface-container border border-md-outline rounded-xl elevation-24 max-w-2xl w-full max-h-[90vh] flex flex-col my-auto">
-            <div className="sticky top-0 border-b border-md-outline px-6 py-4 flex items-center justify-between shrink-0 z-10">
-              <h2 className="text-xl font-bold text-md-on-surface">Theme Settings</h2>
+          <div className="bg-surface border border-border-strong rounded-[10px] shadow-panel max-w-2xl w-full max-h-[90vh] flex flex-col my-auto">
+            <div className="sticky top-0 border-b border-border px-5 py-3.5 flex items-center justify-between shrink-0 z-10">
+              <h2 className="text-base font-semibold text-ink">Theme Settings</h2>
               <button
                 onClick={() => setShowThemeImporter(false)}
-                className="p-2 rounded-full hover:bg-md-surface-variant text-md-on-surface-variant hover:text-md-on-surface transition-smooth"
+                className="p-1.5 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-6 overflow-y-auto flex-1 min-h-0">
+            <div className="p-5 overflow-y-auto flex-1 min-h-0">
               <ThemeImporter />
             </div>
           </div>
