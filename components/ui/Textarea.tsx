@@ -54,7 +54,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         className={cn(
           'w-full px-4 py-2.5 bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-2xl',
           'text-md-on-surface placeholder-md-on-surface-variant',
-          'focus:outline-none focus:ring-2 focus:ring-md-primary/50',
+          'focus:outline-none focus:ring-2 focus:ring-action/50',
           'transition-smooth',
           autoGrow ? 'overflow-hidden resize-none' : 'resize-none',
           'disabled-overlay disabled:cursor-not-allowed',

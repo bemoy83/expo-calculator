@@ -82,7 +82,7 @@ if (isInteractive) {
       disabled={disabled}
       className={cn(
         'inline-flex items-center gap-1 select-none transition-smooth cursor-pointer',
-        'focus:outline-none focus:ring-2 focus:ring-md-primary/50',
+        'focus:outline-none focus:ring-2 focus:ring-action/50',
         // interaction motion
         'active:scale-[0.96] hover:elevation-2 active:elevation-1',
         sizes[size],

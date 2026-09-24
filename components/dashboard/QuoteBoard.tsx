@@ -28,8 +28,7 @@ import type { ModuleTemplate, Quote } from '@/lib/types';
 type FormatMoney = (amount: number) => string;
 
 // Amber left edge on quotes with open drafts, repeating the builder's "not in the total" signal.
-// !important because the dark theme's `.dark .border-md-outline` rule outranks a plain utility.
-const DRAFT_EDGE = 'border-l-4 !border-l-warning';
+const DRAFT_EDGE = 'border-l-4 border-l-warning';
 
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
@@ -135,7 +134,7 @@ export function QuoteBoard() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search quotes…"
               aria-label="Search quotes"
-              className="w-full h-10 pl-9 pr-3 rounded-full bg-md-surface-container border border-md-outline text-sm text-md-on-surface placeholder-md-on-surface-variant focus:outline-none focus:ring-2 focus:ring-md-primary"
+              className="w-full h-10 pl-9 pr-3 rounded-full bg-md-surface-container border border-md-outline text-sm text-md-on-surface placeholder-md-on-surface-variant focus:outline-none focus:ring-2 focus:ring-action"
             />
           </div>
           <Button onClick={handleNewQuote} className="shrink-0">
@@ -291,7 +290,7 @@ function QuoteCard({
         <button
           type="button"
           onClick={() => onOpen(quote)}
-          className="flex-1 min-w-0 text-left text-sm font-semibold text-md-on-surface truncate focus:outline-none after:absolute after:inset-0 after:rounded-extra-large focus-visible:after:ring-2 focus-visible:after:ring-md-primary"
+          className="flex-1 min-w-0 text-left text-sm font-semibold text-md-on-surface truncate focus:outline-none after:absolute after:inset-0 after:rounded-extra-large focus-visible:after:ring-2 focus-visible:after:ring-action"
         >
           {quote.name}
         </button>
@@ -300,7 +299,7 @@ function QuoteCard({
           type="button"
           onClick={() => onDelete(quote)}
           aria-label={`Delete ${quote.name}`}
-          className="row-action relative z-10 -mr-1 -mt-1 p-1 rounded-full text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-md-primary transition-opacity"
+          className="row-action relative z-10 -mr-1 -mt-1 p-1 rounded-full text-md-on-surface-variant hover:text-md-error hover:bg-md-error/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-opacity"
         >
           <Trash2 className="h-4 w-4" aria-hidden="true" />
         </button>

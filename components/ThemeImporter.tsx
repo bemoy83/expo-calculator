@@ -105,7 +105,7 @@ export function ThemeImporter() {
               Or Paste JSON
             </label>
             <textarea
-              className="w-full p-3 border border-md-outline rounded-md font-mono text-sm bg-md-surface-container-low text-md-on-surface focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary"
+              className="w-full p-3 border border-md-outline rounded-md font-mono text-sm bg-md-surface-container-low text-md-on-surface focus:outline-none focus:ring-2 focus:ring-action focus:border-md-primary"
               placeholder="Paste Material Theme Builder JSON here..."
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}

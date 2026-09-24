@@ -41,7 +41,7 @@ export const Select: React.FC<SelectProps> = ({
             'bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-full px-4 py-2.5',
           
             // Focus ring like Input
-            'focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:border-md-primary',
+            'focus:outline-none focus:ring-2 focus:ring-action/50 focus:border-md-primary',
           
             // Disabled
             'disabled-overlay disabled:cursor-not-allowed',

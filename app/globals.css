@@ -37,101 +37,55 @@
 }
 
 :root {
-  /* Light - from Material Theme Builder JSON */
-  --md-sys-color-primary: 0 74 198;
-  --md-sys-color-surface-tint: 0 83 219;
-  --md-sys-color-on-primary: 255 255 255;
-  --md-sys-color-primary-container: 37 99 235;
-  --md-sys-color-on-primary-container: 238 239 255;
-  --md-sys-color-secondary: 73 92 149;
-  --md-sys-color-on-secondary: 255 255 255;
-  --md-sys-color-secondary-container: 172 191 255;
-  --md-sys-color-on-secondary-container: 57 76 132;
-  --md-sys-color-tertiary: 135 35 164;
-  --md-sys-color-on-tertiary: 255 255 255;
-  --md-sys-color-tertiary-container: 163 65 191;
-  --md-sys-color-on-tertiary-container: 255 234 254;
-  --md-sys-color-error: 186 26 26;
-  --md-sys-color-on-error: 255 255 255;
-  --md-sys-color-error-container: 255 218 214;
-  --md-sys-color-on-error-container: 147 0 10;
-  --md-sys-color-background: 250 248 255;
-  --md-sys-color-on-background: 25 27 35;
-  --md-sys-color-surface: 250 248 255;
-  --md-sys-color-on-surface: 25 27 35;
-  --md-sys-color-surface-variant: 223 225 244;
-  --md-sys-color-on-surface-variant: 67 70 85;
-  --md-sys-color-outline: 115 118 134;
-  --md-sys-color-outline-variant: 195 198 215;
-  --md-sys-color-shadow: 0 0 0;
-  --md-sys-color-scrim: 0 0 0;
-  --md-sys-color-inverse-surface: 46 48 57;
-  --md-sys-color-inverse-on-surface: 240 240 251;
-  --md-sys-color-inverse-primary: 180 197 255;
-  --md-sys-color-primary-fixed: 219 225 255;
-  --md-sys-color-on-primary-fixed: 0 23 75;
-  --md-sys-color-primary-fixed-dim: 180 197 255;
-  --md-sys-color-on-primary-fixed-variant: 0 62 168;
-  --md-sys-color-secondary-fixed: 219 225 255;
-  --md-sys-color-on-secondary-fixed: 0 23 75;
-  --md-sys-color-secondary-fixed-dim: 180 197 255;
-  --md-sys-color-on-secondary-fixed-variant: 49 76 123;
-  --md-sys-color-tertiary-fixed: 252 215 255;
-  --md-sys-color-on-tertiary-fixed: 52 0 67;
-  --md-sys-color-tertiary-fixed-dim: 242 175 255;
-  --md-sys-color-on-tertiary-fixed-variant: 119 9 148;
-  --md-sys-color-surface-dim: 217 217 229;
-  --md-sys-color-surface-bright: 250 248 255;
-  --md-sys-color-surface-container-lowest: 255 255 255;
-  --md-sys-color-surface-container-low: 243 243 254;
-  --md-sys-color-surface-container: 237 237 249;
-  --md-sys-color-surface-container-high: 231 231 243;
-  --md-sys-color-surface-container-highest: 225 226 237;
-
   /* ============================================
-     Material Design 3 Color System - Light Mode
-     ============================================ */
+     Material Design 3 Color System
+     ============================================
+     Every MD3 role points at an Ink design token (see "Design tokens" below), so screens
+     that still use md-* classes render in Ink until they're restyled onto the design
+     tokens directly. Defined once for both modes: the Ink tokens switch per mode.
+     An imported Material theme (lib/themes/theme-applier.ts) overrides these --md-*
+     variables inline on <html>, exactly as before. */
   
-  /* MD3 Primary Palette - mapped from Material Theme Builder */
-    --md-primary: var(--md-sys-color-primary);
-    --md-on-primary: var(--md-sys-color-on-primary);
-    --md-primary-container: var(--md-sys-color-primary-container);
-    --md-on-primary-container: var(--md-sys-color-on-primary-container);
+  /* MD3 Primary Palette */
+    --md-primary: var(--action-solid);
+    --md-on-primary: var(--on-accent);
+    --md-primary-container: var(--action-bg);
+    --md-on-primary-container: var(--action);
   
   /* MD3 Secondary Palette */
-  --md-secondary: var(--md-sys-color-secondary);
-    --md-on-secondary: var(--md-sys-color-on-secondary);
-    --md-secondary-container: var(--md-sys-color-secondary-container);
-    --md-on-secondary-container: var(--md-sys-color-on-secondary-container);
+  --md-secondary: var(--border);
+    --md-on-secondary: var(--ink);
+    --md-secondary-container: var(--sunken);
+    --md-on-secondary-container: var(--ink);
   
   /* MD3 Tertiary Palette */
-  --md-tertiary: var(--md-sys-color-tertiary);
-    --md-on-tertiary: var(--md-sys-color-on-tertiary);
-    --md-tertiary-container: var(--md-sys-color-tertiary-container);
-    --md-on-tertiary-container: var(--md-sys-color-on-tertiary-container);
+  --md-tertiary: var(--sunken);
+    --md-on-tertiary: var(--ink);
+    --md-tertiary-container: var(--sunken);
+    --md-on-tertiary-container: var(--ink);
   
   /* MD3 Error Palette */
-  --md-error: var(--md-sys-color-error);
-    --md-on-error: var(--md-sys-color-on-error);
-    --md-error-container: var(--md-sys-color-error-container);
-    --md-on-error-container: var(--md-sys-color-on-error-container);
+  --md-error: var(--danger);
+    --md-on-error: var(--on-accent);
+    --md-error-container: var(--danger-bg);
+    --md-on-error-container: var(--danger);
   
   /* MD3 Surface System */
-  --md-surface: var(--md-sys-color-surface);
-    --md-on-surface: var(--md-sys-color-on-surface);
-    --md-surface-variant: var(--md-sys-color-surface-variant);
-    --md-on-surface-variant: var(--md-sys-color-on-surface-variant);
+  --md-surface: var(--canvas);
+    --md-on-surface: var(--ink);
+    --md-surface-variant: var(--sunken);
+    --md-on-surface-variant: var(--ink-muted);
   
   /* MD3 Surface Container Hierarchy */
-  --md-surface-container-lowest: var(--md-sys-color-surface-container-lowest);
-    --md-surface-container-low: var(--md-sys-color-surface-container-low);
-    --md-surface-container: var(--md-sys-color-surface-container);
-    --md-surface-container-high: var(--md-sys-color-surface-container-high);
-    --md-surface-container-highest: var(--md-sys-color-surface-container-highest);
+  --md-surface-container-lowest: var(--surface);
+    --md-surface-container-low: var(--sunken);
+    --md-surface-container: var(--surface);
+    --md-surface-container-high: var(--sunken);
+    --md-surface-container-highest: var(--surface);
   
   /* MD3 Outline System */
-  --md-outline: var(--md-sys-color-outline);
-    --md-outline-variant: var(--md-sys-color-outline-variant);
+  --md-outline: var(--border);
+    --md-outline-variant: var(--border);
   
   /* MD3 Shape System (Border Radius) */
   --md-shape-corner-none: 0px;
@@ -161,9 +115,9 @@
      Custom Tokens (Not in MD3 Spec)
      ============================================ */
   
-  --warning: 245 158 11;                      /* Custom warning color (no MD3 equivalent) */
-  --success: 22 163 74;                       /* Custom success color (no MD3 equivalent) */
-  --success-foreground: 15 23 42;             /* Text on success background */
+  --warning: var(--draft);                    /* = design token draft (amber) */
+  --success: var(--committed);                /* = design token committed (green) */
+  --success-foreground: var(--on-accent);     /* Text on success background */
   --overlay: 0 0 0;                           /* Overlay/scrim color (convenience token) */
   
   /* Custom Border Radius (not in MD3 standard sizes) */
@@ -172,100 +126,23 @@
 }
 
 .dark {
-  /* Dark - from Material Theme Builder JSON */
-    --md-sys-color-primary: 180 197 255;
-    --md-sys-color-surface-tint: 180 197 255;
-    --md-sys-color-on-primary: 0 42 120;
-    --md-sys-color-primary-container: 37 99 235;
-    --md-sys-color-on-primary-container: 238 239 255;
-    --md-sys-color-secondary: 180 197 255;
-    --md-sys-color-on-secondary: 24 45 99;
-    --md-sys-color-secondary-container: 51 70 126;
-    --md-sys-color-on-secondary-container: 164 182 245;
-    --md-sys-color-tertiary: 242 175 255;
-    --md-sys-color-on-tertiary: 85 0 108;
-    --md-sys-color-tertiary-container: 163 65 191;
-    --md-sys-color-on-tertiary-container: 255 234 254;
-    --md-sys-color-error: 255 180 171;
-    --md-sys-color-on-error: 105 0 5;
-    --md-sys-color-error-container: 147 0 10;
-    --md-sys-color-on-error-container: 255 218 214;
-    --md-sys-color-background: 17 19 27;
-    --md-sys-color-on-background: 225 226 237;
-    --md-sys-color-surface: 17 19 27;
-    --md-sys-color-on-surface: 225 226 237;
-    --md-sys-color-surface-variant: 67 70 85;
-    --md-sys-color-on-surface-variant: 195 198 215;
-    --md-sys-color-outline: 141 144 160;
-    --md-sys-color-outline-variant: 67 70 85;
-    --md-sys-color-shadow: 0 0 0;
-    --md-sys-color-scrim: 0 0 0;
-    --md-sys-color-inverse-surface: 225 226 237;
-    --md-sys-color-inverse-on-surface: 46 48 57;
-    --md-sys-color-inverse-primary: 0 83 219;
-    --md-sys-color-primary-fixed: 219 225 255;
-    --md-sys-color-on-primary-fixed: 0 23 75;
-    --md-sys-color-primary-fixed-dim: 180 197 255;
-    --md-sys-color-on-primary-fixed-variant: 0 62 168;
-    --md-sys-color-secondary-fixed: 219 225 255;
-    --md-sys-color-on-secondary-fixed: 0 23 75;
-    --md-sys-color-secondary-fixed-dim: 180 197 255;
-    --md-sys-color-on-secondary-fixed-variant: 49 76 123;
-    --md-sys-color-tertiary-fixed: 252 215 255;
-    --md-sys-color-on-tertiary-fixed: 52 0 67;
-    --md-sys-color-tertiary-fixed-dim: 242 175 255;
-    --md-sys-color-on-tertiary-fixed-variant: 119 9 148;
-    --md-sys-color-surface-dim: 17 19 27;
-    --md-sys-color-surface-bright: 55 57 66;
-    --md-sys-color-surface-container-lowest: 12 14 22;
-    --md-sys-color-surface-container-low: 25 27 35;
-    --md-sys-color-surface-container: 29 31 39;
-    --md-sys-color-surface-container-high: 40 42 50;
-    --md-sys-color-surface-container-highest: 50 52 61;
-  /* ============================================
+                                                                                                    /* ============================================
      Material Design 3 Color System - Dark Mode
      ============================================ */
   
   /* MD3 Primary Palette - Dark Mode - mapped from Material Theme Builder */
-    --md-primary: var(--md-sys-color-primary);
-    --md-on-primary: var(--md-sys-color-on-primary);
-    --md-primary-container: var(--md-sys-color-primary-container);
-    --md-on-primary-container: var(--md-sys-color-on-primary-container);
   
   /* MD3 Secondary Palette - Dark Mode */
-  --md-secondary: var(--md-sys-color-secondary);
-    --md-on-secondary: var(--md-sys-color-on-secondary);
-    --md-secondary-container: var(--md-sys-color-secondary-container);
-    --md-on-secondary-container: var(--md-sys-color-on-secondary-container);
   
   /* MD3 Tertiary Palette - Dark Mode */
-  --md-tertiary: var(--md-sys-color-tertiary);
-    --md-on-tertiary: var(--md-sys-color-on-tertiary);
-    --md-tertiary-container: var(--md-sys-color-tertiary-container);
-    --md-on-tertiary-container: var(--md-sys-color-on-tertiary-container);
   
   /* MD3 Error Palette - Dark Mode */
-  --md-error: var(--md-sys-color-error);
-    --md-on-error: var(--md-sys-color-on-error);
-    --md-error-container: var(--md-sys-color-error-container);
-    --md-on-error-container: var(--md-sys-color-on-error-container);
   
   /* MD3 Surface System - Dark Mode */
-  --md-surface: var(--md-sys-color-surface);
-    --md-on-surface: var(--md-sys-color-on-surface);
-    --md-surface-variant: var(--md-sys-color-surface-variant);
-    --md-on-surface-variant: var(--md-sys-color-on-surface-variant);
   
   /* MD3 Surface Container Hierarchy - Dark Mode */
-  --md-surface-container-lowest: var(--md-sys-color-surface-container-lowest);
-    --md-surface-container-low: var(--md-sys-color-surface-container-low);
-    --md-surface-container: var(--md-sys-color-surface-container);
-    --md-surface-container-high: var(--md-sys-color-surface-container-high);
-    --md-surface-container-highest: var(--md-sys-color-surface-container-highest);
   
   /* MD3 Outline System - Dark Mode */
-  --md-outline: var(--md-sys-color-outline);
-    --md-outline-variant: var(--md-sys-color-outline-variant);
   
   /* MD3 Shape System (same as light mode) */
   --md-shape-corner-none: 0px;
@@ -295,9 +172,6 @@
      Custom Tokens (Not in MD3 Spec)
      ============================================ */
   
-  --warning: 255 193 7;                        /* Custom warning color (no MD3 equivalent) */
-  --success: 76 175 80;                        /* Custom success color (no MD3 equivalent) */
-  --success-foreground: 255 255 255;           /* Text on success background */
   --overlay: 0 0 0;                            /* Overlay/scrim color (convenience token) */
   
   /* Custom Border Radius (not in MD3 standard sizes) */
@@ -379,9 +253,8 @@
 @layer base {
   body {
     @apply bg-md-surface text-md-on-surface;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
+    font-family: var(--font-ui), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+      'Helvetica Neue', sans-serif;
   }
 }
 
@@ -426,40 +299,10 @@
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  /* Material Design dark theme border opacity */
-  /* Override border color to use 12% opacity white in dark mode */
-  .dark .border-border {
-    border-color: rgb(255 255 255 / 0.12);
-  }
-  
-  /* Dark mode border utilities - MD3 compliant */
-  /* Standard MD3 dark mode borders use white at 12% opacity */
-  .dark .border-md-outline {
-    border-color: rgb(255 255 255 / 0.12);  /* 12% white - standard MD3 dark mode border */
-  }
-  
-  .dark .border-md-outline-variant {
-    border-color: rgb(255 255 255 / 0.08);   /* 8% white - subtle variant */
-  }
-  
-  /* Override opacity modifiers in dark mode for consistency */
-  /* Replace arbitrary opacity values with MD3-standard opacities */
-  .dark .border-md-outline\/50 {
-    border-color: rgb(255 255 255 / 0.12) !important;  /* Use standard 12% instead of 50% */
-  }
-  
-  .dark .border-md-outline\/30 {
-    border-color: rgb(255 255 255 / 0.08) !important;  /* Use variant opacity */
-  }
-  
-  /* Subtle input borders - hairline 1px with appropriate opacity */
+  /* Input borders use the design's stronger hairline (both modes) */
   .border-input {
     border-width: 1px;
-    border-color: rgb(var(--md-outline) / 0.25);
-  }
-  
-  .dark .border-input {
-    border-color: rgb(255 255 255 / 0.15);  /* 15% white for better input visibility */
+    border-color: rgb(var(--border-strong));
   }
   
   /* Material Design hover overlay system */

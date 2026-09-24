@@ -61,10 +61,8 @@ const config: Config = {
           DEFAULT: "rgb(var(--md-error) / <alpha-value>)",
           foreground: "rgb(var(--md-on-error) / <alpha-value>)",
         },
-        // DEFAULT is still the MD3 outline until the palette switch (Foundations 4b) points it
-        // at the design token --border; `strong` is already the design token.
         border: {
-          DEFAULT: "rgb(var(--md-outline) / <alpha-value>)",
+          DEFAULT: "rgb(var(--border) / <alpha-value>)",
           strong: "rgb(var(--border-strong) / <alpha-value>)",
         },
         
@@ -122,11 +120,13 @@ const config: Config = {
         },
       },
       borderColor: {
-        DEFAULT: "rgb(var(--md-outline) / <alpha-value>)",
+        DEFAULT: "rgb(var(--border) / <alpha-value>)",
       },
       fontFamily: {
-        // Archivo, loaded in app/layout.tsx. Numbers use the .font-numeric utility instead.
+        // Archivo and IBM Plex Mono, loaded in app/layout.tsx. Body text is Archivo
+        // (globals.css); numbers should use the .font-numeric utility (mono + tabular-nums).
         ui: ["var(--font-ui)", "system-ui", "sans-serif"],
+        mono: ["var(--font-numeric)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       spacing: {
         sidebar: 'var(--app-sidebar-w)',

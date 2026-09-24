@@ -86,7 +86,7 @@ export function ModulePickerCard({
               <button
                 key={module.id}
                 onClick={() => onAddModule(module.id)}
-                className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-on-primary focus:ring-md-primary elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
+                className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-on-primary focus:ring-action elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
               >
                 <Plus className="h-4 w-4 mr-2 shrink-0" />
                 <span className="truncate flex-1 text-left">{module.name}</span>
@@ -113,7 +113,7 @@ export function ModulePickerCard({
                 <button
                   key={template.id}
                   onClick={() => onApplyTemplate(template.id)}
-                  className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-on-primary focus:ring-md-primary elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
+                  className="font-medium rounded-full transition-smooth focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-md-surface inline-flex items-center justify-center active:scale-[0.98] bg-md-primary text-md-on-primary focus:ring-action elevation-1 hover-glow hover-overlay px-4 py-2 text-base w-full"
                 >
                   <Package className="h-4 w-4 mr-2 shrink-0" />
                   <span className="truncate flex-1 text-left">{template.name}</span>

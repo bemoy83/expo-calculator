@@ -37,7 +37,7 @@ export function AppBrand() {
   return (
     <Link
       href="/"
-      className="flex items-center gap-2.5 min-w-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-md-primary"
+      className="flex items-center gap-2.5 min-w-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
     >
       <span
         className="flex items-center justify-center w-8 h-8 rounded-lg bg-md-primary/10 shrink-0"

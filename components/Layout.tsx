@@ -54,7 +54,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-md-surface text-md-on-surface">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-md-primary focus:text-md-on-primary focus:rounded focus:ring-2 focus:ring-md-primary focus:ring-offset-2"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-md-primary focus:text-md-on-primary focus:rounded focus:ring-2 focus:ring-action focus:ring-offset-2"
       >
         Skip to main content
       </a>

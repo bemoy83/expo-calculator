@@ -50,7 +50,7 @@ export const Input: React.FC<InputProps> = ({
               ]
             : [
                 'px-4 py-2.5 bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-full',
-                'focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:border-md-primary',
+                'focus:outline-none focus:ring-2 focus:ring-action/50 focus:border-md-primary',
                 error && 'focus:ring-md-error/50 border-md-error/50',
               ],
           className

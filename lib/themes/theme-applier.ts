@@ -59,7 +59,7 @@ export function applyTheme(theme: ParsedMD3Theme | null, isDark: boolean): void 
       '--md-surface-container-high', '--md-surface-container-highest',
     ];
     
-    // Remove all properties - let CSS handle defaults via --md-sys-color-* mapping
+    // Remove all properties - the CSS defaults map every --md-* role to an Ink design token
     md3Props.forEach(prop => root.style.removeProperty(prop));
   }
 }

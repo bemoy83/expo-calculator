@@ -260,6 +260,51 @@ of one value doing double duty. No longer an open item.
 - Not added: `focus-ring` and the shadow tokens, which turn 4 dropped. Decide in 4b
   whether focus rings use `action` (likely, since `action-solid` is black in Ink).
 
+**Implementation notes (step 4b — palette switch)**:
+- Every MD3 role in `app/globals.css` now points at an Ink token, defined once for both
+  modes (the tokens themselves switch). The MD3 default palette (`--md-sys-color-*`) and
+  the dark block's duplicate aliases were deleted. Mapping:
+  | MD3 role | Ink token |
+  | --- | --- |
+  | primary / on-primary | action-solid / on-accent (black button, white text; inverted in dark) |
+  | primary-container / on-primary-container | action-bg / action (blue tint, blue text) |
+  | secondary, tertiary (+ containers) / on-* | border or sunken fills / ink |
+  | error / on-error / error-container / on-error-container | danger / on-accent / danger-bg / danger |
+  | surface / on-surface / surface-variant / on-surface-variant | canvas / ink / sunken / ink-muted |
+  | surface-container-lowest, -container, -highest | surface |
+  | surface-container-low, -high | sunken |
+  | outline, outline-variant | border |
+  | `--success` / `--warning` (app-specific) | committed / draft |
+  Secondary and tertiary have no Ink counterpart, so they become neutral fills: the
+  secondary Button is a grey fill and the default Chip (formerly purple) is sunken.
+- Deleted the dark-only overrides that forced borders to 12% white
+  (`.dark .border-md-outline`, `.border-border`, `-variant`, `/50`, `/30`,
+  `.dark .border-input`); dark borders now use Ink's values. `.border-input` uses
+  `border-strong` in both modes, as the design specifies for inputs. The quote board's
+  draft edge no longer needs `!important`.
+- Tailwind's `border` alias and the default border color now point at `--border`.
+- Focus rings: `ring-md-primary` / `ring-md-secondary` (19 uses) became `ring-action`,
+  so focus is blue rather than Ink's black button color. Chosen over a `focus-ring`
+  token, which turn 4 dropped.
+- Fonts: body text is Archivo (`var(--font-ui)`), and Tailwind's `font-mono` is IBM
+  Plex Mono, so existing mono numbers (sidebar counts, board totals) switch too.
+- Under an imported theme, the MD3-based screens still recolor exactly as before (the
+  import overrides `--md-*` inline), but focus rings, `border-border` borders, and input
+  borders now come from Ink tokens the import doesn't map. That's accepted under
+  "best-effort"; the import mapping (see Open decisions) will cover them.
+- Known leftovers for the per-screen restyles:
+  - MD3 elevation still adds white tonal overlays in dark and shadows in light. The
+    design uses borders instead; that's a Card/primitives change.
+  - The template editor's link sidebar (`LinkOpportunitiesSection`,
+    `LinkSourcesSection`, `TemplatePreviewHeader`) uses raw `emerald`/`orange`
+    Tailwind colors that bypass the tokens.
+  - The Input primitive's focus ring is a faint hairline at 12% opacity (pre-existing).
+  - The board's template rail uses `surface-container-low` → `sunken`, which in dark is
+    darker than the canvas. Fine as a recess, but revisit in the dashboard style pass.
+- Don't run `npm run build` while the dev server is running: both use `.next`, and the
+  build leaves the dev server serving missing chunks (404s, nothing hydrates) until it
+  restarts.
+
 ## Primitives — Low
 
 `components/ui/{Button,Card,Input,Select,Checkbox,Chip,Textarea}.tsx` already accept

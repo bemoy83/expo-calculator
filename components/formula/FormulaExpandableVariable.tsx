@@ -59,7 +59,7 @@ export function FormulaExpandableVariable({
                         aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
                         className="flex items-center justify-center w-6 h-6 shrink-0
                        rounded-full
-                       focus:outline-none focus:ring-2 focus:ring-md-primary/50"
+                       focus:outline-none focus:ring-2 focus:ring-action/50"
                     >
                         <ChevronRight
                             className={cn(
