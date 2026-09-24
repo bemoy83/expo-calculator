@@ -1,21 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { LaborPropertyForm } from '@/components/labor/LaborPropertyForm';
+import {
+  CatalogEditorPanel,
+  CatalogPropertyRow,
+  FormulaReference,
+  PanelSectionHeading,
+} from '@/components/shared/catalog/CatalogEditorPanel';
 import { applyNumericPropertyNormalization, normalizeNumericProperty } from '@/components/shared/catalog/catalog-units';
 import {
   validateDuplicateVariableName,
   validatePropertyName,
   validateVariableIdentifier,
 } from '@/components/shared/catalog/catalog-validation';
+import { useClearErrorsOnChange } from '@/components/shared/catalog/useClearErrorsOnChange';
 import { COMMON_LABOR_PROPERTIES, Labor, LaborProperty } from '@/lib/types';
-import { convertFromBase, getUnitCategory } from '@/lib/units';
+import { formatCatalogPropertyValue } from '@/lib/catalog/catalog-display';
+import { useCurrencyStore } from '@/lib/stores/currency-store';
+import { getUnitCategory } from '@/lib/units';
 import { generateId, labelToVariableName } from '@/lib/utils';
 
 type LaborFormData = {
@@ -37,6 +45,9 @@ interface LaborEditorPanelProps {
   labor: Labor[];
   onSave: (id: string | null, data: Omit<Partial<Labor>, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onClose: () => void;
+  onDelete?: (id: string) => void;
+  /** Modules whose formulas reference this labor item. */
+  usageCount: number;
 }
 
 const emptyFormData: LaborFormData = {
@@ -65,27 +76,24 @@ function toFormData(laborItem: Labor | null): LaborFormData {
   };
 }
 
-function displayLaborPropertyValue(prop: LaborProperty) {
-  if (prop.unitSymbol && prop.storedValue !== undefined) {
-    return `${convertFromBase(prop.storedValue, prop.unitSymbol)} ${prop.unitSymbol}`;
-  }
-  return String(prop.value);
-}
-
 export function LaborEditorPanel({
   laborItem,
   labor,
   onSave,
   onClose,
+  onDelete,
+  usageCount,
 }: LaborEditorPanelProps) {
   const [formData, setFormData] = useState<LaborFormData>(() => toFormData(laborItem));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  useClearErrorsOnChange(formData, setErrors);
   const [properties, setProperties] = useState<LaborProperty[]>(() =>
     laborItem?.properties ? [...laborItem.properties] : []
   );
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
   const [newProperty, setNewProperty] = useState<NewLaborProperty>(emptyNewProperty);
   const [propertyErrors, setPropertyErrors] = useState<Record<string, string>>({});
+  const [isAddingProperty, setIsAddingProperty] = useState(false);
 
   useEffect(() => {
     setFormData(toFormData(laborItem));
@@ -94,6 +102,7 @@ export function LaborEditorPanel({
     setPropertyErrors({});
     setEditingPropertyId(null);
     setNewProperty(emptyNewProperty);
+    setIsAddingProperty(false);
   }, [laborItem]);
 
   const selectedLaborId = laborItem?.id ?? null;
@@ -149,6 +158,7 @@ export function LaborEditorPanel({
     setProperties([...properties, property]);
     setNewProperty(emptyNewProperty);
     setPropertyErrors({});
+    setIsAddingProperty(false);
   };
 
   const updateProperty = (id: string, updates: Partial<LaborProperty>) => {
@@ -184,191 +194,179 @@ export function LaborEditorPanel({
     });
   };
 
+  const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
+  const variableName = formData.variableName.trim();
+
   return (
-    <div className="lg:col-span-2">
-      <Card className="sticky top-sticky-offset z-40" title={isCreating ? 'Create Labor' : 'Edit Labor'}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Labor Name"
-            value={formData.name}
-            onChange={(event) => {
-              const name = event.target.value;
-              setFormData({ ...formData, name, variableName: labelToVariableName(name) });
-            }}
-            error={errors.name}
-            required
-            placeholder=""
-          />
+    <CatalogEditorPanel
+      title={isCreating ? 'New labor' : 'Edit labor'}
+      subtitle={isCreating ? undefined : `used in ${usageCount} ${usageCount === 1 ? 'module' : 'modules'}`}
+      submitLabel={isCreating ? 'Create' : 'Save'}
+      onSubmit={handleSubmit}
+      onClose={onClose}
+      onDelete={laborItem && onDelete ? () => onDelete(laborItem.id) : undefined}
+      deleteName={laborItem?.name}
+    >
+      <Input
+        label="Name"
+        value={formData.name}
+        onChange={(event) => {
+          const name = event.target.value;
+          setFormData({ ...formData, name, variableName: labelToVariableName(name) });
+        }}
+        error={errors.name}
+        required
+      />
 
-          <Input
-            label="Variable Name"
-            value={formData.variableName}
-            onChange={(event) => setFormData({ ...formData, variableName: event.target.value })}
-            error={errors.variableName}
-            required
-            placeholder=""
-          />
-          <p className="text-xs text-md-on-surface-variant -mt-2">
-            Used in formulas. Must start with a letter or underscore.
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="Category"
+          value={formData.category}
+          onChange={(event) => setFormData({ ...formData, category: event.target.value })}
+          error={errors.category}
+          required
+        />
+        <Input
+          label="Variable"
+          value={formData.variableName}
+          onChange={(event) => setFormData({ ...formData, variableName: event.target.value })}
+          error={errors.variableName}
+          required
+          className="font-numeric"
+        />
+      </div>
+
+      <Input
+        label="Hourly rate"
+        type="number"
+        step="0.01"
+        min="0"
+        value={formData.cost}
+        onChange={(event) => setFormData({ ...formData, cost: event.target.value })}
+        error={errors.cost}
+        required
+        className="font-numeric"
+      />
+
+      <FormulaReference
+        variableName={variableName}
+        value={`${formatCurrency(Number(formData.cost) || 0)} / hr`}
+      />
+
+      <div>
+        <PanelSectionHeading
+          aside={
+            !isAddingProperty && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingProperty(true)}>
+                <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                Add property
+              </Button>
+            )
+          }
+        >
+          Properties
+        </PanelSectionHeading>
+
+        {properties.length === 0 && !isAddingProperty && (
+          <p className="mt-1 text-xs text-draft">
+            No properties. Modules that read a productivity rate (e.g. <code className="font-numeric">{variableName || 'name'}.m2_per_hr</code>) can&apos;t calculate.
           </p>
+        )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Category"
-              value={formData.category}
-              onChange={(event) => setFormData({ ...formData, category: event.target.value })}
-              error={errors.category}
-              required
-              placeholder=""
-            />
-            <Input
-              label="Hourly Rate"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.cost}
-              onChange={(event) => setFormData({ ...formData, cost: event.target.value })}
-              error={errors.cost}
-              required
-              placeholder=""
-            />
-          </div>
-
-          <Textarea
-            label="Description (optional)"
-            value={formData.description}
-            onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-            rows={3}
-            placeholder=""
-          />
-
-          <div className="pt-4 border-t border-border">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-md font-semibold text-md-primary">Properties</label>
-              <span className="text-xs text-md-on-surface-variant">
-                {properties.length} {properties.length === 1 ? 'property' : 'properties'}
-              </span>
-            </div>
-            <p className="text-xs text-md-on-surface-variant mb-4">
-              Add productivity rates (e.g., m²/hr, pcs/hr) that can be referenced in formulas using dot notation (e.g., <code className="text-md-primary">labor.m2_per_hr</code>).
-            </p>
-
-            <div className="mb-4">
-              <p className="text-xs text-md-on-surface-variant mb-2">Quick add:</p>
-              <div className="flex flex-wrap gap-2">
-                {COMMON_LABOR_PROPERTIES.map((propName) => {
-                  const exists = properties.some((property) => property.name.toLowerCase() === propName.toLowerCase());
-                  return (
-                    <Chip
-                      key={propName}
-                      size="sm"
-                      variant={exists ? 'ghost' : 'primaryTonal'}
-                      disabled={exists}
-                      onClick={() => !exists && setNewProperty({ ...newProperty, name: propName })}
-                    >
-                      {propName}
-                    </Chip>
-                  );
-                })}
+        <div className="mt-1">
+          {properties.map((prop) =>
+            editingPropertyId === prop.id ? (
+              <div key={prop.id} className="my-2 p-3 rounded-md border border-border">
+                <LaborPropertyForm
+                  property={prop}
+                  propertyData={{
+                    name: prop.name,
+                    value: prop.value,
+                    unitSymbol: prop.unitSymbol,
+                  }}
+                  error={propertyErrors[prop.id]}
+                  onChange={(updates) => updateProperty(prop.id, updates)}
+                  onSubmit={() => setEditingPropertyId(null)}
+                  onCancel={() => setEditingPropertyId(null)}
+                  mode="edit"
+                />
               </div>
-            </div>
-
-            {properties.length > 0 && (
-              <div className="space-y-2 mb-4">
-                {properties.map((prop) => (
-                  <div key={prop.id} className="flex items-start gap-2 p-3 bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-2xl">
-                    <div className="flex-1 min-w-0">
-                      {editingPropertyId === prop.id ? (
-                        <LaborPropertyForm
-                          property={prop}
-                          propertyData={{
-                            name: prop.name,
-                            value: prop.value,
-                            unitSymbol: prop.unitSymbol,
-                          }}
-                          error={propertyErrors[prop.id]}
-                          onChange={(updates) => updateProperty(prop.id, updates)}
-                          onSubmit={() => setEditingPropertyId(null)}
-                          onCancel={() => setEditingPropertyId(null)}
-                          mode="edit"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Chip size="sm" variant="primary">{prop.name}</Chip>
-                              {prop.unitSymbol && (
-                                <span className="text-xs text-md-on-surface-variant">({prop.unitSymbol})</span>
-                              )}
-                              {prop.unitCategory && (
-                                <span className="text-xs text-md-on-surface-variant ml-1">[{prop.unitCategory}]</span>
-                              )}
-                            </div>
-                            <div className="mt-1 text-sm text-md-on-surface">
-                              {displayLaborPropertyValue(prop)}
-                            </div>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setEditingPropertyId(prop.id)}
-                              className="p-2 text-md-on-surface-variant hover:text-md-primary hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
-                              aria-label="Edit property"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setProperties(properties.filter((property) => property.id !== prop.id))}
-                              className="p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
-                              aria-label="Remove property"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <LaborPropertyForm
-                property={null}
-                propertyData={{
-                  name: newProperty.name,
-                  value: newProperty.value,
-                  unitSymbol: newProperty.unitSymbol,
-                }}
-                error={propertyErrors.new}
-                onChange={(updates) => {
-                  const updatedProperty = { ...newProperty };
-                  if (updates.name !== undefined) {
-                    updatedProperty.name = updates.name;
-                    setPropertyErrors({});
-                  }
-                  if (updates.value !== undefined) updatedProperty.value = updates.value;
-                  if (updates.unitSymbol !== undefined) updatedProperty.unitSymbol = updates.unitSymbol;
-                  setNewProperty(updatedProperty);
-                }}
-                onSubmit={addProperty}
-                mode="create"
+            ) : (
+              <CatalogPropertyRow
+                key={prop.id}
+                name={prop.name}
+                reference={`${variableName}.${prop.name}`}
+                value={formatCatalogPropertyValue(prop)}
+                onEdit={() => setEditingPropertyId(prop.id)}
+                onRemove={() => setProperties(properties.filter((property) => property.id !== prop.id))}
               />
-            </div>
-          </div>
+            )
+          )}
+        </div>
 
-          <div className="flex space-x-3 pt-4 border-t border-border">
-            <Button type="button" variant="ghost" onClick={onClose} className="flex-1">
+        {isAddingProperty && (
+          <div className="mt-2 p-3 rounded-md border border-border space-y-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-ink-muted">Quick add:</span>
+              {COMMON_LABOR_PROPERTIES.map((propName) => {
+                const exists = properties.some((property) => property.name.toLowerCase() === propName.toLowerCase());
+                return (
+                  <Chip
+                    key={propName}
+                    size="sm"
+                    variant={exists ? 'ghost' : 'primaryTonal'}
+                    disabled={exists}
+                    onClick={() => !exists && setNewProperty({ ...newProperty, name: propName })}
+                  >
+                    {propName}
+                  </Chip>
+                );
+              })}
+            </div>
+            <LaborPropertyForm
+              property={null}
+              propertyData={{
+                name: newProperty.name,
+                value: newProperty.value,
+                unitSymbol: newProperty.unitSymbol,
+              }}
+              error={propertyErrors.new}
+              onChange={(updates) => {
+                const updatedProperty = { ...newProperty };
+                if (updates.name !== undefined) {
+                  updatedProperty.name = updates.name;
+                  setPropertyErrors({});
+                }
+                if (updates.value !== undefined) updatedProperty.value = updates.value;
+                if (updates.unitSymbol !== undefined) updatedProperty.unitSymbol = updates.unitSymbol;
+                setNewProperty(updatedProperty);
+              }}
+              onSubmit={addProperty}
+              mode="create"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsAddingProperty(false);
+                setNewProperty(emptyNewProperty);
+                setPropertyErrors({});
+              }}
+              className="w-full"
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              {isCreating ? 'Create' : 'Update'} Labor
-            </Button>
           </div>
-        </form>
-      </Card>
-    </div>
+        )}
+      </div>
+
+      <Textarea
+        label="Description"
+        value={formData.description}
+        onChange={(event) => setFormData({ ...formData, description: event.target.value })}
+        rows={2}
+      />
+    </CatalogEditorPanel>
   );
 }

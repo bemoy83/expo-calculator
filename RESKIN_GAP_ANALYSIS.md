@@ -81,7 +81,7 @@ be signed off as "done" without them.
 | Quote Builder (2a, minus cost mix) | Low–Moderate | Structure already matches; two small new pieces (reopen, nickname) |
 | Module Editor — Detailed (2b) | High | New chip-based formula surface; no existing analog in the app |
 | Module Editor — Simple (2c) | High | New screen entirely; Simple/Detailed toggle doesn't exist today |
-| Materials catalog (1f, "unchanged, as picked") | Very low | Current page already matches the proposed structure |
+| Materials catalog (1f, "unchanged, as picked") | ~~Very low~~ Moderate | Was a card list, not the table 1f specifies — see correction in its section |
 | Dashboard (2d) | Moderate | Data exists in the quotes store; current component renders none of it |
 
 ## Navigation shell (left sidebar) — Low–Moderate
@@ -442,13 +442,66 @@ Sequencing note: since both views edit the same underlying module, Detailed (2b)
 safer one to build first — it's an evolution of `FormulaBuilder`'s existing pieces —
 before committing to Simple (2c), which is greenfield.
 
-## Materials catalog (1f) — Very low
+## Materials catalog (1f) — ~~Very low~~ Moderate
 
 **Current state** (`app/materials/page.tsx`): already `CatalogPageShell` (list) +
 `MaterialEditorPanel` (side panel), i.e. the exact "dense table + side panel" structure
 the design specifies — which is presumably why the design doc kept this screen
 "unchanged, as picked" rather than remocking it. Gap here is a restyle of existing
 components only.
+
+**Correction (found in step 5)**: the assessment above was wrong. The list was a stack of
+expandable, draggable cards (`MaterialItem` on `ModuleCardShell`), not the dense table
+1f shows (Name with category and SKU/supplier · Variable · Properties inline · Price ·
+Unit), and the panel lacked 1f's formula reference line and module-usage count. The side
+panel existed; the table didn't. Step 5 was a structural rebuild of the list plus a
+restyle of the panel.
+
+**Decisions (step 5)**:
+- **Manual order kept.** Rows keep the saved drag order with a slim drag-handle column,
+  instead of switching to sortable columns (1f's rationale mentions "sortable", but its
+  table has no sort controls). Dragging is off while searching or filtering, as before.
+- **Labor gets the same treatment** (no Labor mockup exists). It shares the catalog shell,
+  so both pages use the same table and panel: Name · Variable · Properties · Rate.
+
+**Implementation notes (step 5, Materials and Labor)**:
+- Shared pieces in `components/shared/catalog/`: `CatalogPageShell` (header with item
+  count, search and New button; category chips with counts; table header; empty states;
+  panel column), `CatalogTableRow` (grid row: drag handle, a name cell whose stretched
+  button opens the editor, then the page's cells; plus `CatalogPropertiesCell`),
+  `CatalogCategoryChips`, and `CatalogEditorPanel` (panel frame with a Delete / Cancel /
+  Save footer, `FormulaReference`, `CatalogPropertyRow`). `MaterialRow`/`LaborRow` replace
+  the old `MaterialItem`/`LaborItem` cards. `CatalogSearchFilter` and the now-unused
+  `CategoryChipSelector` were deleted; `useCatalogListState` lost its expand/collapse state
+  and gained category counts.
+- **Layout**: columns come from each page (`MATERIAL_COLUMNS`/`MATERIAL_GRID`,
+  `LABOR_COLUMNS`/`LABOR_GRID`) through a `--catalog-cols` CSS variable. The narrow layout
+  (name and price only) is used below `md`, and also while the panel is open until `2xl`,
+  since the table beside a 380px panel is too narrow for five columns
+  (`CatalogLayoutProvider`). Below `lg` the panel stacks under the table and scrolls into
+  view when opened.
+- **Missing properties are flagged amber** in the row ("no properties") and in the panel,
+  per 1f. That applies to Labor too.
+- **Formula reference**: the panel shows the bare variable (`mdf18 → 142.00 kr / m²`),
+  because the resolver evaluates a bare material/labor variable to its price/rate;
+  `mdf18.price` also works (it falls back to the price) but isn't the canonical form.
+  Each property row shows its own reference (`mdf18.thickness`).
+- **"Used in N modules"** (`countModulesUsingCatalogItem`, `lib/catalog/catalog-display.ts`)
+  counts modules that reference the item's variable in the formula or a computed output
+  (bare or `.property`), **or** have a material/labor picker field whose category filter
+  is the item's category or empty. The picker case matters: real modules mostly choose
+  materials through category-filtered fields, so counting only name references showed
+  0 for materials that were in use.
+- **Delete moved into the panel** (it was on each card), behind `ConfirmDialog`.
+- **Form behavior**: the forms use `noValidate`, so the panel's own inline errors show
+  instead of the browser's; each field's error now clears as soon as it's edited
+  (`useClearErrorsOnChange`) rather than staying until the next submit. Adding a property
+  is behind an "Add property" button instead of an always-open form.
+- **Not restyled here**: the shared primitives (`Input`, `Select`, `Button`, `Chip`,
+  `Textarea`) and `PropertyForm`/`LaborPropertyForm`. They render in Ink colors (step 4b)
+  but keep MD3 shapes (pill buttons, filled rounded inputs). Restyling them changes every
+  screen at once, so it should be its own step.
+- Regression tests: "Catalog Display Regression" (`lib/regression-tests/catalog-regression.ts`).
 
 ## Dashboard (2d) — Moderate
 
@@ -575,6 +628,8 @@ currently has no external users to confuse.
      links and active states rendering black (Ink's button color) instead of blue.
 5. **Materials catalog** restyle — cheapest possible visual win, validates the
    token/primitive restyle approach on a screen that needs no structural change.
+   *(Done, with Labor; turned out to need a structural rebuild — see its section.
+   Primitives were not restyled; see below.)*
 6. **Navigation shell and Dashboard — style pass** — apply the new tokens to the
    structural work already shipped in steps 1 and 3 (colors, type, spacing on the
    sidebar and the quote list/resume card). Does not include Quote Builder's visual

@@ -3,11 +3,20 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Users } from 'lucide-react';
 import { LaborEditorPanel } from '@/components/labor/LaborEditorPanel';
-import { LaborItem } from '@/components/labor/LaborItem';
+import { LaborRow } from '@/components/labor/LaborRow';
 import { CatalogPageShell } from '@/components/shared/catalog/CatalogPageShell';
 import { useCatalogListState } from '@/components/shared/catalog/useCatalogListState';
+import { countModulesUsingCatalogItem } from '@/lib/catalog/catalog-display';
 import { useLaborStore } from '@/lib/stores/labor-store';
+import { useModulesStore } from '@/lib/stores/modules-store';
 import { Labor } from '@/lib/types';
+
+const LABOR_COLUMNS = [
+  { label: 'Variable' },
+  { label: 'Properties' },
+  { label: 'Rate', align: 'right' as const },
+];
+const LABOR_GRID = 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1.3fr) 9rem';
 
 export default function LaborPage() {
   const labor = useLaborStore((state) => state.labor);
@@ -15,6 +24,7 @@ export default function LaborPage() {
   const updateLabor = useLaborStore((state) => state.updateLabor);
   const reorderLabor = useLaborStore((state) => state.reorderLabor);
   const deleteLabor = useLaborStore((state) => state.deleteLabor);
+  const modules = useModulesStore((state) => state.modules);
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedLaborId, setSelectedLaborId] = useState<string | null>(null);
@@ -56,7 +66,6 @@ export default function LaborPage() {
 
   const handleDelete = (id: string) => {
     deleteLabor(id);
-    catalog.removeCollapsedId(id);
     if (selectedLaborId === id) {
       closeEditor();
     }
@@ -64,9 +73,9 @@ export default function LaborPage() {
 
   return (
     <CatalogPageShell
-      title="Labor Catalog"
-      description="Manage labor rates and productivity rates for use in calculation formulas"
-      addLabel="Add Labor"
+      title="Labor"
+      addLabel="New labor"
+      searchPlaceholder="Search name, variable…"
       firstItemLabel="Add Your First Labor Item"
       emptyTitle="No Labor Items Yet"
       emptyFilteredTitle="No Labor Items Found"
@@ -79,6 +88,7 @@ export default function LaborPage() {
       searchQuery={catalog.searchQuery}
       onSearchQueryChange={catalog.setSearchQuery}
       categories={catalog.categories}
+      categoryCounts={catalog.categoryCounts}
       categoryFilter={catalog.categoryFilter}
       onCategoryFilterChange={catalog.setCategoryFilter}
       canReorder={catalog.canReorder}
@@ -86,15 +96,15 @@ export default function LaborPage() {
       onReorder={(oldIndex, newIndex) =>
         catalog.reorder(oldIndex, newIndex, reorderLabor)
       }
-      renderItem={(laborItem, disableDrag) => (
-        <LaborItem
+      columns={LABOR_COLUMNS}
+      gridTemplate={LABOR_GRID}
+      renderRow={(laborItem, disableDrag) => (
+        <LaborRow
           key={laborItem.id}
-          labor={laborItem}
-          isCollapsed={catalog.collapsedIds.has(laborItem.id)}
-          onToggleCollapse={catalog.toggleCollapse}
-          onEdit={openEditor}
-          onDelete={handleDelete}
+          laborItem={laborItem}
+          isSelected={isEditorOpen && laborItem.id === selectedLaborId}
           disableDrag={disableDrag}
+          onOpen={openEditor}
         />
       )}
       editor={
@@ -103,6 +113,10 @@ export default function LaborPage() {
           labor={labor}
           onSave={handleSave}
           onClose={closeEditor}
+          onDelete={handleDelete}
+          usageCount={
+            selectedLabor ? countModulesUsingCatalogItem(modules, selectedLabor, 'labor') : 0
+          }
         />
       }
     />

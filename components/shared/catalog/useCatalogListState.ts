@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { countByCategory } from '@/lib/catalog/catalog-display';
 
 export interface CatalogItemBase {
   id: string;
@@ -20,27 +21,13 @@ export function useCatalogListState<T extends CatalogItemBase>({
 }: UseCatalogListStateOptions<T>) {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(
-    () => new Set(items.map((item) => item.id))
-  );
-
-  useEffect(() => {
-    setCollapsedIds((prev) => {
-      const next = new Set(prev);
-      items.forEach((item) => {
-        if (!next.has(item.id)) {
-          next.add(item.id);
-        }
-      });
-      return next;
-    });
-  }, [items]);
-
   const categories = useMemo(() => {
     return Array.from(new Set(items.map((item) => item.category)))
       .filter((category) => category && category.toLowerCase() !== 'custom')
       .sort();
   }, [items]);
+
+  const categoryCounts = useMemo(() => countByCategory(items), [items]);
 
   const sortedByOrder = useMemo(() => {
     const originalIndex = new Map(items.map((item, index) => [item.id, index]));
@@ -71,26 +58,6 @@ export function useCatalogListState<T extends CatalogItemBase>({
 
   const canReorder = !searchQuery.trim() && categoryFilter === 'all';
 
-  const toggleCollapse = (id: string) => {
-    setCollapsedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const removeCollapsedId = (id: string) => {
-    setCollapsedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-  };
-
   const reorder = (
     oldIndex: number,
     newIndex: number,
@@ -112,12 +79,10 @@ export function useCatalogListState<T extends CatalogItemBase>({
     categoryFilter,
     setCategoryFilter,
     categories,
+    categoryCounts,
     sortedByOrder,
     filteredItems,
     canReorder,
-    collapsedIds,
-    toggleCollapse,
-    removeCollapsedId,
     reorder,
   };
 }

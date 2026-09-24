@@ -5,9 +5,19 @@ import { Package } from 'lucide-react';
 import { CatalogPageShell } from '@/components/shared/catalog/CatalogPageShell';
 import { useCatalogListState } from '@/components/shared/catalog/useCatalogListState';
 import { MaterialEditorPanel } from '@/components/materials/MaterialEditorPanel';
-import { MaterialItem } from '@/components/materials/MaterialItem';
+import { MaterialRow } from '@/components/materials/MaterialRow';
+import { countModulesUsingCatalogItem } from '@/lib/catalog/catalog-display';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
+import { useModulesStore } from '@/lib/stores/modules-store';
 import { Material } from '@/lib/types';
+
+const MATERIAL_COLUMNS = [
+  { label: 'Variable' },
+  { label: 'Properties' },
+  { label: 'Price', align: 'right' as const },
+  { label: 'Unit', align: 'right' as const },
+];
+const MATERIAL_GRID = 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1.1fr) 7.5rem 4rem';
 
 export default function MaterialsPage() {
   const materials = useMaterialsStore((state) => state.materials);
@@ -15,6 +25,7 @@ export default function MaterialsPage() {
   const updateMaterial = useMaterialsStore((state) => state.updateMaterial);
   const reorderMaterials = useMaterialsStore((state) => state.reorderMaterials);
   const deleteMaterial = useMaterialsStore((state) => state.deleteMaterial);
+  const modules = useModulesStore((state) => state.modules);
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
@@ -58,7 +69,6 @@ export default function MaterialsPage() {
 
   const handleDelete = (id: string) => {
     deleteMaterial(id);
-    catalog.removeCollapsedId(id);
     if (selectedMaterialId === id) {
       closeEditor();
     }
@@ -66,9 +76,9 @@ export default function MaterialsPage() {
 
   return (
     <CatalogPageShell
-      title="Materials Catalog"
-      description="Manage materials and their prices for use in calculation formulas"
-      addLabel="Add Material"
+      title="Materials"
+      addLabel="New material"
+      searchPlaceholder="Search name, SKU, variable…"
       firstItemLabel="Add Your First Material"
       emptyTitle="No Materials Yet"
       emptyFilteredTitle="No Materials Found"
@@ -81,6 +91,7 @@ export default function MaterialsPage() {
       searchQuery={catalog.searchQuery}
       onSearchQueryChange={catalog.setSearchQuery}
       categories={catalog.categories}
+      categoryCounts={catalog.categoryCounts}
       categoryFilter={catalog.categoryFilter}
       onCategoryFilterChange={catalog.setCategoryFilter}
       canReorder={catalog.canReorder}
@@ -88,15 +99,15 @@ export default function MaterialsPage() {
       onReorder={(oldIndex, newIndex) =>
         catalog.reorder(oldIndex, newIndex, reorderMaterials)
       }
-      renderItem={(material, disableDrag) => (
-        <MaterialItem
+      columns={MATERIAL_COLUMNS}
+      gridTemplate={MATERIAL_GRID}
+      renderRow={(material, disableDrag) => (
+        <MaterialRow
           key={material.id}
           material={material}
-          isCollapsed={catalog.collapsedIds.has(material.id)}
-          onToggleCollapse={catalog.toggleCollapse}
-          onEdit={openEditor}
-          onDelete={handleDelete}
+          isSelected={isEditorOpen && material.id === selectedMaterialId}
           disableDrag={disableDrag}
+          onOpen={openEditor}
         />
       )}
       editor={
@@ -105,6 +116,10 @@ export default function MaterialsPage() {
           materials={materials}
           onSave={handleSave}
           onClose={closeEditor}
+          onDelete={handleDelete}
+          usageCount={
+            selectedMaterial ? countModulesUsingCatalogItem(modules, selectedMaterial, 'material') : 0
+          }
         />
       }
     />

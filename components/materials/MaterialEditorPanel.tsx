@@ -1,21 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { PropertyForm } from '@/components/materials/PropertyForm';
+import {
+  CatalogEditorPanel,
+  CatalogPropertyRow,
+  FormulaReference,
+  PanelSectionHeading,
+} from '@/components/shared/catalog/CatalogEditorPanel';
 import { applyNumericPropertyNormalization, normalizeNumericProperty } from '@/components/shared/catalog/catalog-units';
 import {
   validateDuplicateVariableName,
   validatePropertyName,
   validateVariableIdentifier,
 } from '@/components/shared/catalog/catalog-validation';
+import { useClearErrorsOnChange } from '@/components/shared/catalog/useClearErrorsOnChange';
 import { COMMON_MATERIAL_PROPERTIES, Material, MaterialProperty, MaterialPropertyType } from '@/lib/types';
-import { convertFromBase, getUnitCategory } from '@/lib/units';
+import { formatCatalogPropertyValue } from '@/lib/catalog/catalog-display';
+import { useCurrencyStore } from '@/lib/stores/currency-store';
+import { getUnitCategory } from '@/lib/units';
 import { generateId, labelToVariableName } from '@/lib/utils';
 
 type MaterialFormData = {
@@ -42,6 +50,9 @@ interface MaterialEditorPanelProps {
   materials: Material[];
   onSave: (id: string | null, data: Omit<Partial<Material>, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onClose: () => void;
+  onDelete?: (id: string) => void;
+  /** Modules whose formulas reference this material. */
+  usageCount: number;
 }
 
 const emptyFormData: MaterialFormData = {
@@ -78,30 +89,24 @@ function toFormData(material: Material | null): MaterialFormData {
   };
 }
 
-function displayMaterialPropertyValue(prop: MaterialProperty) {
-  if (prop.type === 'boolean') {
-    return prop.value === true || prop.value === 'true' ? 'True' : 'False';
-  }
-  if (prop.type === 'number' && prop.unitSymbol && prop.storedValue !== undefined) {
-    return `${convertFromBase(prop.storedValue, prop.unitSymbol)} ${prop.unitSymbol}`;
-  }
-  return String(prop.value);
-}
-
 export function MaterialEditorPanel({
   material,
   materials,
   onSave,
   onClose,
+  onDelete,
+  usageCount,
 }: MaterialEditorPanelProps) {
   const [formData, setFormData] = useState<MaterialFormData>(() => toFormData(material));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  useClearErrorsOnChange(formData, setErrors);
   const [properties, setProperties] = useState<MaterialProperty[]>(() =>
     material?.properties ? [...material.properties] : []
   );
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
   const [newProperty, setNewProperty] = useState<NewMaterialProperty>(emptyNewProperty);
   const [propertyErrors, setPropertyErrors] = useState<Record<string, string>>({});
+  const [isAddingProperty, setIsAddingProperty] = useState(false);
 
   useEffect(() => {
     setFormData(toFormData(material));
@@ -110,6 +115,7 @@ export function MaterialEditorPanel({
     setPropertyErrors({});
     setEditingPropertyId(null);
     setNewProperty(emptyNewProperty);
+    setIsAddingProperty(false);
   }, [material]);
 
   const selectedMaterialId = material?.id ?? null;
@@ -179,6 +185,7 @@ export function MaterialEditorPanel({
     setProperties([...properties, property]);
     setNewProperty(emptyNewProperty);
     setPropertyErrors({});
+    setIsAddingProperty(false);
   };
 
   const updateProperty = (id: string, updates: Partial<MaterialProperty>) => {
@@ -217,219 +224,205 @@ export function MaterialEditorPanel({
     });
   };
 
+  const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
+  const variableName = formData.variableName.trim();
+
   return (
-    <div className="lg:col-span-2">
-      <Card className="sticky top-sticky-offset z-40" title={isCreating ? 'Create Material' : 'Edit Material'}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Material Name"
-            value={formData.name}
-            onChange={(event) => {
-              const name = event.target.value;
-              setFormData({ ...formData, name, variableName: labelToVariableName(name) });
-            }}
-            error={errors.name}
-            required
-            placeholder=""
-          />
+    <CatalogEditorPanel
+      title={isCreating ? 'New material' : 'Edit material'}
+      subtitle={isCreating ? undefined : `used in ${usageCount} ${usageCount === 1 ? 'module' : 'modules'}`}
+      submitLabel={isCreating ? 'Create' : 'Save'}
+      onSubmit={handleSubmit}
+      onClose={onClose}
+      onDelete={material && onDelete ? () => onDelete(material.id) : undefined}
+      deleteName={material?.name}
+    >
+      <Input
+        label="Name"
+        value={formData.name}
+        onChange={(event) => {
+          const name = event.target.value;
+          setFormData({ ...formData, name, variableName: labelToVariableName(name) });
+        }}
+        error={errors.name}
+        required
+      />
 
-          <Input
-            label="Variable Name"
-            value={formData.variableName}
-            onChange={(event) => setFormData({ ...formData, variableName: event.target.value })}
-            error={errors.variableName}
-            required
-            placeholder=""
-          />
-          <p className="text-xs text-md-on-surface-variant -mt-2">
-            Used in formulas. Must start with a letter or underscore.
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="Category"
+          value={formData.category}
+          onChange={(event) => setFormData({ ...formData, category: event.target.value })}
+          error={errors.category}
+          required
+        />
+        <Input
+          label="Variable"
+          value={formData.variableName}
+          onChange={(event) => setFormData({ ...formData, variableName: event.target.value })}
+          error={errors.variableName}
+          required
+          className="font-numeric"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="Price"
+          type="number"
+          step="0.01"
+          min="0"
+          value={formData.price}
+          onChange={(event) => setFormData({ ...formData, price: event.target.value })}
+          error={errors.price}
+          required
+          className="font-numeric"
+        />
+        <Input
+          label="Per unit"
+          value={formData.unit}
+          onChange={(event) => setFormData({ ...formData, unit: event.target.value })}
+          error={errors.unit}
+          required
+        />
+      </div>
+
+      <FormulaReference
+        variableName={variableName}
+        value={`${formatCurrency(Number(formData.price) || 0)} / ${formData.unit.trim() || 'unit'}`}
+      />
+
+      <div>
+        <PanelSectionHeading
+          aside={
+            !isAddingProperty && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingProperty(true)}>
+                <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                Add property
+              </Button>
+            )
+          }
+        >
+          Properties
+        </PanelSectionHeading>
+
+        {properties.length === 0 && !isAddingProperty && (
+          <p className="mt-1 text-xs text-draft">
+            No properties. Modules that read one (e.g. <code className="font-numeric">{variableName || 'name'}.thickness</code>) can&apos;t calculate.
           </p>
+        )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Category"
-              value={formData.category}
-              onChange={(event) => setFormData({ ...formData, category: event.target.value })}
-              error={errors.category}
-              required
-              placeholder=""
-            />
-            <Input
-              label="Unit"
-              value={formData.unit}
-              onChange={(event) => setFormData({ ...formData, unit: event.target.value })}
-              error={errors.unit}
-              required
-              placeholder=""
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Unit Price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.price}
-              onChange={(event) => setFormData({ ...formData, price: event.target.value })}
-              error={errors.price}
-              required
-              placeholder=""
-            />
-            <Input
-              label="SKU (optional)"
-              value={formData.sku}
-              onChange={(event) => setFormData({ ...formData, sku: event.target.value })}
-              placeholder=""
-            />
-          </div>
-
-          <Input
-            label="Supplier (optional)"
-            value={formData.supplier}
-            onChange={(event) => setFormData({ ...formData, supplier: event.target.value })}
-            placeholder=""
-          />
-
-          <Textarea
-            label="Description (optional)"
-            value={formData.description}
-            onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-            rows={3}
-            placeholder=""
-          />
-
-          <div className="pt-4 border-t border-border">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-md font-semibold text-md-primary">Properties</label>
-              <span className="text-xs text-md-on-surface-variant">
-                {properties.length} {properties.length === 1 ? 'property' : 'properties'}
-              </span>
-            </div>
-            <p className="text-xs text-md-on-surface-variant mb-4">
-              Add material properties (dimensions, density, etc.) that can be referenced in formulas using dot notation (e.g., <code className="text-md-primary">mdf_sheet_width</code>).
-            </p>
-
-            <div className="mb-4">
-              <p className="text-xs text-md-on-surface-variant mb-2">Quick add:</p>
-              <div className="flex flex-wrap gap-2">
-                {COMMON_MATERIAL_PROPERTIES.map((propName) => {
-                  const exists = properties.some((property) => property.name.toLowerCase() === propName.toLowerCase());
-                  return (
-                    <Chip
-                      key={propName}
-                      size="sm"
-                      variant={exists ? 'ghost' : 'primaryTonal'}
-                      disabled={exists}
-                      onClick={() => !exists && setNewProperty({ ...newProperty, name: propName })}
-                    >
-                      {propName}
-                    </Chip>
-                  );
-                })}
+        <div className="mt-1">
+          {properties.map((prop) =>
+            editingPropertyId === prop.id ? (
+              <div key={prop.id} className="my-2 p-3 rounded-md border border-border">
+                <PropertyForm
+                  property={prop}
+                  propertyData={{
+                    name: prop.name,
+                    type: prop.type,
+                    value: prop.value,
+                    unitSymbol: prop.unitSymbol,
+                  }}
+                  error={propertyErrors[prop.id]}
+                  onChange={(updates) => updateProperty(prop.id, updates)}
+                  onSubmit={() => setEditingPropertyId(null)}
+                  onCancel={() => setEditingPropertyId(null)}
+                  mode="edit"
+                />
               </div>
-            </div>
-
-            {properties.length > 0 && (
-              <div className="space-y-2 mb-4">
-                {properties.map((prop) => (
-                  <div key={prop.id} className="flex items-start gap-2 p-3 bg-md-surface-variant/70 dark:bg-md-surface-variant/50 rounded-2xl">
-                    <div className="flex-1 min-w-0">
-                      {editingPropertyId === prop.id ? (
-                        <PropertyForm
-                          property={prop}
-                          propertyData={{
-                            name: prop.name,
-                            type: prop.type,
-                            value: prop.value,
-                            unitSymbol: prop.unitSymbol,
-                          }}
-                          error={propertyErrors[prop.id]}
-                          onChange={(updates) => updateProperty(prop.id, updates)}
-                          onSubmit={() => setEditingPropertyId(null)}
-                          onCancel={() => setEditingPropertyId(null)}
-                          mode="edit"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Chip size="sm" variant="primary">{prop.name}</Chip>
-                              <Chip size="sm" variant="default">{prop.type}</Chip>
-                              {prop.unitSymbol && (
-                                <span className="text-xs text-md-on-surface-variant">({prop.unitSymbol})</span>
-                              )}
-                              {prop.unitCategory && (
-                                <span className="text-xs text-md-on-surface-variant ml-1">[{prop.unitCategory}]</span>
-                              )}
-                            </div>
-                            <div className="mt-1 text-sm text-md-on-surface">
-                              {displayMaterialPropertyValue(prop)}
-                            </div>
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setEditingPropertyId(prop.id)}
-                              className="p-2 text-md-on-surface-variant hover:text-md-primary hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
-                              aria-label="Edit property"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setProperties(properties.filter((property) => property.id !== prop.id))}
-                              className="p-2 text-md-on-surface-variant hover:text-destructive hover:bg-md-surface-variant rounded-full transition-smooth active:scale-95 z-10"
-                              aria-label="Remove property"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <PropertyForm
-                property={null}
-                propertyData={{
-                  name: newProperty.name,
-                  type: newProperty.type,
-                  value: newProperty.value,
-                  unitSymbol: newProperty.unitSymbol,
-                }}
-                error={propertyErrors.new}
-                onChange={(updates) => {
-                  const updatedProperty = { ...newProperty };
-                  if (updates.name !== undefined) {
-                    updatedProperty.name = updates.name;
-                    setPropertyErrors({});
-                  }
-                  if (updates.type !== undefined) updatedProperty.type = updates.type;
-                  if (updates.value !== undefined) updatedProperty.value = String(updates.value);
-                  if (updates.unitSymbol !== undefined) updatedProperty.unitSymbol = updates.unitSymbol;
-                  setNewProperty(updatedProperty);
-                }}
-                onSubmit={addProperty}
-                mode="create"
+            ) : (
+              <CatalogPropertyRow
+                key={prop.id}
+                name={prop.name}
+                reference={`${variableName}.${prop.name}`}
+                value={formatCatalogPropertyValue(prop)}
+                onEdit={() => setEditingPropertyId(prop.id)}
+                onRemove={() => setProperties(properties.filter((property) => property.id !== prop.id))}
               />
-            </div>
-          </div>
+            )
+          )}
+        </div>
 
-          <div className="flex space-x-3 pt-4 border-t border-border">
-            <Button type="button" variant="ghost" onClick={onClose} className="flex-1">
+        {isAddingProperty && (
+          <div className="mt-2 p-3 rounded-md border border-border space-y-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-ink-muted">Quick add:</span>
+              {COMMON_MATERIAL_PROPERTIES.map((propName) => {
+                const exists = properties.some((property) => property.name.toLowerCase() === propName.toLowerCase());
+                return (
+                  <Chip
+                    key={propName}
+                    size="sm"
+                    variant={exists ? 'ghost' : 'primaryTonal'}
+                    disabled={exists}
+                    onClick={() => !exists && setNewProperty({ ...newProperty, name: propName })}
+                  >
+                    {propName}
+                  </Chip>
+                );
+              })}
+            </div>
+            <PropertyForm
+              property={null}
+              propertyData={{
+                name: newProperty.name,
+                type: newProperty.type,
+                value: newProperty.value,
+                unitSymbol: newProperty.unitSymbol,
+              }}
+              error={propertyErrors.new}
+              onChange={(updates) => {
+                const updatedProperty = { ...newProperty };
+                if (updates.name !== undefined) {
+                  updatedProperty.name = updates.name;
+                  setPropertyErrors({});
+                }
+                if (updates.type !== undefined) updatedProperty.type = updates.type;
+                if (updates.value !== undefined) updatedProperty.value = String(updates.value);
+                if (updates.unitSymbol !== undefined) updatedProperty.unitSymbol = updates.unitSymbol;
+                setNewProperty(updatedProperty);
+              }}
+              onSubmit={addProperty}
+              mode="create"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsAddingProperty(false);
+                setNewProperty(emptyNewProperty);
+                setPropertyErrors({});
+              }}
+              className="w-full"
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              {isCreating ? 'Create' : 'Update'} Material
-            </Button>
           </div>
-        </form>
-      </Card>
-    </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          label="SKU"
+          value={formData.sku}
+          onChange={(event) => setFormData({ ...formData, sku: event.target.value })}
+          className="font-numeric"
+        />
+        <Input
+          label="Supplier"
+          value={formData.supplier}
+          onChange={(event) => setFormData({ ...formData, supplier: event.target.value })}
+        />
+      </div>
+
+      <Textarea
+        label="Description"
+        value={formData.description}
+        onChange={(event) => setFormData({ ...formData, description: event.target.value })}
+        rows={2}
+      />
+    </CatalogEditorPanel>
   );
 }
