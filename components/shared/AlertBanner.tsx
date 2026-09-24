@@ -1,6 +1,5 @@
 'use client';
 
-import { Card } from '@/components/ui/Card';
 import { AlertCircle, AlertTriangle, Info, CheckCircle2, X } from 'lucide-react';
 
 /**
@@ -52,30 +51,10 @@ export interface AlertBannerProps {
 }
 
 const variantConfig = {
-  warning: {
-    icon: AlertTriangle,
-    cardClass: 'border-warning bg-warning/10',
-    textClass: 'text-warning',
-    iconClass: 'text-warning',
-  },
-  error: {
-    icon: AlertCircle,
-    cardClass: 'border-destructive bg-destructive/10',
-    textClass: 'text-destructive',
-    iconClass: 'text-destructive',
-  },
-  info: {
-    icon: Info,
-    cardClass: 'border-md-primary bg-md-primary/10',
-    textClass: 'text-md-primary',
-    iconClass: 'text-md-primary',
-  },
-  success: {
-    icon: CheckCircle2,
-    cardClass: 'border-success bg-success/10',
-    textClass: 'text-success',
-    iconClass: 'text-success',
-  },
+  warning: { icon: AlertTriangle, boxClass: 'border-draft-border bg-draft-bg', iconClass: 'text-draft' },
+  error: { icon: AlertCircle, boxClass: 'border-danger-border bg-danger-bg', iconClass: 'text-danger' },
+  info: { icon: Info, boxClass: 'border-action-border bg-action-bg', iconClass: 'text-action' },
+  success: { icon: CheckCircle2, boxClass: 'border-committed-border bg-committed-bg', iconClass: 'text-committed' },
 };
 
 export function AlertBanner({
@@ -93,25 +72,25 @@ export function AlertBanner({
   const showAsList = Array.isArray(messages) && messages.length > 1;
 
   return (
-    <Card className={config.cardClass}>
-      <div className="flex items-start gap-2">
-        <Icon className={`h-5 w-5 ${config.iconClass} shrink-0 mt-0.5`} />
+    <div role={variant === 'error' ? 'alert' : 'status'} className={`mb-4 rounded-[10px] border px-4 py-3 ${config.boxClass}`}>
+      <div className="flex items-start gap-2.5">
+        <Icon className={`h-4 w-4 ${config.iconClass} shrink-0 mt-0.5`} aria-hidden="true" />
 
         <div className="flex-1">
           {title && (
-            <p className={`text-sm font-medium ${config.textClass} mb-2`}>
+            <p className="text-sm font-semibold text-ink mb-1">
               {title}
             </p>
           )}
 
           {showAsList ? (
-            <ul className={`list-disc list-inside space-y-1 text-xs ${config.textClass}`}>
+            <ul className="list-disc list-inside space-y-1 text-[13px] text-ink-body">
               {messageArray.map((message, idx) => (
                 <li key={idx}>{message}</li>
               ))}
             </ul>
           ) : (
-            <p className={`text-sm ${config.textClass}`}>
+            <p className="text-[13px] text-ink-body">
               {messageArray[0]}
             </p>
           )}
@@ -119,14 +98,15 @@ export function AlertBanner({
 
         {onDismiss && (
           <button
+            type="button"
             onClick={onDismiss}
-            className={`${config.textClass} hover:opacity-70 transition-opacity`}
+            className="p-0.5 rounded text-ink-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
             aria-label="Dismiss alert"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

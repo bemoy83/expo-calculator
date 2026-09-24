@@ -63,7 +63,11 @@ export function ModulesListView({
                   actionType: 'delete',
                   onAction: () => onDelete(module.id),
                   ariaLabel: `Delete module: ${module.name}`,
-                  confirmationMessage: `Are you sure you want to delete "${module.name}"?`,
+                  confirmation: {
+                    title: `Delete "${module.name}"?`,
+                    message:
+                      'Templates that use it will show it as missing, and drafts of it in quotes will no longer show. Line items already added to quotes are not affected.',
+                  },
                 },
               ]}
               sections={[

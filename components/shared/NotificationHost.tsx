@@ -13,7 +13,7 @@ export function NotificationHost() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-24 right-4 z-50 flex max-w-sm flex-col items-end gap-2 pointer-events-none"
+      className="fixed bottom-4 right-4 z-[60] flex max-w-sm flex-col items-end gap-2 pointer-events-none"
     >
       {notifications.map((notification) => (
         <HostedNotification key={notification.id} notification={notification} />

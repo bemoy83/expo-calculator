@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Save, X } from 'lucide-react';
+import { Check, Minus, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
@@ -29,16 +29,23 @@ export function SaveTemplateModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title="Save as Template"
+      title="Save as template"
       maxWidth="medium"
     >
-      <div className="space-y-4">
+      <form
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave();
+        }}
+      >
         <Input
-          label="Template Name"
+          label="Template name"
           value={templateName}
           onChange={(e) => onTemplateNameChange(e.target.value)}
           placeholder="e.g., Wall + Finish Setup"
           required
+          data-autofocus
         />
 
         <Textarea
@@ -49,40 +56,34 @@ export function SaveTemplateModal({
           rows={3}
         />
 
-        <div className="p-3 bg-muted/50 border border-border rounded-md">
-          <p className="text-xs font-medium text-md-on-surface mb-2">This template will save:</p>
-          <ul className="space-y-1 text-xs text-md-on-surface-variant">
+        <div className="px-3.5 py-3 bg-sunken border border-border rounded-md">
+          <p className="text-xs font-medium text-ink mb-2">The template saves</p>
+          <ul className="space-y-1 text-xs text-ink-body">
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
-              Module combinations
+              <Check className="h-3.5 w-3.5 text-committed shrink-0" aria-hidden="true" />
+              The workspace&apos;s modules, in order
             </li>
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
-              Field linking relationships
+              <Check className="h-3.5 w-3.5 text-committed shrink-0" aria-hidden="true" />
+              The links between their fields
             </li>
             <li className="flex items-center gap-2">
-              <X className="h-3 w-3 text-destructive shrink-0" />
-              Field values (you&apos;ll enter these when using the template)
+              <Minus className="h-3.5 w-3.5 text-ink-faint shrink-0" aria-hidden="true" />
+              Not the values: each quote starts from defaults
             </li>
           </ul>
         </div>
 
         <div className="flex gap-3 justify-end">
-          <Button
-            variant="ghost"
-            onClick={onClose}
-          >
+          <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            onClick={onSave}
-            disabled={!templateName.trim()}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Template
+          <Button type="submit" disabled={!templateName.trim()}>
+            <Save className="h-4 w-4 mr-1.5" aria-hidden="true" />
+            Save template
           </Button>
         </div>
-      </div>
+      </form>
     </ModalDialog>
   );
 }

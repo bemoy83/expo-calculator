@@ -97,7 +97,7 @@ export function SortableFieldItem({
       isCollapsed={!isExpanded}
       onToggle={() => onToggleExpanded(field.id)}
       onRemove={() => onRemoveField(field.id)}
-      removeConfirmMessage="Remove this field?"
+      removeConfirmation={{ title: field.label ? `Remove "${field.label}"?` : "Remove this field?" }}
       // Compact metadata: the formula variable (blue, like fields everywhere), then type, unit
       // and "required" as quiet text; required is a setting, not an error.
       metaChips={[

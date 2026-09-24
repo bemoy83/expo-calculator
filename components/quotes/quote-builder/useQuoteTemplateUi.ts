@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { notify } from "@/lib/stores/notifications-store";
 import type { ModuleTemplate } from "@/lib/types";
 
 export function useQuoteTemplateUi(input: {
@@ -13,7 +14,6 @@ export function useQuoteTemplateUi(input: {
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
-  const [templateSaveSuccess, setTemplateSaveSuccess] = useState<string | null>(null);
   const [templateWarnings, setTemplateWarnings] = useState<string[]>([]);
 
   const closeSaveTemplateModal = () => {
@@ -30,11 +30,10 @@ export function useQuoteTemplateUi(input: {
       templateDescription.trim() || undefined
     );
     if (result) {
-      setTemplateSaveSuccess(result.name);
+      notify({ message: `Saved template "${result.name}"`, variant: "success" });
       setShowSaveTemplateModal(false);
       setTemplateName("");
       setTemplateDescription("");
-      setTimeout(() => setTemplateSaveSuccess(null), 3000);
     }
   };
 
@@ -54,11 +53,9 @@ export function useQuoteTemplateUi(input: {
     showSaveTemplateModal,
     templateName,
     templateDescription,
-    templateSaveSuccess,
     templateWarnings,
     setTemplateName,
     setTemplateDescription,
-    setTemplateSaveSuccess,
     setTemplateWarnings,
     openSaveTemplateModal: () => setShowSaveTemplateModal(true),
     closeSaveTemplateModal,

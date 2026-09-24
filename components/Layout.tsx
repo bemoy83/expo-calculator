@@ -5,8 +5,9 @@ import { usePathname } from 'next/navigation';
 import { DataImporter } from '@/components/DataImporter';
 import { ThemeImporter } from '@/components/ThemeImporter';
 import { AppBrand, AppSidebar } from '@/components/AppSidebar';
+import { ModalDialog } from '@/components/shared/ModalDialog';
 import { NotificationHost } from '@/components/shared/NotificationHost';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -90,73 +91,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         onOpenThemeSettings={openThemeSettings}
       />
 
-      {/* Import Data Modal */}
-      {showImportModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowImportModal(false);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setShowImportModal(false);
-            }
-          }}
-          tabIndex={-1}
-        >
-          <div className="bg-surface border border-border-strong rounded-[10px] shadow-panel max-w-2xl w-full max-h-[90vh] flex flex-col my-auto">
-            <div className="sticky top-0 border-b border-border px-5 py-3.5 flex items-center justify-between shrink-0 z-10">
-              <h2 className="text-base font-semibold text-ink">Import Data</h2>
-              <button
-                onClick={() => setShowImportModal(false)}
-                className="p-1.5 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-5 overflow-y-auto flex-1 min-h-0">
-              <DataImporter onClose={() => setShowImportModal(false)} />
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalDialog
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        title="Import data"
+        maxWidth="wide"
+      >
+        <DataImporter onClose={() => setShowImportModal(false)} />
+      </ModalDialog>
 
-      {/* Theme Importer Modal */}
-      {showThemeImporter && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowThemeImporter(false);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setShowThemeImporter(false);
-            }
-          }}
-          tabIndex={-1}
-        >
-          <div className="bg-surface border border-border-strong rounded-[10px] shadow-panel max-w-2xl w-full max-h-[90vh] flex flex-col my-auto">
-            <div className="sticky top-0 border-b border-border px-5 py-3.5 flex items-center justify-between shrink-0 z-10">
-              <h2 className="text-base font-semibold text-ink">Theme Settings</h2>
-              <button
-                onClick={() => setShowThemeImporter(false)}
-                className="p-1.5 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-5 overflow-y-auto flex-1 min-h-0">
-              <ThemeImporter />
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalDialog
+        isOpen={showThemeImporter}
+        onClose={() => setShowThemeImporter(false)}
+        title="Theme settings"
+        maxWidth="wide"
+      >
+        <ThemeImporter />
+      </ModalDialog>
       <div className="pl-sidebar">
         <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}

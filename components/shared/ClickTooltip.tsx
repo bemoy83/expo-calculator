@@ -74,7 +74,7 @@ export function ClickTooltip({
           id={tooltipId}
           role="tooltip"
           className={cn(
-            'absolute z-20 w-72 rounded-lg border border-md-outline bg-md-surface-container-highest px-3 py-2 text-xs text-md-on-surface-variant shadow-lg',
+            'absolute z-20 w-72 rounded-lg border border-border-strong bg-surface px-3 py-2 text-xs leading-relaxed text-ink-body shadow-panel',
             PLACEMENT_CLASSES[placement],
             ALIGN_CLASSES[align],
             tooltipClassName

@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
  *   onClick={onEdit}
  *   actions={[
  *     { icon: Copy, actionType: 'duplicate', onAction: onDuplicate, ariaLabel: 'Duplicate' },
- *     { icon: Trash2, actionType: 'delete', onAction: onDelete, ariaLabel: 'Delete', confirmationMessage: 'Delete?' }
+ *     { icon: Trash2, actionType: 'delete', onAction: onDelete, ariaLabel: 'Delete', confirmation: { title: 'Delete?' } }
  *   ]}
  *   sections={[
  *     {

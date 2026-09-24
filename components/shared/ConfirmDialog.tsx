@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
 import { ModalDialog } from '@/components/shared/ModalDialog';
@@ -28,25 +27,14 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    containerRef.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus();
-    return () => {
-      if (previouslyFocused?.isConnected) previouslyFocused.focus();
-    };
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return createPortal(
     // React events bubble out of portals to the trigger's ancestors (e.g. a clickable card
     // header), so stop them at the dialog boundary. Stopping keydown also keeps it from reaching
-    // ModalDialog's document-level Escape listener, so Escape is handled here.
+    // ModalDialog's document-level Escape listener, so Escape is handled here. ModalDialog
+    // moves focus to Cancel (data-autofocus), traps it, and restores it on close.
     <div
-      ref={containerRef}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => {
         event.stopPropagation();
@@ -55,7 +43,7 @@ export function ConfirmDialog({
     >
       <ModalDialog isOpen onClose={onCancel} title={title} maxWidth="medium">
         {message && (
-          <p className="text-sm text-md-on-surface-variant whitespace-pre-line">{message}</p>
+          <p className="text-sm text-ink-body whitespace-pre-line">{message}</p>
         )}
         <div className="flex justify-end gap-3">
           <Button type="button" variant="ghost" onClick={onCancel} data-autofocus>

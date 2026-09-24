@@ -29,7 +29,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
  *   actionType="delete"
  *   onAction={() => handleDelete(item.id)}
  *   ariaLabel={`Delete ${item.name}`}
- *   confirmationMessage={`Are you sure you want to delete "${item.name}"?`}
+ *   confirmation={{ title: `Delete "${item.name}"?`, message: 'This can’t be undone.' }}
  * />
  * ```
  *
@@ -56,8 +56,8 @@ export interface ActionIconButtonProps {
   onAction: () => void;
   /** Accessible label describing the action (required for accessibility) */
   ariaLabel: string;
-  /** Optional confirmation message - shows an in-app confirmation dialog before the action */
-  confirmationMessage?: string;
+  /** Optional confirmation - shows an in-app dialog (short title, optional message) before the action */
+  confirmation?: { title: string; message?: string };
   /** Label for the dialog's confirm button (defaults to "Delete" for delete actions, else "Confirm") */
   confirmLabel?: string;
   /** Button shape variant */
@@ -67,26 +67,11 @@ export interface ActionIconButtonProps {
 }
 
 const actionTypeStyles = {
-  edit: {
-    hoverText: 'hover:text-md-primary',
-    hoverBg: 'hover:bg-md-surface-variant',
-  },
-  delete: {
-    hoverText: 'hover:text-destructive',
-    hoverBg: 'hover:bg-md-surface-variant',
-  },
-  duplicate: {
-    hoverText: 'hover:text-md-primary',
-    hoverBg: 'hover:bg-md-primary/10',
-  },
-  view: {
-    hoverText: 'hover:text-md-primary',
-    hoverBg: 'hover:bg-md-surface-variant',
-  },
-  custom: {
-    hoverText: 'hover:text-md-primary',
-    hoverBg: 'hover:bg-md-surface-variant',
-  },
+  edit: 'hover:text-ink hover:bg-surface-hover',
+  delete: 'hover:text-danger hover:bg-danger-bg',
+  duplicate: 'hover:text-ink hover:bg-surface-hover',
+  view: 'hover:text-ink hover:bg-surface-hover',
+  custom: 'hover:text-ink hover:bg-surface-hover',
 };
 
 const shapeStyles = {
@@ -99,20 +84,20 @@ export function ActionIconButton({
   actionType,
   onAction,
   ariaLabel,
-  confirmationMessage,
+  confirmation,
   confirmLabel,
   shape = 'circle',
   className = '',
 }: ActionIconButtonProps) {
   const [isConfirming, setIsConfirming] = useState(false);
-  const styles = actionTypeStyles[actionType];
+  const hoverClass = actionTypeStyles[actionType];
   const shapeClass = shapeStyles[shape];
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     // Stop propagation to prevent triggering parent click handlers
     e.stopPropagation();
 
-    if (confirmationMessage) {
+    if (confirmation) {
       setIsConfirming(true);
     } else {
       onAction();
@@ -124,15 +109,16 @@ export function ActionIconButton({
       <button
         type="button"
         onClick={handleClick}
-        className={`p-2 text-md-on-surface-variant ${styles.hoverText} ${styles.hoverBg} ${shapeClass} transition-smooth active:scale-95 z-10 ${className}`}
+        className={`p-2 text-ink-muted ${hoverClass} ${shapeClass} transition-smooth active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-action z-10 ${className}`}
         aria-label={ariaLabel}
       >
         <Icon className="h-4 w-4" aria-hidden="true" />
       </button>
-      {confirmationMessage && (
+      {confirmation && (
         <ConfirmDialog
           isOpen={isConfirming}
-          title={confirmationMessage}
+          title={confirmation.title}
+          message={confirmation.message}
           confirmLabel={confirmLabel ?? (actionType === 'delete' ? 'Delete' : 'Confirm')}
           destructive={actionType === 'delete'}
           onConfirm={() => {

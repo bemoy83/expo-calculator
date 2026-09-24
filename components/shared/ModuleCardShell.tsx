@@ -23,7 +23,7 @@ export interface ModuleCardShellProps {
   isCollapsed: boolean;
   onToggle: () => void;
   onRemove?: () => void;
-  removeConfirmMessage?: string;
+  removeConfirmation?: { title: string; message?: string };
   removeConfirmLabel?: string;
   rightExtras?: React.ReactNode;
   children?: React.ReactNode;
@@ -45,7 +45,7 @@ export function ModuleCardShell({
   isCollapsed,
   onToggle,
   onRemove,
-  removeConfirmMessage,
+  removeConfirmation,
   removeConfirmLabel = 'Remove',
   rightExtras,
   children,
@@ -110,7 +110,7 @@ export function ModuleCardShell({
                 actionType="delete"
                 onAction={onRemove}
                 ariaLabel={`Remove ${accessibleTitle}`}
-                confirmationMessage={removeConfirmMessage}
+                confirmation={removeConfirmation}
                 confirmLabel={removeConfirmLabel}
               />
             )}

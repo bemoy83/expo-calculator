@@ -927,9 +927,9 @@ so the data-layer changes are in scope.
   legacy `__index_N__` links, labor not duplicated, missing-module warnings, 1.0.0 files.
 - The dialog's own styling (MD3 leftovers, title shown twice) is left for step 11.
 
-## MD3 leftover cleanup (step 11) — planned, next
+## MD3 leftover cleanup (step 11) — done
 
-Assessed after step 10. Not built yet:
+Assessed after step 10:
 1. `components/shared/ModalDialog.tsx` uses a fixed `id="modal-title"` (duplicate IDs when
    dialogs stack) and doesn't trap focus.
 2. `components/shared/ActionIconButton.tsx` passes its whole confirmation sentence as the
@@ -946,6 +946,46 @@ Assessed after step 10. Not built yet:
    already look consistent; Import Data shows its title twice).
 5. Delete the unused `components/shared/SearchFilterBar.tsx` and
    `components/ui/resizable-panel.tsx`.
+
+**Implementation notes (step 11)**:
+- **`ModalDialog`**: the title ID comes from `useId`; `role="dialog"` is on the panel,
+  not the backdrop. Focus moves in on open (`[data-autofocus]`, else the first focusable
+  element), Tab and Shift+Tab wrap inside, and focus returns to the trigger on close when
+  it's still in the page. The dialog renders into `document.body` through a portal.
+  Before, dialogs rendered in place, so anything later in the page at `z-50` painted over
+  them. Found in testing: the field-link badge ("Source — Width") showed on top of the
+  Theme settings dialog. The badge also drops from `z-50` to `z-10`, since it only needs
+  to sit over its input, and at `z-50` it would also cover the mobile nav drawer. Ink
+  styling matches the Layout modals: a header with a hairline, and a scrollable body
+  capped at 90vh. A new `wide` size is `max-w-2xl`.
+- **Layout's Import data and Theme settings modals** were hand-built divs without a dialog
+  role, focus handling, or working Escape (their `onKeyDown` fired only with focus
+  inside). They now use `ModalDialog`. `DataImporter` no longer repeats the "Import data"
+  heading, and "Import mode" is a `fieldset`/`legend`.
+- **`ConfirmDialog`** drops its own focus handling (ModalDialog does it; Cancel keeps
+  `data-autofocus`).
+- **Confirmations**: `ActionIconButton` takes `confirmation: { title, message? }` instead
+  of `confirmationMessage`, and `ModuleCardShell` takes `removeConfirmation` the same way.
+  Titles are short ("Delete "Paint"?"), with details in the message: the function usage
+  warning, "Quotes already started from it are not affected" for templates, and for
+  modules that templates will show it as missing, drafts of it will no longer show, and
+  line items already in quotes are not affected.
+- **One toast path**: toasts go through `notify()` and `NotificationHost` only. Template
+  duplicate ("Created "X"") and Save as template ("Saved template "X"") used local state
+  plus a directly rendered `NotificationToast`. The standalone `NotificationToast` is gone;
+  `NotificationToast.tsx` now holds just `NotificationToastCard`. The host sits at
+  `bottom-4` (was `bottom-24`) and `z-[60]`, above dialogs.
+- **Restyled onto Ink**: toast card (raised surface, tinted left edge and icon:
+  committed/danger/draft/action for success/error/warning/info), `AlertBanner` (the
+  `-bg`/`-border` token pairs, ink text, and "N warning(s)" pluralized), `ClickTooltip`,
+  `ActionIconButton` (danger hover for delete), `SaveTemplateModal` (sentence case,
+  submits with Enter, name field autofocused, and "The template saves: the modules in order,
+  the links between their fields, not the values"), `QuoteBuilderLoading`, the two
+  property-form hints, `DataImporter`, and `ThemeImporter` (shared field styles, labels
+  tied to their inputs).
+- No component uses `md-*` classes any more. The `--md-*` variables stay in `globals.css`
+  as the mapping that imported Material themes override.
+- Deleted `SearchFilterBar` and `ui/resizable-panel` (no imports).
 
 ## Sequencing strategy: structure before style
 
@@ -1013,7 +1053,7 @@ currently has no external users to confuse.
 9. **Functions — reskin + safety/UX fixes** *(done)* (see "Functions and Templates").
 10. **Templates — reskin + UX fixes; templates as module chains** *(done)* (see "Functions and
     Templates").
-11. **MD3 leftover cleanup** — planned, next (see "MD3 leftover cleanup (step 11)").
+11. **MD3 leftover cleanup** *(done)* (see "MD3 leftover cleanup (step 11)").
 12. **Data export/import includes templates** *(done, before step 11)* (see "Data
     export/import (step 12)").
 13. **Module Editor — Simple** — on hold (see its section).

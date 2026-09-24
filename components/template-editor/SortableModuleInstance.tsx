@@ -209,7 +209,7 @@ export function SortableModuleInstance({
       isCollapsed={!isExpanded}
       onToggle={() => onToggleExpanded(instance.id)}
       onRemove={() => onRemove(instance.id)}
-      removeConfirmMessage={`Remove ${module.name} from template?`}
+      removeConfirmation={{ title: `Remove ${module.name} from the template?` }}
     >
       {/* Expanded: how each field gets its value in a quote. A template is a reusable chain
           of modules, so it holds links, not input values (see the gap analysis). */}

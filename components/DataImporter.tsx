@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useId, useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
+import { FIELD_LABEL, fieldClasses } from '@/components/ui/field-styles';
 import { Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { validateImportedData, importData, type ImportResult } from '@/lib/utils/data-import';
 import type { ExportedData } from '@/lib/utils/data-export';
@@ -11,6 +12,7 @@ interface DataImporterProps {
 }
 
 export function DataImporter({ onClose }: DataImporterProps) {
+  const pasteId = useId();
   const [jsonText, setJsonText] = useState('');
   const [importMode, setImportMode] = useState<'replace' | 'merge'>('merge');
   const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
@@ -106,11 +108,11 @@ export function DataImporter({ onClose }: DataImporterProps) {
   if (showReplaceConfirm) {
     return (
       <div className="space-y-4">
-        <div className="flex items-start gap-3 p-4 bg-md-error-container/20 border border-md-error/30 rounded-lg">
-          <AlertCircle className="h-5 w-5 text-md-error shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-danger-bg border border-danger-border rounded-lg">
+          <AlertCircle className="h-5 w-5 text-danger shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1">
-            <h4 className="font-semibold text-md-error mb-1">Replace All Data?</h4>
-            <p className="text-sm text-md-on-error-container">
+            <h3 className="text-sm font-semibold text-danger mb-1">Replace all data?</h3>
+            <p className="text-sm text-ink-body">
               This deletes your modules, materials, categories, labor, functions, and templates, then imports the ones in the file. Labor, functions, or templates are kept if the file doesn&apos;t include them (older exports). Quotes and their line items are kept, but drafts still in a quote&apos;s workspace belong to the deleted modules and will no longer show. This can&apos;t be undone.
             </p>
           </div>
@@ -120,7 +122,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
             Cancel
           </Button>
           <Button variant="danger" onClick={handleConfirmReplace}>
-            Replace All Data
+            Replace all data
           </Button>
         </div>
       </div>
@@ -130,11 +132,11 @@ export function DataImporter({ onClose }: DataImporterProps) {
   if (importResult?.success) {
     return (
       <div className="space-y-4">
-        <div className="flex items-start gap-3 p-4 bg-success/10 border border-success/30 rounded-lg">
-          <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
+        <div role="status" className="flex items-start gap-3 p-4 bg-committed-bg border border-committed-border rounded-lg">
+          <CheckCircle2 className="h-5 w-5 text-committed shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1">
-            <h4 className="font-semibold text-success mb-2">Import Successful</h4>
-            <div className="text-sm text-success space-y-1">
+            <h3 className="text-sm font-semibold text-committed mb-2">Import complete</h3>
+            <div className="text-sm text-ink-body space-y-1">
               <p>• {importResult.modulesAdded} module{importResult.modulesAdded !== 1 ? 's' : ''} imported</p>
               <p>• {importResult.materialsAdded} material{importResult.materialsAdded !== 1 ? 's' : ''} imported</p>
               {importResult.laborAdded > 0 && (
@@ -163,48 +165,45 @@ export function DataImporter({ onClose }: DataImporterProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2 text-md-on-surface">Import Data</h3>
-        <p className="text-sm text-md-on-surface-variant mb-4">
+        <p className="text-sm text-ink-muted mb-4">
           Import modules, materials, labor, categories, functions, and templates from an exported JSON file. Templates are reconnected to their modules. Quotes aren&apos;t part of an export and are never changed by an import.
         </p>
 
         <div className="space-y-4">
           {/* Import Mode Selection */}
-          <div>
-            <label className="block text-sm font-medium text-md-on-surface mb-2">
-              Import Mode
-            </label>
+          <fieldset>
+            <legend className={FIELD_LABEL}>Import mode</legend>
             <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="importMode"
                   value="merge"
                   checked={importMode === 'merge'}
                   onChange={(e) => setImportMode(e.target.value as 'replace' | 'merge')}
-                  className="w-4 h-4 text-md-primary focus:ring-action"
+                  className="w-4 h-4 mt-0.5 accent-action focus:ring-action"
                 />
                 <div>
-                  <span className="text-sm font-medium text-md-on-surface">Merge with existing</span>
-                  <p className="text-xs text-md-on-surface-variant">Add imported data to existing data, skipping anything whose name already exists</p>
+                  <span className="text-sm font-medium text-ink">Merge with existing</span>
+                  <p className="text-xs text-ink-muted">Add imported data to existing data, skipping anything whose name already exists</p>
                 </div>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="importMode"
                   value="replace"
                   checked={importMode === 'replace'}
                   onChange={(e) => setImportMode(e.target.value as 'replace' | 'merge')}
-                  className="w-4 h-4 text-md-primary focus:ring-action"
+                  className="w-4 h-4 mt-0.5 accent-action focus:ring-action"
                 />
                 <div>
-                  <span className="text-sm font-medium text-md-on-surface">Replace all data</span>
-                  <p className="text-xs text-md-on-surface-variant">Delete your modules, materials, labor, categories, functions, and templates, then import the file&apos;s. Quotes are kept.</p>
+                  <span className="text-sm font-medium text-ink">Replace all data</span>
+                  <p className="text-xs text-ink-muted">Delete your modules, materials, labor, categories, functions, and templates, then import the file&apos;s. Quotes are kept.</p>
                 </div>
               </label>
             </div>
-          </div>
+          </fieldset>
 
           {/* File Upload */}
           <div className="flex gap-2">
@@ -217,17 +216,18 @@ export function DataImporter({ onClose }: DataImporterProps) {
             />
             <Button type="button" className="w-full" onClick={handleUploadClick}>
               <Upload className="h-4 w-4 mr-2" />
-              Upload JSON File
+              Upload JSON file
             </Button>
           </div>
 
           {/* JSON Paste */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-md-on-surface mb-1.5">
-              Or Paste JSON
+            <label htmlFor={pasteId} className={FIELD_LABEL}>
+              Or paste JSON
             </label>
             <textarea
-              className="w-full p-3 border border-md-outline rounded-md font-mono text-sm bg-md-surface-container-low text-md-on-surface focus:outline-none focus:ring-2 focus:ring-action focus:border-md-primary"
+              id={pasteId}
+              className={fieldClasses(false, 'p-3 font-mono text-[13px]')}
               placeholder="Paste exported JSON data here..."
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}
@@ -238,19 +238,19 @@ export function DataImporter({ onClose }: DataImporterProps) {
               disabled={!jsonText.trim()}
               className="w-full"
             >
-              Import from Text
+              Import from text
             </Button>
           </div>
         </div>
 
         {error && (
-          <div className="mt-3 p-3 bg-md-error-container text-md-on-error-container rounded-md text-sm">
+          <div role="alert" className="mt-3 p-3 bg-danger-bg border border-danger-border text-danger rounded-md text-sm">
             {error}
           </div>
         )}
 
         {importResult && !importResult.success && importResult.errors && (
-          <div className="mt-3 p-3 bg-md-error-container text-md-on-error-container rounded-md text-sm">
+          <div role="alert" className="mt-3 p-3 bg-danger-bg border border-danger-border text-danger rounded-md text-sm">
             <p className="font-semibold mb-2">Import completed with errors:</p>
             <ul className="list-disc list-inside space-y-1">
               {importResult.errors.map((err, idx) => (

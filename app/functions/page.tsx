@@ -81,10 +81,13 @@ export default function FunctionsPage() {
                     actionType: 'delete',
                     onAction: () => deleteFunction(func.id),
                     ariaLabel: `Delete function: ${title}`,
-                    confirmationMessage:
-                      usageCount > 0
-                        ? `"${title}" is used by ${describeFunctionUsage(usage)}. Deleting it will stop those formulas from calculating.`
-                        : `Are you sure you want to delete "${title}"?`,
+                    confirmation: {
+                      title: `Delete "${title}"?`,
+                      message:
+                        usageCount > 0
+                          ? `It's used by ${describeFunctionUsage(usage)}. Deleting it will stop those formulas from calculating.`
+                          : 'It isn’t used by any module or function.',
+                    },
                   },
                 ]}
                 sections={[

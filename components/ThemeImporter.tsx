@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useId, useState, useRef } from 'react';
 import { useThemeImporter } from '@/hooks/use-theme-importer';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { FIELD_LABEL, fieldClasses } from '@/components/ui/field-styles';
 import { Upload, X, CheckCircle2 } from 'lucide-react';
 import type { MaterialThemeBuilderJSON } from '@/lib/themes/types';
 
 export function ThemeImporter() {
+  const pasteId = useId();
   const [themeName, setThemeName] = useState('');
   const [jsonText, setJsonText] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
@@ -69,18 +71,16 @@ export function ThemeImporter() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2 text-md-on-surface">Import Theme</h3>
-        <p className="text-sm text-md-on-surface-variant mb-4">
+        <h3 className="text-sm font-semibold mb-1 text-ink">Import a theme</h3>
+        <p className="text-sm text-ink-muted mb-4">
           Import themes exported from Material Theme Builder as JSON files.
         </p>
         
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-md-on-surface mb-1.5">
-              Theme Name
-            </label>
             <Input
-              placeholder="Enter theme name (optional)"
+              label="Theme name (optional)"
+              placeholder="e.g. Brand blue"
               value={themeName}
               onChange={(e) => setThemeName(e.target.value)}
             />
@@ -96,16 +96,17 @@ export function ThemeImporter() {
             />
             <Button type="button" className="w-full" onClick={handleUploadClick}>
               <Upload className="h-4 w-4 mr-2" />
-              Upload JSON File
+              Upload JSON file
             </Button>
           </div>
           
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-md-on-surface mb-1.5">
-              Or Paste JSON
+            <label htmlFor={pasteId} className={FIELD_LABEL}>
+              Or paste JSON
             </label>
             <textarea
-              className="w-full p-3 border border-md-outline rounded-md font-mono text-sm bg-md-surface-container-low text-md-on-surface focus:outline-none focus:ring-2 focus:ring-action focus:border-md-primary"
+              id={pasteId}
+              className={fieldClasses(false, 'p-3 font-mono text-[13px]')}
               placeholder="Paste Material Theme Builder JSON here..."
               value={jsonText}
               onChange={(e) => setJsonText(e.target.value)}
@@ -116,40 +117,40 @@ export function ThemeImporter() {
               disabled={!jsonText.trim()}
               className="w-full"
             >
-              Import from Text
+              Import from text
             </Button>
           </div>
         </div>
         
         {(parseError || error) && (
-          <div role="alert" className="mt-3 p-3 bg-md-error-container text-md-on-error-container rounded-md text-sm">
+          <div role="alert" className="mt-3 p-3 bg-danger-bg border border-danger-border text-danger rounded-md text-sm">
             {parseError || error}
           </div>
         )}
       </div>
       
       <div>
-        <h4 className="font-semibold mb-3 text-md-on-surface">Available Themes</h4>
+        <h3 className="text-sm font-semibold mb-3 text-ink">Available themes</h3>
         <div className="space-y-2">
           {/* Default Theme Option - Always Available */}
           <div
             className={`flex items-center justify-between p-3 border rounded-md transition-smooth ${
               isDefaultTheme
-                ? 'border-md-primary bg-md-primary-container/20'
-                : 'border-md-outline bg-md-surface-container hover:border-md-primary/50'
+                ? 'border-action-border bg-action-bg'
+                : 'border-border bg-surface hover:border-border-strong'
             }`}
           >
             <div className="flex items-center gap-2">
-              <span className={`font-medium ${isDefaultTheme ? 'text-md-primary' : 'text-md-on-surface'}`}>
-                Default Theme
+              <span className={`text-sm font-medium ${isDefaultTheme ? 'text-action' : 'text-ink'}`}>
+                Default theme
               </span>
               {isDefaultTheme && (
-                <CheckCircle2 className="h-4 w-4 text-md-primary" />
+                <CheckCircle2 className="h-4 w-4 text-action" aria-label="Active" />
               )}
             </div>
             {!isDefaultTheme && (
               <Button size="sm" onClick={() => loadTheme(null)}>
-                Use Default
+                Use default
               </Button>
             )}
           </div>
@@ -160,20 +161,20 @@ export function ThemeImporter() {
               key={theme.name}
               className={`flex items-center justify-between p-3 border rounded-md transition-smooth ${
                 activeTheme?.name === theme.name
-                  ? 'border-md-primary bg-md-primary-container/20'
-                  : 'border-md-outline bg-md-surface-container hover:border-md-primary/50'
+                  ? 'border-action-border bg-action-bg'
+                  : 'border-border bg-surface hover:border-border-strong'
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <span className={`font-medium truncate ${
-                  activeTheme?.name === theme.name ? 'text-md-primary' : 'text-md-on-surface'
+                <span className={`text-sm font-medium truncate ${
+                  activeTheme?.name === theme.name ? 'text-action' : 'text-ink'
                 }`}>
                   {theme.name}
                 </span>
                 {activeTheme?.name === theme.name && (
-                  <CheckCircle2 className="h-4 w-4 text-md-primary shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-action shrink-0" aria-label="Active" />
                 )}
-                <span className="text-xs text-md-on-surface-variant shrink-0">
+                <span className="text-xs text-ink-muted shrink-0">
                   ({theme.source})
                 </span>
               </div>
@@ -197,7 +198,7 @@ export function ThemeImporter() {
           ))}
           
           {storedThemes.length === 0 && (
-            <p className="text-sm text-md-on-surface-variant text-center py-4">
+            <p className="text-sm text-ink-muted text-center py-4">
               No custom themes imported yet. Import a theme from Material Theme Builder to get started.
             </p>
           )}

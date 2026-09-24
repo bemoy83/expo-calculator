@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { NotificationToast } from '@/components/shared/NotificationToast';
 import { EntityCard } from '@/components/shared/EntityCard';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
+import { notify } from '@/lib/stores/notifications-store';
 import { FileText, Plus, Copy, Trash2 } from 'lucide-react';
 import type { ModuleTemplate } from '@/lib/types';
 import { TemplateEditorView } from './TemplateEditorView';
@@ -21,7 +21,6 @@ export default function TemplatesPage() {
   const modules = useModulesStore((state) => state.modules);
 
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
-  const [duplicateSuccess, setDuplicateSuccess] = useState<string | null>(null);
 
   // View toggle - single-page pattern (list ↔ editor)
   if (editingTemplateId) {
@@ -47,13 +46,12 @@ export default function TemplatesPage() {
 
     const uniqueName = generateUniqueTemplateName(template.name);
     const { id, createdAt, updatedAt, ...templateData } = template;
-    const newTemplate = addTemplate({
+    addTemplate({
       ...templateData,
       name: uniqueName,
     });
 
-    setDuplicateSuccess(uniqueName);
-    setTimeout(() => setDuplicateSuccess(null), 3000);
+    notify({ message: `Created "${uniqueName}"`, variant: 'success' });
   };
 
   const generateUniqueTemplateName = (baseName: string): string => {
@@ -119,14 +117,6 @@ export default function TemplatesPage() {
           ))}
         </div>
       )}
-
-      <NotificationToast
-        message={`Template '${duplicateSuccess}' created successfully`}
-        variant="success"
-        isVisible={!!duplicateSuccess}
-        onDismiss={() => setDuplicateSuccess(null)}
-        autoHideDuration={3000}
-      />
     </Layout>
   );
 }
@@ -165,7 +155,10 @@ function TemplateCard({ template, moduleNames, onEdit, onDuplicate, onDelete }: 
           actionType: 'delete',
           onAction: onDelete,
           ariaLabel: `Delete ${template.name}`,
-          confirmationMessage: `Delete "${template.name}"? Quotes already started from it are not affected.`,
+          confirmation: {
+            title: `Delete "${template.name}"?`,
+            message: 'Quotes already started from it are not affected.',
+          },
         },
       ]}
       sections={[

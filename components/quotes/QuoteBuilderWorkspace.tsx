@@ -5,7 +5,6 @@ import { Download, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { AlertBanner } from '@/components/shared/AlertBanner';
 import { ModulePickerCard } from '@/components/shared/ModulePickerCard';
-import { NotificationToast } from '@/components/shared/NotificationToast';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
 import { SaveTemplateModal } from '@/components/quotes/SaveTemplateModal';
 import { WorkspaceModulesManager } from '@/components/quotes/WorkspaceModulesManager';
@@ -75,7 +74,7 @@ export function QuoteBuilderWorkspace({
 
       <AlertBanner
         variant="warning"
-        title={`Template applied with ${builder.templateWarnings.length} warning(s):`}
+        title={`Template applied with ${builder.templateWarnings.length} ${builder.templateWarnings.length === 1 ? 'warning' : 'warnings'}`}
         messages={builder.templateWarnings}
         isVisible={builder.templateWarnings.length > 0}
         onDismiss={() => builder.setTemplateWarnings([])}
@@ -135,14 +134,6 @@ export function QuoteBuilderWorkspace({
         onTemplateDescriptionChange={builder.setTemplateDescription}
         onClose={builder.closeSaveTemplateModal}
         onSave={builder.handleSaveTemplate}
-      />
-
-      <NotificationToast
-        message={`Template '${builder.templateSaveSuccess}' saved successfully`}
-        variant="success"
-        isVisible={!!builder.templateSaveSuccess}
-        onDismiss={() => builder.setTemplateSaveSuccess(null)}
-        autoHideDuration={3000}
       />
     </>
   );

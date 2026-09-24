@@ -12,7 +12,7 @@ export function FieldLinkBadge({ linkProps }: FieldLinkBadgeProps) {
 
   return (
     <div
-      className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full pointer-events-none z-50 ${
+      className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full pointer-events-none z-10 ${
         isLinkBroken ? "bg-danger-bg" : "bg-transparent"
       }`}
     >

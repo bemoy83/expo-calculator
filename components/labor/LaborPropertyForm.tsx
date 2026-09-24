@@ -97,7 +97,7 @@ export function LaborPropertyForm({
               placeholder=""
               className="text-sm"
             />
-            <p className="mt-1 text-xs text-md-on-surface-variant">
+            <p className="mt-1 text-xs text-ink-muted">
               Used in formulas. Must be a valid identifier (letters, numbers, underscores only, starting with letter or underscore). Auto-generated from property name.
             </p>
           </div>

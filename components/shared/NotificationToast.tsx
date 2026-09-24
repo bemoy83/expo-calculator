@@ -1,69 +1,29 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Card } from '@/components/ui/Card';
 import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { NotificationVariant } from '@/lib/stores/notifications-store';
 
 /**
- * NotificationToast Component
+ * NotificationToastCard
  *
- * A fixed-position notification toast for success, error, warning, or info messages.
- * Supports auto-dismiss and manual dismissal.
- *
- * @example
- * ```tsx
- * const [showToast, setShowToast] = useState(false);
- *
- * <NotificationToast
- *   message="Template saved successfully"
- *   variant="success"
- *   isVisible={showToast}
- *   onDismiss={() => setShowToast(false)}
- *   autoHideDuration={3000}
- * />
- * ```
+ * One toast: a raised surface with the variant's icon and a tinted edge. Toasts are raised
+ * with `notify()` (lib/stores/notifications-store) and rendered by NotificationHost, which
+ * is mounted once in Layout; there is no other toast path.
  */
 
-export interface NotificationToastProps {
-  /** The notification message to display */
+interface NotificationToastCardProps {
   message: string;
-  /** Visual style variant - determines icon and colors */
-  variant?: 'success' | 'error' | 'warning' | 'info';
-  /** Controls visibility of the toast */
-  isVisible: boolean;
-  /** Callback when toast is dismissed (auto or manual) */
+  variant?: NotificationVariant;
   onDismiss?: () => void;
-  /** Auto-hide duration in milliseconds (0 = no auto-hide) */
-  autoHideDuration?: number;
-  /** Show manual dismiss button */
   showDismissButton?: boolean;
 }
 
 const variantConfig = {
-  success: {
-    icon: CheckCircle2,
-    cardClass: 'bg-success/10 border-success/30',
-    textClass: 'text-success',
-    iconClass: 'text-success',
-  },
-  error: {
-    icon: AlertCircle,
-    cardClass: 'bg-destructive/10 border-destructive/30',
-    textClass: 'text-destructive',
-    iconClass: 'text-destructive',
-  },
-  warning: {
-    icon: AlertTriangle,
-    cardClass: 'bg-warning/10 border-warning/30',
-    textClass: 'text-warning',
-    iconClass: 'text-warning',
-  },
-  info: {
-    icon: Info,
-    cardClass: 'bg-md-primary/10 border-md-primary/30',
-    textClass: 'text-md-primary',
-    iconClass: 'text-md-primary',
-  },
+  success: { icon: CheckCircle2, iconClass: 'text-committed', edgeClass: 'border-l-committed' },
+  error: { icon: AlertCircle, iconClass: 'text-danger', edgeClass: 'border-l-danger' },
+  warning: { icon: AlertTriangle, iconClass: 'text-draft', edgeClass: 'border-l-draft' },
+  info: { icon: Info, iconClass: 'text-action', edgeClass: 'border-l-action' },
 };
 
 export function NotificationToastCard({
@@ -71,58 +31,29 @@ export function NotificationToastCard({
   variant = 'success',
   onDismiss,
   showDismissButton = false,
-}: Pick<NotificationToastProps, 'message' | 'variant' | 'onDismiss' | 'showDismissButton'>) {
+}: NotificationToastCardProps) {
   const config = variantConfig[variant];
   const Icon = config.icon;
 
   return (
-    <Card className={config.cardClass}>
-      <div className="flex items-center gap-2 p-3">
-        <Icon className={`h-4 w-4 ${config.iconClass} shrink-0`} />
-        <p className={`text-sm whitespace-pre-line ${config.textClass}`}>{message}</p>
-        {showDismissButton && onDismiss && (
-          <button
-            onClick={onDismiss}
-            className={`ml-2 ${config.textClass} hover:opacity-70 transition-opacity`}
-            aria-label="Dismiss notification"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-    </Card>
-  );
-}
-
-export function NotificationToast({
-  message,
-  variant = 'success',
-  isVisible,
-  onDismiss,
-  autoHideDuration = 3000,
-  showDismissButton = false,
-}: NotificationToastProps) {
-  // Auto-dismiss effect
-  useEffect(() => {
-    if (isVisible && autoHideDuration > 0 && onDismiss) {
-      const timer = setTimeout(() => {
-        onDismiss();
-      }, autoHideDuration);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, autoHideDuration, onDismiss]);
-
-  if (!isVisible) return null;
-
-  return (
-    <div className="fixed bottom-24 right-4 z-50 animate-in slide-in-from-right duration-300">
-      <NotificationToastCard
-        message={message}
-        variant={variant}
-        onDismiss={onDismiss}
-        showDismissButton={showDismissButton}
-      />
+    <div
+      className={cn(
+        'flex items-start gap-2.5 rounded-[10px] border border-border-strong border-l-[3px] bg-surface px-3.5 py-3 shadow-panel',
+        config.edgeClass
+      )}
+    >
+      <Icon className={cn('h-4 w-4 mt-0.5 shrink-0', config.iconClass)} aria-hidden="true" />
+      <p className="text-sm text-ink whitespace-pre-line">{message}</p>
+      {showDismissButton && onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="ml-1 -mr-1 p-0.5 rounded text-ink-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
+          aria-label="Dismiss notification"
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }
