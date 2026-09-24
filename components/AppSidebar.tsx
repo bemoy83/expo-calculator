@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { CheckCircle2, Download, FileText, Palette, Settings, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CurrencySelector } from '@/components/shared/CurrencySelector';
 import { useThemeImporter } from '@/hooks/use-theme-importer';
 import { exportAllData, downloadDataAsJSON } from '@/lib/utils/data-export';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
@@ -356,6 +357,12 @@ function SettingsMenuPanel({
           <Upload className="h-4 w-4" />
           Import Theme
         </button>
+
+        <div className="mt-1 pt-1 border-t border-border">
+          <div className="px-2.5 pt-2 pb-2">
+            <CurrencySelector />
+          </div>
+        </div>
 
         <div className="mt-1 pt-1 border-t border-border">
           <div className="px-2.5 pt-2 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">

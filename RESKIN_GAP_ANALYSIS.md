@@ -433,6 +433,57 @@ that's already correct, not proposing a new one.
   (`lib/templates/template-workspace-actions.ts`) and still drops links, as before.
 - Regression tests: "Quote Commit (Move) & Duplicate Regression".
 
+**Implementation notes (step 7 — Quote Builder visual language)**:
+- **Page** (`QuoteBuilderWorkspace`): the header is the quote name, edited in place (a
+  heading-styled input), with "N line items · edited X" and the actions Save as template,
+  Export JSON, Save quote. Below it, the bench and the sealed quote sit side by side
+  (`1fr` + 380px, 420px at `xl`) and stack below `lg`. `QuoteDetailsCard` is gone: name →
+  header, markup and VAT → the sealed quote, currency → the sidebar Settings menu (it's
+  app-wide). The fixed bottom action bar is gone too; its actions moved into the header
+  and the bench.
+- **Bench** (`WorkspaceModulesManager`): `sunken` with a dashed `border-strong` edge, a
+  "Workspace" label, a "N drafts · not in total" badge (`draft-bg`, the tooltip gives the
+  draft money), Add module / From template, and the closing line "Drafts stay here until
+  you lock them in — nothing here touches the client total." "From template" opens the
+  picker showing templates only (new `section` prop on `ModulePickerCard`, which is also
+  restyled: compact outlined rows instead of pill buttons). An empty bench shows a prompt.
+- **Draft card** (`DraftModuleCard`, replaces `SortableModuleCard`):
+  - Expanded: a 3px `draft` strip, name + `#n` + inline nickname field, status chips,
+    Duplicate / Discard (with a confirmation that mentions linked values are kept) /
+    collapse. Fields in a 1/2/3-column grid, then chips for computed outputs marked "show
+    in quote" (`action-bg`, mono), then a footer with the calculator's error (if any),
+    "Draft cost" in 22px mono, and "Lock into quote →".
+  - Collapsed: a compact row with name, `#n`, nickname, a summary line (same builder as
+    line items), cost, and "Lock in".
+  - `#n` numbers drafts per module in current bench order, so it changes when an earlier
+    draft of the same module leaves the bench. Stable numbers would need storing.
+  - "Add to Quote" is now "Lock into quote" / "Lock in", matching Reopen.
+- **Draft status** (`getDraftStatus`, `lib/quotes/draft-status.ts`) calculates each draft
+  the way committing it would (resolved links, same calculator), giving cost, error,
+  outputs, summary, and missing-required count.
+  - "N inputs needed" now counts required, unlinked fields that are actually **empty**.
+    The old chip counted every required unlinked field, filled or not.
+  - A draft that can't calculate gets a danger border, "Can't calculate" (when nothing
+    required is missing), a "—" cost, and a disabled Lock in. Committing it would fail
+    anyway. Drafts with empty required fields that still calculate (via defaults) can
+    be locked in, as before.
+- **Sealed quote** (`QuoteSummaryCard`): a raised `surface` sheet with `shadow-panel`, a
+  green `committed-solid` dot, "In the quote" in `committed`, and "N line items". Rows show
+  name · nickname, primary summary, secondary summary, and cost, with Reopen / Remove as
+  hover/focus row actions. The footer (`surface-hover`) has Subtotal, Markup and VAT with
+  inline % inputs and amounts, the Total in 28px `committed` mono, "Export quote"
+  (print/PDF), and "Excludes N drafts in the workspace (X)". Markup and VAT rows are now
+  always visible (they were hidden at 0%), since they hold the inputs.
+  - The old "Send Quote" button was a placeholder that only showed a toast. It's
+    replaced by the real print/PDF export ("Export quote").
+- `FieldHeader` (field labels in drafts and the module preview) moved onto tokens: 12px
+  `ink-muted` labels, mono unit hints, `action`-colored Link / `danger` Unlink.
+- Still MD3 in this area: `AlertBanner` (template warnings), `SaveTemplateModal` /
+  `ModalDialog`, the field-link picker and badges inside `module-field-input/`, and the
+  template editor, which shares `ModulePickerCard` and `FieldHeader` but not the bench.
+- Cost mix (materials vs. labor) stays out of scope, as decided.
+- Regression tests: "Draft Status Regression" in `lib/regression-tests/quote-regression.ts`.
+
 ## Module Editor — Detailed (2b) — High
 
 **Current state**: one editor, one view. `FormulaBuilder.tsx` already has the raw
@@ -690,7 +741,7 @@ currently has no external users to confuse.
    sidebar and the quote list/resume card). Does not include Quote Builder's visual
    language — that's step 7, a separate and larger piece of work, not a continuation of
    this pass.
-7. **Quote Builder — visual language** — apply new tokens to the `reopenLineItem`/
+7. **Quote Builder — visual language** *(done)* — apply new tokens to the `reopenLineItem`/
    nickname UI shipped in step 2, *and* build the sunken-bench/sealed-ledger spatial
    treatment (Gap #1 in the Quote Builder section) for the first time — this piece never
    existed in any structural form, so there's no earlier step it's "finishing." Build it

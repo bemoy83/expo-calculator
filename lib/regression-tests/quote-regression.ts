@@ -11,6 +11,7 @@ import { getInitialFieldValue, resolveFieldValuesWithDefaults } from '../field-d
 import { applyTemplateToQuoteWorkspace } from '../quotes/template-application';
 import { getRestorableTemplateLinks } from '../quotes/template-helpers';
 import { formatInstanceName } from '../quotes/nickname';
+import { getDraftStatus } from '../quotes/draft-status';
 import {
   estimateTemplateCost,
   filterQuotesByName,
@@ -824,4 +825,80 @@ assertCheck(
   'estimates a template at applied defaults, skipping missing modules',
   estimatedTemplateCost === 2,
   String(estimatedTemplateCost)
+);
+
+console.log('\n=== Draft Status Regression ===');
+const sourceDraft = {
+  id: 'draft-source',
+  moduleId: 'source-module',
+  fieldValues: { width: 5 },
+  calculatedCost: 0,
+};
+const sourceStatus = getDraftStatus({
+  instance: sourceDraft,
+  moduleDef: quoteModules[0],
+  resolvedFieldValues: sourceDraft.fieldValues,
+  materials: templateMaterials,
+  labor: templateLabor,
+  functions: [],
+});
+assertCheck(
+  'reports a draft\'s cost and its show-in-quote outputs',
+  sourceStatus.cost === 10 &&
+    !sourceStatus.error &&
+    sourceStatus.outputs.length === 1 &&
+    sourceStatus.outputs[0].variableName === 'area' &&
+    sourceStatus.outputs[0].display === '15 m' &&
+    (sourceStatus.summary ?? '').includes('Area: 15 m'),
+  JSON.stringify(sourceStatus)
+);
+
+const brokenModule: CalculationModule = {
+  ...quoteModules[0],
+  id: 'broken-module',
+  formula: 'width * missing_material',
+  computedOutputs: [],
+};
+const brokenStatus = getDraftStatus({
+  instance: { ...sourceDraft, moduleId: 'broken-module' },
+  moduleDef: brokenModule,
+  resolvedFieldValues: sourceDraft.fieldValues,
+  materials: templateMaterials,
+  labor: templateLabor,
+  functions: [],
+});
+assertCheck(
+  'flags a draft that cannot calculate, with zero cost',
+  !!brokenStatus.error && brokenStatus.cost === 0,
+  JSON.stringify(brokenStatus)
+);
+
+const requiredModule: CalculationModule = {
+  ...quoteModules[1],
+  id: 'required-module',
+  fields: quoteModules[1].fields.map((field) => ({ ...field, required: true })),
+};
+const requiredStatus = (fieldValues: Record<string, string | number | boolean>, linked = false) =>
+  getDraftStatus({
+    instance: {
+      id: 'draft-required',
+      moduleId: 'required-module',
+      fieldValues,
+      calculatedCost: 0,
+      ...(linked
+        ? { fieldLinks: { linked_width: { moduleInstanceId: 'draft-source', fieldVariableName: 'width' } } }
+        : {}),
+    },
+    moduleDef: requiredModule,
+    resolvedFieldValues: fieldValues,
+    materials: templateMaterials,
+    labor: templateLabor,
+    functions: [],
+  }).missingRequired;
+assertCheck(
+  'counts only required fields that are empty and unlinked',
+  requiredStatus({ linked_width: '', weight: '' }) === 2 &&
+    requiredStatus({ linked_width: 3, weight: '' }) === 1 &&
+    requiredStatus({ linked_width: '', weight: '' }, true) === 1 &&
+    requiredStatus({ linked_width: 3, weight: 0 }) === 0
 );

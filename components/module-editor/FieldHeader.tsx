@@ -40,19 +40,19 @@ export function FieldHeader({
   })();
 
   return (
-    <div className="flex items-center justify-between h-6 mb-2">
+    <div className="flex items-center justify-between h-5 mb-1">
       <div className="flex-1 min-w-0">
-        <label className="block text-sm font-medium text-md-on-surface leading-tight truncate">
+        <label className="block text-xs font-medium text-ink-muted leading-tight truncate">
           {label}
 
           {/* Inline unit helper */}
           {formattedUnit && (
-            <span className="ml-2 text-xs text-md-on-surface-variant italic">
+            <span className="ml-1.5 text-[11px] font-numeric text-ink-faint">
               {formattedUnit}
             </span>
           )}
 
-          {required && <span className="text-destructive ml-1">*</span>}
+          {required && <span className="text-danger ml-0.5">*</span>}
         </label>
       </div>
 
@@ -62,7 +62,7 @@ export function FieldHeader({
           <button
             type="button"
             onClick={onLinkClick}
-            className="flex items-center gap-1 text-xs text-md-on-surface-variant hover:text-md-primary transition-colors p-1 -mr-1"
+            className="flex items-center gap-1 text-[11px] font-medium text-ink-muted hover:text-action transition-colors p-1 -mr-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             title="Link this field to another module field"
           >
             <Link2 className="h-3.5 w-3.5" />
@@ -73,7 +73,7 @@ export function FieldHeader({
           <button
             type="button"
             onClick={onUnlinkClick}
-            className="flex items-center gap-1 text-xs text-md-error hover:text-md-error/80 transition-colors p-1 -mr-1"
+            className="flex items-center gap-1 text-[11px] font-medium text-danger hover:text-danger/80 transition-colors p-1 -mr-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             title="Unlink this field"
           >
             <Unlink className="h-3.5 w-3.5" />
@@ -89,7 +89,7 @@ export function FieldHeader({
 export function FieldDescription({ description }: { description?: string }) {
   if (!description) return null;
   return (
-    <p className="mt-1.5 text-xs text-md-on-surface-variant">
+    <p className="mt-1 text-[11px] leading-snug text-ink-faint">
       {description}
     </p>
   );
