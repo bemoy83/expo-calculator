@@ -61,8 +61,55 @@ const config: Config = {
           DEFAULT: "rgb(var(--md-error) / <alpha-value>)",
           foreground: "rgb(var(--md-on-error) / <alpha-value>)",
         },
-        border: "rgb(var(--md-outline) / <alpha-value>)",
+        // DEFAULT is still the MD3 outline until the palette switch (Foundations 4b) points it
+        // at the design token --border; `strong` is already the design token.
+        border: {
+          DEFAULT: "rgb(var(--md-outline) / <alpha-value>)",
+          strong: "rgb(var(--border-strong) / <alpha-value>)",
+        },
         
+        /* Design tokens (Ink palette, app/globals.css). Derived ones are full colors, so they
+           take no /opacity modifier. */
+        canvas: "rgb(var(--canvas) / <alpha-value>)",
+        surface: {
+          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
+          hover: "var(--surface-hover)",
+        },
+        sunken: {
+          DEFAULT: "rgb(var(--sunken) / <alpha-value>)",
+          2: "var(--sunken-2)",
+        },
+        ink: {
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          muted: "rgb(var(--ink-muted) / <alpha-value>)",
+          faint: "rgb(var(--ink-faint) / <alpha-value>)",
+          body: "var(--ink-body)",
+          subtle: "var(--ink-subtle)",
+        },
+        'on-accent': "rgb(var(--on-accent) / <alpha-value>)",
+        action: {
+          DEFAULT: "rgb(var(--action) / <alpha-value>)",
+          solid: "rgb(var(--action-solid) / <alpha-value>)",
+          bg: "rgb(var(--action-bg) / <alpha-value>)",
+          border: "rgb(var(--action-border) / <alpha-value>)",
+        },
+        committed: {
+          DEFAULT: "rgb(var(--committed) / <alpha-value>)",
+          solid: "var(--committed-solid)",
+          bg: "rgb(var(--committed-bg) / <alpha-value>)",
+          border: "rgb(var(--committed-border) / <alpha-value>)",
+        },
+        draft: {
+          DEFAULT: "rgb(var(--draft) / <alpha-value>)",
+          bg: "rgb(var(--draft-bg) / <alpha-value>)",
+          border: "rgb(var(--draft-border) / <alpha-value>)",
+        },
+        danger: {
+          DEFAULT: "rgb(var(--danger) / <alpha-value>)",
+          bg: "rgb(var(--danger-bg) / <alpha-value>)",
+          border: "rgb(var(--danger-border) / <alpha-value>)",
+        },
+
         /* Custom tokens (not in MD3 spec) */
         warning: "rgb(var(--warning) / <alpha-value>)",
         success: {
@@ -76,6 +123,10 @@ const config: Config = {
       },
       borderColor: {
         DEFAULT: "rgb(var(--md-outline) / <alpha-value>)",
+      },
+      fontFamily: {
+        // Archivo, loaded in app/layout.tsx. Numbers use the .font-numeric utility instead.
+        ui: ["var(--font-ui)", "system-ui", "sans-serif"],
       },
       spacing: {
         sidebar: 'var(--app-sidebar-w)',

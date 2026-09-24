@@ -1,9 +1,12 @@
 # Reskin Gap Analysis — "Estimator Redesign" design doc
 
-Source: `Estimator Redesign.dc.html`, two revisions — the first with resolved screens
+Source: `Estimator Redesign.dc.html`, three revisions — the first with resolved screens
 2a–2d and foundations 1a (light mode + a partial dark set); the second adding turn 3,
 "Dark mode — full token set," which completes and formalizes the color tokens into 21
-light/dark variable pairs with an explicit mapping table. Compares the proposed design
+light/dark variable pairs with an explicit mapping table; the third adding turn 4,
+"Alternative token sets" (4a Graphite, 4b Blueprint, 4c Ink, 4d Sage), which revises the
+token list to 27 variables and re-renders 2a/2b entirely through CSS variables. **Turn 4
+supersedes turn 3's token list** — see Foundations. Compares the proposed design
 against the current implementation to size the work required to adopt it. Ratings are
 Low / Moderate / High effort, not story points.
 
@@ -14,9 +17,20 @@ Low / Moderate / High effort, not story points.
   (`DataImporter`, `ThemeImporter`) unchanged — relocate the trigger button to a menu
   pinned at the bottom of the new sidebar, near the Light/Dark toggle. No new route, no
   restructuring of the existing modal flows.
-- **Non-blocking, default given.** `ink-faint` (Foundations, dark token set): derive it
-  as `ink-muted` at reduced opacity rather than a new hardcoded value, unless the
-  designer has a specific reason it needs an independent hue. See Foundations below.
+- ~~Which palette?~~ **Resolved: Ink (4c), as the only palette.** Theming is a nice
+  extra, not a requirement: no palette picker and no other built-in palettes. Tokens stay
+  a pure value swap (one light and one dark block), so another palette later means new
+  values, not a refactor.
+- ~~Must the new tokens map onto MD3 so theme import keeps working?~~ **Resolved: no.**
+  The design tokens are the source of truth. Theme import (`ThemeImporter`,
+  `applyTheme()`) stays, as a best-effort mapping of an imported MD3 scheme onto the
+  design tokens. Add that mapping when the first restyled screen needs it, and check
+  imported themes once at the end of the reskin, not on every step. Tokens with no MD3
+  equivalent (committed, draft, the `-border` tokens) keep their Ink values under an
+  imported theme.
+- ~~`ink-faint`: derive it as `ink-muted` at reduced opacity?~~ **Superseded.** Turn 4 gives
+  `ink-faint` an explicit value in every palette; use Ink's. Deriving it is only relevant
+  inside the imported-theme mapping above.
 - **Naming note, not a decision.** The role informally called "draft/warn" elsewhere in
   this analysis and in conversation is named `--draft` (and `--draft-bg`) in the actual
   token mapping table (turn 3) — use `--draft`, not `--draft-warn`, in code.
@@ -148,6 +162,28 @@ formalizing color usages that already existed implicitly in the original light m
 (display/title/body/label/numeric), and a hard rule that **all numbers — money, quantity,
 unit, variable — render in monospace** (Archivo for UI text, IBM Plex Mono for values).
 
+**Turn 4 revision (current source of truth)**: the token list is now **27 variables**,
+defined in the mockup's theme-preview script (`const P`, `vars()`):
+- 22 base values: `canvas`, `surface`, `sunken`, `border`, `border-strong`, `ink`,
+  `ink-muted`, `ink-faint`, `on-accent`, and fg/bg/border triplets for the accents —
+  `action`/`action-solid`/`action-bg`/`action-border`, `committed`/`committed-bg`/
+  `committed-border`, `draft`/`draft-bg`/`draft-border`, `danger`/`danger-bg`/`danger-border`.
+- 5 derived by a linear mix of two base values: `surface-hover`, `sunken-2`, `ink-body`,
+  `ink-subtle`, `committed-solid` (only Warm paper overrides the first four by hand).
+- Changes from turn 3: `ink-onAccent` is renamed `on-accent`; the `-border` accent
+  tokens (shown visually in 3a) are now variables; `surface-raised`, `focus-ring`,
+  `shadow-panel`, and `shadow-card` are gone. The screens hardcode their three shadows,
+  and nothing uses a focus-ring token.
+- Ink specifics: `action-solid` (filled buttons) is ink, not the accent — `#111110` on
+  light, `#f5f5f4` with dark `#0b0b0b` text in dark — while `action` stays blue for chips,
+  links, and selection. So "primary button" and "action color" are different tokens.
+- Contrast of Ink (WCAG, small text needs 4.5:1): all pairings pass except `ink-faint`
+  on `sunken` in light (4.2) and on `surface` in dark (4.4). Keep `ink-faint` to
+  placeholders and timestamps, as the mockups do.
+
+The turn-3 notes below are kept for their rationale (dark elevation, accent splitting),
+but their token list and MD3-mapping plan are superseded.
+
 **Dark mode is now fully specified** — the design doc's turn 3 supplies all 21 variables'
 dark values plus rationale (elevation moves from shadow to border-weight in dark since
 shadows barely register on near-black; accents split into a light foreground + a deep
@@ -198,6 +234,31 @@ of one value doing double duty. No longer an open item.
 - The "numbers are always tabular mono" rule needs to land as a utility class
   (e.g. `.font-numeric`) applied consistently — mechanical but touches every screen that
   prints a value, which is most of the app.
+
+**Implementation notes (step 4a — tokens and fonts, no visual change)**:
+- The 27 Ink variables live in `app/globals.css` ("Design tokens" block, `:root` for
+  light and `.dark` for dark), after the MD3 blocks. Values come straight from the
+  mockup's `P.ink` data. Base values are `R G B` triplets like the MD3 tokens, so Tailwind
+  opacity modifiers work (`bg-draft-bg/50`). The 5 derived tokens are `color-mix(in srgb,
+  …)` expressions reproducing the designer's `mix()` (verified to match exactly in light
+  and dark). Because they're full colors, their Tailwind classes take no `/opacity`.
+  Since they're computed from the base variables, they also follow an imported theme once
+  the import mapping writes the base values.
+- Tailwind names mirror the variables: `bg-canvas`, `bg-surface`, `bg-surface-hover`,
+  `bg-sunken`, `bg-sunken-2`, `text-ink`, `text-ink-muted|faint|body|subtle`,
+  `text-on-accent`, `text-action`, `bg-action-solid|bg`, `border-action-border`, and the
+  same for `committed` (plus `committed-solid`), `draft`, and `danger`. **Exception:
+  `border`** — the existing `border` color alias (`border-border`, ~25 uses) still means
+  the MD3 outline and switches to `--border` in 4b. Its sibling `border-border-strong`
+  is already the design token.
+- Fonts: `next/font/google` self-hosts Archivo (400–700) and IBM Plex Mono (400–600) at
+  build time (the files ship in `out/_next/static/media`, no runtime requests). They're
+  exposed only as `--font-ui` / `--font-numeric` on `<html>`. Tailwind `font-ui` and the
+  `.font-numeric` utility (Plex Mono + `tabular-nums`) apply them; nothing does yet, so
+  the body font is unchanged. `next/font` preloads one file per family on every page
+  even before they're used, a small cost until 4b.
+- Not added: `focus-ring` and the shadow tokens, which turn 4 dropped. Decide in 4b
+  whether focus rings use `action` (likely, since `action-solid` is black in Ink).
 
 ## Primitives — Low
 
@@ -460,7 +521,13 @@ currently has no external users to confuse.
 3. **Dashboard rebuild (structure only)** — quote list/grid and resume card, on
    current styling. No new store logic needed, just assembly over existing data.
 4. **Foundations** — tokens + fonts, once the structural work above has proven out
-   the interactions it depends on.
+   the interactions it depends on. Split in two:
+   - **4a** — the Ink tokens, Tailwind names, fonts, and `.font-numeric`, with no
+     visual change.
+   - **4b** — the palette switch: point the MD3 variables (which every current screen
+     reads) at the Ink values, so the whole app recolors in one small diff, and switch
+     the body font. Expect some interim oddities until each screen is restyled, e.g.
+     links and active states rendering black (Ink's button color) instead of blue.
 5. **Materials catalog** restyle — cheapest possible visual win, validates the
    token/primitive restyle approach on a screen that needs no structural change.
 6. **Navigation shell and Dashboard — style pass** — apply the new tokens to the

@@ -305,6 +305,77 @@
   --radius-2xl: 20px;                          /* Between large (16px) and extra-large (28px) */
 }
 
+/* =====================================================
+   Design tokens — "Ink" palette (Estimator Redesign, turn 4, option 4c)
+   27 variables: 22 base values (R G B triplets, like the MD3 tokens above, so Tailwind
+   opacity modifiers work) and 5 derived with color-mix() from the designer's formulas.
+   Exposed to Tailwind under the same names (tailwind.config.ts). Nothing renders with
+   them yet: screens move over to them as they're restyled (see RESKIN_GAP_ANALYSIS.md).
+   ===================================================== */
+:root {
+  --canvas: 250 250 249; /* #fafaf9 */
+  --surface: 255 255 255; /* #ffffff */
+  --sunken: 240 239 237; /* #f0efed */
+  --border: 228 226 223; /* #e4e2df */
+  --border-strong: 201 198 193; /* #c9c6c1 */
+  --ink: 13 13 12; /* #0d0d0c */
+  --ink-muted: 90 88 84; /* #5a5854 */
+  --ink-faint: 117 114 109; /* #75726d */
+  --on-accent: 255 255 255; /* #ffffff */
+  --action: 36 85 214; /* #2455d6 */
+  --action-solid: 17 17 16; /* #111110 */
+  --action-bg: 233 239 252; /* #e9effc */
+  --action-border: 195 210 245; /* #c3d2f5 */
+  --committed: 21 115 71; /* #157347 */
+  --committed-bg: 228 242 234; /* #e4f2ea */
+  --committed-border: 179 218 196; /* #b3dac4 */
+  --draft: 143 94 10; /* #8f5e0a */
+  --draft-bg: 247 238 219; /* #f7eedb */
+  --draft-border: 230 207 156; /* #e6cf9c */
+  --danger: 180 35 24; /* #b42318 */
+  --danger-bg: 251 232 230; /* #fbe8e6 */
+  --danger-border: 241 188 182; /* #f1bcb6 */
+
+  /* Derived (full colors, not triplets: no Tailwind /opacity modifiers) */
+  --surface-hover: color-mix(in srgb, rgb(var(--surface)) 40%, rgb(var(--canvas)));
+  --sunken-2: color-mix(in srgb, rgb(var(--sunken)) 50%, rgb(var(--canvas)));
+  --ink-body: color-mix(in srgb, rgb(var(--ink)) 45%, rgb(var(--ink-muted)));
+  --ink-subtle: color-mix(in srgb, rgb(var(--ink-faint)) 60%, rgb(var(--border-strong)));
+  --committed-solid: rgb(var(--committed));
+}
+
+.dark {
+  --canvas: 11 11 11; /* #0b0b0b */
+  --surface: 22 22 22; /* #161616 */
+  --sunken: 5 5 5; /* #050505 */
+  --border: 41 41 41; /* #292929 */
+  --border-strong: 59 59 59; /* #3b3b3b */
+  --ink: 245 245 244; /* #f5f5f4 */
+  --ink-muted: 163 163 160; /* #a3a3a0 */
+  --ink-faint: 125 125 122; /* #7d7d7a */
+  --on-accent: 11 11 11; /* #0b0b0b */
+  --action: 138 168 255; /* #8aa8ff */
+  --action-solid: 245 245 244; /* #f5f5f4 */
+  --action-bg: 26 34 56; /* #1a2238 */
+  --action-border: 44 58 99; /* #2c3a63 */
+  --committed: 92 207 143; /* #5ccf8f */
+  --committed-bg: 15 38 25; /* #0f2619 */
+  --committed-border: 30 74 49; /* #1e4a31 */
+  --draft: 242 181 79; /* #f2b54f */
+  --draft-bg: 43 32 13; /* #2b200d */
+  --draft-border: 80 59 22; /* #503b16 */
+  --danger: 255 138 128; /* #ff8a80 */
+  --danger-bg: 48 22 21; /* #301615 */
+  --danger-border: 90 41 38; /* #5a2926 */
+
+  /* Derived (full colors, not triplets: no Tailwind /opacity modifiers) */
+  --surface-hover: color-mix(in srgb, rgb(var(--surface)) 95%, rgb(var(--ink)));
+  --sunken-2: color-mix(in srgb, rgb(var(--sunken)) 50%, rgb(var(--surface)));
+  --ink-body: color-mix(in srgb, rgb(var(--ink)) 60%, rgb(var(--ink-muted)));
+  --ink-subtle: color-mix(in srgb, rgb(var(--ink-muted)) 55%, rgb(var(--border-strong)));
+  --committed-solid: color-mix(in srgb, rgb(var(--committed)) 55%, black);
+}
+
 @layer base {
   body {
     @apply bg-md-surface text-md-on-surface;
@@ -315,6 +386,12 @@
 }
 
 @layer utilities {
+  /* All numbers (money, quantities, units, variables) render in tabular monospace. */
+  .font-numeric {
+    font-family: var(--font-numeric), ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
   .text-balance {
     text-wrap: balance;
   }
