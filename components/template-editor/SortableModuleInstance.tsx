@@ -5,9 +5,8 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Chip } from '@/components/ui/Chip';
 import { ModuleCardShell } from '@/components/shared/ModuleCardShell';
-import { ModuleFieldInput } from '@/components/shared/ModuleFieldInput';
-import type { QuoteModuleInstance, Material, CalculationModule, Labor } from '@/lib/types';
-import { useLaborStore } from '@/lib/stores/labor-store';
+import { Select } from '@/components/ui/Select';
+import type { QuoteModuleInstance, CalculationModule } from '@/lib/types';
 
 /**
  * SortableModuleInstance Component
@@ -22,17 +21,12 @@ export interface SortableModuleInstanceProps {
   isExpanded: boolean;
   onToggleExpanded: (instanceId: string) => void;
   onRemove: (instanceId: string) => void;
-  onFieldValueChange: (instanceId: string, fieldName: string, value: any) => void;
-  materials: Material[];
-  labor?: Labor[];
   // Field linking props from use-template-editor hook
   workspaceModules: QuoteModuleInstance[];
   isFieldLinked?: (instance: QuoteModuleInstance, fieldName: string) => boolean;
-  getResolvedValue?: (instance: QuoteModuleInstance, fieldName: string) => any;
   isLinkBroken?: (instance: QuoteModuleInstance, fieldName: string) => boolean;
   getLinkDisplayName?: (instance: QuoteModuleInstance, fieldName: string) => string;
   buildLinkOptions?: (instance: QuoteModuleInstance, field: { variableName: string; type: any }) => Array<{ value: string; label: string }>;
-  getCurrentLinkValue?: (instance: QuoteModuleInstance, fieldName: string) => string;
   onLinkField?: (instanceId: string, fieldName: string, targetInstanceId: string, targetFieldName: string) => void;
   onUnlinkField?: (instanceId: string, fieldName: string) => void;
 }
@@ -43,16 +37,11 @@ export function SortableModuleInstance({
   isExpanded,
   onToggleExpanded,
   onRemove,
-  onFieldValueChange,
-  materials,
-  labor,
   workspaceModules,
   isFieldLinked,
-  getResolvedValue,
   isLinkBroken,
   getLinkDisplayName,
   buildLinkOptions,
-  getCurrentLinkValue,
   onLinkField,
   onUnlinkField,
 }: SortableModuleInstanceProps) {
@@ -73,13 +62,6 @@ export function SortableModuleInstance({
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 30 : 'auto',
   };
-
-  const handleFieldChange = useCallback(
-    (fieldName: string, value: any) => {
-      onFieldValueChange(instance.id, fieldName, value);
-    },
-    [instance.id, onFieldValueChange]
-  );
 
   // Toggle link UI for a specific field
   const toggleLinkUI = useCallback((fieldName: string) => {
@@ -166,7 +148,7 @@ export function SortableModuleInstance({
 
     // Field count chip
     chips.push(
-      <Chip key="field-count" size="sm" variant="primaryTonal" className="font-mono">
+      <Chip key="field-count" size="sm" variant="primaryTonal" className="font-numeric">
         {module.fields.length} {module.fields.length === 1 ? 'field' : 'fields'}
       </Chip>
     );
@@ -208,7 +190,7 @@ export function SortableModuleInstance({
         isCollapsed={true}
         onToggle={() => {}}
       >
-        <div className="p-4 text-md-on-surface-variant">
+        <div className="p-4 text-sm text-ink-muted">
           Module not found
         </div>
       </ModuleCardShell>
@@ -229,61 +211,104 @@ export function SortableModuleInstance({
       onRemove={() => onRemove(instance.id)}
       removeConfirmMessage={`Remove ${module.name} from template?`}
     >
-      {/* Expanded Field Inputs */}
+      {/* Expanded: how each field gets its value in a quote. A template is a reusable chain
+          of modules, so it holds links, not input values (see the gap analysis). */}
       {isExpanded && (
-        <div className="p-4 border-t border-border space-y-4">
-          {module.fields.map((field) => {
-            // Determine if field can be linked (not material type)
-            const canLink = field.type !== 'material' && workspaceModules.length > 1;
+        <div className="p-4 border-t border-border">
+          {module.fields.length === 0 ? (
+            <p className="text-sm text-ink-muted">This module has no input fields.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {module.fields.map((field) => {
+                // Material pickers can't be linked; the choice is made per quote.
+                const canLink = field.type !== 'material' && workspaceModules.length > 1;
+                const linked = isFieldLinked ? isFieldLinked(instance, field.variableName) : false;
+                const broken = linked && isLinkBroken ? isLinkBroken(instance, field.variableName) : false;
+                const linkUIOpen = openLinkUIs.has(field.variableName);
+                const options = canLink && buildLinkOptions ? linkableOptions(buildLinkOptions(instance, field)) : [];
 
-            // Check if field is linked
-            const isLinkedToValue = isFieldLinked ? isFieldLinked(instance, field.variableName) : false;
-
-            // Get display value (resolved from link or direct value)
-            const displayValue = getResolvedValue
-              ? getResolvedValue(instance, field.variableName)
-              : instance.fieldValues[field.variableName];
-
-            // Build link props if linking is available
-            const linkProps = canLink && isFieldLinked && getLinkDisplayName && buildLinkOptions && getCurrentLinkValue && isLinkBroken
-              ? {
-                  canLink: true,
-                  isLinked: isLinkedToValue,
-                  isLinkBroken: isLinkBroken(instance, field.variableName),
-                  linkDisplayName: getLinkDisplayName(instance, field.variableName),
-                  linkUIOpen: openLinkUIs.has(field.variableName),
-                  currentLinkValue: getCurrentLinkValue(instance, field.variableName),
-                  linkOptions: buildLinkOptions(instance, field),
-                  onToggleLink: () => toggleLinkUI(field.variableName),
-                  onLinkChange: (value: string) => handleLinkChange(field.variableName, value),
-                  onUnlink: () => handleUnlink(field.variableName),
-                }
-              : undefined;
-
-            return (
-              <ModuleFieldInput
-                key={field.id}
-                field={field}
-                value={displayValue}
-                materials={materials}
-                labor={labor}
-                onChange={(value) => {
-                  // Don't allow direct editing if field is linked
-                  if (linkProps?.isLinked) return;
-                  handleFieldChange(field.variableName, value);
-                }}
-                linkProps={linkProps}
-              />
-            );
-          })}
-
-          {module.fields.length === 0 && (
-            <p className="text-sm text-md-on-surface-variant italic">
-              This module has no input fields
-            </p>
+                return (
+                  <li key={field.id} className="py-2.5 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-ink">
+                          {field.label}
+                          {field.unitSymbol && <span className="ml-1.5 text-[11px] font-numeric text-ink-faint">{field.unitSymbol}</span>}
+                          {field.required && <span className="ml-1.5 text-[11px] font-normal text-ink-muted">required</span>}
+                        </p>
+                        <p className={`text-xs ${broken ? 'text-danger' : linked ? 'text-action' : 'text-ink-muted'}`}>
+                          {broken
+                            ? 'Broken link: the source is no longer in this template'
+                            : linked
+                              ? `From ${getLinkDisplayName ? getLinkDisplayName(instance, field.variableName) : 'another module'}`
+                              : 'Entered in each quote'}
+                        </p>
+                      </div>
+                      {canLink && (linked ? (
+                        <button
+                          type="button"
+                          onClick={() => handleUnlink(field.variableName)}
+                          className="px-2 py-1 rounded-md text-xs font-medium text-ink-muted hover:text-danger hover:bg-danger-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                          aria-label={`Unlink ${field.label}`}
+                        >
+                          Unlink
+                        </button>
+                      ) : options.length > 0 && !linkUIOpen ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleLinkUI(field.variableName)}
+                          className="px-2 py-1 rounded-md border border-border-strong text-xs font-semibold text-action hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                          aria-label={`Link ${field.label} to another module`}
+                        >
+                          Link…
+                        </button>
+                      ) : null)}
+                    </div>
+                    {canLink && !linked && linkUIOpen && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Select
+                          aria-label={`Take ${field.label} from`}
+                          value=""
+                          onChange={(event) => handleLinkChange(field.variableName, event.target.value)}
+                          options={[{ value: '', label: 'Take the value from…' }, ...options]}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => toggleLinkUI(field.variableName)}
+                          className="shrink-0 px-2 py-1 rounded-md text-xs font-medium text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
       )}
     </ModuleCardShell>
   );
 }
+
+// The shared option builder lists "None" and a heading for every other module, even when that
+// module has nothing compatible. Keep only real targets ("instanceId.field") and the headings
+// that have at least one, so "Link…" is offered only when there is something to link to.
+function linkableOptions(options: Array<{ value: string; label: string }>) {
+  const result: Array<{ value: string; label: string }> = [];
+  let pendingHeading: { value: string; label: string } | null = null;
+  for (const option of options) {
+    if (option.value.startsWith('sep-')) {
+      pendingHeading = option;
+    } else if (option.value.includes('.')) {
+      if (pendingHeading) {
+        result.push(pendingHeading);
+        pendingHeading = null;
+      }
+      result.push(option);
+    }
+  }
+  return result.some((option) => option.value.includes('.')) ? result : [];
+}
+

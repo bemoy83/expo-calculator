@@ -19,7 +19,7 @@ export interface TemplateDetailsCardProps {
 
 export function TemplateDetailsCard({ formData, errors, onFormDataChange }: TemplateDetailsCardProps) {
   return (
-    <Card title="Template Details">
+    <Card title="Template details">
       <div className="space-y-4">
         <Input
           label="Template Name"

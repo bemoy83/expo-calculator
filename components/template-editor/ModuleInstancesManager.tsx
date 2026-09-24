@@ -1,32 +1,30 @@
 'use client';
 
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { SortableList } from '@/components/shared/SortableList';
+import { SectionBar } from '@/components/module-editor/SectionBar';
 import { SortableModuleInstance } from './SortableModuleInstance';
-import type { QuoteModuleInstance, CalculationModule, Material, Labor } from '@/lib/types';
+import type { QuoteModuleInstance, CalculationModule } from '@/lib/types';
 
 /**
- * ModuleInstancesManager Component
- *
- * Manages the list of module instances in a template.
- * Supports drag-to-reorder, field value editing, and field linking.
+ * The template's chain of modules, in order, with how each field is filled: entered in each
+ * quote, or linked to a field of another module in the template.
  */
-
 export interface ModuleInstancesManagerProps {
   workspaceModules: QuoteModuleInstance[];
   modules: CalculationModule[];
-  materials: Material[];
-  labor?: Labor[];
   onRemoveModule: (instanceId: string) => void;
   onReorder: (oldIndex: number, newIndex: number) => void;
-  onFieldValueChange: (instanceId: string, fieldName: string, value: any) => void;
+  onAddModule: () => void;
+  /** The module picker, shown above the list while open. */
+  picker?: React.ReactNode;
   // Field linking props from use-template-editor hook
   isFieldLinked?: (instance: QuoteModuleInstance, fieldName: string) => boolean;
-  getResolvedValue?: (instance: QuoteModuleInstance, fieldName: string) => any;
   isLinkBroken?: (instance: QuoteModuleInstance, fieldName: string) => boolean;
   getLinkDisplayName?: (instance: QuoteModuleInstance, fieldName: string) => string;
   buildLinkOptions?: (instance: QuoteModuleInstance, field: { variableName: string; type: any }) => Array<{ value: string; label: string }>;
-  getCurrentLinkValue?: (instance: QuoteModuleInstance, fieldName: string) => string;
   onLinkField?: (instanceId: string, fieldName: string, targetInstanceId: string, targetFieldName: string) => void;
   onUnlinkField?: (instanceId: string, fieldName: string) => void;
 }
@@ -34,21 +32,17 @@ export interface ModuleInstancesManagerProps {
 export function ModuleInstancesManager({
   workspaceModules,
   modules,
-  materials,
-  labor,
   onRemoveModule,
   onReorder,
-  onFieldValueChange,
+  onAddModule,
+  picker,
   isFieldLinked,
-  getResolvedValue,
   isLinkBroken,
   getLinkDisplayName,
   buildLinkOptions,
-  getCurrentLinkValue,
   onLinkField,
   onUnlinkField,
 }: ModuleInstancesManagerProps) {
-  // Track expanded state for each module instance
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const handleToggleExpanded = (instanceId: string) => {
@@ -64,43 +58,52 @@ export function ModuleInstancesManager({
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">
-          Module Instances
-        </h2>
-      </div>
+    <section aria-labelledby="template-modules-heading" className="space-y-3">
+      <SectionBar
+        id="template-modules-heading"
+        title="Modules"
+        count={workspaceModules.length}
+        action={
+          <Button variant="secondary" size="sm" onClick={onAddModule}>
+            <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+            Add module
+          </Button>
+        }
+      />
 
-      <SortableList
-        items={workspaceModules}
-        onReorder={onReorder}
-        className="flex flex-col gap-4"
-        renderItem={(instance) => {
-          const foundModule = modules.find((m) => m.id === instance.moduleId);
-          return (
+      {picker}
+
+      {workspaceModules.length === 0 ? (
+        !picker && (
+          <p className="px-4 py-6 rounded-[10px] border border-dashed border-border-strong text-center text-sm text-ink-muted">
+            Add the modules this calculator is made of. Later modules can take values from earlier
+            ones, so a number typed once feeds the whole chain.
+          </p>
+        )
+      ) : (
+        <SortableList
+          items={workspaceModules}
+          onReorder={onReorder}
+          className="flex flex-col gap-3"
+          renderItem={(instance) => (
             <SortableModuleInstance
               key={instance.id}
               instance={instance}
-              module={foundModule}
+              module={modules.find((m) => m.id === instance.moduleId)}
               isExpanded={expandedIds.has(instance.id)}
               onToggleExpanded={handleToggleExpanded}
               onRemove={onRemoveModule}
-              onFieldValueChange={onFieldValueChange}
-              materials={materials}
-              labor={labor}
               workspaceModules={workspaceModules}
               isFieldLinked={isFieldLinked}
-              getResolvedValue={getResolvedValue}
               isLinkBroken={isLinkBroken}
               getLinkDisplayName={getLinkDisplayName}
               buildLinkOptions={buildLinkOptions}
-              getCurrentLinkValue={getCurrentLinkValue}
               onLinkField={onLinkField}
               onUnlinkField={onUnlinkField}
             />
-          );
-        }}
-      />
-    </div>
+          )}
+        />
+      )}
+    </section>
   );
 }

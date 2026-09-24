@@ -2,19 +2,16 @@
 
 import { useState, useCallback } from 'react';
 import { Layout } from '@/components/Layout';
-import { EditorActionBar } from '@/components/shared/EditorActionBar';
+import { EditorPageHeader } from '@/components/shared/EditorPageHeader';
 import { TemplateDetailsCard } from '@/components/template-editor/TemplateDetailsCard';
 import { ModuleInstancesManager } from '@/components/template-editor/ModuleInstancesManager';
 import { TemplatePreviewSidebar } from '@/components/template-editor/TemplatePreviewSidebar';
 import { ModulePickerCard } from '@/components/shared/ModulePickerCard';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { useTemplateEditor } from '@/hooks/use-template-editor';
-import { Plus } from 'lucide-react';
 
 /**
  * TemplateEditorView Component
@@ -57,17 +54,14 @@ export function TemplateEditorView({ templateId, onClose }: TemplateEditorViewPr
     workspaceModules,
     addModuleInstance,
     removeModuleInstance,
-    updateFieldValue,
     reorderModules,
     linkField,
     unlinkField,
     serializeForSave,
     isFieldLinked,
-    getResolvedValue,
     isLinkBroken,
     getLinkDisplayName,
     buildLinkOptions,
-    getCurrentLinkValue,
   } = useTemplateEditor({
     templateId: templateId === 'new' ? 'new' : templateId,
     template: existingTemplate || null,
@@ -147,129 +141,61 @@ export function TemplateEditorView({ templateId, onClose }: TemplateEditorViewPr
     []
   );
 
+  const picker = showModulePicker ? (
+    <ModulePickerCard
+      show
+      title="Add to the template"
+      allCategories={Array.from(new Set(modules.map((m) => m.category).filter((cat): cat is string => Boolean(cat))))}
+      selectedCategory={selectedCategory}
+      onSelectCategory={setSelectedCategory}
+      filteredModules={selectedCategory ? modules.filter((m) => m.category === selectedCategory) : modules}
+      modulesCount={modules.length}
+      onAddModule={handleModuleSelected}
+      onClose={() => setShowModulePicker(false)}
+    />
+  ) : undefined;
+
   return (
     <Layout>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">
-          {isNew ? 'Create Template' : 'Edit Template'}
-        </h1>
-        <p className="text-lg text-md-on-surface-variant">
-          {isNew
-            ? 'Build a reusable template with module combinations and field links'
-            : 'Update your template configuration'}
-        </p>
-      </div>
+      <EditorPageHeader
+        section="Templates"
+        name={formData.name}
+        placeholderName={isNew ? 'New template' : 'Untitled template'}
+        submitLabel={isNew ? 'Create template' : 'Save template'}
+        onCancel={onClose}
+        onSubmit={handleSave}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 pb-24">
-        {/* Left Column: Template details + module instances */}
-        <div className="lg:col-span-3 space-y-6">
-          <TemplateDetailsCard
-            formData={formData}
-            errors={errors}
-            onFormDataChange={handleFormDataChange}
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5 items-start pb-10">
+        <div className="min-w-0 space-y-6">
+          <TemplateDetailsCard formData={formData} errors={errors} onFormDataChange={handleFormDataChange} />
 
           {errors.modules && (
-            <Card className="border-destructive bg-destructive/10">
-              <p className="text-sm text-destructive">{errors.modules}</p>
-            </Card>
+            <p className="px-3 py-2 rounded-md bg-danger-bg text-sm text-danger" role="alert">
+              {errors.modules}
+            </p>
           )}
 
-          {/* Module Picker (replaces empty state when visible) */}
-          {showModulePicker && (
-            <ModulePickerCard
-              show={showModulePicker}
-              title="Select Module to Add"
-              allCategories={Array.from(new Set(modules.map((m) => m.category).filter((cat): cat is string => Boolean(cat))))}
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-              filteredModules={
-                selectedCategory
-                  ? modules.filter((m) => m.category === selectedCategory)
-                  : modules
-              }
-              modulesCount={modules.length}
-              onAddModule={handleModuleSelected}
-              onClose={() => setShowModulePicker(false)}
-            />
-          )}
-
-          {/* Empty State Card - only show when picker is closed and no modules */}
-          {!showModulePicker && workspaceModules.length === 0 && (
-            <Card>
-              <div className="text-center py-6">
-                <p className="text-sm text-md-on-surface-variant mb-3">
-                  Add calculation modules to build your template. Each module represents a calculation that can be reused across quotes.
-                </p>
-                <Button size="sm" onClick={() => setShowModulePicker(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Module
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {/* Add Module Button Card - show when there are modules but picker is closed */}
-          {!showModulePicker && workspaceModules.length > 0 && (
-            <Card>
-              <Button
-                onClick={() => setShowModulePicker(true)}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Module
-              </Button>
-            </Card>
-          )}
-
-          {/* Module Instances List - only show when there are modules */}
-          {workspaceModules.length > 0 && (
-            <ModuleInstancesManager
-              workspaceModules={workspaceModules}
-              modules={modules}
-              materials={materials}
-              labor={labor}
-              onRemoveModule={removeModuleInstance}
-              onReorder={reorderModules}
-              onFieldValueChange={updateFieldValue}
-              isFieldLinked={isFieldLinked}
-              getResolvedValue={getResolvedValue}
-              isLinkBroken={isLinkBroken}
-              getLinkDisplayName={getLinkDisplayName}
-              buildLinkOptions={buildLinkOptions}
-              getCurrentLinkValue={getCurrentLinkValue}
-              onLinkField={linkField}
-              onUnlinkField={unlinkField}
-            />
-          )}
+          <ModuleInstancesManager
+            workspaceModules={workspaceModules}
+            modules={modules}
+            onRemoveModule={removeModuleInstance}
+            onReorder={reorderModules}
+            onAddModule={() => setShowModulePicker(true)}
+            picker={picker}
+            isFieldLinked={isFieldLinked}
+            isLinkBroken={isLinkBroken}
+            getLinkDisplayName={getLinkDisplayName}
+            buildLinkOptions={buildLinkOptions}
+            onLinkField={linkField}
+            onUnlinkField={unlinkField}
+          />
         </div>
 
-        {/* Right Column: Template Preview Sidebar */}
-        <TemplatePreviewSidebar
-          workspaceModules={workspaceModules}
-          modules={modules}
-          onLinkField={linkField}
-        />
+        <div className="lg:sticky lg:top-sticky-offset lg:max-h-[calc(100vh-var(--app-header-h)-3rem)] lg:overflow-y-auto lg:pr-1">
+          <TemplatePreviewSidebar workspaceModules={workspaceModules} modules={modules} onLinkField={linkField} />
+        </div>
       </div>
-
-      <EditorActionBar justifyContent="between">
-        {!showModulePicker && (
-          <Button onClick={() => setShowModulePicker(true)} variant="secondary">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Module
-          </Button>
-        )}
-        {showModulePicker && <div />}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            {isNew ? 'Create' : 'Update'} Template
-          </Button>
-        </div>
-      </EditorActionBar>
     </Layout>
   );
 }

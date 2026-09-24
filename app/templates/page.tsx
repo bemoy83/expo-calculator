@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Layout } from '@/components/Layout';
-import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { NotificationToast } from '@/components/shared/NotificationToast';
 import { EntityCard } from '@/components/shared/EntityCard';
@@ -35,14 +34,11 @@ export default function TemplatesPage() {
   }
 
   // Helper function to get module names from template
-  const getModuleNames = (template: ModuleTemplate): string[] => {
-    return template.moduleInstances
-      .map((instance) => {
-        const foundModule = modules.find((m) => m.id === instance.moduleId);
-        return foundModule?.name || 'Unknown Module';
-      })
-      .filter((name, index, self) => self.indexOf(name) === index); // Remove duplicates
-  };
+  // In chain order, repeats included: a template can use the same module more than once.
+  const getModuleNames = (template: ModuleTemplate): string[] =>
+    template.moduleInstances.map(
+      (instance) => modules.find((m) => m.id === instance.moduleId)?.name || 'Missing module'
+    );
 
   // Smart duplication with unique naming
   const handleDuplicate = (templateId: string) => {
@@ -83,31 +79,34 @@ export default function TemplatesPage() {
 
   return (
     <Layout>
-      <PageHeader
-        title="Templates"
-        subtitle="Manage reusable module combinations and field links"
-        actions={
-          <Button onClick={() => setEditingTemplateId('new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Template
-          </Button>
-        }
-      />
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Templates</h1>
+          <p className="text-xs text-ink-muted">
+            {templates.length} {templates.length === 1 ? 'template' : 'templates'} · reusable chains of linked modules, filled in per quote
+          </p>
+        </div>
+        <Button onClick={() => setEditingTemplateId('new')} className="shrink-0">
+          <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+          New template
+        </Button>
+      </div>
 
       {templates.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title="No Templates Yet"
-          description="Create templates from your Quote Builder workspace to save module combinations and field links for reuse."
+          title="No templates yet"
+          description="A template is a chain of modules and the links between them, reused with new inputs on each quote. Build one here, or save a Quote Builder workspace as a template."
+          iconSize="small"
           actions={
             <Button onClick={() => setEditingTemplateId('new')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Template
+              <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+              New template
             </Button>
           }
         />
       ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {templates.map((template) => (
             <TemplateCard
               key={template.id}
@@ -141,8 +140,12 @@ interface TemplateCardProps {
 }
 
 function TemplateCard({ template, moduleNames, onEdit, onDuplicate, onDelete }: TemplateCardProps) {
-  const visibleModules = moduleNames.slice(0, 6);
-  const remainingCount = moduleNames.length - 6;
+  const visibleModules = moduleNames.slice(0, 8);
+  const remainingCount = moduleNames.length - visibleModules.length;
+  const linkCount = template.moduleInstances.reduce(
+    (sum, instance) => sum + Object.keys(instance.fieldLinks ?? {}).length,
+    0
+  );
 
   return (
     <EntityCard
@@ -162,34 +165,38 @@ function TemplateCard({ template, moduleNames, onEdit, onDuplicate, onDelete }: 
           actionType: 'delete',
           onAction: onDelete,
           ariaLabel: `Delete ${template.name}`,
-          confirmationMessage: `Delete "${template.name}"?`,
+          confirmationMessage: `Delete "${template.name}"? Quotes already started from it are not affected.`,
         },
       ]}
       sections={[
         {
-          label: 'Modules',
+          label: 'Modules, in order',
           content: (
-            <div className="flex flex-wrap gap-2">
-              {visibleModules.map((name) => (
-                <Chip key={name} size="sm"
-                  variant="primaryTonal">
-                  {name}
-                </Chip>
+            <ol className="flex flex-wrap items-center gap-1.5">
+              {visibleModules.map((name, index) => (
+                <li key={`${name}-${index}`}>
+                  <Chip size="sm" variant="primaryTonal">
+                    {name}
+                  </Chip>
+                </li>
               ))}
               {remainingCount > 0 && (
-                <Chip size="sm" variant="outline">
-                  + {remainingCount} more
-                </Chip>
+                <li>
+                  <Chip size="sm" variant="outline">
+                    +{remainingCount} more
+                  </Chip>
+                </li>
               )}
-            </div>
+            </ol>
           ),
           spacing: 'small',
         },
       ]}
       footer={
-        <p className="text-xs text-md-on-surface-variant">
-          {template.moduleInstances.length}{' '}
-          {template.moduleInstances.length === 1 ? 'module' : 'modules'}
+        <p className="text-xs text-ink-muted">
+          <span className="font-numeric">{template.moduleInstances.length}</span>{' '}
+          {template.moduleInstances.length === 1 ? 'module' : 'modules'} ·{' '}
+          <span className="font-numeric">{linkCount}</span> {linkCount === 1 ? 'link' : 'links'}
         </p>
       }
     />

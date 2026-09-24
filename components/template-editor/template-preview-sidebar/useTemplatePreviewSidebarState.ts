@@ -64,7 +64,7 @@ export function useTemplatePreviewSidebarState(
     const eligibleLinks = getEligibleBatchLinks(linkOpportunities, minConfidence);
 
     if (eligibleLinks.length === 0) {
-      notify({ variant: "info", message: `No suggestions with confidence ≥${minConfidence}%` });
+      notify({ variant: "info", message: "No matching suggestions to link." });
       return;
     }
 
@@ -100,24 +100,17 @@ export function useTemplatePreviewSidebarState(
     if (failCount > 0) {
       notify({
         variant: "warning",
-        message: `Batch link complete:\n✓ ${successCount} succeeded\n✗ ${failCount} failed (see console)`,
+        message: `Linked ${successCount} of ${successCount + failCount} fields; ${failCount} could not be linked (incompatible or circular).`,
       });
     }
   };
 
   const batchLinkConfirmation = pendingBatchLink
     ? {
-        title: `Link ${pendingBatchLink.links.length} field${
-          pendingBatchLink.links.length > 1 ? "s" : ""
-        } with confidence ≥${pendingBatchLink.minConfidence}%?`,
+        title: `Link ${pendingBatchLink.links.length} field${pendingBatchLink.links.length > 1 ? "s" : ""}?`,
         message: `${pendingBatchLink.links
-          .map(
-            (link) =>
-              `• ${link.targetField} ← ${link.sourceField} (${link.confidence}%)${
-                link.isComputed ? " [Computed]" : ""
-              }`
-          )
-          .join("\n")}\n\nThis action cannot be undone.`,
+          .map((link) => `• ${link.targetField} ← ${link.sourceField}${link.isComputed ? " (output)" : ""}`)
+          .join("\n")}\n\nYou can unlink any of them afterwards.`,
       }
     : null;
 
@@ -151,8 +144,8 @@ function getEligibleBatchLinks(linkOpportunities: LinkOpportunity[], minConfiden
   return linkOpportunities
     .filter((opportunity) => opportunity.suggestedSources[0]?.confidence >= minConfidence)
     .map((opportunity) => ({
-      targetField: `${opportunity.moduleName}.${opportunity.fieldLabel}`,
-      sourceField: `${opportunity.suggestedSources[0].moduleName}.${opportunity.suggestedSources[0].fieldLabel}`,
+      targetField: `${opportunity.fieldLabel} in ${opportunity.moduleName}`,
+      sourceField: `${opportunity.suggestedSources[0].moduleName} · ${opportunity.suggestedSources[0].fieldLabel}`,
       confidence: opportunity.suggestedSources[0].confidence,
       isComputed: opportunity.suggestedSources[0].isComputedOutput,
       targetInstanceId: opportunity.moduleInstanceId,

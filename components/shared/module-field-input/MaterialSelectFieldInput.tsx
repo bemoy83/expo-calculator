@@ -18,7 +18,7 @@ export function MaterialSelectFieldInput({
   const materialCategory = field.materialCategory;
 
   const emptyCategoryMessage = materialCategory && materialOptions.length === 0 && (
-    <p className="text-xs text-md-on-surface-variant mt-1">
+    <p className="text-xs text-ink-muted mt-1">
       No materials available in category &quot;{materialCategory}&quot;. Please add materials or adjust
       the field&apos;s category.
     </p>

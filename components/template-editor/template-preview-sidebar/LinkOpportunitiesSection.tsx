@@ -1,13 +1,3 @@
-import { Chip } from "@/components/ui/Chip";
-import {
-  ArrowLeftCircle,
-  ArrowRightCircle,
-  ArrowUp,
-  ChevronDown,
-  ChevronRight,
-  Link as LinkIcon,
-  Sparkles,
-} from "lucide-react";
 import { TemplatePreviewSectionHeader } from "./TemplatePreviewSectionHeader";
 import type { LinkOpportunity } from "./types";
 
@@ -25,6 +15,10 @@ interface LinkOpportunitiesSectionProps {
   ) => void;
 }
 
+const VISIBLE = 6;
+
+// Plain-language suggestions: "Width in Sheet Installation can use Framing · Width", with the
+// matching reasons instead of confidence percentages.
 export function LinkOpportunitiesSection({
   linkOpportunities,
   expanded,
@@ -33,121 +27,106 @@ export function LinkOpportunitiesSection({
   onToggleOpportunity,
   onApplyLink,
 }: LinkOpportunitiesSectionProps) {
-  if (linkOpportunities.length === 0) return null;
+  const withSources = linkOpportunities.filter((opportunity) => opportunity.suggestedSources.length > 0);
+  if (withSources.length === 0) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <TemplatePreviewSectionHeader
-        icon={Sparkles}
-        iconClassName="h-4 w-4 text-emerald-500"
-        title="Link Opportunities"
-        count={linkOpportunities.length}
+        title="Suggested links"
+        count={withSources.length}
         expanded={expanded}
         onToggle={onToggleSection}
       />
 
       {expanded && (
-        <div className="space-y-2 pl-6">
-          {linkOpportunities.slice(0, 5).map((opportunity, idx) => {
-            if (!opportunity.suggestedSources.length) return null;
-            const isExpanded = expandedOpportunities.has(idx);
-            const bestSuggestion = opportunity.suggestedSources[0];
-
+        <ul className="space-y-2">
+          {withSources.slice(0, VISIBLE).map((opportunity, idx) => {
+            const [best, ...others] = opportunity.suggestedSources;
+            const showOthers = expandedOpportunities.has(idx);
             return (
-              <div key={idx} className="space-y-2">
-                <button
-                  onClick={() => onToggleOpportunity(idx)}
-                  className="w-full flex items-center gap-2 p-2 bg-md-surface-container-highest rounded-2xl border-l-4 border-md-primary hover:bg-md-surface-container-high hover:scale-[1.02] transition-smooth"
-                >
-                  <ArrowRightCircle className="h-4 w-4 flex-shrink-0 text-md-primary" />
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="text-xs font-mono font-semibold text-md-on-surface">
-                      {opportunity.fieldLabel}
-                    </div>
-                    <div className="text-xs font-mono font-medium text-md-on-surface/80">
-                      {opportunity.moduleName}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Chip size="sm" variant="muted" className="text-[10px] text-md-on-surface/80">
-                      {opportunity.suggestedSources.length}{" "}
-                      {opportunity.suggestedSources.length === 1 ? "source" : "sources"}
-                    </Chip>
-                    <span className="text-xs font-semibold text-md-on-surface/80">
-                      {bestSuggestion.confidence}%
-                    </span>
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </div>
-                </button>
-
-                {isExpanded && (
+              <li key={`${opportunity.moduleInstanceId}-${opportunity.fieldVariableName}`} className="p-2.5 rounded-md border border-border">
+                <SuggestionRow
+                  target={`${opportunity.fieldLabel} in ${opportunity.moduleName}`}
+                  source={`${best.moduleName} · ${best.fieldLabel}${best.isComputedOutput ? " (output)" : ""}`}
+                  reason={best.reason}
+                  onLink={() =>
+                    onApplyLink(opportunity.moduleInstanceId, opportunity.fieldVariableName, best.moduleInstanceId, best.fieldVariableName)
+                  }
+                />
+                {others.length > 0 && (
                   <>
-                    <div className="flex items-center justify-center py-0.5">
-                      <ArrowUp className="h-4 w-4 text-md-on-surface-variant/50" />
-                    </div>
-
-                    <div className="space-y-1.5 ml-4">
-                      {opportunity.suggestedSources.map((suggestion, suggIdx) => (
-                        <button
-                          key={suggIdx}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onApplyLink(
-                              opportunity.moduleInstanceId,
-                              opportunity.fieldVariableName,
-                              suggestion.moduleInstanceId,
-                              suggestion.fieldVariableName
-                            );
-                          }}
-                          className="w-full flex items-center gap-2 p-3 bg-md-surface-container-highest rounded-2xl border-l-4 border-emerald-500 hover:bg-md-surface-container-high hover:border-emerald-600 hover:scale-[1.02] transition-smooth group"
-                          title="Click to apply this suggestion"
-                          aria-label={`Apply link from ${suggestion.moduleName}.${suggestion.fieldLabel} to ${opportunity.moduleName}.${opportunity.fieldLabel}`}
-                        >
-                          <ArrowLeftCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
-                          <div className="flex-1 min-w-0 space-y-1 text-left">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <div className="min-w-0">
-                                <div className="text-xs font-mono font-semibold text-md-on-surface/80 truncate">
-                                  {suggestion.fieldLabel}
-                                </div>
-                                <div className="text-xs font-mono font-medium text-md-on-surface/70 truncate">
-                                  {suggestion.moduleName}
-                                </div>
-                              </div>
-                              {suggestion.isComputedOutput && (
-                                <Chip size="sm" variant="flat" className="text-[10px]">
-                                  Computed
-                                </Chip>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-md-on-surface/50 leading-relaxed">
-                              {suggestion.reason}
-                            </p>
-                          </div>
-                          <span className="text-xs font-semibold text-emerald-600">
-                            {suggestion.confidence}%
-                          </span>
-                          <LinkIcon className="h-4 w-4 mr-2 text-emerald-500 flex-shrink-0 group-hover:scale-110 transition-transform" />
-                        </button>
-                      ))}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onToggleOpportunity(idx)}
+                      aria-expanded={showOthers}
+                      className="mt-1.5 text-[11px] font-medium text-ink-muted hover:text-ink rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                    >
+                      {showOthers ? "Hide other options" : `${others.length} other ${others.length === 1 ? "option" : "options"}`}
+                    </button>
+                    {showOthers && (
+                      <ul className="mt-1.5 space-y-1.5 pl-2.5 border-l border-border">
+                        {others.map((suggestion) => (
+                          <li key={`${suggestion.moduleInstanceId}-${suggestion.fieldVariableName}`}>
+                            <SuggestionRow
+                              source={`${suggestion.moduleName} · ${suggestion.fieldLabel}${suggestion.isComputedOutput ? " (output)" : ""}`}
+                              reason={suggestion.reason}
+                              onLink={() =>
+                                onApplyLink(
+                                  opportunity.moduleInstanceId,
+                                  opportunity.fieldVariableName,
+                                  suggestion.moduleInstanceId,
+                                  suggestion.fieldVariableName
+                                )
+                              }
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </>
                 )}
-              </div>
+              </li>
             );
           })}
-
-          {linkOpportunities.length > 5 && (
-            <p className="text-xs text-md-on-surface-variant text-center">
-              +{linkOpportunities.length - 5} more opportunities
-            </p>
+          {withSources.length > VISIBLE && (
+            <li className="text-xs text-ink-faint text-center">+{withSources.length - VISIBLE} more</li>
           )}
-        </div>
+        </ul>
       )}
+    </div>
+  );
+}
+
+function SuggestionRow({
+  target,
+  source,
+  reason,
+  onLink,
+}: {
+  target?: string;
+  source: string;
+  reason: string;
+  onLink: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <div className="flex-1 min-w-0 text-xs">
+        {target && <p className="font-semibold text-ink">{target}</p>}
+        <p className="text-ink-body">
+          {target ? "can use " : ""}
+          <span className="font-medium text-action">{source}</span>
+        </p>
+        {reason && <p className="text-[11px] text-ink-faint">{reason.toLowerCase()}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={onLink}
+        aria-label={`Link ${target ? `${target} to ` : ""}${source}`}
+        className="shrink-0 px-2 py-1 rounded-md border border-border-strong bg-surface text-[11px] font-semibold text-action hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+      >
+        Link
+      </button>
     </div>
   );
 }

@@ -7,7 +7,6 @@ import type { CalculationModule, QuoteModuleInstance } from "@/lib/types";
 import { BatchLinkActions } from "./template-preview-sidebar/BatchLinkActions";
 import { LinkOpportunitiesSection } from "./template-preview-sidebar/LinkOpportunitiesSection";
 import { LinkSourcesSection } from "./template-preview-sidebar/LinkSourcesSection";
-import { PrimaryModuleSection } from "./template-preview-sidebar/PrimaryModuleSection";
 import { TemplatePreviewEmptyState } from "./template-preview-sidebar/TemplatePreviewEmptyState";
 import { TemplatePreviewHeader } from "./template-preview-sidebar/TemplatePreviewHeader";
 import { useTemplatePreviewSidebarState } from "./template-preview-sidebar/useTemplatePreviewSidebarState";
@@ -25,7 +24,7 @@ export function TemplatePreviewSidebar({
   onLinkField,
 }: TemplatePreviewSidebarProps) {
   const analysis = useTemplateLinkAnalysis(workspaceModules, modules);
-  const { stats, primaryModule, linkSources, linkOpportunities } = analysis;
+  const { stats, linkSources, linkOpportunities } = analysis;
   const {
     batchLinkConfirmation,
     confirmBatchLink,
@@ -45,21 +44,13 @@ export function TemplatePreviewSidebar({
   }
 
   return (
-    <div className="lg:col-span-2">
-      <Card className="sticky top-sticky-offset z-40">
+    <>
+      <Card density="dense">
         <div className="space-y-4">
           <TemplatePreviewHeader
             stats={stats}
             opportunityCount={linkOpportunities.length}
           />
-
-          {primaryModule && (
-            <PrimaryModuleSection
-              primaryModule={primaryModule}
-              expanded={expandedSections.primaryModule}
-              onToggle={() => toggleSection("primaryModule")}
-            />
-          )}
 
           <LinkOpportunitiesSection
             linkOpportunities={linkOpportunities}
@@ -92,6 +83,6 @@ export function TemplatePreviewSidebar({
         onConfirm={confirmBatchLink}
         onCancel={cancelBatchLink}
       />
-    </div>
+    </>
   );
 }

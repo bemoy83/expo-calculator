@@ -3,15 +3,13 @@ import { Link2 } from "lucide-react";
 
 export function TemplatePreviewEmptyState() {
   return (
-    <div className="lg:col-span-2">
-      <Card className="sticky top-sticky-offset z-40">
-        <div className="text-center py-8">
-          <Link2 className="h-12 w-12 text-md-on-surface-variant/30 mx-auto mb-3" />
-          <p className="text-sm text-md-on-surface-variant">
-            Add modules to see link analysis
-          </p>
-        </div>
-      </Card>
-    </div>
+    <Card density="dense">
+      <div className="text-center py-6">
+        <Link2 className="h-8 w-8 text-ink-faint mx-auto mb-2" aria-hidden="true" />
+        <p className="text-sm text-ink-muted">
+          Add modules to see how their fields can share values.
+        </p>
+      </div>
+    </Card>
   );
 }

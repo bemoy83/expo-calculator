@@ -18,7 +18,7 @@ export function LaborSelectFieldInput({
   const laborCategory = field.laborCategory;
 
   const emptyCategoryMessage = laborCategory && laborOptions.length === 0 && (
-    <p className="text-xs text-md-on-surface-variant mt-1">
+    <p className="text-xs text-ink-muted mt-1">
       No labor available in category &quot;{laborCategory}&quot;. Please add labor or adjust the
       field&apos;s category.
     </p>

@@ -832,6 +832,41 @@ new header).
 editor; plain-language link analysis ("Width in Sheet Installation can use Framing's
 width", "Link all exact matches") on tokens; the editor in the step-8 shell; list reskin.
 
+**Implementation notes (step 10 — Templates)**:
+- **No value inputs** (decision: templates are reusable module chains). Each field of a
+  module in the template editor (`SortableModuleInstance`) is a row: name, unit,
+  "required", and how it's filled in a quote, either "Entered in each quote" or "From
+  Dimensions — Width", with Link… / Unlink. Material pickers still can't be linked (the
+  choice is per quote). "Link…" is offered only when a compatible target exists: the
+  shared `buildLinkOptions` (also used by the Quote Builder) lists "None" and a heading for
+  every other module even when empty, so the card filters to real targets and non-empty
+  headings (`linkableOptions`). Values already stored on templates stay in the data,
+  unused; applying a template still starts from defaults. `ModuleInstancesManager` and the
+  card no longer take value props.
+- **Plain-language link analysis**: "How the modules connect — N of M fields take their
+  value from another module · K suggested". Suggestions read "Layers in Paint can use
+  Framing · Quantity", with the analysis's own match reasons ("matching unit (pcs) ·
+  compatible type") instead of percentages; alternatives sit behind "N other options". The
+  batch buttons read "Link N exact matches" (score ≥ 80) and "Link N close matches"
+  (≥ 60; thresholds unchanged). The batch confirmation no longer claims it "cannot be
+  undone" (links can be unlinked) and lists "Width in X ← Y · Width". The "Primary module"
+  section was dropped (it only said "first module in template hierarchy"). "Link sources"
+  became "Shared values" ("Dimensions · Width feeds …"). The raw emerald/orange colours
+  are gone.
+- **Shell**: `EditorPageHeader` (Templates / name, Cancel / Save template), the two-column
+  layout with a sticky analysis column, `SectionBar` "Modules" with Add module and the
+  picker inline. The fixed bottom bar is gone. `EditorActionBar` and `PageHeader` are
+  deleted (no users left).
+- **List**: new header, cards show the modules in chain order (repeats included; they were
+  de-duplicated before), "N modules · M links", and a delete message noting that quotes
+  already started from the template aren't affected.
+- `FieldLinkBadge` (shared with the Quote Builder's field-link inputs) is on tokens.
+- **Still MD3 after step 10** (candidates for a final cleanup pass): the shared overlays
+  (`ModalDialog`, `ConfirmDialog`, `NotificationToast`, `AlertBanner`, `ClickTooltip`,
+  `ActionIconButton`), `SaveTemplateModal`, `DataImporter` / `ThemeImporter`, the catalog
+  `PropertyForm` / `LaborPropertyForm`, `QuoteBuilderLoading`, and possibly-unused
+  `SearchFilterBar` and `ui/resizable-panel`.
+
 ## Sequencing strategy: structure before style
 
 Not every gap above decouples the same way from the token/font work in Foundations.
@@ -896,7 +931,7 @@ currently has no external users to confuse.
 8. **Module Editor — reskin + UX fixes** *(done)* — re-scoped before building (see its section):
    no chip editor, units engine, or restatement; the inline test panel is the main UX gain.
 9. **Functions — reskin + safety/UX fixes** *(done)* (see "Functions and Templates").
-10. **Templates — reskin + UX fixes; templates as module chains** (see "Functions and
+10. **Templates — reskin + UX fixes; templates as module chains** *(done)* (see "Functions and
     Templates").
 11. **Module Editor — Simple** — on hold (see its section).
 12. **Cost mix** — separate initiative, needs its own scoping for cost-attribution
