@@ -4,7 +4,7 @@ import { ComputedOutputsManager } from '@/components/module-editor/ComputedOutpu
 import { FieldsManager } from '@/components/module-editor/FieldsManager';
 import { FormulaBuilder } from '@/components/module-editor/FormulaBuilder';
 import { ModuleDetailsCard } from '@/components/module-editor/ModuleDetailsCard';
-import { ModuleEditorHeader } from '@/components/module-editor/ModuleEditorHeader';
+import { EditorPageHeader } from '@/components/shared/EditorPageHeader';
 import { ModuleTestPanel } from '@/components/module-editor/ModuleTestPanel';
 import type { ModuleEditorState } from '@/components/module-editor/useModuleEditorState';
 
@@ -17,11 +17,17 @@ interface ModuleEditorWorkspaceProps {
 export function ModuleEditorWorkspace({ editor }: ModuleEditorWorkspaceProps) {
   return (
     <>
-      <ModuleEditorHeader
-        editingModuleId={editor.editingModuleId}
-        moduleName={editor.formData.name}
-        formulaValid={editor.formulaValidation.valid}
-        formulaError={editor.formulaValidation.error}
+      <EditorPageHeader
+        section="Modules"
+        name={editor.formData.name}
+        placeholderName={editor.editingModuleId === 'new' ? 'New module' : 'Untitled module'}
+        status={{
+          valid: editor.formulaValidation.valid,
+          validLabel: 'Formula valid',
+          invalidLabel: 'Formula needs attention',
+          detail: editor.formulaValidation.error,
+        }}
+        submitLabel={editor.editingModuleId === 'new' ? 'Create module' : 'Save module'}
         onCancel={editor.actions.cancelEditing}
         onSubmit={editor.actions.handleSubmit}
       />

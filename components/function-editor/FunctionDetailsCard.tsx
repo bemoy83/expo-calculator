@@ -24,6 +24,8 @@ interface FunctionDetailsCardProps {
   onVariableNameChange?: (name: string) => void;
   getAllCategories: () => string[];
   addCategory: (category: string) => void;
+  /** Shown under the call name when renaming a function that formulas already call. */
+  renameWarning?: string;
 }
 
 export function FunctionDetailsCard({
@@ -33,6 +35,7 @@ export function FunctionDetailsCard({
   onVariableNameChange,
   getAllCategories,
   addCategory,
+  renameWarning,
 }: FunctionDetailsCardProps) {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -68,13 +71,13 @@ export function FunctionDetailsCard({
           <div>
             <label
               htmlFor="function-variable-name"
-              className="flex items-center gap-2 text-sm font-medium text-md-on-surface mb-1.5"
+              className="flex items-center gap-1.5 text-xs font-medium text-ink-muted mb-1.5"
             >
-              <span>Variable Name</span>
-              <ClickTooltip content="Used in formulas. Must be a valid identifier (letters, numbers, underscores only, starting with letter or underscore). Auto-generated from display name.">
+              <span>Call name</span>
+              <ClickTooltip content="The name formulas use to call this function, e.g. stud_count(width, spacing). Letters, numbers and underscores, starting with a letter or underscore. Suggested from the display name while creating.">
                 <button
                   type="button"
-                  className="inline-flex items-center text-md-on-surface-variant hover:text-md-on-surface transition-colors"
+                  className="inline-flex items-center text-ink-faint hover:text-ink transition-colors"
                   aria-label="Variable name help"
                 >
                   <Info className="h-3.5 w-3.5" />
@@ -93,12 +96,18 @@ export function FunctionDetailsCard({
               }}
               error={errors.name}
               placeholder=""
+              className="font-numeric"
             />
+            {renameWarning && (
+              <p className="mt-1 text-xs text-draft" role="status">
+                {renameWarning}
+              </p>
+            )}
           </div>
         </div>
 
         <details open={isAdvancedOpen} onToggle={(e) => setIsAdvancedOpen(e.currentTarget.open)}>
-          <summary className="cursor-pointer text-sm font-semibold text-md-primary">
+          <summary className="cursor-pointer text-xs font-medium text-ink-muted hover:text-ink">
             More details
           </summary>
           <div className="mt-4 space-y-4">
@@ -110,7 +119,7 @@ export function FunctionDetailsCard({
               placeholder=""
             />
             <div>
-              <label className="block text-sm font-medium text-foreground mb-3">Category</label>
+              <label className="block text-xs font-medium text-ink-muted mb-2">Category</label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {getAllCategories().map((cat) => (
                   <Chip
@@ -158,7 +167,7 @@ export function FunctionDetailsCard({
                 <button
                   type="button"
                   onClick={() => onFormDataChange({ category: '' })}
-                  className="mt-2 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors"
+                  className="mt-2 text-xs text-ink-muted hover:text-ink transition-colors"
                 >
                   Clear category
                 </button>

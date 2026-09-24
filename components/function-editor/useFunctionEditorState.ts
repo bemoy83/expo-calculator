@@ -49,7 +49,9 @@ export function useFunctionEditorState({
     formula: existingFunction?.formula || '',
     category: existingFunction?.category || '',
   });
-  const [hasManuallyEditedVariableName, setHasManuallyEditedVariableName] = useState(false);
+  // The call name follows the display name only while creating. For a saved function it's
+  // the name module formulas call, so it must never change as a side effect of a label edit.
+  const [hasManuallyEditedVariableName, setHasManuallyEditedVariableName] = useState(!!existingFunction);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [parameterErrors] = useState<Record<number, Record<string, string>>>({});
   const [formulaValidation, setFormulaValidation] = useState<{ valid: boolean; error?: string }>({

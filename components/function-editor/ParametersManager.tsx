@@ -1,7 +1,7 @@
 'use client';
 
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { SectionBar } from '@/components/module-editor/SectionBar';
 import { ParameterItem } from './ParameterItem';
 import { FunctionParameter } from '@/hooks/use-parameter-manager';
 import { Plus } from 'lucide-react';
@@ -26,23 +26,23 @@ export function ParametersManager({
   onAddParameter,
 }: ParametersManagerProps) {
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">Parameters</h2>
-      </div>
+    <section aria-labelledby="parameters-heading" className="space-y-3">
+      <SectionBar
+        id="parameters-heading"
+        title="Parameters"
+        count={parameters.length}
+        action={
+          <Button variant="secondary" size="sm" onClick={onAddParameter}>
+            <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+            Add parameter
+          </Button>
+        }
+      />
 
       {parameters.length === 0 ? (
-        <Card>
-          <div className="text-center py-6">
-            <p className="text-sm text-md-on-surface-variant mb-3">
-              Parameters define the inputs required for your function. Each parameter becomes a variable you can use in your formula.
-            </p>
-            <Button size="sm" onClick={onAddParameter}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Your First Parameter
-            </Button>
-          </div>
-        </Card>
+        <p className="px-4 py-6 rounded-[10px] border border-dashed border-border-strong text-center text-sm text-ink-muted">
+          Parameters are the inputs a call passes in, in order. Each one becomes a variable in the formula.
+        </p>
       ) : (
         <div className="flex flex-col gap-3">
           {parameters.map((parameter, index) => {
@@ -64,13 +64,9 @@ export function ParametersManager({
               />
             );
           })}
-          <Button variant="ghost" onClick={onAddParameter}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Parameter
-          </Button>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 

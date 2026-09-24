@@ -3,6 +3,7 @@
 import { Card } from '@/components/ui/Card';
 import { Textarea } from '@/components/ui/Textarea';
 import { FormulaVariableToken } from '@/components/formula/FormulaVariableToken';
+import { FormulaOperatorGuide } from '@/components/module-editor/formula-builder/FormulaOperatorGuide';
 import { cn } from '@/lib/utils';
 import { AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
 
@@ -82,13 +83,13 @@ export function FunctionFormulaCard({
   ).length;
 
   return (
-    <Card elevation={1} className="sticky top-sticky-offset z-40" title="Formula">
+    <Card title="Formula" density="dense">
       <div className="space-y-4">
         {visibleParameters.length > 0 ? (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-semibold text-md-primary">Parameters</h4>
-              <span className="text-xs text-md-on-surface-variant">
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Parameters</h4>
+              <span className="text-[11px] font-numeric text-ink-faint">
                 {usedParametersCount}/{visibleParameters.length} used
               </span>
             </div>
@@ -107,7 +108,7 @@ export function FunctionFormulaCard({
             </div>
           </div>
         ) : (
-          <p className="text-xs text-md-on-surface-variant">
+          <p className="text-xs text-ink-muted">
             Add parameters to make them available as variables here.
           </p>
         )}
@@ -175,12 +176,12 @@ export function FunctionFormulaCard({
             rows={4}
             placeholder=""
             error={formulaError}
-            className={cn('font-mono text-sm', !formulaValidation.valid && formula && 'border-destructive')}
+            className="font-numeric text-[13px] leading-relaxed"
           />
           {/* Autocomplete Dropdown */}
           {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
             <div
-              className="fixed z-50 bg-md-surface-container border border-md-outline rounded-lg elevation-4 max-h-64 overflow-y-auto"
+              className="fixed z-50 bg-surface border border-border-strong rounded-lg shadow-panel max-h-64 overflow-y-auto py-1"
               style={{
                 top: `${autocompletePosition.top}px`,
                 left: `${autocompletePosition.left}px`,
@@ -202,17 +203,16 @@ export function FunctionFormulaCard({
                     onMouseEnter={() => setSelectedSuggestionIndex(index)}
                     className={cn(
                       'w-full px-3 py-2 text-left flex items-center gap-2 transition-colors',
-                      isSelected ? 'bg-md-primary text-md-on-primary' : 'hover:bg-md-surface-variant'
+                      isSelected ? 'bg-action-bg text-ink' : 'text-ink-body hover:bg-surface-hover'
                     )}
                   >
-                    <code className="text-xs font-mono flex-1">{suggestion.displayName}</code>
-                    {isRecent && <span className="text-xs text-md-on-surface-variant">●</span>}
+                    <code className="text-xs font-numeric flex-1">{suggestion.displayName}</code>
+                    {isRecent && <span className="text-xs text-ink-faint" title="Recently used">●</span>}
                     <span
                       className={cn(
-                        'text-xs px-1.5 py-0.5 rounded',
-                        suggestion.type === 'field' && 'bg-md-primary/10 text-md-primary',
-                        suggestion.type === 'function' && 'bg-warning/10 text-warning',
-                        suggestion.type === 'constant' && 'bg-warning/10 text-warning'
+                        'text-[10.5px] px-1.5 py-0.5 rounded-full font-medium',
+                        suggestion.type === 'field' && 'bg-action-bg text-action',
+                        (suggestion.type === 'function' || suggestion.type === 'constant') && 'bg-sunken text-ink-body'
                       )}
                     >
                       {suggestion.type}
@@ -223,158 +223,13 @@ export function FunctionFormulaCard({
             </div>
           )}
         </div>
-        {formulaValidation.error && <p className="text-sm text-destructive">{formulaValidation.error}</p>}
-        {formulaValidation.valid && formula && <p className="text-sm text-success">Formula is valid</p>}
-        <p className="text-xs text-md-on-surface-variant">
+        {formulaValidation.error && <p className="text-xs text-danger">{formulaValidation.error}</p>}
+        {formulaValidation.valid && formula && <p className="text-xs font-medium text-committed">Formula is valid</p>}
+        <p className="text-xs text-ink-muted">
           Use parameter names, functions, and constants in your formula. Example: if you have parameters &quot;width&quot; and &quot;height&quot;,
           your formula could be &quot;width * height&quot; or &quot;area(width, height)&quot;.
         </p>
-        <div className="pt-4 border-t border-border">
-          <h4 className="text-xs font-semibold text-md-primary mb-2 uppercase tracking-wide">
-            Supported Operators
-          </h4>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-            <button
-              type="button"
-              onClick={() => onInsertOperator('+')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert addition operator"
-            >
-              <code className="text-md-primary font-mono">+</code> <span className="text-md-on-surface-variant ml-1">Add</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertOperator('-')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert subtraction operator"
-            >
-              <code className="text-md-primary font-mono font-semibold">-</code> <span className="text-md-on-surface-variant ml-1">Subtract</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertOperator('*')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert multiplication operator"
-            >
-              <code className="text-md-primary font-mono font-semibold">*</code> <span className="text-md-on-surface-variant ml-1">Multiply</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertOperator('/')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert division operator"
-            >
-              <code className="text-md-primary font-mono font-semibold">/</code> <span className="text-md-on-surface-variant ml-1">Divide</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertOperator('()')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert parentheses"
-            >
-              <code className="text-md-primary font-mono font-semibold">()</code> <span className="text-md-on-surface-variant ml-1">Grouping</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertOperator('sqrt()')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert square root function"
-            >
-              <code className="text-md-primary font-mono font-semibold">sqrt()</code> <span className="text-md-on-surface-variant ml-1">Square root</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertOperator('round()')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert round function"
-            >
-              <code className="text-md-primary font-mono font-semibold">round(x)</code> <span className="text-md-on-surface-variant ml-1">Round to nearest integer</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertOperator('round(, )')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert round function with decimals"
-            >
-              <code className="text-md-primary font-mono font-semibold">round(x, decimals)</code> <span className="text-md-on-surface-variant ml-1">Round to fixed decimals</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertOperator('ceil()')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert ceil function"
-            >
-              <code className="text-md-primary font-mono font-semibold">ceil(x)</code> <span className="text-md-on-surface-variant ml-1">Round up to next integer</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertOperator('floor()')}
-              className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-              aria-label="Insert floor function"
-            >
-              <code className="text-md-primary font-mono font-semibold">floor(x)</code> <span className="text-md-on-surface-variant ml-1">Round down to previous integer</span>
-            </button>
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-border">
-            <h5 className="text-xs font-semibold text-md-primary mb-2 uppercase tracking-wide">
-              Comparison Operators
-            </h5>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-              <button
-                type="button"
-                onClick={() => onInsertOperator('==')}
-                className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-                aria-label="Insert equals operator"
-              >
-                <code className="text-md-primary font-mono font-semibold">==</code> <span className="text-md-on-surface-variant ml-1">Equals</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onInsertOperator('!=')}
-                className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-                aria-label="Insert not equals operator"
-              >
-                <code className="text-md-primary font-mono font-semibold">!=</code> <span className="text-md-on-surface-variant ml-1">Not equals</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onInsertOperator('>')}
-                className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-                aria-label="Insert greater than operator"
-              >
-                <code className="text-md-primary font-mono font-semibold">&gt;</code> <span className="text-md-on-surface-variant ml-1">Greater than</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onInsertOperator('<')}
-                className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-                aria-label="Insert less than operator"
-              >
-                <code className="text-md-primary font-mono font-semibold">&lt;</code> <span className="text-md-on-surface-variant ml-1">Less than</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onInsertOperator('>=')}
-                className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-                aria-label="Insert greater or equal operator"
-              >
-                <code className="text-md-primary font-mono font-semibold">&gt;=</code> <span className="text-md-on-surface-variant ml-1">Greater or equal</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onInsertOperator('<=')}
-                className="px-2 py-0.5 text-left hover:text-md-primary transition-colors cursor-pointer"
-                aria-label="Insert less or equal operator"
-              >
-                <code className="text-md-primary font-mono font-semibold">&lt;=</code> <span className="text-md-on-surface-variant ml-1">Less or equal</span>
-              </button>
-            </div>
-            <p className="text-xs text-md-on-surface-variant mt-3 px-2">
-              <strong>Note:</strong> Boolean values convert to 1 (true) or 0 (false). Use comparisons for conditional logic, e.g., <code className="text-md-primary">base_price * (include_tax == 1)</code>
-            </p>
-          </div>
-        </div>
+        <FormulaOperatorGuide onInsertOperator={onInsertOperator} />
       </div>
     </Card>
   );

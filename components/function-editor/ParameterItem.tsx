@@ -46,6 +46,17 @@ export function ParameterItem({
       cardRef={cardRef}
       dragHandleProps={dragHandleProps}
       title={parameter.label || `Parameter ${index + 1}`}
+      metaChips={[
+        <span key="position" className="text-[11px] font-numeric text-ink-faint">#{index + 1}</span>,
+        parameter.name ? (
+          <span key="name" className="px-2 py-0.5 rounded-full bg-action-bg text-[11px] font-numeric font-medium text-action">
+            {parameter.name}
+          </span>
+        ) : null,
+        parameter.unitSymbol ? (
+          <span key="unit" className="text-[11px] font-numeric text-ink-muted">{parameter.unitSymbol}</span>
+        ) : null,
+      ].filter(Boolean)}
       isCollapsed={!isExpanded}
       onToggle={onToggle}
       onRemove={canRemove ? onRemove : undefined}

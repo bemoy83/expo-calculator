@@ -748,6 +748,90 @@ two small store actions (below). There is still no schema change.
 - The board no longer uses `warning` or any MD3 classes; the step-3 note about
   `!border-l-warning` is obsolete.
 
+## Functions and Templates (no mockup) — assessed before building
+
+No mockup covers these pages. The assessment below comes from using them with real
+data and reading the code (same approach as step 8).
+
+**Functions — findings**:
+- **The call signature isn't shown anywhere.** Cards show the display name ("Area Rectangle"),
+  but formulas must call `area_rectangle(width, height)`. Neither the call name nor the
+  parameter order appears on the list.
+- **Nothing protects modules that use a function.** Delete only asks "Are you sure?",
+  and `functions-store.deleteFunction` has no guard. Real modules call functions (Framing:
+  `perimeter_rectangle`, `stud_count`, `spill`). Renaming the call name in the editor also
+  breaks every caller silently; `updateFunction` doesn't touch references.
+- **No way to try a function** with sample numbers.
+- The editor has the pre-step-8 Module Editor shape: large header, fixed bottom bar, a
+  second, always-expanded copy of the operator guide (`FunctionFormulaCard`), and the list
+  shows formulas in focusable read-only textareas.
+
+**Templates — findings**:
+- **Template field values mislead.** The template editor shows full inputs per module
+  (`SortableModuleInstance` → `ModuleFieldInput`) and saves them. "Save as template" in
+  the Quote Builder also copies draft values (`template-helpers.ts`). But applying a
+  template deliberately discards them (`template-application.ts`: "Saved template field
+  values are preserved for template editing, not restored into quotes"). The board's
+  "≈ X" estimate also uses defaults.
+- **The link analysis is jargon**: "N opportunities", "3 sources · 100%", "Link Excellent
+  (3 at ≥80%)" / "Link Good" are unexplained match-quality scores. The sidebar also uses
+  raw `emerald`/`orange` Tailwind colours (noted in 4b).
+- The editor has the old shape (header, fixed bottom bar); module instances already use the
+  restyled card shell and picker.
+
+**Decisions (user)**:
+- **Templates are reusable module chains, not saved inputs** — "build your own calculator":
+  a big chain of modules and their links, reused with different inputs each time. So the
+  template editor **stops showing field value inputs**; it edits which modules are in the
+  template and how their fields link. Applying a template keeps starting from defaults, as
+  today. Values already stored on templates are left in the data (unused, harmless); no
+  data-model change.
+- **Function rename: warn only.** Show where a function is used, and warn before deleting
+  or renaming one that's in use. No automatic rewriting of module formulas for now.
+- **Two steps**, each committed separately: Functions (step 9), then Templates (step 10).
+
+**Step 9 — Functions (planned)**: call signature on cards and in the editor; "used in N
+modules" (formula, computed outputs, and other functions) on cards and in the editor; delete
+confirmation naming the affected modules; rename warning when a used function's call name
+changes; a function test panel (an input per parameter → result with return unit, or the
+error); the editor in the step-8 shell (header actions, no bottom bar, shared collapsed
+operator guide, palette colours, compact parameter rows); list reskin (code-block formulas,
+new header).
+
+**Implementation notes (step 9 — Functions)**:
+- **Usage** (`lib/functions/function-usage.ts`): `findFunctionUsage` finds calls (`name(` as a
+  whole identifier, not `x.name(` or `my_name(`) in module formulas, computed outputs, and
+  other functions. Cards show the call signature (`formatFunctionSignature`, e.g.
+  `stud_count(width, stud_spacing)`) and "Used by Framing". The delete confirmation names
+  what will stop calculating. The redundant pencil action is gone; the title opens the editor.
+- **Rename protection, warn only**: the call-name field shows an amber warning while a used
+  function's name differs from its saved name, and Save asks for confirmation ("Rename
+  anyway"). Module formulas are not rewritten.
+- **Bug fixed**: the editor kept deriving the call name from the display name even for
+  saved functions (`hasManuallyEditedVariableName` started false), so editing the display
+  name silently renamed the function and broke its callers. Auto-derive now only runs while
+  creating. Checked against real data: no saved function's name differed from its derived
+  name, so nothing had been renamed yet.
+- **Try it** (`FunctionTestPanel`, `lib/functions/function-sample.ts`): an input per
+  parameter. Numbers typed in the parameter's unit are converted to base units, as module
+  fields pass them. The result is shown in the return unit, or the error is shown.
+  Evaluation mirrors `evaluateFunctionCall` (materials only), so a test can't pass where a
+  module call would fail. Parameters the formula reads properties from (`material.width`)
+  get a material picker, since parameters carry no type. Session only.
+- **Shell**: the shared `EditorPageHeader` (also now used by the Module Editor; replaces
+  `ModuleEditorHeader`, `FunctionEditorHeader`, and `FunctionEditorActions`), the step-8
+  two-column layout with a sticky formula + test column, `SectionBar` for parameters,
+  compact parameter rows (position, name, unit). The function editor's own ~150-line copy
+  of the operator guide is replaced by the shared collapsed `FormulaOperatorGuide`. The
+  field is labelled "Call name" instead of "Variable Name".
+- The return unit is still not editable in the editor (it never was); only functions whose
+  data already carries one show it.
+- Regression tests: "Function Usage & Sample Regression".
+
+**Step 10 — Templates (planned)**: remove the per-module value inputs from the template
+editor; plain-language link analysis ("Width in Sheet Installation can use Framing's
+width", "Link all exact matches") on tokens; the editor in the step-8 shell; list reskin.
+
 ## Sequencing strategy: structure before style
 
 Not every gap above decouples the same way from the token/font work in Foundations.
@@ -811,6 +895,9 @@ currently has no external users to confuse.
    decouple from styling.
 8. **Module Editor — reskin + UX fixes** *(done)* — re-scoped before building (see its section):
    no chip editor, units engine, or restatement; the inline test panel is the main UX gain.
-9. **Module Editor — Simple** — on hold (see its section).
-10. **Cost mix** — separate initiative, needs its own scoping for cost-attribution
+9. **Functions — reskin + safety/UX fixes** *(done)* (see "Functions and Templates").
+10. **Templates — reskin + UX fixes; templates as module chains** (see "Functions and
+    Templates").
+11. **Module Editor — Simple** — on hold (see its section).
+12. **Cost mix** — separate initiative, needs its own scoping for cost-attribution
     logic.
