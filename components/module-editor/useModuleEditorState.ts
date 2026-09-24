@@ -5,9 +5,7 @@ import { useFieldManager } from '@/hooks/use-field-manager';
 import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
 import { useFormulaValidation } from '@/hooks/use-formula-validation';
 import { useFormulaVariables } from '@/hooks/use-formula-variables';
-import { usePreviewCost } from '@/hooks/use-preview-cost';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
-import { getInitialFieldValue } from '@/lib/field-defaults';
 import type { CalculationModule, ComputedOutput, Labor, Material } from '@/lib/types';
 import { generateId } from '@/lib/utils';
 import {
@@ -60,8 +58,6 @@ export function useModuleEditorState({
   const [fieldErrors, setFieldErrors] = useState<Record<string, Record<string, string>>>({});
   const [computedOutputs, setComputedOutputs] = useState<ComputedOutput[]>([]);
   const [computedOutputErrors, setComputedOutputErrors] = useState<Record<string, Record<string, string>>>({});
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewFieldValues, setPreviewFieldValues] = useState<Record<string, string | number | boolean>>({});
   const formulaTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
@@ -87,17 +83,6 @@ export function useModuleEditorState({
     fields,
     materials,
     labor,
-    computedOutputs,
-  });
-
-  const { previewCalculatedCost, previewError } = usePreviewCost({
-    showPreview,
-    formula: formData.formula,
-    fields,
-    materials,
-    labor,
-    previewFieldValues,
-    formulaValidationValid: formulaValidation.valid,
     computedOutputs,
   });
 
@@ -175,26 +160,6 @@ export function useModuleEditorState({
     if (oldIndex === newIndex) return;
     if (oldIndex < 0 || newIndex < 0) return;
     reorderFields(oldIndex, newIndex);
-  };
-
-  const initializePreview = () => {
-    const defaults: Record<string, string | number | boolean> = {};
-    fields.forEach((field) => {
-      if (!field.variableName) return;
-
-      if (field.type === 'material') {
-        let candidateMaterials = materials;
-        if (field.materialCategory && field.materialCategory.trim()) {
-          candidateMaterials = materials.filter((m) => m.category === field.materialCategory);
-        }
-        defaults[field.variableName] = candidateMaterials.length > 0 ? candidateMaterials[0].variableName : '';
-        return;
-      }
-
-      defaults[field.variableName] = getInitialFieldValue(field);
-    });
-    setPreviewFieldValues(defaults);
-    setShowPreview(true);
   };
 
   const addComputedOutput = () => {
@@ -445,22 +410,6 @@ export function useModuleEditorState({
     labor,
     getAllCategories,
     addCategory,
-    preview: {
-      showPreview,
-      previewFieldValues,
-      previewCalculatedCost,
-      previewError,
-      closePreview: () => {
-        setShowPreview(false);
-        setPreviewFieldValues({});
-      },
-      setFieldValue: (fieldVariableName: string, value: string | number | boolean) => {
-        setPreviewFieldValues((prev) => ({
-          ...prev,
-          [fieldVariableName]: value,
-        }));
-      },
-    },
     fieldActions: {
       addField,
       updateField,
@@ -526,7 +475,6 @@ export function useModuleEditorState({
     actions: {
       startEditing,
       cancelEditing,
-      initializePreview,
       handleSubmit,
       setFormData,
     },

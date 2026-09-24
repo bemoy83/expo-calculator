@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { SectionBar } from '@/components/module-editor/SectionBar';
 import { ComputedOutput, Field, SharedFunction, Material, Labor } from '@/lib/types';
 import { Plus } from 'lucide-react';
 import { generateComputedOutputVariableName, validateComputedOutputVariableName, validateComputedOutputExpression } from '@/lib/utils/computed-outputs';
@@ -134,24 +134,24 @@ export function ComputedOutputsManager({
     const outputFunctions = useFunctionsStore.getState().functions;
 
     return (
-        <div className="space-y-5">
-            <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Computed Outputs</h2>
-            </div>
+        <section aria-labelledby="outputs-heading" className="space-y-3">
+            <SectionBar
+                id="outputs-heading"
+                title="Computed outputs"
+                count={computedOutputs.length}
+                action={
+                    <Button variant="secondary" size="sm" onClick={onAddOutput}>
+                        <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                        Add output
+                    </Button>
+                }
+            />
 
             {computedOutputs.length === 0 ? (
-                <Card>
-                    <div className="text-center py-6">
-                        <p className="text-sm text-md-on-surface-variant mb-3">
-                            Computed outputs are named expressions that calculate values before your main formula.
-                            They can be linked to other modules and displayed in quote summaries.
-                        </p>
-                        <Button size="sm" onClick={onAddOutput}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Your First Computed Output
-                        </Button>
-                    </div>
-                </Card>
+                <p className="px-4 py-6 rounded-[10px] border border-dashed border-border-strong text-center text-sm text-ink-muted">
+                    Computed outputs are named sub-results (like a paint area) that the formula and other
+                    modules can use, and that can be shown on the quote.
+                </p>
             ) : (
                 <div className="flex flex-col gap-3">
                     {computedOutputs.map((output) => {
@@ -213,6 +213,6 @@ export function ComputedOutputsManager({
                     })}
                 </div>
             )}
-        </div>
+        </section>
     );
 }

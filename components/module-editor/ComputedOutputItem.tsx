@@ -204,21 +204,21 @@ export function ComputedOutputItem({
 
   const metaChips = [
     output.variableName ? (
-      <Chip key="var" size="sm" className="font-mono text-xs">
-        {output.variableName}
+      <Chip key="var" size="sm" variant="primaryTonal" className="font-numeric">
+        out.{output.variableName}
       </Chip>
     ) : null,
     output.unitSymbol ? (
-      <Chip key="unit" size="sm" variant="muted" className="text-xs">
+      <span key="unit" className="text-[11px] font-numeric text-ink-muted">
         {output.unitSymbol}
-      </Chip>
+      </span>
     ) : null,
     output.variableName && !variableNameValidation.valid ? (
       <Chip
         key="var-error"
         size="sm"
         variant="error"
-        className="text-xs max-w-[200px] truncate"
+        className="max-w-[200px] truncate"
         title={variableNameValidation.error}
       >
         {variableNameValidation.error || 'Invalid variable name'}
@@ -229,7 +229,7 @@ export function ComputedOutputItem({
         key="expr-error"
         size="sm"
         variant="error"
-        className="text-xs max-w-[200px] truncate"
+        className="max-w-[200px] truncate"
         title={expressionValidation.error}
       >
         {expressionValidation.error || 'Invalid expression'}
@@ -289,7 +289,7 @@ export function ComputedOutputItem({
               checked={output.showInQuote || false}
               onChange={(e) => onShowInQuoteChange(e.target.checked)}
             />
-            <p className="text-xs text-md-on-surface-variant mt-1 ml-6">
+            <p className="text-xs text-ink-muted mt-1 ml-6">
               Display this computed output in the quote summary line item
             </p>
           </div>
@@ -317,8 +317,8 @@ export function ComputedOutputItem({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-md-on-surface-variant mb-1.5">
-              Expression <span className="text-md-error">*</span>
+            <label className="block text-xs font-medium text-ink-muted mb-1.5">
+              Expression <span className="text-danger">*</span>
             </label>
             <div className="relative">
               <Textarea
@@ -373,7 +373,7 @@ export function ComputedOutputItem({
               {/* Autocomplete Dropdown */}
               {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
                 <div
-                  className="fixed z-50 bg-md-surface-container border border-md-outline rounded-lg elevation-4 max-h-64 overflow-y-auto"
+                  className="fixed z-50 bg-surface border border-border-strong rounded-lg shadow-panel max-h-64 overflow-y-auto py-1"
                   style={{
                     top: `${autocompletePosition.top}px`,
                     left: `${autocompletePosition.left}px`,
@@ -396,22 +396,21 @@ export function ComputedOutputItem({
                         className={cn(
                           'w-full px-3 py-2 text-left flex items-center gap-2 transition-colors',
                           isSelected
-                            ? 'bg-md-primary text-md-on-primary'
-                            : 'hover:bg-md-surface-variant'
+                            ? 'bg-action-bg text-ink'
+                            : 'text-ink-body hover:bg-surface-hover'
                         )}
                       >
                         <code className="text-xs font-mono flex-1">{suggestion.displayName}</code>
                         {isRecent && (
-                          <span className="text-xs text-md-on-surface-variant">●</span>
+                          <span className="text-xs text-ink-muted">●</span>
                         )}
                         <span
                           className={cn(
-                            'text-xs px-1.5 py-0.5 rounded',
-                            suggestion.type === 'field' && 'bg-md-primary/10 text-md-primary',
-                            suggestion.type === 'material' && 'bg-success/10 text-success',
-                            suggestion.type === 'property' && 'bg-md-primary-muted/10 text-md-primary-muted',
-                            suggestion.type === 'function' && 'bg-warning/10 text-warning',
-                            suggestion.type === 'constant' && 'bg-warning/10 text-warning'
+                            'text-[10.5px] px-1.5 py-0.5 rounded-full font-medium',
+                            suggestion.type === 'field' && 'bg-action-bg text-action',
+                            suggestion.type === 'material' && 'bg-committed-bg text-committed',
+                            suggestion.type === 'property' && 'bg-action-bg text-action',
+                            (suggestion.type === 'function' || suggestion.type === 'constant') && 'bg-sunken text-ink-body'
                           )}
                         >
                           {suggestion.type}
@@ -428,7 +427,7 @@ export function ComputedOutputItem({
                 <p className="text-xs text-success mt-1">Expression is valid</p>
               )}
             </div>
-            <p className="text-xs text-md-on-surface-variant mt-1">
+            <p className="text-xs text-ink-muted mt-1">
               Use field variable names, functions, and previously defined computed outputs (by variable name).
             </p>
           </div>

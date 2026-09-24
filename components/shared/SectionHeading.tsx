@@ -42,7 +42,7 @@ export function SectionHeading({ children, spacing = 'default' }: SectionHeading
   const spacingClass = spacingMap[spacing];
 
   return (
-    <p className={`text-xs text-md-on-surface-variant uppercase tracking-wide ${spacingClass}`}>
+    <p className={`text-[10.5px] font-semibold text-ink-faint uppercase tracking-[0.14em] ${spacingClass}`}>
       {children}
     </p>
   );

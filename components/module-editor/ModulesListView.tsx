@@ -2,9 +2,8 @@
 
 import { Calculator, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
-import { Textarea } from '@/components/ui/Textarea';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { EntityCard } from '@/components/shared/EntityCard';
 import type { CalculationModule } from '@/lib/types';
 
@@ -23,33 +22,34 @@ export function ModulesListView({
 }: ModulesListViewProps) {
   return (
     <>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2 tracking-tight">Calculation Modules</h1>
-          <p className="text-lg text-md-on-surface-variant">Create reusable calculation modules with custom fields and formulas</p>
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Modules</h1>
+          <p className="text-xs text-ink-muted">
+            {modules.length} {modules.length === 1 ? 'module' : 'modules'} · reusable calculations with fields and a formula
+          </p>
         </div>
-        <Button onClick={onCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Module
+        <Button onClick={onCreate} className="shrink-0">
+          <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+          New module
         </Button>
       </div>
 
       {modules.length === 0 ? (
-        <Card>
-          <div className="text-center py-24">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-md-surface-variant elevation-4 mb-6" aria-hidden="true">
-              <Calculator className="h-12 w-12 text-md-on-surface-variant" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">No Modules Yet</h3>
-            <p className="text-base text-md-on-surface-variant mb-8 max-w-md mx-auto leading-relaxed">Create your first calculation module to get started building professional estimates.</p>
+        <EmptyState
+          icon={Calculator}
+          title="No modules yet"
+          description="Create your first calculation module to get started building estimates."
+          iconSize="small"
+          actions={
             <Button onClick={onCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Module
+              <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+              New module
             </Button>
-          </div>
-        </Card>
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {modules.map((module) => (
             <EntityCard
               key={module.id}
@@ -70,7 +70,7 @@ export function ModulesListView({
                 {
                   label: 'Fields',
                   content: (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {module.fields.map((field) => (
                         <Chip key={field.id} size="sm" variant="primaryTonal">
                           {field.label}
@@ -85,12 +85,12 @@ export function ModulesListView({
                       {
                         label: 'Computed Outputs',
                         content: (
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5">
                             {module.computedOutputs.map((output) => (
                               <Chip key={output.id} size="sm" variant="outline">
                                 {output.label}
                                 {output.unitSymbol && (
-                                  <span className="ml-1 text-xs opacity-70">({output.unitSymbol})</span>
+                                  <span className="ml-1 font-numeric text-ink-faint">{output.unitSymbol}</span>
                                 )}
                               </Chip>
                             ))}
@@ -103,12 +103,9 @@ export function ModulesListView({
                 {
                   label: 'Formula',
                   content: (
-                    <Textarea
-                      autoGrow={true}
-                      value={module.formula}
-                      readOnly
-                      className="text-xs text-md-primary font-mono"
-                    />
+                    <code className="block px-2.5 py-2 rounded-md bg-sunken text-xs leading-relaxed font-numeric text-ink-body whitespace-pre-wrap break-words">
+                      {module.formula}
+                    </code>
                   ),
                   spacing: 'default',
                 },

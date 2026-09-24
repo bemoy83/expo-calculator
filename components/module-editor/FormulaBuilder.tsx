@@ -114,8 +114,8 @@ export function FormulaBuilder({
   computedOutputs = [],
 }: FormulaBuilderProps) {
   return (
-    <Card title="Formula Builder" className="sticky top-sticky-offset">
-      <div className="space-y-6">
+    <Card title="Formula" density="dense">
+      <div className="space-y-4">
         <FormulaVariableSections
           formula={formula}
           availableFieldVariables={availableFieldVariables}

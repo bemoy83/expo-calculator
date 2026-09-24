@@ -6,6 +6,7 @@ import { Chip } from '@/components/ui/Chip';
 import { SectionHeading } from '@/components/shared/SectionHeading';
 import { ActionIconButton, ActionIconButtonProps } from '@/components/shared/ActionIconButton';
 import { LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /**
  * EntityCard Component
@@ -94,7 +95,14 @@ export function EntityCard({
   const displayCategories = categories || (category ? [category] : []);
 
   const cardContent = (
-    <Card className={`h-full hover:border-accent/30 relative ${cardClassName}`}>
+    <Card
+      className={cn(
+        'h-full relative',
+        onClick && 'group hover:bg-surface-hover focus-within:border-action',
+        cardClassName,
+        wrapperClassName
+      )}
+    >
       {/* Action Buttons */}
       {actions.length > 0 && (
         <div className="absolute top-4 right-4 flex gap-1 z-10">
@@ -111,16 +119,27 @@ export function EntityCard({
         </div>
       )}
 
-      {/* Title */}
-      <h3 className={`text-lg font-bold text-md-primary mb-3 ${titlePaddingClass}`}>
-        {title}
+      {/* Title. When the card opens something, the title is a real button whose ::after
+          covers the whole card, so it's reachable by keyboard; actions sit above it. */}
+      <h3 className={cn('text-base font-semibold text-ink mb-3', titlePaddingClass)}>
+        {onClick ? (
+          <button
+            type="button"
+            onClick={onClick}
+            className="text-left focus:outline-none after:absolute after:inset-0 after:rounded-[10px] focus-visible:after:ring-2 focus-visible:after:ring-action"
+          >
+            {title}
+          </button>
+        ) : (
+          title
+        )}
       </h3>
 
       {/* Description */}
       {description && (
         <div className="mb-4">
           <SectionHeading spacing="small">Description</SectionHeading>
-          <p className="text-sm text-md-on-surface-variant line-clamp-2">
+          <p className="text-sm text-ink-muted line-clamp-2">
             {description}
           </p>
         </div>
@@ -154,18 +173,6 @@ export function EntityCard({
       {footer && <div className="mt-auto">{footer}</div>}
     </Card>
   );
-
-  // Wrap in clickable div if onClick is provided
-  if (onClick) {
-    return (
-      <div
-        onClick={onClick}
-        className={`hover:border-accent/30 transition-smooth cursor-pointer group relative ${wrapperClassName}`}
-      >
-        {cardContent}
-      </div>
-    );
-  }
 
   return cardContent;
 }

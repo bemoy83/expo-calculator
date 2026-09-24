@@ -79,8 +79,8 @@ be signed off as "done" without them.
 | Foundations (tokens, type, fonts) | Moderate | New palette + type scale layered over MD3 system; two new webfonts |
 | Primitives (Button/Card/Input/Select/Checkbox/Chip/Textarea) | Low | Restyle only, confirmed no prop-API changes needed |
 | Quote Builder (2a, minus cost mix) | Low–Moderate | Structure already matches; two small new pieces (reopen, nickname) |
-| Module Editor — Detailed (2b) | High | New chip-based formula surface; no existing analog in the app |
-| Module Editor — Simple (2c) | High | New screen entirely; Simple/Detailed toggle doesn't exist today |
+| Module Editor — Detailed (2b) | ~~High~~ Moderate (re-scoped) | Reskin + front-end UX fixes; the chip/units engine work is deferred — see its section |
+| Module Editor — Simple (2c) | High (on hold) | New screen entirely; held until the re-scoped editor has been used |
 | Materials catalog (1f, "unchanged, as picked") | ~~Very low~~ Moderate | Was a card list, not the table 1f specifies — see correction in its section |
 | Dashboard (2d) | Moderate | Data exists in the quotes store; current component renders none of it |
 
@@ -484,44 +484,106 @@ that's already correct, not proposing a new one.
 - Cost mix (materials vs. labor) stays out of scope, as decided.
 - Regression tests: "Draft Status Regression" in `lib/regression-tests/quote-regression.ts`.
 
-## Module Editor — Detailed (2b) — High
+## Module Editor — Detailed (2b) — re-scoped: reskin + UX fixes
 
-**Current state**: one editor, one view. `FormulaBuilder.tsx` already has the raw
-ingredients — chip-based variable insertion (`FormulaVariableToken.tsx`), sectioned
-variable browsing by origin (fields/materials/labor — `FormulaVariableSections.tsx`),
-autocomplete — but the formula itself is authored and *displayed* as a plain-text
-`<textarea>` (`FormulaEditorPanel`), not as an inline sequence of value-carrying chips.
+**Assessment before step 8 (replaces the earlier High-effort gap).** Checked against the
+code and real modules rather than taken from the mockup. Several of 2b's features depend
+on engine or data-model work that the mockup takes for granted:
+- **Unit derivation** ("m² × kr/m² → kr ✓"): the engine has six unit *categories*
+  (length, area, volume, weight, percentage, count). There's no money unit, no time,
+  and no compound or rate units. Unit checking (`lib/formula/unit-validation.ts`) is
+  pattern matching on the formula text for two identifiers joined by `+`, `-`, or `/`,
+  and never looks at `*`. `debug-analysis.ts` only classifies identifiers. The earlier
+  claim that the derivation could reuse the debug analysis was wrong. It would need new
+  unit algebra over a parsed formula, and material units are free text.
+- **Formula as chips**: evaluation substitutes values into the formula text
+  (`evaluator.ts`) and never builds a syntax tree. Chips need a new tokenizer/parser (mathjs's
+  `parse` is available). A true inline chip *editor* (1d: "nothing in it is bare text") also
+  needs hand-rolled cursor, selection, paste, undo, and accessibility.
+- **Plain-English restatement**: fine for the mockup's `a × b + c × d`, but real formulas
+  use shared functions, `==` comparisons, and `ceil()`, where it would read awkwardly or
+  mislead.
+- **`panel.price` / `crew.cost` notation**: not supported. A bare picker variable is its
+  price/rate, and `x.price` only resolves a real property named `price`, which some real
+  materials have with a different value. A pseudo-property would collide with them.
+- **Dropdown choices with a label and a separate value** ("One = 1 ×"): options are plain
+  strings.
+- **Simple/Detailed switch**: meaningless until Simple exists.
 
-**Gap**: rendering the formula itself as colored, value-and-unit-carrying chips (rather
-than plain text with a chip palette beside it) is a materially different editing widget —
-effectively a small structured/token editor over the same underlying formula string. It
-needs to: tokenize the string formula into chip spans, keep cursor/edit semantics usable
-inline, resolve and inject each variable's live value + unit for display, and add the
-plain-English restatement + unit-derivation line (this last part can likely reuse
-`FormulaDebugPanel`'s existing analysis, per `lib/formula/debug-analysis.ts`, rather than
-being computed from scratch). No changes needed to `formula-evaluator`/`mathjs` — this is
-entirely a new presentation layer over the existing string-based formula and evaluation
-engine.
+**Decision: defer all of the above** (chips, units, restatement, notation, label/value
+choices). Step 8 is a reskin plus front-end UX fixes found by using the current editor:
+1. **Keyboard access**: `EntityCard` made cards clickable through a plain `div`, so
+   modules, functions, and templates couldn't be opened from the keyboard. Fixed in the
+   shared card (all three lists).
+2. **Inline test panel** replacing the Preview modal and the always-$0 "Preview (with
+   defaults)" line (a module with a material picker defaults to no material). Sample
+   inputs sit next to the formula and show the cost, every computed output ("shown in
+   quote" marked), and the calculator's error. Values start from field defaults, with
+   pickers on the first item in their category. **Session only**: nothing is saved.
+3. **Consistent chip colors**: fields and computed outputs blue (`action`), materials
+   green (`committed`), labor amber (`draft`), as in the catalog and Quote Builder.
+   Field variables were green before, which the rest of the app uses for materials and
+   committed items.
+4. **"Required" is a quiet label**, not a red danger chip, and field rows are compact.
+5. **The operator/comparison reference is collapsed by default** in the formula panel.
+6. **Header like the Quote Builder**: a "Modules / name" breadcrumb, validity status,
+   Cancel/Save. The fixed bottom bar goes; Add field / Add output move to their section
+   headings.
+7. **Dead code removed**: `ToolsCard`, `ValidationCard`, `FormulaCard`, `OperatorsCard`
+   (imported nowhere).
+- Plus the reskin onto Ink tokens and primitives: the editor, the formula panel, the
+  field and computed-output cards, and the Modules list (restyled cards, formula as a
+  code block instead of a read-only textarea). The Functions and Templates lists only get
+  the keyboard fix now; their reskin is a later step. The function and template editors
+  change only through shared pieces.
 
-## Module Editor — Simple (2c) — High
+**Implementation notes (step 8 — reskin + UX fixes)**:
+- **Keyboard access** (`EntityCard`): the title is a real button whose `::after` covers the
+  card (the quote board's pattern). Actions sit above it, and the old clickable wrapper
+  `div` is gone. The shared card is also on tokens now, so the Functions and Templates
+  cards change look slightly too; their page headers are unchanged until their own step.
+- **Inline test panel** (`ModuleTestPanel`, `lib/modules/module-sample.ts`): it uses the
+  quote inputs (`ModuleFieldInput`), so labor pickers work too; the old modal only took
+  materials. It keeps only the values the user changed; everything else follows
+  `getSampleDefaults` (field defaults, with pickers on the first item in their category),
+  so adding, removing, or re-defaulting fields stays in step. `evaluateModuleSample` runs
+  the quote calculator and returns the cost, **every** computed output, and the
+  calculator's own error. It replaces `ModulePreview`, `use-preview-cost`, the editor's
+  preview state, and the "Preview (with defaults)" line, which hardcoded `$` and was always
+  0 for modules with a picker. Session only, with a Reset button. The panel is keyed by
+  module, so switching modules starts fresh.
+- **Layout**: the header (`ModuleEditorHeader`) has "Modules /" and the name, the formula
+  status, and Cancel / Save module. The fixed bottom bar (`ModuleEditorActions`) is
+  deleted; Add field / Add output sit on the section headings (`SectionBar`). Two columns:
+  details, fields, and outputs on the left; a sticky right column (scrolls on its own)
+  with the formula card and the test panel.
+- **Palette colours**: `FormulaVariableToken` takes an `origin` (field / material /
+  labor → `action` / `committed` / `draft` tonal pills). A variable already in the formula
+  gets a check mark and an outline in its own hue; before, "used" was solid green and
+  "unused" solid black. Material and labor picker fields show in their catalog colour. The
+  function editor uses the default (field) colour.
+- **Field and output rows**: `ModuleCardShell` (shared with the template and function
+  editors) has a compact header and no outer padding; callers' bodies already carry their
+  own. Field rows show the variable (tonal blue), then type, unit, picker category, and
+  "required" as quiet text; "Required" was a red danger chip. Output rows show
+  `out.variable` and the unit.
+- **Formula card**: "Formula", with the text area labelled "Cost formula"; autocomplete,
+  debug ("What the formula uses"), and the operator reference ("Operators & functions",
+  collapsed by default) all on tokens.
+- **Modules list**: the restyled cards show the formula as a code block, not a read-only
+  textarea, and use the shared `EmptyState`.
+- Dead code removed: `ToolsCard`, `ValidationCard`, `FormulaCard`, `OperatorsCard`, plus
+  `ModulePreview`, `ModuleEditorActions`, and `use-preview-cost`, which the changes above
+  made unused.
+- Regression tests: "Module Sample Regression" (`lib/regression-tests/module-sample-regression.ts`).
+
+## Module Editor — Simple (2c) — on hold
 
 **Does not exist in any form today** — there is no Simple/Detailed toggle anywhere in
 `components/module-editor/` or `components/formula/`. This is a new screen, not a
-modification of an existing one.
-
-The good news: the "named steps" model maps directly onto
-`CalculationModule.computedOutputs`, which the engine already evaluates
-sequentially with forward references (`lib/utils/evaluate-computed-outputs.ts:51-74`),
-plus the module's final `formula` treated as an implicit last "Σ Module cost" step. No
-evaluator or schema change is required to represent this — but building the actual step-
-list editor (add/reorder/remove step, per-step operand/operator pickers, referencing an
-earlier step by its label rather than its raw `out.` variable, live per-step preview,
-"Show in quote" toggle already backed by `ComputedOutput.showInQuote`) is a full new
-component tree, comparable in size to the Detailed view, built in parallel with it.
-
-Sequencing note: since both views edit the same underlying module, Detailed (2b) is the
-safer one to build first — it's an evolution of `FormulaBuilder`'s existing pieces —
-before committing to Simple (2c), which is greenfield.
+modification of an existing one. **On hold** (decided before step 8): it was framed as the
+complement to the chip-based Detailed view, which is deferred. Revisit once the re-scoped
+editor with the inline test panel has been used; that panel may cover most of the need.
 
 ## Materials catalog (1f) — ~~Very low~~ Moderate
 
@@ -747,9 +809,8 @@ currently has no external users to confuse.
    existed in any structural form, so there's no earlier step it's "finishing." Build it
    once, directly on Foundations, since — per Sequencing strategy above — it doesn't
    decouple from styling.
-8. **Module Editor — Detailed** — highest-value formula-approachability work; also
-   doesn't decouple from styling, so build it after Foundations rather than twice.
-9. **Module Editor — Simple** — defer until Detailed ships and the chip/value pattern
-   is validated with real use; largest net-new surface.
+8. **Module Editor — reskin + UX fixes** *(done)* — re-scoped before building (see its section):
+   no chip editor, units engine, or restatement; the inline test panel is the main UX gain.
+9. **Module Editor — Simple** — on hold (see its section).
 10. **Cost mix** — separate initiative, needs its own scoping for cost-attribution
     logic.

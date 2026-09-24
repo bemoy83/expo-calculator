@@ -98,20 +98,21 @@ export function SortableFieldItem({
       onToggle={() => onToggleExpanded(field.id)}
       onRemove={() => onRemoveField(field.id)}
       removeConfirmMessage="Remove this field?"
+      // Compact metadata: the formula variable (blue, like fields everywhere), then type, unit
+      // and "required" as quiet text; required is a setting, not an error.
       metaChips={[
         field.variableName ? (
-          <Chip key="var" size="sm" variant="primary" className="font-mono">
+          <Chip key="var" size="sm" variant="primaryTonal" className="font-numeric">
             {field.variableName}
           </Chip>
         ) : null,
-        <Chip key="type" size="sm" variant="default" className="capitalize">
-          {field.type}
-        </Chip>,
-        field.required ? (
-          <Chip key="required" size="sm" variant="error">
-            Required
-          </Chip>
-        ) : null,
+        <span key="meta" className="text-[11px] text-ink-muted">
+          <span className="capitalize">{field.type}</span>
+          {field.unitSymbol && <span className="font-numeric"> · {field.unitSymbol}</span>}
+          {field.type === 'material' && field.materialCategory && <span> · {field.materialCategory}</span>}
+          {field.type === 'labor' && field.laborCategory && <span> · {field.laborCategory}</span>}
+          {field.required && <span> · required</span>}
+        </span>,
       ].filter(Boolean)}
     >
       {/* Expanded Field Form */}
@@ -290,13 +291,13 @@ export function SortableFieldItem({
             />
           )}
           {field.type === 'material' && (
-            <div className="text-xs text-md-on-surface-variant">
+            <div className="text-xs text-ink-muted">
               The material variable represents the price of the selected material in your formula. If you&apos;ve selected a category above, only materials from that category will be available in the Quote Builder.
             </div>
           )}
           {field.type === 'labor' && (
-            <div className="text-xs text-md-on-surface-variant">
-              The labor variable represents the hourly cost of the selected labor item in your formula. You can also access productivity properties using dot notation (e.g., <code className="text-md-primary">labor.m2_per_hour</code>). If you&apos;ve selected a category above, only labor items from that category will be available in the Quote Builder.
+            <div className="text-xs text-ink-muted">
+              The labor variable represents the hourly cost of the selected labor item in your formula. You can also access productivity properties using dot notation (e.g., <code className="font-numeric text-action">labor.m2_per_hour</code>). If you&apos;ve selected a category above, only labor items from that category will be available in the Quote Builder.
             </div>
           )}
           <Input

@@ -126,7 +126,7 @@ export function ModuleDetailsCard({
             <button
               type="button"
               onClick={() => onFormDataChange({ category: '' })}
-              className="mt-2 text-xs text-md-on-surface-variant hover:text-md-on-surface transition-colors"
+              className="mt-2 text-xs text-ink-muted hover:text-ink transition-colors"
             >
               Clear category
             </button>

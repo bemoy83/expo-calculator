@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Calculator, CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/Textarea';
 import { cn } from '@/lib/utils';
 import { FormulaAutocompleteProps, FormulaValidationState } from './types';
@@ -58,18 +58,20 @@ export function FormulaEditorPanel({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label htmlFor="formula-input" className="text-sm font-semibold text-md-primary">Formula</label>
+        <label htmlFor="formula-input" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+          Cost formula
+        </label>
         {formula && (
           <div className="flex items-center space-x-1" role="status" aria-live="polite">
             {formulaValidation.valid ? (
               <>
-                <CheckCircle2 className="h-4 w-4 text-md-primary" aria-hidden="true" />
-                <span className="text-xs text-md-primary font-medium">Valid</span>
+                <CheckCircle2 className="h-3.5 w-3.5 text-committed" aria-hidden="true" />
+                <span className="text-xs text-committed font-medium">Valid</span>
               </>
             ) : (
               <>
-                <XCircle className="h-4 w-4 text-md-error" aria-hidden="true" />
-                <span className="text-xs text-md-error font-medium">Invalid</span>
+                <XCircle className="h-3.5 w-3.5 text-danger" aria-hidden="true" />
+                <span className="text-xs text-danger font-medium">Invalid</span>
               </>
             )}
           </div>
@@ -111,17 +113,11 @@ export function FormulaEditorPanel({
           error={formulaError || formulaValidation.error}
           placeholder=""
           rows={6}
-          className={`font-mono text-sm text-md-primary ${
-            formulaValidation.valid && formula
-              ? 'border-success/50 focus:ring-success/50'
-              : formula && !formulaValidation.valid
-              ? 'border-destructive/50 focus:ring-destructive/50'
-              : ''
-          }`}
+          className="font-numeric text-[13px] leading-relaxed"
         />
         {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
           <div
-            className="fixed z-50 bg-md-surface-container border border-md-outline rounded-lg elevation-4 max-h-64 overflow-y-auto"
+            className="fixed z-50 bg-surface border border-border-strong rounded-lg shadow-panel max-h-64 overflow-y-auto py-1"
             style={{
               top: `${autocompletePosition.top}px`,
               left: `${autocompletePosition.left}px`,
@@ -143,22 +139,19 @@ export function FormulaEditorPanel({
                   onMouseEnter={() => onSetSelectedSuggestionIndex(index)}
                   className={cn(
                     'w-full px-3 py-2 text-left flex items-center gap-2 transition-colors',
-                    isSelected
-                      ? 'bg-md-primary text-md-on-primary'
-                      : 'hover:bg-md-surface-variant'
+                    isSelected ? 'bg-action-bg text-ink' : 'text-ink-body hover:bg-surface-hover'
                   )}
                 >
-                  <code className="text-xs font-mono flex-1">{suggestion.displayName}</code>
+                  <code className="text-xs font-numeric flex-1">{suggestion.displayName}</code>
                   {isRecent && (
-                    <span className="text-xs text-md-on-surface-variant">●</span>
+                    <span className="text-xs text-ink-faint" title="Recently used">●</span>
                   )}
                   <span className={cn(
-                    'text-xs px-1.5 py-0.5 rounded',
-                    suggestion.type === 'field' && 'bg-md-primary/10 text-md-primary',
-                    suggestion.type === 'material' && 'bg-success/10 text-success',
-                    suggestion.type === 'property' && 'bg-md-primary-muted/10 text-md-primary-muted',
-                    suggestion.type === 'function' && 'bg-warning/10 text-warning',
-                    suggestion.type === 'constant' && 'bg-warning/10 text-warning'
+                    'text-[10.5px] px-1.5 py-0.5 rounded-full font-medium',
+                    suggestion.type === 'field' && 'bg-action-bg text-action',
+                    suggestion.type === 'material' && 'bg-committed-bg text-committed',
+                    suggestion.type === 'property' && 'bg-action-bg text-action',
+                    (suggestion.type === 'function' || suggestion.type === 'constant') && 'bg-sunken text-ink-body'
                   )}>
                     {suggestion.type}
                   </span>
@@ -168,17 +161,6 @@ export function FormulaEditorPanel({
           </div>
         )}
       </div>
-      {formulaValidation.valid && formulaValidation.preview !== undefined && (
-        <div className="mt-2 p-3" role="status" aria-live="polite">
-          <div className="flex items-center space-x-2">
-            <Calculator className="h-4 w-4 text-md-primary" aria-hidden="true" />
-            <span className="text-xs text-md-on-surface-variant">Preview (with defaults):</span>
-            <span className="text-sm font-bold text-success">
-              ${formulaValidation.preview.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

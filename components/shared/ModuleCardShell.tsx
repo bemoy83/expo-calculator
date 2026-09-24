@@ -54,20 +54,22 @@ export function ModuleCardShell({
   const accessibleTitle = titleDetail ? `${title}, ${titleDetail}` : title;
 
   return (
-    <Card ref={cardRef} style={style}>
-      <div className="flex items-center">
+    // Compact header (design: row actions and metadata on one line); callers' bodies bring
+    // their own padding and top border.
+    <Card ref={cardRef} style={style} className="p-0 overflow-hidden">
+      <div className="flex items-center pl-2">
         <button
           {...dragHandleProps.attributes}
           {...(dragHandleProps.listeners || {})}
-          className="text-md-on-surface-variant hover:text-md-primary cursor-grab active:cursor-grabbing focus:outline-none transition-smooth"
+          className="p-1 rounded text-ink-subtle hover:text-ink cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
           aria-label={`Drag to reorder ${accessibleTitle}`}
           onClick={(e) => e.stopPropagation()}
         >
-          <GripVertical className="h-5 w-5" />
+          <GripVertical className="h-4 w-4" aria-hidden="true" />
         </button>
 
         <div
-          className="flex items-center justify-between flex-1 min-w-0 p-4 cursor-pointer hover-overlay transition-smooth relative rounded-extra-large"
+          className="flex items-center justify-between flex-1 min-w-0 px-2.5 py-2.5 cursor-pointer hover:bg-surface-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
           onClick={onToggle}
           onKeyDown={(e) => {
             // Only when the header itself is focused; keys on its nested buttons must activate those buttons.
@@ -84,9 +86,9 @@ export function ModuleCardShell({
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-md-primary">{title}</span>
+              <span className="text-sm font-semibold text-ink">{title}</span>
               {titleDetail && (
-                <span className="text-sm text-md-on-surface-variant break-words">· {titleDetail}</span>
+                <span className="text-sm text-ink-muted break-words">· {titleDetail}</span>
               )}
               {category && <Chip variant="default" size="sm">{category}</Chip>}
               {chips?.map((chip, idx) => (
@@ -94,13 +96,13 @@ export function ModuleCardShell({
               ))}
             </div>
             {subtitle && (
-              <p className="text-sm text-md-on-surface-variant mt-1.5 truncate">
+              <p className="text-xs text-ink-muted mt-0.5 truncate">
                 {subtitle}
               </p>
             )}
           </div>
 
-          <div className="flex items-center gap-2 ml-4 shrink-0">
+          <div className="flex items-center gap-1.5 ml-3 shrink-0 text-ink-muted">
             {rightExtras}
             {onRemove && (
               <ActionIconButton

@@ -1,11 +1,11 @@
 'use client';
 
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SortableFieldItem } from '@/components/module-editor/SortableFieldItem';
 import { Field } from '@/lib/types';
 import { Plus } from 'lucide-react';
 import { SortableList } from '@/components/shared/SortableList';
+import { SectionBar } from '@/components/module-editor/SectionBar';
 
 interface FieldsManagerProps {
   fields: Field[];
@@ -31,23 +31,23 @@ export function FieldsManager({
   setFieldRef,
 }: FieldsManagerProps) {
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">Input Fields</h2>
-      </div>
+    <section aria-labelledby="fields-heading" className="space-y-3">
+      <SectionBar
+        id="fields-heading"
+        title="Input fields"
+        count={fields.length}
+        action={
+          <Button variant="secondary" size="sm" onClick={onAddField}>
+            <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+            Add field
+          </Button>
+        }
+      />
 
       {fields.length === 0 ? (
-        <Card>
-          <div className="text-center py-6">
-            <p className="text-sm text-md-on-surface-variant mb-3">
-              Fields define the inputs required for your calculation formula. Each field becomes a variable you can use in your formula.
-            </p>
-            <Button size="sm" onClick={onAddField}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Your First Field
-            </Button>
-          </div>
-        </Card>
+        <p className="px-4 py-6 rounded-[10px] border border-dashed border-border-strong text-center text-sm text-ink-muted">
+          Fields are the inputs a quote asks for. Each one becomes a variable you can use in the formula.
+        </p>
       ) : (
         <SortableList
           items={fields}
@@ -72,7 +72,7 @@ export function FieldsManager({
           }}
         />
       )}
-    </div>
+    </section>
   );
 }
 

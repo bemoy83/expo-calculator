@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-import { FormulaVariableToken } from "./FormulaVariableToken";
+import { FormulaVariableToken, type VariableOrigin } from "./FormulaVariableToken";
 import {
     ChevronRight,
 } from 'lucide-react';
@@ -21,6 +21,8 @@ export interface FormulaExpandableVariableProps {
     }[];
 
     initiallyExpanded?: boolean;
+    /** Colour of the variable and its properties (see FormulaVariableToken). */
+    origin?: VariableOrigin;
 }
 
 export function FormulaExpandableVariable({
@@ -30,6 +32,7 @@ export function FormulaExpandableVariable({
     onInsert,
     properties = [],
     initiallyExpanded = false,
+    origin = "field",
 }: FormulaExpandableVariableProps) {
     const [expanded, setExpanded] = useState(initiallyExpanded);
     const hasProperties = properties.length > 0;
@@ -45,6 +48,7 @@ export function FormulaExpandableVariable({
                         value={value}
                         isUsed={isUsed}
                         onInsert={onInsert}
+                        origin={origin}
                         size="sm"
                         layout="stretch"
                     />
@@ -57,9 +61,7 @@ export function FormulaExpandableVariable({
                         onClick={() => setExpanded((p) => !p)}
                         aria-expanded={expanded}
                         aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
-                        className="flex items-center justify-center w-6 h-6 shrink-0
-                       rounded-full
-                       focus:outline-none focus:ring-2 focus:ring-action/50"
+                        className="flex items-center justify-center w-6 h-6 shrink-0 rounded text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                     >
                         <ChevronRight
                             className={cn(
@@ -83,7 +85,7 @@ export function FormulaExpandableVariable({
                         top-0 
                         bottom-0
                         w-px 
-                        bg-md-primary"
+                        bg-border-strong"
                     />
 
                     {properties.map((prop, idx) => {
@@ -96,14 +98,14 @@ export function FormulaExpandableVariable({
                                     "relative w-full pl-8",
 
                                     // full-height spine for all rows
-                                    "before:absolute before:left-2 before:top-0 before:bottom-0 before:w-px before:bg-md-outline-primary",
+                                    "before:absolute before:left-2 before:top-0 before:bottom-0 before:w-px before:bg-border-strong",
 
                                     // on last row: only keep lower half of the mask (flip)
                                     isLast &&
-                                    "before:top-1/2 before:bottom-0 before:bg-md-surface-container",
+                                    "before:top-1/2 before:bottom-0 before:bg-surface",
 
                                     // horizontal elbow
-                                    "after:absolute after:left-2 after:top-1/2 after:h-px after:w-6 after:bg-md-primary"
+                                    "after:absolute after:left-2 after:top-1/2 after:h-px after:w-6 after:bg-border-strong"
                                 )}
                             >
                                 <FormulaVariableToken
@@ -111,6 +113,7 @@ export function FormulaExpandableVariable({
                                     value={prop.value}
                                     isUsed={prop.isUsed}
                                     onInsert={onInsert}
+                                    origin={origin}
                                     size="sm"
                                     layout="stretch"
                                 />

@@ -53,13 +53,13 @@ function SectionToggle({
       aria-expanded={expanded}
     >
       <div className="flex items-center gap-2">
-        <h4 className="text-sm font-semibold text-md-primary">{title}</h4>
+        <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">{title}</h4>
         {meta}
       </div>
       {expanded ? (
-        <ChevronDown className="h-4 w-4 text-md-on-surface-variant group-hover:text-md-on-surface transition-colors" />
+        <ChevronDown className="h-4 w-4 text-ink-muted group-hover:text-ink transition-colors" />
       ) : (
-        <ChevronRight className="h-4 w-4 text-md-on-surface-variant group-hover:text-md-on-surface transition-colors" />
+        <ChevronRight className="h-4 w-4 text-ink-muted group-hover:text-ink transition-colors" />
       )}
     </button>
   );
@@ -113,7 +113,7 @@ export function FormulaVariableSections({
             onToggle={onToggleFieldVariablesExpanded}
             meta={
               allFields.length > 0 ? (
-                <span className="text-xs text-md-on-surface-variant">
+                <span className="text-xs text-ink-faint">
                   {usedFields}/{allFields.length} fields
                 </span>
               ) : undefined
@@ -134,6 +134,7 @@ export function FormulaVariableSections({
                 return (
                   <FormulaExpandableVariable
                     key={varInfo.name}
+                    origin={fieldType === 'material' ? 'material' : fieldType === 'labor' ? 'labor' : 'field'}
                     label={varInfo.name}
                     value={varInfo.name}
                     isUsed={isVariableInFormula(varInfo.name, formula)}
@@ -158,7 +159,7 @@ export function FormulaVariableSections({
             expanded={materialVariablesExpanded}
             onToggle={onToggleMaterialVariablesExpanded}
             meta={
-              <span className="text-xs text-md-on-surface-variant">
+              <span className="text-xs text-ink-faint">
                 {filteredMaterialVariables.length}
                 {filteredMaterialVariables.length !== availableMaterialVariables.length && (
                   <span> of {availableMaterialVariables.length}</span>
@@ -168,7 +169,7 @@ export function FormulaVariableSections({
             }
           />
           {!materialVariablesExpanded && (
-            <p className="text-xs text-md-on-surface-variant mb-3">
+            <p className="text-xs text-ink-faint mb-3">
               Click to expand and access material variables for your formula.
             </p>
           )}
@@ -201,6 +202,7 @@ export function FormulaVariableSections({
                   {filteredMaterialVariables.map((mat) => (
                     <FormulaExpandableVariable
                       key={mat.name}
+                      origin="material"
                       label={mat.name}
                       value={mat.name}
                       isUsed={isVariableInFormula(mat.name, formula)}
@@ -214,7 +216,7 @@ export function FormulaVariableSections({
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-md-on-surface-variant">
+                <p className="text-xs text-ink-faint">
                   No materials in this category.
                 </p>
               )}
@@ -230,14 +232,14 @@ export function FormulaVariableSections({
             expanded={laborVariablesExpanded}
             onToggle={onToggleLaborVariablesExpanded}
             meta={
-              <span className="text-xs text-md-on-surface-variant">
+              <span className="text-xs text-ink-faint">
                 {availableLaborVariables.length}{' '}
                 {availableLaborVariables.length === 1 ? 'labor item' : 'labor items'}
               </span>
             }
           />
           {!laborVariablesExpanded && (
-            <div className="text-xs text-md-on-surface-variant mb-3">
+            <div className="text-xs text-ink-faint mb-3">
               Click to expand and see labor variables
             </div>
           )}
@@ -251,6 +253,7 @@ export function FormulaVariableSections({
                 return (
                   <FormulaExpandableVariable
                     key={lab.name}
+                    origin="labor"
                     label={lab.name}
                     value={lab.name}
                     isUsed={isVariableInFormula(lab.name, formula)}
@@ -269,7 +272,7 @@ export function FormulaVariableSections({
       )}
 
       {!hasVariables && (
-        <div className="text-center py-4 text-md-on-surface-variant text-sm">
+        <div className="text-center py-4 text-ink-faint text-sm">
           <p>Add fields, materials, or labor to use variables in your formula</p>
         </div>
       )}

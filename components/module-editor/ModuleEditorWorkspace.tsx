@@ -4,22 +4,30 @@ import { ComputedOutputsManager } from '@/components/module-editor/ComputedOutpu
 import { FieldsManager } from '@/components/module-editor/FieldsManager';
 import { FormulaBuilder } from '@/components/module-editor/FormulaBuilder';
 import { ModuleDetailsCard } from '@/components/module-editor/ModuleDetailsCard';
-import { ModuleEditorActions } from '@/components/module-editor/ModuleEditorActions';
 import { ModuleEditorHeader } from '@/components/module-editor/ModuleEditorHeader';
-import { ModulePreview } from '@/components/module-editor/ModulePreview';
+import { ModuleTestPanel } from '@/components/module-editor/ModuleTestPanel';
 import type { ModuleEditorState } from '@/components/module-editor/useModuleEditorState';
 
 interface ModuleEditorWorkspaceProps {
   editor: ModuleEditorState;
 }
 
+// Left: what the module asks for (details, fields, computed outputs). Right, sticky: the
+// formula and a live test with sample values, so every edit is checked against real numbers.
 export function ModuleEditorWorkspace({ editor }: ModuleEditorWorkspaceProps) {
   return (
     <>
-      <ModuleEditorHeader editingModuleId={editor.editingModuleId} />
+      <ModuleEditorHeader
+        editingModuleId={editor.editingModuleId}
+        moduleName={editor.formData.name}
+        formulaValid={editor.formulaValidation.valid}
+        formulaError={editor.formulaValidation.error}
+        onCancel={editor.actions.cancelEditing}
+        onSubmit={editor.actions.handleSubmit}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 pb-24">
-        <div className="lg:col-span-3 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,440px)] gap-5 items-start pb-10">
+        <div className="min-w-0 space-y-6">
           <ModuleDetailsCard
             formData={editor.formData}
             errors={editor.errors}
@@ -53,34 +61,18 @@ export function ModuleEditorWorkspace({ editor }: ModuleEditorWorkspaceProps) {
           />
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="space-y-4 lg:sticky lg:top-sticky-offset lg:max-h-[calc(100vh-var(--app-header-h)-3rem)] lg:overflow-y-auto lg:pr-1">
           <FormulaBuilder {...editor.formulaBuilderProps} />
+          <ModuleTestPanel
+            key={editor.editingModuleId ?? 'none'}
+            fields={editor.fields}
+            formula={editor.formData.formula}
+            computedOutputs={editor.computedOutputs}
+            materials={editor.materials}
+            labor={editor.labor}
+          />
         </div>
       </div>
-
-      {editor.preview.showPreview && (
-        <ModulePreview
-          formData={editor.formData}
-          fields={editor.fields}
-          previewFieldValues={editor.preview.previewFieldValues}
-          previewCalculatedCost={editor.preview.previewCalculatedCost}
-          previewError={editor.preview.previewError}
-          materials={editor.materials}
-          onClose={editor.preview.closePreview}
-          onFieldValueChange={editor.preview.setFieldValue}
-        />
-      )}
-
-      <ModuleEditorActions
-        editingModuleId={editor.editingModuleId}
-        fields={editor.fields}
-        formulaValidationValid={editor.formulaValidation.valid}
-        onAddField={editor.fieldActions.addField}
-        onAddComputedOutput={editor.computedOutputActions.addComputedOutput}
-        onPreview={editor.actions.initializePreview}
-        onCancel={editor.actions.cancelEditing}
-        onSubmit={editor.actions.handleSubmit}
-      />
     </>
   );
 }

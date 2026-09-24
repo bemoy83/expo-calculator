@@ -4,6 +4,7 @@ import { analyzeFormulaVariables } from '@/lib/formula-evaluator';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { Field, Material } from '@/lib/types';
 import Chip from '@/components/ui/Chip';
+import { ChevronRight } from 'lucide-react';
 import { ComputedOutputVariable, VariableInfo } from './types';
 
 interface FormulaDebugPanelProps {
@@ -17,7 +18,7 @@ interface FormulaDebugPanelProps {
 function DebugChipGroup({
   title,
   values,
-  variant = 'primary',
+  variant = 'primaryTonal',
 }: {
   title: string;
   values: string[];
@@ -25,19 +26,19 @@ function DebugChipGroup({
 }) {
   return (
     <div>
-      <h5 className="text-xs font-semibold text-md-primary mb-1.5">
+      <h5 className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1.5">
         {title} ({values.length})
       </h5>
       {values.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {values.map((value) => (
-            <Chip key={value} size="sm" variant={variant} className="font-mono text-xs">
+            <Chip key={value} size="sm" variant={variant} className="font-numeric">
               {value}
             </Chip>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-md-on-surface-variant italic">None</p>
+        <p className="text-xs text-ink-faint">None</p>
       )}
     </div>
   );
@@ -70,15 +71,16 @@ export function FormulaDebugPanel({
   );
 
   return (
-    <details className="mt-4">
-      <summary className="cursor-pointer text-sm font-semibold text-md-on-surface-variant hover:text-md-on-surface transition-colors">
-        Formula debug (detected variables)
+    <details className="group pt-3 border-t border-border">
+      <summary className="cursor-pointer list-none flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted hover:text-ink rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action">
+        <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" aria-hidden="true" />
+        What the formula uses
       </summary>
       <div className="mt-3 space-y-3 p-3">
         <DebugChipGroup title="Standalone Variables" values={debugInfo.variables} />
 
         <div>
-          <h5 className="text-xs font-semibold text-md-primary mb-1.5">
+          <h5 className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1.5">
             Function Calls ({debugInfo.functionCalls?.length || 0})
           </h5>
           {debugInfo.functionCalls && debugInfo.functionCalls.length > 0 ? (
@@ -87,7 +89,7 @@ export function FormulaDebugPanel({
                 <Chip
                   key={`${call.name}-${idx}`}
                   size="sm"
-                  variant="primary"
+                  variant="default"
                   className="font-mono text-xs"
                   title={`${call.name}(${call.arguments.join(', ')})`}
                 >
@@ -96,7 +98,7 @@ export function FormulaDebugPanel({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-md-on-surface-variant italic">None</p>
+            <p className="text-xs text-ink-faint">None</p>
           )}
         </div>
 
@@ -111,7 +113,7 @@ export function FormulaDebugPanel({
         <DebugChipGroup title="Unknown Variables" values={debugInfo.unknownVariables} variant="error" />
 
         <div>
-          <h5 className="text-xs font-semibold text-md-primary mb-1.5">
+          <h5 className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1.5">
             Field Property References ({debugInfo.fieldPropertyRefs.length})
           </h5>
           {debugInfo.fieldPropertyRefs.length > 0 ? (
@@ -129,12 +131,12 @@ export function FormulaDebugPanel({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-md-on-surface-variant italic">None</p>
+            <p className="text-xs text-ink-faint">None</p>
           )}
         </div>
 
         <div>
-          <h5 className="text-xs font-semibold text-md-primary mb-1.5">
+          <h5 className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1.5">
             Material Property References ({debugInfo.materialPropertyRefs.length})
           </h5>
           {debugInfo.materialPropertyRefs.length > 0 ? (
@@ -152,7 +154,7 @@ export function FormulaDebugPanel({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-md-on-surface-variant italic">None</p>
+            <p className="text-xs text-ink-faint">None</p>
           )}
         </div>
 
