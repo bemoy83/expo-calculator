@@ -28,6 +28,9 @@ Low / Moderate / High effort, not story points.
   imported themes once at the end of the reskin, not on every step. Tokens with no MD3
   equivalent (committed, draft, the `-border` tokens) keep their Ink values under an
   imported theme.
+  **Superseded after the reskin shipped:** with no component on `md-*` classes, an imported
+  theme barely changed anything, so theme import and the `--md-*` layer were removed (see
+  "Theme import and MD3 tokens removed").
 - ~~`ink-faint`: derive it as `ink-muted` at reduced opacity?~~ **Superseded.** Turn 4 gives
   `ink-faint` an explicit value in every palette; use Ink's. Deriving it is only relevant
   inside the imported-theme mapping above.
@@ -987,6 +990,25 @@ Assessed after step 10:
   as the mapping that imported Material themes override.
 - Deleted `SearchFilterBar` and `ui/resizable-panel` (no imports).
 
+## Theme import and MD3 tokens removed — done, after the reskin shipped
+
+Since step 11 nothing renders with `md-*` classes, so an imported Material theme only
+recolored a few alias uses. Removed:
+- The feature: `ThemeImporter`, `use-theme-importer`, `lib/themes/` (parser, manager,
+  applier, types), the Theme section and Import Theme item in the sidebar Settings menu,
+  and the Theme settings dialog in `Layout`. `ThemeProvider` is now a plain next-themes
+  wrapper for Light/Dark. On load it deletes the orphaned `md3-custom-themes` and
+  `md3-active-theme` localStorage keys; an active imported theme was applied from those
+  keys, so nothing else reads them.
+- `tailwind.config.ts`: the `md.*` color scale and the `background`, `foreground`, `card`,
+  `muted`, `accent`, `destructive`, and `input.bg` aliases. The last three alias uses
+  (`ModuleDetailsCard`, `ComputedOutputItem`) moved to `text-ink`, `text-danger`, and
+  `border-danger`. Radius tokens now hold their values directly instead of reading
+  `--md-shape-*` (same sizes); the unused `rounded-extra-large` is gone.
+- `app/globals.css`: every `--md-*` variable, plus the unused MD3 `hover-overlay`,
+  `disabled-overlay`, and `elevation-*` utilities (with their `--shadow-N` tokens). The
+  status tokens (`--warning`, `--success`, `--overlay`) and the two custom radii stay.
+
 ## Sequencing strategy: structure before style
 
 Not every gap above decouples the same way from the token/font work in Foundations.
@@ -1056,6 +1078,8 @@ currently has no external users to confuse.
 11. **MD3 leftover cleanup** *(done)* (see "MD3 leftover cleanup (step 11)").
 12. **Data export/import includes templates** *(done, before step 11)* (see "Data
     export/import (step 12)").
+    Afterwards, theme import and the MD3 token layer were removed (see "Theme import and
+    MD3 tokens removed").
 13. **Module Editor — Simple** — on hold (see its section).
 14. **Cost mix** — separate initiative, needs its own scoping for cost-attribution
     logic.

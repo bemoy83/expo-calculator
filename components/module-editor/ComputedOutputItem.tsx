@@ -367,7 +367,7 @@ export function ComputedOutputItem({
                 placeholder="e.g., area(width, height) or width * height"
                 className={cn(
                   'font-mono text-sm',
-                  !expressionValidation.valid && 'border-destructive'
+                  !expressionValidation.valid && 'border-danger'
                 )}
               />
               {/* Autocomplete Dropdown */}
@@ -421,7 +421,7 @@ export function ComputedOutputItem({
                 </div>
               )}
               {expressionValidation.error && (
-                <p className="text-xs text-destructive mt-1">{expressionValidation.error}</p>
+                <p className="text-xs text-danger mt-1">{expressionValidation.error}</p>
               )}
               {expressionValidation.valid && output.expression && (
                 <p className="text-xs text-success mt-1">Expression is valid</p>

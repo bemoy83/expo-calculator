@@ -64,7 +64,7 @@ export function ModuleDetailsCard({
           placeholder=""
         />
         <div>
-          <label className="block text-sm font-medium text-foreground mb-3">
+          <label className="block text-sm font-medium text-ink mb-3">
             Category
           </label>
           <div className="flex flex-wrap gap-2 mb-3">

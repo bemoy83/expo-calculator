@@ -5,10 +5,9 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { CheckCircle2, Download, FileText, Palette, Settings, Upload, X } from 'lucide-react';
+import { Download, FileText, Settings, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CurrencySelector } from '@/components/shared/CurrencySelector';
-import { useThemeImporter } from '@/hooks/use-theme-importer';
 import { exportAllData, downloadDataAsJSON } from '@/lib/utils/data-export';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
@@ -31,7 +30,6 @@ interface AppSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onImportData: () => void;
-  onOpenThemeSettings: () => void;
 }
 
 export function AppBrand() {
@@ -51,7 +49,7 @@ export function AppBrand() {
   );
 }
 
-export function AppSidebar({ id, isOpen, onClose, onImportData, onOpenThemeSettings }: AppSidebarProps) {
+export function AppSidebar({ id, isOpen, onClose, onImportData }: AppSidebarProps) {
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   // Counts come from localStorage-persisted stores, so render them only after mount
@@ -131,7 +129,7 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onOpenThemeSetti
       </nav>
 
       <div className="px-3 pt-3 pb-4 space-y-3 border-t border-border">
-        <SettingsMenu onImportData={onImportData} onOpenThemeSettings={onOpenThemeSettings} />
+        <SettingsMenu onImportData={onImportData} />
         <ColorModeSwitch mounted={mounted} />
       </div>
     </div>
@@ -216,13 +214,7 @@ function ColorModeSwitch({ mounted }: { mounted: boolean }) {
   );
 }
 
-function SettingsMenu({
-  onImportData,
-  onOpenThemeSettings,
-}: {
-  onImportData: () => void;
-  onOpenThemeSettings: () => void;
-}) {
+function SettingsMenu({ onImportData }: { onImportData: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -268,7 +260,6 @@ function SettingsMenu({
           id="app-settings-menu"
           onClose={() => setIsOpen(false)}
           onImportData={onImportData}
-          onOpenThemeSettings={onOpenThemeSettings}
         />
       )}
     </div>
@@ -279,20 +270,11 @@ function SettingsMenuPanel({
   id,
   onClose,
   onImportData,
-  onOpenThemeSettings,
 }: {
   id: string;
   onClose: () => void;
   onImportData: () => void;
-  onOpenThemeSettings: () => void;
 }) {
-  const { storedThemes, activeTheme, loadTheme, isDefaultTheme } = useThemeImporter();
-
-  const handleThemeSelect = (themeName: string | null) => {
-    loadTheme(themeName);
-    onClose();
-  };
-
   const handleExport = () => {
     downloadDataAsJSON(exportAllData());
     onClose();
@@ -304,64 +286,8 @@ function SettingsMenuPanel({
       className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border-strong rounded-[10px] shadow-panel z-50 overflow-hidden"
     >
       <div className="p-2 max-h-[70vh] overflow-y-auto">
-        <div className="px-2.5 pt-2 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-          Theme
-        </div>
-
-        <button
-          type="button"
-          onClick={() => handleThemeSelect(null)}
-          className={cn(
-            'w-full flex items-center justify-between h-[34px] px-2.5 rounded-md text-[13px] transition-colors mb-0.5',
-            isDefaultTheme
-              ? 'bg-action-bg text-action font-medium'
-              : 'text-ink-body hover:text-ink hover:bg-surface-hover'
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            <span className="font-medium">Default Theme</span>
-          </div>
-          {isDefaultTheme && <CheckCircle2 className="h-4 w-4 shrink-0" />}
-        </button>
-
-        {storedThemes.map((storedTheme) => (
-          <button
-            key={storedTheme.name}
-            type="button"
-            onClick={() => handleThemeSelect(storedTheme.name)}
-            className={cn(
-              'w-full flex items-center justify-between h-[34px] px-2.5 rounded-md text-[13px] transition-colors mb-0.5',
-              activeTheme?.name === storedTheme.name
-                ? 'bg-action-bg text-action font-medium'
-                : 'text-ink-body hover:text-ink hover:bg-surface-hover'
-            )}
-          >
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Palette className="h-4 w-4 shrink-0" />
-              <span className="font-medium truncate">{storedTheme.name}</span>
-              <span className="text-xs text-ink-faint shrink-0">({storedTheme.source})</span>
-            </div>
-            {activeTheme?.name === storedTheme.name && <CheckCircle2 className="h-4 w-4 shrink-0" />}
-          </button>
-        ))}
-
-        <button
-          type="button"
-          onClick={() => {
-            onClose();
-            onOpenThemeSettings();
-          }}
-          className="w-full flex items-center gap-2 h-[34px] px-2.5 rounded-md text-[13px] text-ink-body hover:text-ink hover:bg-surface-hover transition-colors mb-1"
-        >
-          <Upload className="h-4 w-4" />
-          Import Theme
-        </button>
-
-        <div className="mt-1 pt-1 border-t border-border">
-          <div className="px-2.5 pt-2 pb-2">
-            <CurrencySelector />
-          </div>
+        <div className="px-2.5 pt-2 pb-2">
+          <CurrencySelector />
         </div>
 
         <div className="mt-1 pt-1 border-t border-border">

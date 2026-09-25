@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { DataImporter } from '@/components/DataImporter';
-import { ThemeImporter } from '@/components/ThemeImporter';
 import { AppBrand, AppSidebar } from '@/components/AppSidebar';
 import { ModalDialog } from '@/components/shared/ModalDialog';
 import { NotificationHost } from '@/components/shared/NotificationHost';
@@ -17,7 +16,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [showThemeImporter, setShowThemeImporter] = useState(false);
   const navTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -44,11 +42,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const openImportData = () => {
     setIsNavOpen(false);
     setShowImportModal(true);
-  };
-
-  const openThemeSettings = () => {
-    setIsNavOpen(false);
-    setShowThemeImporter(true);
   };
 
   return (
@@ -88,7 +81,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         isOpen={isNavOpen}
         onClose={closeNav}
         onImportData={openImportData}
-        onOpenThemeSettings={openThemeSettings}
       />
 
       <ModalDialog
@@ -100,14 +92,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <DataImporter onClose={() => setShowImportModal(false)} />
       </ModalDialog>
 
-      <ModalDialog
-        isOpen={showThemeImporter}
-        onClose={() => setShowThemeImporter(false)}
-        title="Theme settings"
-        maxWidth="wide"
-      >
-        <ThemeImporter />
-      </ModalDialog>
       <div className="pl-sidebar">
         <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
