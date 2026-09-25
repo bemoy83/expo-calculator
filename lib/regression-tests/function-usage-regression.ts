@@ -1,6 +1,6 @@
 import { describeFunctionUsage, findFunctionUsage, formatFunctionSignature } from '../functions/function-usage';
 import { evaluateFunctionSample, getFunctionParamKinds } from '../functions/function-sample';
-import type { CalculationModule, Material, SharedFunction } from '../types';
+import type { CalculationModule, Labor, Material, SharedFunction } from '../types';
 import { assertCheck } from './test-helpers';
 
 console.log('\n=== Function Usage & Sample Regression ===');
@@ -77,3 +77,20 @@ assertCheck(
 
 const missing = evaluateFunctionSample({ func: studCount, values: { width: '2400' }, materials: [], functions: [studCount] });
 assertCheck('asks for missing parameter values', missing.display === undefined && (missing.error ?? '').includes('Spacing'));
+
+const crewRate = fn('crew_hours', 'length / crew.m_per_hr', [
+  { name: 'length', label: 'Length', unitSymbol: 'm' },
+  { name: 'crew', label: 'Crew', kind: 'labor' },
+]);
+const crew = {
+  id: 'l', name: 'Crew', category: 'Walls', cost: 600, variableName: 'crew_a',
+  properties: [{ id: 'lp', name: 'm_per_hr', type: 'number', value: 4, storedValue: 4 }],
+  createdAt: '', updatedAt: '',
+} as unknown as Labor;
+const laborSample = evaluateFunctionSample({ func: crewRate, values: { length: '10', crew: 'crew_a' }, materials: [], labor: [crew], functions: [crewRate] });
+const laborMissing = evaluateFunctionSample({ func: crewRate, values: { length: '10' }, materials: [], labor: [crew], functions: [crewRate] });
+assertCheck(
+  'tries functions with labor parameters, asking to choose one when missing',
+  laborSample.display === '2.5' && (laborMissing.error ?? '').startsWith('Choose a value for Crew'),
+  JSON.stringify({ laborSample, laborMissing })
+);

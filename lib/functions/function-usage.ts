@@ -1,8 +1,10 @@
+import type { Calculator } from '../calculator/types';
 import type { CalculationModule, SharedFunction } from '../types';
 
 export interface FunctionUsage {
   modules: Array<{ id: string; name: string }>;
   functions: Array<{ id: string; name: string }>;
+  calculators: Array<{ id: string; name: string }>;
 }
 
 function callsFunction(expression: string | undefined, functionName: string): boolean {
@@ -12,15 +14,26 @@ function callsFunction(expression: string | undefined, functionName: string): bo
   return new RegExp(`(^|[^A-Za-z0-9_.])${escaped}\\s*\\(`).test(expression);
 }
 
-// Where a shared function is called: module formulas and computed outputs, and other
-// functions' formulas. Renaming or deleting it breaks every caller listed here.
+// Where a shared function is called: module formulas and computed outputs, other functions'
+// formulas, and saved calculators' steps (function-call steps and formulas). Renaming or
+// deleting it breaks every caller listed here.
 export function findFunctionUsage(
   functionName: string,
   modules: CalculationModule[],
   functions: SharedFunction[],
-  ownId?: string
+  ownId?: string,
+  calculators: Calculator[] = []
 ): FunctionUsage {
   return {
+    calculators: calculators
+      .filter((calculator) =>
+        calculator.steps.some((step) =>
+          step.source.type === 'call'
+            ? step.source.functionName === functionName
+            : callsFunction(step.source.expression, functionName)
+        )
+      )
+      .map((calculator) => ({ id: calculator.id, name: calculator.name })),
     modules: modules
       .filter(
         (module) =>
@@ -36,6 +49,7 @@ export function findFunctionUsage(
 
 export function describeFunctionUsage(usage: FunctionUsage): string {
   const parts = [
+    ...usage.calculators.map((calculator) => `${calculator.name} (calculator)`),
     ...usage.modules.map((module) => module.name),
     ...usage.functions.map((func) => `${func.name} (function)`),
   ];

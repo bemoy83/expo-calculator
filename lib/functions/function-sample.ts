@@ -1,21 +1,10 @@
-import { evaluateFormula } from '../formula/evaluator';
-import type { Material, SharedFunction } from '../types';
+import { callFunction, type FunctionArgValue } from '../calculator/call-function';
+import type { Labor, Material, SharedFunction } from '../types';
+import { getFunctionParamKinds } from './param-kinds';
 import { convertFromBase, normalizeToBase } from '../units';
 import { formatDisplayNumber } from '../utils';
 
-export type FunctionParamKind = 'number' | 'material';
-
-// A parameter the formula reads properties from (`material.width`) expects a material,
-// not a number. Parameters carry no type, so infer it from the formula.
-export function getFunctionParamKinds(func: Pick<SharedFunction, 'formula' | 'parameters'>): Record<string, FunctionParamKind> {
-  return Object.fromEntries(
-    func.parameters.map((param) => {
-      const escaped = param.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const readsProperty = !!param.name && new RegExp(`(^|[^A-Za-z0-9_.])${escaped}\\.[A-Za-z_]`).test(func.formula);
-      return [param.name, readsProperty ? 'material' : 'number'];
-    })
-  );
-}
+export { getFunctionParamKinds, type FunctionParamKind } from './param-kinds';
 
 export interface FunctionSampleResult {
   /** Result in the return unit, formatted with it; undefined when it can't evaluate. */
@@ -23,41 +12,54 @@ export interface FunctionSampleResult {
   error?: string;
 }
 
-// Evaluates a function the way a module call does (evaluateFunctionCall): parameters are
-// passed in base units, as module fields store them, with materials available and nothing
-// else. Numbers typed in each parameter's unit are converted to base first, and the result
-// is shown in the return unit.
+// Tries a function with typed values, through the same callFunction calculators use.
+// Numbers are typed in each parameter's unit and converted to base units first; materials and
+// labor are picked by variable name; yes/no is "true" or "false". The result is shown in the
+// return unit.
 export function evaluateFunctionSample(input: {
-  func: Pick<SharedFunction, 'formula' | 'parameters' | 'returnUnitSymbol'>;
-  /** Typed values: numbers (in the parameter's unit) or a material variable name. */
+  func: Pick<SharedFunction, 'formula' | 'parameters' | 'returnUnitSymbol'> & Partial<Pick<SharedFunction, 'name'>>;
+  /** Typed values: numbers (in the parameter's unit), a material/labor variable name, or true/false. */
   values: Record<string, string>;
   materials: Material[];
+  labor?: Labor[];
   functions: SharedFunction[];
 }): FunctionSampleResult {
   const { func } = input;
   if (!func.formula.trim()) return { error: 'Add a formula to try this function.' };
 
   const kinds = getFunctionParamKinds(func);
-  const fieldValues: Record<string, string | number> = {};
+  const args: Record<string, FunctionArgValue> = {};
   for (const param of func.parameters) {
     if (!param.name) continue;
     const raw = (input.values[param.name] ?? '').trim();
-    if (raw === '') return { error: `Enter a value for ${param.label || param.name}.` };
-    if (kinds[param.name] === 'material') {
-      fieldValues[param.name] = raw;
+    const label = param.label || param.name;
+    const kind = kinds[param.name];
+    if (raw === '') {
+      if (kind === 'boolean') {
+        args[param.name] = false;
+        continue;
+      }
+      return { error: `${kind === 'material' || kind === 'labor' ? 'Choose' : 'Enter'} a value for ${label}.` };
+    }
+    if (kind === 'material' || kind === 'labor') {
+      args[param.name] = raw;
+      continue;
+    }
+    if (kind === 'boolean') {
+      args[param.name] = raw === 'true';
       continue;
     }
     const numeric = Number(raw);
-    if (!Number.isFinite(numeric)) return { error: `${param.label || param.name} must be a number.` };
-    fieldValues[param.name] = param.unitSymbol ? normalizeToBase(numeric, param.unitSymbol) : numeric;
+    if (!Number.isFinite(numeric)) return { error: `${label} must be a number.` };
+    args[param.name] = param.unitSymbol ? normalizeToBase(numeric, param.unitSymbol) : numeric;
   }
 
   try {
-    const result = evaluateFormula(func.formula, {
-      fieldValues,
-      materials: input.materials,
-      functions: input.functions,
-    });
+    const result = callFunction(
+      { id: '', displayName: '', createdAt: '', updatedAt: '', ...func, name: func.name || 'this function' },
+      args,
+      { materials: input.materials, labor: input.labor ?? [], functions: input.functions }
+    );
     const shown = func.returnUnitSymbol ? convertFromBase(result, func.returnUnitSymbol) : result;
     const formatted = formatDisplayNumber(shown);
     return { display: func.returnUnitSymbol ? `${formatted} ${func.returnUnitSymbol}` : formatted };

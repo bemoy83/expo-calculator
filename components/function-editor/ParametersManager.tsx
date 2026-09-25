@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { SectionBar } from '@/components/module-editor/SectionBar';
 import { ParameterItem } from './ParameterItem';
 import { FunctionParameter } from '@/hooks/use-parameter-manager';
+import { getFunctionParamKinds } from '@/lib/functions/param-kinds';
 import { Plus } from 'lucide-react';
 
 interface ParametersManagerProps {
@@ -14,6 +15,8 @@ interface ParametersManagerProps {
   onUpdateParameter: (index: number, updates: Partial<FunctionParameter>) => void;
   onRemoveParameter: (index: number) => void;
   onAddParameter: () => void;
+  /** The function's formula, to show what each parameter is taken to be when no kind is set. */
+  formula?: string;
 }
 
 export function ParametersManager({
@@ -24,7 +27,12 @@ export function ParametersManager({
   onUpdateParameter,
   onRemoveParameter,
   onAddParameter,
+  formula = '',
 }: ParametersManagerProps) {
+  const inferredKinds = getFunctionParamKinds({
+    formula,
+    parameters: parameters.map((parameter) => ({ ...parameter, kind: undefined })),
+  });
   return (
     <section aria-labelledby="parameters-heading" className="space-y-3">
       <SectionBar
@@ -61,6 +69,7 @@ export function ParametersManager({
                 onRemove={() => onRemoveParameter(index)}
                 onUpdate={(updates) => onUpdateParameter(index, updates)}
                 canRemove={true}
+                inferredKind={inferredKinds[parameter.name]}
               />
             );
           })}

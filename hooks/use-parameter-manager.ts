@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { generateParameterName } from '@/lib/utils/function-parameters';
+import type { FunctionParamKind } from '@/lib/types';
 
 export interface FunctionParameter {
   name: string;
@@ -7,6 +8,7 @@ export interface FunctionParameter {
   unitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count';
   unitSymbol?: string;
   required?: boolean;
+  kind?: FunctionParamKind;
 }
 
 interface UseParameterManagerProps {

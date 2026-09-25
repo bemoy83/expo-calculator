@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; steps 1–4 done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–5 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -487,6 +487,32 @@ Each step is committed separately, like the reskin.
   "Framing" section, Stud spacing switched to buttons and moved there via the inspector,
   Lumber dragged into it, a result restyled as a card, Preview, then Cancel → Discard with
   nothing stored.
+
+**Step 5 — Function-call steps**:
+- A step's editor has **Calculate with: Function | Formula**. Function: choose a function
+  (sorted by category), then give each parameter an input, a result, a property of a picked
+  material/labor ("Sheets → width"), a fixed number (typed in the parameter's unit), or
+  "New input…", which opens the input dialog with the parameter's label and kind and links
+  the new input when added. Lists only offer what fits the parameter's kind; a note shows
+  when an input or result is in another kind of unit than the parameter expects. The call
+  is shown as a formula underneath, and collapsed steps show it too.
+- **Switching**: Formula → Function converts a formula that is exactly one call with plain
+  arguments (`expressionToCall`); Function → Formula writes the call out
+  (`callToExpression`, numbers in base units). Otherwise the step's previous form is kept
+  to switch back to.
+- **Parameter kinds**: function parameters have an optional kind (number, material, labor,
+  yes/no; `lib/functions/param-kinds.ts`); unset, it's worked out from the formula as
+  before. The function editor's parameters gained "Expects" and a unit. The engine reports
+  a material/labor parameter given anything but an input of that kind.
+- **One way to call a function**: the function test panel now goes through `callFunction`
+  (with labor available), offers labor pickers and yes/no for such parameters.
+- **Usage**: a function's "Used by" (list and editor, delete and rename warnings) includes
+  saved calculators that call it, by function-call step or formula.
+- Checked in the browser on the partition wall's builder copy, without saving: "Paint area"
+  (`area_rectangle(width, height)`) switched to Function with both parameters bound; Height
+  set to a fixed 2.5 and Width typed 4 gave 10 m²; "New input…" created "Wall length" and
+  linked it; switching back gave the formula `area_rectangle(width_2, 2.5)`. The function
+  editor shows "Expects" per parameter. Nothing was stored.
 
 ## Open questions
 

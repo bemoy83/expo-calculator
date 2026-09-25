@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { evaluateFunctionSample, getFunctionParamKinds } from '@/lib/functions/function-sample';
 import { formatFunctionSignature } from '@/lib/functions/function-usage';
+import { useLaborStore } from '@/lib/stores/labor-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import type { SharedFunction } from '@/lib/types';
 
@@ -17,6 +18,7 @@ interface FunctionTestPanelProps {
 // Try the function with sample numbers, the way a module call evaluates it. Session only.
 export function FunctionTestPanel({ draft, functions }: FunctionTestPanelProps) {
   const materials = useMaterialsStore((state) => state.materials);
+  const labor = useLaborStore((state) => state.labor);
   const [values, setValues] = useState<Record<string, string>>({});
 
   const parameters = draft.parameters.filter((param) => param.name);
@@ -30,8 +32,8 @@ export function FunctionTestPanel({ draft, functions }: FunctionTestPanelProps) 
     [functions, draft]
   );
   const result = useMemo(
-    () => evaluateFunctionSample({ func: draft, values, materials, functions: availableFunctions }),
-    [draft, values, materials, availableFunctions]
+    () => evaluateFunctionSample({ func: draft, values, materials, labor, functions: availableFunctions }),
+    [draft, values, materials, labor, availableFunctions]
   );
 
   return (
@@ -51,28 +53,49 @@ export function FunctionTestPanel({ draft, functions }: FunctionTestPanelProps) 
           <p className="text-xs text-ink-muted">Add parameters to try this function with sample values.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-x-3 gap-y-3">
-            {parameters.map((param) =>
-              kinds[param.name] === 'material' ? (
-                <Select
-                  key={param.name}
-                  label={param.label || param.name}
-                  value={values[param.name] ?? ''}
-                  onChange={(event) => setValues((prev) => ({ ...prev, [param.name]: event.target.value }))}
-                  options={[
-                    { value: '', label: 'Choose a material…' },
-                    ...materials.map((material) => ({ value: material.variableName, label: material.name })),
-                  ]}
-                />
-              ) : (
+            {parameters.map((param) => {
+              const label = param.label || param.name;
+              const set = (value: string) => setValues((prev) => ({ ...prev, [param.name]: value }));
+              const kind = kinds[param.name];
+              if (kind === 'material' || kind === 'labor') {
+                const items: Array<{ variableName: string; name: string }> = kind === 'material' ? materials : labor;
+                return (
+                  <Select
+                    key={param.name}
+                    label={label}
+                    value={values[param.name] ?? ''}
+                    onChange={(event) => set(event.target.value)}
+                    options={[
+                      { value: '', label: kind === 'material' ? 'Choose a material…' : 'Choose labor…' },
+                      ...items.map((item) => ({ value: item.variableName, label: item.name })),
+                    ]}
+                  />
+                );
+              }
+              if (kind === 'boolean') {
+                return (
+                  <Select
+                    key={param.name}
+                    label={label}
+                    value={values[param.name] ?? 'false'}
+                    onChange={(event) => set(event.target.value)}
+                    options={[
+                      { value: 'false', label: 'No' },
+                      { value: 'true', label: 'Yes' },
+                    ]}
+                  />
+                );
+              }
+              return (
                 <Input
                   key={param.name}
-                  label={`${param.label || param.name}${param.unitSymbol ? ` (${param.unitSymbol})` : ''}`}
+                  label={`${label}${param.unitSymbol ? ` (${param.unitSymbol})` : ''}`}
                   type="number"
                   value={values[param.name] ?? ''}
-                  onChange={(event) => setValues((prev) => ({ ...prev, [param.name]: event.target.value }))}
+                  onChange={(event) => set(event.target.value)}
                 />
-              )
-            )}
+              );
+            })}
           </div>
         )}
         <div className="border-t border-border pt-3" role="status" aria-live="polite">
@@ -82,7 +105,7 @@ export function FunctionTestPanel({ draft, functions }: FunctionTestPanelProps) 
               <span className="text-[22px] leading-tight font-semibold font-numeric text-ink">{result.display}</span>
             </div>
           ) : (
-            <p className={`text-xs ${result.error?.startsWith('Enter a value') ? 'text-ink-muted' : 'text-danger'}`}>
+            <p className={`text-xs ${/^(Enter|Choose) a value/.test(result.error ?? '') ? 'text-ink-muted' : 'text-danger'}`}>
               {result.error}
             </p>
           )}

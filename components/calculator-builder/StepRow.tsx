@@ -8,9 +8,12 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { keyProblem, suggestKey } from '@/lib/calculator/editing';
 import { describeStepProblem, displayUnit, formatStepValue } from '@/lib/calculator/format';
-import type { Calculator, CalculatorLibrary, CalculatorStep, StepFormat, StepResult } from '@/lib/calculator/types';
+import { callToExpression, expressionToCall } from '@/lib/calculator/step-source';
+import type { Calculator, CalculatorLibrary, CalculatorStep, StepFormat, StepResult, StepSource } from '@/lib/calculator/types';
+import type { FunctionParamKind } from '@/lib/types';
 import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
 import { cn } from '@/lib/utils';
+import { FunctionCallEditor } from './FunctionCallEditor';
 import { StepFormulaEditor } from './StepFormulaEditor';
 
 const FORMAT_OPTIONS: Array<{ value: StepFormat; label: string }> = [
@@ -44,6 +47,8 @@ interface StepRowProps {
   onMoveToPart: (partId: string) => void;
   onRemove: () => void;
   onCreateInput: (key: string) => void;
+  /** A new input bound to a parameter of this function-call step. */
+  onCreateInputFor: (paramName: string, kind: FunctionParamKind) => void;
 }
 
 // One step in a part: collapsed it shows its label, formula and live value; expanded it
@@ -67,6 +72,7 @@ export function StepRow({
   onMoveToPart,
   onRemove,
   onCreateInput,
+  onCreateInputFor,
 }: StepRowProps) {
   const id = useId();
   // The name follows the label until it's edited, or once the step has a real name.
@@ -76,6 +82,29 @@ export function StepRow({
   const unknown = unknownNameIn(result?.message);
   const nameProblem = keyProblem(calculator, step.key, step.id);
   const expression = step.source.type === 'expression' ? step.source.expression : '';
+  const shownFormula =
+    step.source.type === 'expression'
+      ? expression
+      : step.source.functionName
+        ? callToExpression(step.source, library.functions)
+        : '';
+  // What the step was before switching, for when the other form can't be carried over (a
+  // formula that isn't one plain call, or a call without a function yet).
+  const [other, setOther] = useState<StepSource | null>(null);
+
+  const switchTo = (mode: StepSource['type']) => {
+    if (mode === step.source.type) return;
+    let next: StepSource;
+    if (mode === 'expression') {
+      next = shownFormula ? { type: 'expression', expression: shownFormula } : other?.type === 'expression' ? other : { type: 'expression', expression: '' };
+    } else {
+      next =
+        expressionToCall(expression, calculator, library.functions) ??
+        (other?.type === 'call' ? other : { type: 'call', functionName: '', args: {} });
+    }
+    setOther(step.source);
+    onChange({ ...step, source: next });
+  };
 
   const value =
     result?.status === 'disabled' ? (
@@ -120,7 +149,7 @@ export function StepRow({
             </span>
             {!expanded && (
               <code className="block mt-0.5 text-[11.5px] font-numeric text-ink-muted truncate">
-                {step.key} = {expression || '…'}
+                {step.key} = {shownFormula || '…'}
               </code>
             )}
           </span>
@@ -162,17 +191,52 @@ export function StepRow({
           </div>
 
           <div>
-            <label htmlFor={`${id}-formula`} className="block text-xs font-medium text-ink-muted mb-1.5">
-              Formula
-            </label>
-            <StepFormulaEditor
-              id={`${id}-formula`}
-              calculator={calculator}
-              step={step}
-              library={library}
-              value={expression}
-              onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
-            />
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <span id={`${id}-mode`} className="text-xs font-medium text-ink-muted">
+                Calculate with
+              </span>
+              <div role="radiogroup" aria-labelledby={`${id}-mode`} className="flex gap-0.5 p-0.5 rounded-md bg-sunken">
+                {(
+                  [
+                    ['call', 'Function'],
+                    ['expression', 'Formula'],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="radio"
+                    aria-checked={step.source.type === mode}
+                    onClick={() => switchTo(mode)}
+                    className={cn(
+                      'h-6 px-2.5 rounded text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
+                      step.source.type === mode ? 'bg-surface text-ink shadow-card' : 'text-ink-muted hover:text-ink'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {step.source.type === 'call' ? (
+              <FunctionCallEditor
+                calculator={calculator}
+                step={step}
+                source={step.source}
+                library={library}
+                onChange={(source) => onChange({ ...step, source })}
+                onCreateInputFor={onCreateInputFor}
+              />
+            ) : (
+              <StepFormulaEditor
+                id={`${id}-formula`}
+                calculator={calculator}
+                step={step}
+                library={library}
+                value={expression}
+                onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
+              />
+            )}
             {isError && <p className="mt-1 text-xs text-danger">{result?.message}</p>}
             {unknown && (
               <Button variant="ghost" size="sm" className="mt-1" onClick={() => onCreateInput(unknown)}>

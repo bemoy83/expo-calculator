@@ -39,7 +39,15 @@ import {
   updateStep,
 } from '@/lib/calculator/editing';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
-import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues, LayoutItem } from '@/lib/calculator/types';
+import type {
+  Calculator,
+  CalculatorInput,
+  CalculatorLibrary,
+  CalculatorStep,
+  CalculatorValues,
+  InputKind,
+  LayoutItem,
+} from '@/lib/calculator/types';
 import type { LayoutRenderContext } from '@/components/calculator/CalculatorLayoutItem';
 import { cn } from '@/lib/utils';
 import { useCalculatorSessionStore } from '@/lib/stores/calculator-session-store';
@@ -80,9 +88,15 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
   const [isSaved, setIsSaved] = useState(initiallySaved);
   const [nameError, setNameError] = useState<string>();
   const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
-  const [inputDialog, setInputDialog] = useState<{ input?: CalculatorInput; suggestedKey?: string; sectionId?: string } | null>(
-    null
-  );
+  const [inputDialog, setInputDialog] = useState<{
+    input?: CalculatorInput;
+    suggestedKey?: string;
+    suggestedKind?: InputKind;
+    suggestedLabel?: string;
+    sectionId?: string;
+    /** A function-call step parameter to link the new input to. */
+    bindTo?: { stepId: string; paramName: string };
+  } | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
 
   const saveCalculator = useCalculatorsStore((state) => state.saveCalculator);
@@ -133,6 +147,17 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
         ? updateInput(current, input)
         : addInput(current, input, generateId, sectionId)
     );
+    const bindTo = inputDialog?.bindTo;
+    if (bindTo) {
+      edit((current) => {
+        const step = current.steps.find((candidate) => candidate.id === bindTo.stepId);
+        if (!step || step.source.type !== 'call') return current;
+        return updateStep(current, {
+          ...step,
+          source: { ...step.source, args: { ...step.source.args, [bindTo.paramName]: { type: 'input', key: input.key } } },
+        });
+      });
+    }
     if (sectionId) setSelection({ type: 'item', key: `input:${input.id}` });
     setInputDialog(null);
   };
@@ -432,6 +457,20 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
               onValueChange={onValueChange}
               onEditInput={(input) => setInputDialog({ input })}
               onCreateInput={(key) => setInputDialog({ suggestedKey: key })}
+              onCreateInputFor={(stepId, paramName, kind) => {
+                const step = calculator.steps.find((candidate) => candidate.id === stepId);
+                const fn =
+                  step?.source.type === 'call'
+                    ? library.functions.find((candidate) => candidate.name === (step.source as { functionName: string }).functionName)
+                    : undefined;
+                const label = fn?.parameters.find((param) => param.name === paramName)?.label || paramName;
+                setInputDialog({
+                  suggestedKey: suggestKey(calculator, label, undefined, 'value'),
+                  suggestedKind: kind,
+                  suggestedLabel: label,
+                  bindTo: { stepId, paramName },
+                });
+              }}
             />
           ))}
 
@@ -491,6 +530,8 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
         calculator={calculator}
         input={inputDialog?.input}
         suggestedKey={inputDialog?.suggestedKey}
+        suggestedKind={inputDialog?.suggestedKind}
+        suggestedLabel={inputDialog?.suggestedLabel}
         library={library}
         onSave={saveInput}
         onDelete={(input) => setPending({ kind: 'delete-input', input })}

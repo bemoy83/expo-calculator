@@ -15,6 +15,7 @@ import { describeFunctionUsage, findFunctionUsage } from '@/lib/functions/functi
 import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
+import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 
 export interface FunctionEditorViewProps {
@@ -31,6 +32,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
   const addCategory = useCategoriesStore((state) => state.addCategory);
   const labor = useLaborStore((state) => state.labor);
   const modules = useModulesStore((state) => state.modules);
+  const calculators = useCalculatorsStore((state) => state.calculators);
   const existingFunction = functionId === 'new' ? null : getFunction(functionId) ?? null;
   const isNew = functionId === 'new';
   const [confirmingRename, setConfirmingRename] = useState(false);
@@ -50,9 +52,9 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
   const usage = useMemo(
     () =>
       existingFunction
-        ? findFunctionUsage(existingFunction.name, modules, functions, existingFunction.id)
-        : { modules: [], functions: [] },
-    [existingFunction, modules, functions]
+        ? findFunctionUsage(existingFunction.name, modules, functions, existingFunction.id, calculators)
+        : { modules: [], functions: [], calculators: [] },
+    [existingFunction, modules, functions, calculators]
   );
   const usedBy = describeFunctionUsage(usage);
   const newName = editor.formData.name.trim();
@@ -116,7 +118,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
 
           {existingFunction && (
             <p className="-mt-3 text-xs text-ink-muted">
-              {usedBy ? `Used by ${usedBy}.` : 'Not used by any module yet.'}
+              {usedBy ? `Used by ${usedBy}.` : 'Not used yet.'}
             </p>
           )}
 
@@ -159,6 +161,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
             onUpdateParameter={editor.updateParameter}
             onRemoveParameter={editor.removeParameter}
             onAddParameter={editor.addParameter}
+            formula={editor.formData.formula}
           />
 
           {editor.errors.parameters && <p className="text-sm text-danger">{editor.errors.parameters}</p>}

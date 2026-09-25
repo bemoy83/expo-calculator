@@ -29,6 +29,9 @@ import {
 } from '../calculator/editing';
 import { evaluateCalculator } from '../calculator/evaluate';
 import { calculatorFromModule } from '../calculator/from-module';
+import { callToExpression, expressionToCall } from '../calculator/step-source';
+import { getFunctionParamKinds } from '../functions/param-kinds';
+import { describeFunctionUsage, findFunctionUsage } from '../functions/function-usage';
 import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues } from '../calculator/types';
 import { calculateModuleInstance } from '../calculations/module-calculator';
 import type { CalculationModule, Material, MaterialProperty, SharedFunction } from '../types';
@@ -630,5 +633,91 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
     moveSection(calc, 'extra', -1).layout[0].id === 'extra' &&
       updateSection(calc, 'extra', { title: 'Wall' }).layout[1].title === 'Wall' &&
       moveSection(calc, inputsSection.id, -1) === calc
+  );
+}
+
+// ---- Function-call steps (step 5) ----
+
+{
+  const calc = build(
+    [
+      numberInput('width', 3.6),
+      { id: 'input-sheets', key: 'sheets', label: 'Sheets', widget: 'picker', value: { kind: 'material', default: 'mdf_6mm' } },
+    ],
+    [{ id: 'p', name: 'P' }],
+    [expressionStep('p', 'cols', 'sheets_width(width, sheets)'), expressionStep('p', 'twice', 'cols * 2')]
+  );
+
+  const call = expressionToCall('sheets_width(width, sheets)', calc, functions);
+  const withProperty = expressionToCall('area_rectangle(cols, sheets.width)', calc, functions);
+  const constant = expressionToCall('spill(15)', calc, functions);
+  assertCheck(
+    'turns a formula that is one function call into a function-call step',
+    call?.functionName === 'sheets_width' &&
+      call.args.width.type === 'input' &&
+      call.args.material.type === 'input' &&
+      withProperty?.args.width.type === 'step' &&
+      withProperty.args.height.type === 'property' &&
+      constant?.args.spill.type === 'constant',
+    JSON.stringify({ call, withProperty, constant })
+  );
+  assertCheck(
+    "leaves formulas that aren't a single plain call as formulas",
+    expressionToCall('sheets_width(width, sheets) * 2', calc, functions) === undefined &&
+      expressionToCall('spill(width * 2)', calc, functions) === undefined &&
+      expressionToCall('nope(width)', calc, functions) === undefined &&
+      expressionToCall('area_rectangle(width)', calc, functions) === undefined
+  );
+  assertCheck(
+    'writes a function-call step back as a formula, numbers in base units',
+    callToExpression(withProperty!, functions) === 'area_rectangle(cols, sheets.width)' &&
+      callToExpression({ type: 'call', functionName: 'spill', args: { spill: { type: 'constant', value: 60, unitSymbol: 'cm' } } }, functions) ===
+        'spill(0.6)' &&
+      callToExpression({ type: 'call', functionName: 'area_rectangle', args: { width: { type: 'input', key: 'width' } } }, functions) ===
+        'area_rectangle(width, ?)'
+  );
+
+  const asCall = { ...calc, steps: calc.steps.map((step) => (step.key === 'cols' ? { ...step, source: call! } : step)) };
+  const numberForMaterial = {
+    ...calc,
+    steps: calc.steps.map((step) =>
+      step.key === 'cols'
+        ? { ...step, source: { ...call!, args: { ...call!.args, material: { type: 'input' as const, key: 'width' } } } }
+        : step
+    ),
+  };
+  const asCallResult = evaluateCalculator(asCall, {}, library);
+  const wrongKind = evaluateCalculator(numberForMaterial, {}, library);
+  assertCheck(
+    'a function-call step calculates like its formula; a material parameter must get a material input',
+    close(asCallResult.steps['step-cols'].value, 3) &&
+      close(asCallResult.steps['step-twice'].value, 6) &&
+      wrongKind.steps['step-cols'].status === 'error' &&
+      (wrongKind.steps['step-cols'].message ?? '').includes('needs a material input') &&
+      evaluateCalculator({ ...calc, steps: [{ ...calc.steps[0], source: { type: 'call', functionName: '', args: {} } }] }, {}, library)
+        .steps['step-cols'].message === 'Choose a function.',
+    JSON.stringify(wrongKind.steps['step-cols'])
+  );
+
+  const explicit = getFunctionParamKinds({
+    formula: 'crew.m_per_hr * hours',
+    parameters: [
+      { name: 'crew', label: 'Crew', kind: 'labor' },
+      { name: 'hours', label: 'Hours' },
+      { name: 'double', label: 'Double', kind: 'boolean' },
+    ],
+  });
+  assertCheck(
+    "a parameter's own kind wins over the one worked out from the formula",
+    explicit.crew === 'labor' && explicit.hours === 'number' && explicit.double === 'boolean'
+  );
+
+  const savedCalc = { ...asCall, name: 'Sheeting calc' };
+  const usage = findFunctionUsage('sheets_width', [], functions, undefined, [savedCalc, { ...calc, id: 'x', name: 'Formula calc' }]);
+  assertCheck(
+    'function usage lists calculators calling it, by step or formula',
+    usage.calculators.map((item) => item.name).join(',') === 'Sheeting calc,Formula calc' &&
+      describeFunctionUsage(usage).startsWith('Sheeting calc (calculator)') &&
+      findFunctionUsage('spill', [], functions, undefined, [savedCalc]).calculators.length === 0
   );
 }

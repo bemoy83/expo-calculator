@@ -53,14 +53,20 @@ function toDisplay(value: number, unitSymbol: string) {
   return formatDisplayNumber(unitSymbol ? convertFromBase(value, unitSymbol) : value);
 }
 
-function draftFrom(input: CalculatorInput | undefined, calculator: Calculator, suggestedKey?: string): Draft {
+function draftFrom(
+  input: CalculatorInput | undefined,
+  calculator: Calculator,
+  suggestedKey?: string,
+  suggestedKind?: InputKind,
+  suggestedLabel?: string
+): Draft {
   if (!input) {
     const key = suggestedKey ?? '';
     return {
-      label: key.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
+      label: suggestedLabel ?? key.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
       key,
       keyTouched: !!suggestedKey,
-      kind: 'number',
+      kind: suggestedKind ?? 'number',
       unitSymbol: '',
       defaultValue: '',
       defaultOn: false,
@@ -108,6 +114,10 @@ interface InputEditorDialogProps {
   input?: CalculatorInput;
   /** For a new input: the name a formula already uses. */
   suggestedKey?: string;
+  /** For a new input: the kind it should be. */
+  suggestedKind?: InputKind;
+  /** For a new input: its label. */
+  suggestedLabel?: string;
   library: CalculatorLibrary;
   onSave: (input: CalculatorInput) => void;
   onDelete?: (input: CalculatorInput) => void;
@@ -122,22 +132,24 @@ export function InputEditorDialog({
   calculator,
   input,
   suggestedKey,
+  suggestedKind,
+  suggestedLabel,
   library,
   onSave,
   onDelete,
   onClose,
 }: InputEditorDialogProps) {
-  const [draft, setDraft] = useState<Draft>(() => draftFrom(input, calculator, suggestedKey));
+  const [draft, setDraft] = useState<Draft>(() => draftFrom(input, calculator, suggestedKey, suggestedKind, suggestedLabel));
   const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setDraft(draftFrom(input, calculator, suggestedKey));
+      setDraft(draftFrom(input, calculator, suggestedKey, suggestedKind, suggestedLabel));
       setShowErrors(false);
     }
     // Reset only when the dialog opens for another input.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, input?.id, suggestedKey]);
+  }, [isOpen, input?.id, suggestedKey, suggestedKind, suggestedLabel]);
 
   const set = (patch: Partial<Draft>) => setDraft((current) => ({ ...current, ...patch }));
 

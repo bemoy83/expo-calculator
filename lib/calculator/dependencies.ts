@@ -1,4 +1,5 @@
 import { MATH_FUNCTIONS } from '../formula/parser';
+import { getFunctionParamKinds } from '../functions/param-kinds';
 import type { SharedFunction } from '../types';
 import type { Calculator, CalculatorStep, Condition, InputKind } from './types';
 
@@ -109,15 +110,28 @@ export function getStepDependencies(step: CalculatorStep, scope: DependencyScope
 
   if (step.source.type === 'call') {
     const fn = scope.functions.get(step.source.functionName);
-    if (!fn) {
+    if (!step.source.functionName) {
+      errors.push('Choose a function.');
+    } else if (!fn) {
       errors.push(`Function "${step.source.functionName}" doesn't exist.`);
     } else {
+      const kinds = getFunctionParamKinds(fn);
       for (const param of fn.parameters) {
         const binding = step.source.args[param.name];
         const paramLabel = param.label || param.name;
         if (!binding) {
           errors.push(`Choose a value for ${paramLabel}.`);
           continue;
+        }
+        // A material or labor parameter needs a pick of that kind; anything else can't have
+        // properties read from it.
+        const kind = kinds[param.name];
+        if (kind === 'material' || kind === 'labor') {
+          const bound = binding.type === 'input' ? scope.inputKinds.get(binding.key) : undefined;
+          if (bound !== kind) {
+            errors.push(`${paramLabel} needs a ${kind === 'material' ? 'material' : 'labor'} input.`);
+            continue;
+          }
         }
         if (binding.type === 'input') {
           if (!scope.inputKinds.has(binding.key)) errors.push(`${paramLabel} uses "${binding.key}", which isn't an input.`);

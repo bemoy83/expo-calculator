@@ -123,6 +123,8 @@ export interface FieldLink {
   fieldVariableName: string;
 }
 
+export type FunctionParamKind = 'number' | 'material' | 'labor' | 'boolean';
+
 export interface SharedFunction {
   id: string;
   displayName: string; // User-friendly display name (e.g., "Calculate Area", "Square Meters")
@@ -135,6 +137,8 @@ export interface SharedFunction {
     unitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count';
     unitSymbol?: string;
     required?: boolean;
+    /** What the parameter expects; inferred when unset (see getFunctionParamKinds). */
+    kind?: FunctionParamKind;
   }>;
   returnUnitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count';
   returnUnitSymbol?: string;

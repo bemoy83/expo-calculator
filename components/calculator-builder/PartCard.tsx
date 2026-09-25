@@ -16,6 +16,7 @@ import type {
   CalculatorValue,
   CalculatorValues,
 } from '@/lib/calculator/types';
+import type { FunctionParamKind } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { StepRow } from './StepRow';
 
@@ -87,6 +88,7 @@ interface PartCardProps {
   onValueChange: (key: string, value: CalculatorValue | undefined) => void;
   onEditInput: (input: CalculatorInput) => void;
   onCreateInput: (key?: string) => void;
+  onCreateInputFor: (stepId: string, paramName: string, kind: FunctionParamKind) => void;
 }
 
 // A part of the calculator, built and tested on its own: the inputs its steps read (with
@@ -117,6 +119,7 @@ export function PartCard({
   onValueChange,
   onEditInput,
   onCreateInput,
+  onCreateInputFor,
 }: PartCardProps) {
   const partResult = result.parts[part.id];
   const steps = calculator.steps.filter((step) => step.partId === part.id);
@@ -261,6 +264,7 @@ export function PartCard({
                   onMoveToPart={(partId) => onMoveStepToPart(step.id, partId)}
                   onRemove={() => onRemoveStep(step)}
                   onCreateInput={onCreateInput}
+                  onCreateInputFor={(paramName, kind) => onCreateInputFor(step.id, paramName, kind)}
                 />
               ))}
             </ul>
