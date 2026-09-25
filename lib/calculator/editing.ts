@@ -157,9 +157,12 @@ export function defaultWidget(kind: InputValueSpec['kind']): InputWidget {
   }
 }
 
-/** Adds an input and shows it at the end of the first inputs section. */
-export function addInput(calculator: Calculator, input: CalculatorInput, createId: CreateId): Calculator {
+/** Adds an input and shows it at the end of `sectionId`, else of the first inputs section. */
+export function addInput(calculator: Calculator, input: CalculatorInput, createId: CreateId, sectionId?: string): Calculator {
   const next = { ...calculator, inputs: [...calculator.inputs, input] };
+  if (sectionId && next.layout.some((section) => section.id === sectionId)) {
+    return insertLayoutItem(next, sectionId, { type: 'input', inputId: input.id });
+  }
   return {
     ...next,
     layout: placeItem(next, { type: 'input', inputId: input.id }, isInputSection, createId, {}, false),
@@ -384,5 +387,162 @@ export function copyCalculator(calculator: Calculator, createId: CreateId, now: 
     })),
     createdAt: now,
     updatedAt: now,
+  };
+}
+
+// ---- Layout (the layout view) ----
+
+export interface LayoutPosition {
+  sectionId: string;
+  index: number;
+}
+
+/** A stable key for a layout item while editing: inputs and results by what they show. */
+export function layoutItemKey(item: LayoutItem, sectionId: string, index: number): string {
+  if (item.type === 'input') return `input:${item.inputId}`;
+  if (item.type === 'result') return `result:${item.stepId}`;
+  return item.id ? `${item.type}:${item.id}` : `${item.type}:${sectionId}:${index}`;
+}
+
+/** Where an item with this key is, or undefined. */
+export function findLayoutItem(calculator: Calculator, key: string): LayoutPosition | undefined {
+  for (const section of calculator.layout) {
+    const index = section.items.findIndex((item, i) => layoutItemKey(item, section.id, i) === key);
+    if (index !== -1) return { sectionId: section.id, index };
+  }
+  return undefined;
+}
+
+/** Widgets that can show an input of this kind, first the default. */
+export function widgetsFor(kind: InputValueSpec['kind']): InputWidget[] {
+  switch (kind) {
+    case 'number':
+      return ['number', 'stepper', 'slider'];
+    case 'boolean':
+      return ['toggle', 'checkbox'];
+    case 'choice':
+      return ['dropdown', 'segmented', 'radio'];
+    case 'material':
+    case 'labor':
+      return ['picker'];
+    case 'text':
+      return ['text'];
+  }
+}
+
+/** Inputs that aren't on the page anywhere. */
+export function unplacedInputs(calculator: Calculator): CalculatorInput[] {
+  const placed = new Set(
+    calculator.layout.flatMap((section) => section.items.flatMap((item) => (item.type === 'input' ? [item.inputId] : [])))
+  );
+  return calculator.inputs.filter((input) => !placed.has(input.id));
+}
+
+/** Adds a section after `afterSectionId`, or at the end. */
+export function addSection(calculator: Calculator, section: LayoutSection, afterSectionId?: string): Calculator {
+  const index = afterSectionId ? calculator.layout.findIndex((existing) => existing.id === afterSectionId) : -1;
+  const layout = [...calculator.layout];
+  layout.splice(index === -1 ? layout.length : index + 1, 0, section);
+  return { ...calculator, layout };
+}
+
+export function updateSection(
+  calculator: Calculator,
+  sectionId: string,
+  patch: Partial<Omit<LayoutSection, 'id' | 'items'>>
+): Calculator {
+  return {
+    ...calculator,
+    layout: calculator.layout.map((section) => (section.id === sectionId ? { ...section, ...patch } : section)),
+  };
+}
+
+/** Removes a section; its inputs become unplaced, its other items go with it. */
+export function removeSection(calculator: Calculator, sectionId: string): Calculator {
+  return { ...calculator, layout: calculator.layout.filter((section) => section.id !== sectionId) };
+}
+
+export function moveSection(calculator: Calculator, sectionId: string, direction: -1 | 1): Calculator {
+  const index = calculator.layout.findIndex((section) => section.id === sectionId);
+  const target = index + direction;
+  if (index === -1 || target < 0 || target >= calculator.layout.length) return calculator;
+  const layout = [...calculator.layout];
+  [layout[index], layout[target]] = [layout[target], layout[index]];
+  return { ...calculator, layout };
+}
+
+/** Inserts an item into a section (at the end by default). An input already placed moves. */
+export function insertLayoutItem(calculator: Calculator, sectionId: string, item: LayoutItem, index?: number): Calculator {
+  const cleared =
+    item.type === 'input'
+      ? withoutLayoutItems(calculator, (existing) => existing.type === 'input' && existing.inputId === item.inputId)
+      : item.type === 'result'
+        ? withoutLayoutItems(calculator, (existing) => existing.type === 'result' && existing.stepId === item.stepId)
+        : calculator.layout;
+  return {
+    ...calculator,
+    layout: cleared.map((section) => {
+      if (section.id !== sectionId) return section;
+      const items = [...section.items];
+      items.splice(index === undefined ? items.length : Math.max(0, Math.min(index, items.length)), 0, item);
+      return { ...section, items };
+    }),
+  };
+}
+
+/** Moves an item; `to.index` is its position in the target section after the move. */
+export function moveLayoutItem(calculator: Calculator, from: LayoutPosition, to: LayoutPosition): Calculator {
+  const source = calculator.layout.find((section) => section.id === from.sectionId);
+  const item = source?.items[from.index];
+  if (!item || !calculator.layout.some((section) => section.id === to.sectionId)) return calculator;
+  const removed = calculator.layout.map((section) =>
+    section.id === from.sectionId ? { ...section, items: section.items.filter((_, i) => i !== from.index) } : section
+  );
+  return {
+    ...calculator,
+    layout: removed.map((section) => {
+      if (section.id !== to.sectionId) return section;
+      const items = [...section.items];
+      items.splice(Math.max(0, Math.min(to.index, items.length)), 0, item);
+      return { ...section, items };
+    }),
+  };
+}
+
+/** Removes an item from the page. An input stays in the calculator, unplaced. */
+export function removeLayoutItem(calculator: Calculator, position: LayoutPosition): Calculator {
+  return {
+    ...calculator,
+    layout: calculator.layout.map((section) =>
+      section.id === position.sectionId ? { ...section, items: section.items.filter((_, i) => i !== position.index) } : section
+    ),
+  };
+}
+
+export function updateLayoutItem(calculator: Calculator, position: LayoutPosition, item: LayoutItem): Calculator {
+  return {
+    ...calculator,
+    layout: calculator.layout.map((section) =>
+      section.id === position.sectionId
+        ? { ...section, items: section.items.map((existing, i) => (i === position.index ? item : existing)) }
+        : section
+    ),
+  };
+}
+
+/** Gives breakdowns, text and dividers without an id one, so they can be told apart while editing. */
+export function ensureLayoutIds(calculator: Calculator, createId: CreateId): Calculator {
+  const missing = calculator.layout.some((section) =>
+    section.items.some((item) => item.type !== 'input' && item.type !== 'result' && !item.id)
+  );
+  if (!missing) return calculator;
+  return {
+    ...calculator,
+    layout: calculator.layout.map((section) => ({
+      ...section,
+      items: section.items.map((item) =>
+        item.type !== 'input' && item.type !== 'result' && !item.id ? { ...item, id: createId() } : item
+      ),
+    })),
   };
 }

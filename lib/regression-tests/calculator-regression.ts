@@ -3,7 +3,17 @@ import { orderSteps, rewriteExpression, scanExpression } from '../calculator/dep
 import {
   addInput,
   addPart,
+  addSection,
   addStep,
+  findLayoutItem,
+  insertLayoutItem,
+  moveLayoutItem,
+  moveSection,
+  removeLayoutItem,
+  removeSection,
+  unplacedInputs,
+  updateSection,
+  widgetsFor,
   copyCalculator,
   createEmptyCalculator,
   isStepShown,
@@ -562,5 +572,63 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
       copied.layout[0].items.every((item) => item.type !== 'input' || copied.inputs.some((input) => input.id === item.inputId)) &&
       originalResult.parts[wall.parts[0].id].missingInputs.join(',') === copiedResult.parts[copied.parts[0].id].missingInputs.join(','),
     JSON.stringify(copiedResult.parts)
+  );
+}
+
+// ---- Layout editing (layout view) ----
+
+{
+  let n = 0;
+  const makeId = () => `l-${++n}`;
+  let calc = createEmptyCalculator(makeId, 'now');
+  const [inputsSection, resultsSection] = calc.layout;
+  const a: CalculatorInput = { id: 'in-a', key: 'a', label: 'A', widget: 'number', value: { kind: 'number' } };
+  const b: CalculatorInput = { id: 'in-b', key: 'b', label: 'B', widget: 'number', value: { kind: 'number' } };
+  calc = addInput(addInput(calc, a, makeId), b, makeId);
+  calc = addSection(calc, { id: 'extra', title: 'Extra', items: [] }, inputsSection.id);
+
+  assertCheck(
+    'adds a section after another, and an input into a chosen section',
+    calc.layout.map((section) => section.id).join(',') === `${inputsSection.id},extra,${resultsSection.id}` &&
+      addInput(calc, { ...a, id: 'in-c', key: 'c' }, makeId, 'extra').layout[1].items.length === 1
+  );
+
+  const moved = moveLayoutItem(calc, { sectionId: inputsSection.id, index: 0 }, { sectionId: 'extra', index: 0 });
+  const reordered = moveLayoutItem(calc, { sectionId: inputsSection.id, index: 1 }, { sectionId: inputsSection.id, index: 0 });
+  assertCheck(
+    'moves items between sections and within one',
+    moved.layout[0].items.length === 1 &&
+      moved.layout[1].items[0].type === 'input' &&
+      (moved.layout[1].items[0] as { inputId: string }).inputId === 'in-a' &&
+      reordered.layout[0].items.map((item) => (item as { inputId: string }).inputId).join(',') === 'in-b,in-a' &&
+      findLayoutItem(moved, 'input:in-a')?.sectionId === 'extra'
+  );
+
+  const removedItem = removeLayoutItem(calc, { sectionId: inputsSection.id, index: 0 });
+  const removedSection = removeSection(moved, 'extra');
+  assertCheck(
+    'removing an input from the page, or its section, leaves it unplaced but in the calculator',
+    unplacedInputs(removedItem).map((input) => input.id).join(',') === 'in-a' &&
+      removedItem.inputs.length === 2 &&
+      unplacedInputs(removedSection).map((input) => input.id).join(',') === 'in-a' &&
+      unplacedInputs(insertLayoutItem(removedSection, resultsSection.id, { type: 'input', inputId: 'in-a' }, 0)).length === 0
+  );
+
+  const twice = insertLayoutItem(calc, 'extra', { type: 'input', inputId: 'in-a' });
+  assertCheck(
+    'placing an input that is already on the page moves it rather than showing it twice',
+    twice.layout.flatMap((section) => section.items).filter((item) => item.type === 'input' && item.inputId === 'in-a').length === 1 &&
+      findLayoutItem(twice, 'input:in-a')?.sectionId === 'extra'
+  );
+
+  assertCheck(
+    'offers widgets that suit the input kind',
+    widgetsFor('number').includes('slider') && widgetsFor('choice').join(',') === 'dropdown,segmented,radio' && widgetsFor('boolean')[0] === 'toggle'
+  );
+  assertCheck(
+    'moves sections and updates their title',
+    moveSection(calc, 'extra', -1).layout[0].id === 'extra' &&
+      updateSection(calc, 'extra', { title: 'Wall' }).layout[1].title === 'Wall' &&
+      moveSection(calc, inputsSection.id, -1) === calc
   );
 }

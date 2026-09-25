@@ -8,26 +8,21 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { isModuleView } from '@/hooks/use-calculators';
-import { evaluateCondition } from '@/lib/calculator/conditions';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
 import type { Calculator, CalculatorLibrary, CalculatorValues, LayoutSection } from '@/lib/calculator/types';
 import { useCalculatorSessionStore } from '@/lib/stores/calculator-session-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { cn } from '@/lib/utils';
-import { CalculatorInputField } from './CalculatorInputField';
-import { CalculatorResultItem } from './CalculatorResultItem';
+import {
+  CalculatorLayoutItem,
+  SectionHeading,
+  isResultSection,
+  isShown,
+  itemSpan,
+  type LayoutRenderContext,
+} from './CalculatorLayoutItem';
 
 const EMPTY_VALUES: CalculatorValues = {};
-
-const WIDTH_SPAN = { full: 'sm:col-span-6', half: 'sm:col-span-3', third: 'sm:col-span-2' } as const;
-
-// Sections holding only results sit in the side column on wide screens, next to the inputs.
-function isResultSection(section: LayoutSection) {
-  return (
-    section.items.length > 0 &&
-    section.items.every((item) => item.type === 'result' || item.type === 'breakdown' || item.type === 'divider')
-  );
-}
 
 // A calculator as staff use it: the layout's sections with live results, no editing tools.
 export function CalculatorRunView({ calculator, library }: { calculator: Calculator; library: CalculatorLibrary }) {
@@ -44,58 +39,31 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
   // Before anything is typed the results already say what they need, so inputs are only
   // marked "needed" once someone has started filling the calculator in.
   const needed = new Set(hasValues ? result.missingInputs : []);
-  const isShown = (condition: Parameters<typeof evaluateCondition>[0] | undefined) =>
-    !condition || evaluateCondition(condition, inputsByKey, values, result.resolvedValues) === true;
+  const context: LayoutRenderContext = {
+    calculator,
+    values,
+    result,
+    library,
+    formatMoney,
+    needed,
+    inputsById,
+    inputsByKey,
+    onValueChange: (key, value) => setValue(calculator.id, key, value),
+  };
 
-  const visibleSections = calculator.layout.filter((section) => isShown(section.visibleWhen));
+  const visibleSections = calculator.layout.filter((section) => isShown(section.visibleWhen, context));
   const mainSections = visibleSections.filter((section) => !isResultSection(section));
   const sideSections = visibleSections.filter(isResultSection);
 
   const renderSection = (section: LayoutSection) => (
     <Card key={section.id} className="p-4 sm:p-5">
-      {(section.title || section.description) && (
-        <div className="mb-3">
-          {section.title && <h2 className="text-sm font-semibold text-ink">{section.title}</h2>}
-          {section.description && <p className="mt-0.5 text-xs text-ink-muted">{section.description}</p>}
-        </div>
-      )}
+      <SectionHeading section={section} />
       <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
-        {section.items.map((item, index) => {
-          switch (item.type) {
-            case 'input': {
-              const input = inputsById.get(item.inputId);
-              if (!input || !isShown(input.visibleWhen)) return null;
-              return (
-                <div key={item.inputId} className={WIDTH_SPAN[item.width ?? 'half']}>
-                  <CalculatorInputField
-                    input={input}
-                    rawValue={values[input.key]}
-                    resolvedValue={result.resolvedValues[input.key]}
-                    needed={needed.has(input.key)}
-                    library={library}
-                    formatMoney={formatMoney}
-                    onChange={(value) => setValue(calculator.id, input.key, value)}
-                  />
-                </div>
-              );
-            }
-            case 'result':
-            case 'breakdown':
-              return (
-                <div key={`${item.type}-${index}`} className="sm:col-span-6">
-                  <CalculatorResultItem item={item} calculator={calculator} result={result} formatMoney={formatMoney} />
-                </div>
-              );
-            case 'text':
-              return (
-                <p key={`text-${index}`} className="sm:col-span-6 text-sm text-ink-body whitespace-pre-line">
-                  {item.text}
-                </p>
-              );
-            case 'divider':
-              return <hr key={`divider-${index}`} className="sm:col-span-6 border-border" />;
-          }
-        })}
+        {section.items.map((item, index) => (
+          <div key={`${item.type}-${index}`} className={itemSpan(item)}>
+            <CalculatorLayoutItem item={item} context={context} />
+          </div>
+        ))}
       </div>
     </Card>
   );

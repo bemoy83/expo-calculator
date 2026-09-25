@@ -55,16 +55,45 @@ export function CalculatorInputField({
   );
 
   if (spec.kind === 'boolean') {
+    const checked = resolvedValue === true;
     return (
       <div>
         <div className="flex items-center min-h-[38px]">
-          <Checkbox
-            id={id}
-            label={input.label}
-            checked={resolvedValue === true}
-            aria-describedby={describedBy}
-            onChange={(event) => onChange(event.target.checked)}
-          />
+          {input.widget === 'checkbox' ? (
+            <Checkbox
+              id={id}
+              label={input.label}
+              checked={checked}
+              aria-describedby={describedBy}
+              onChange={(event) => onChange(event.target.checked)}
+            />
+          ) : (
+            <button
+              id={id}
+              type="button"
+              role="switch"
+              aria-checked={checked}
+              aria-describedby={describedBy}
+              onClick={() => onChange(!checked)}
+              className="group inline-flex items-center gap-2.5 text-sm text-ink rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
+                  checked ? 'bg-action-solid' : 'bg-border-strong'
+                )}
+              >
+                <span
+                  className={cn(
+                    'absolute top-0.5 h-4 w-4 rounded-full bg-surface shadow-card transition-transform',
+                    checked ? 'translate-x-[18px]' : 'translate-x-0.5'
+                  )}
+                />
+              </span>
+              {input.label}
+            </button>
+          )}
         </div>
         {footer}
       </div>
@@ -80,26 +109,48 @@ export function CalculatorInputField({
 
   let control: React.ReactNode;
   switch (spec.kind) {
-    case 'number':
-      control = (
-        <NumberControl
-          id={id}
-          unitSymbol={spec.unitSymbol}
-          value={typeof resolvedValue === 'number' ? resolvedValue : undefined}
-          min={spec.min}
-          max={spec.max}
-          step={spec.step}
-          needed={needed}
-          describedBy={describedBy}
-          onChange={onChange}
-        />
-      );
+    case 'number': {
+      const numberProps = {
+        id,
+        unitSymbol: spec.unitSymbol,
+        value: typeof resolvedValue === 'number' ? resolvedValue : undefined,
+        min: spec.min,
+        max: spec.max,
+        step: spec.step,
+        needed,
+        describedBy,
+        onChange,
+      };
+      control =
+        input.widget === 'slider' ? (
+          <SliderControl {...numberProps} unit={unit} />
+        ) : input.widget === 'stepper' ? (
+          <StepperControl {...numberProps} label={input.label} />
+        ) : (
+          <NumberControl {...numberProps} />
+        );
       break;
+    }
     case 'choice': {
       const selected = selectedChoiceId(input, rawValue) ?? '';
       const optionLabel = (text: string) => (unit ? `${text} ${unit}` : text);
       control =
-        input.widget === 'segmented' || input.widget === 'radio' ? (
+        input.widget === 'radio' ? (
+          <div role="radiogroup" aria-labelledby={`${id}-label`} aria-describedby={describedBy} className="space-y-1.5 pt-0.5">
+            {spec.options.map((option) => (
+              <label key={option.id} className="flex items-center gap-2 text-sm text-ink cursor-pointer">
+                <input
+                  type="radio"
+                  name={id}
+                  checked={option.id === selected}
+                  onChange={() => onChange(option.id)}
+                  className="h-4 w-4 accent-action-solid cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                />
+                {optionLabel(option.label)}
+              </label>
+            ))}
+          </div>
+        ) : input.widget === 'segmented' ? (
           <div
             role="radiogroup"
             aria-labelledby={`${id}-label`}
@@ -171,7 +222,7 @@ export function CalculatorInputField({
 
   return (
     <div>
-      {input.value.kind === 'choice' && (input.widget === 'segmented' || input.widget === 'radio') ? (
+      {spec.kind === 'choice' && (input.widget === 'segmented' || input.widget === 'radio') ? (
         <span id={`${id}-label`} className={FIELD_LABEL}>
           {input.label}
           {unit && <span className="ml-1 font-numeric text-ink-faint">{unit}</span>}
@@ -289,5 +340,78 @@ function PickerControl({
         </p>
       )}
     </>
+  );
+}
+
+type NumberControlProps = Parameters<typeof NumberControl>[0];
+
+function clamp(value: number, min?: number, max?: number) {
+  return Math.min(max ?? Infinity, Math.max(min ?? -Infinity, value));
+}
+
+// − value + : steps by the input's step (or 1 in its unit), staying within min and max.
+function StepperControl({ label, ...props }: NumberControlProps & { label: string }) {
+  const { unitSymbol, value, min, max, step, onChange } = props;
+  const toBase = (display: number) => (unitSymbol ? normalizeToBase(display, unitSymbol) : display);
+  const toShown = (base: number) => (unitSymbol ? convertFromBase(base, unitSymbol) : base);
+  const stepShown = step !== undefined ? toShown(step) : 1;
+  const bump = (direction: 1 | -1) => {
+    const current = value === undefined ? (min !== undefined ? toShown(min) : 0) : toShown(value);
+    const next = Number((current + direction * stepShown).toPrecision(12));
+    onChange(clamp(toBase(next), min, max));
+  };
+  const buttonClass =
+    'h-[38px] w-10 shrink-0 rounded-md border border-border-strong bg-surface text-ink text-lg leading-none hover:bg-surface-hover disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        className={buttonClass}
+        aria-label={`Decrease ${label}`}
+        disabled={value !== undefined && min !== undefined && value <= min}
+        onClick={() => bump(-1)}
+      >
+        −
+      </button>
+      <NumberControl {...props} />
+      <button
+        type="button"
+        className={buttonClass}
+        aria-label={`Increase ${label}`}
+        disabled={value !== undefined && max !== undefined && value >= max}
+        onClick={() => bump(1)}
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+// A range slider with the value beside it. Without min/max it spans 0–100 in the input's unit.
+function SliderControl({ unit, ...props }: NumberControlProps & { unit?: string }) {
+  const { id, unitSymbol, value, min, max, step, describedBy, onChange } = props;
+  const toShown = (base: number) => (unitSymbol ? convertFromBase(base, unitSymbol) : base);
+  const toBase = (display: number) => (unitSymbol ? normalizeToBase(display, unitSymbol) : display);
+  const low = min !== undefined ? toShown(min) : 0;
+  const high = max !== undefined ? toShown(max) : 100;
+  const shown = value === undefined ? undefined : toShown(value);
+  return (
+    <div className="flex items-center gap-3 min-h-[38px]">
+      <input
+        id={id}
+        type="range"
+        min={low}
+        max={high}
+        step={step !== undefined ? toShown(step) : 'any'}
+        value={shown ?? low}
+        aria-describedby={describedBy}
+        onChange={(event) => onChange(toBase(Number(event.target.value)))}
+        className="flex-1 accent-action-solid cursor-pointer"
+      />
+      <span className="w-20 text-right font-numeric text-sm text-ink tabular-nums">
+        {shown === undefined ? '—' : formatDisplayNumber(shown)}
+        {unit && <span className="ml-1 text-ink-faint text-[0.85em]">{unit}</span>}
+      </span>
+    </div>
   );
 }

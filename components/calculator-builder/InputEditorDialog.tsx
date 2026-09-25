@@ -40,6 +40,10 @@ interface Draft {
   /** Number default in the unit, choice option id, material/labor name, or text. */
   defaultValue: string;
   defaultOn: boolean;
+  /** Number limits, in the unit, as typed. */
+  min: string;
+  max: string;
+  step: string;
   options: OptionDraft[];
   category: string;
   help: string;
@@ -60,6 +64,9 @@ function draftFrom(input: CalculatorInput | undefined, calculator: Calculator, s
       unitSymbol: '',
       defaultValue: '',
       defaultOn: false,
+      min: '',
+      max: '',
+      step: '',
       options: [],
       category: '',
       help: '',
@@ -82,6 +89,9 @@ function draftFrom(input: CalculatorInput | undefined, calculator: Calculator, s
           ? ''
           : spec.default ?? '',
     defaultOn: spec.kind === 'boolean' ? !!spec.default : false,
+    min: spec.kind === 'number' && spec.min !== undefined ? toDisplay(spec.min, unitSymbol) : '',
+    max: spec.kind === 'number' && spec.max !== undefined ? toDisplay(spec.max, unitSymbol) : '',
+    step: spec.kind === 'number' && spec.step !== undefined ? toDisplay(spec.step, unitSymbol) : '',
     options:
       spec.kind === 'choice'
         ? spec.options.map((option) => ({ id: option.id, label: option.label, value: toDisplay(option.value, unitSymbol) }))
@@ -162,19 +172,29 @@ export function InputEditorDialog({
           ? 'Each value needs a label and a number.'
           : undefined
       : undefined;
+  const notNumber = (text: string) => text.trim() !== '' && !Number.isFinite(Number(text));
   const defaultProblem =
-    draft.kind === 'number' && draft.defaultValue.trim() !== '' && !Number.isFinite(Number(draft.defaultValue))
-      ? 'The default must be a number.'
-      : undefined;
+    draft.kind === 'number' && notNumber(draft.defaultValue) ? 'The default must be a number.' : undefined;
+  const limitsProblem =
+    draft.kind !== 'number'
+      ? undefined
+      : notNumber(draft.min) || notNumber(draft.max) || notNumber(draft.step)
+        ? 'Limits must be numbers.'
+        : draft.min.trim() !== '' && draft.max.trim() !== '' && Number(draft.min) > Number(draft.max)
+          ? 'The lowest value is above the highest.'
+          : draft.step.trim() !== '' && Number(draft.step) <= 0
+            ? 'The step must be above 0.'
+            : undefined;
 
   const save = () => {
-    if (labelProblem || nameProblem || optionProblem || defaultProblem) {
+    if (labelProblem || nameProblem || optionProblem || defaultProblem || limitsProblem) {
       setShowErrors(true);
       return;
     }
     const unitSymbol = draft.unitSymbol || undefined;
     const unitCategory = unitSymbol ? getUnitCategory(unitSymbol) : undefined;
     const toBase = (text: string) => (unitSymbol ? normalizeToBase(Number(text), unitSymbol) : Number(text));
+    const optionalBase = (text: string) => (text.trim() === '' ? undefined : toBase(text));
     let value: CalculatorInput['value'];
     switch (draft.kind) {
       case 'number':
@@ -182,7 +202,10 @@ export function InputEditorDialog({
           kind: 'number',
           unitSymbol,
           unitCategory,
-          default: draft.defaultValue.trim() === '' ? undefined : toBase(draft.defaultValue),
+          default: optionalBase(draft.defaultValue),
+          min: optionalBase(draft.min),
+          max: optionalBase(draft.max),
+          step: optionalBase(draft.step),
         };
         break;
       case 'boolean':
@@ -349,6 +372,18 @@ export function InputEditorDialog({
             onChange={(event) => set({ defaultValue: event.target.value })}
             placeholder="Leave empty to require a value"
           />
+        )}
+        {draft.kind === 'number' && (
+          <div>
+            <div className="grid grid-cols-3 gap-3">
+              <Input label="Lowest" type="number" value={draft.min} onChange={(event) => set({ min: event.target.value })} placeholder="Any" />
+              <Input label="Highest" type="number" value={draft.max} onChange={(event) => set({ max: event.target.value })} placeholder="Any" />
+              <Input label="Step" type="number" value={draft.step} onChange={(event) => set({ step: event.target.value })} placeholder="Any" />
+            </div>
+            <p className={showErrors && limitsProblem ? 'mt-1 text-xs text-danger' : 'mt-1 text-xs text-ink-muted'}>
+              {showErrors && limitsProblem ? limitsProblem : 'Optional. A slider uses them as its range; a stepper moves by the step.'}
+            </p>
+          </div>
         )}
         {draft.kind === 'boolean' && (
           <Checkbox label="On by default" checked={draft.defaultOn} onChange={(event) => set({ defaultOn: event.target.checked })} />

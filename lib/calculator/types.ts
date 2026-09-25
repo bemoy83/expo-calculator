@@ -126,13 +126,15 @@ export interface LayoutSection {
   items: LayoutItem[];
 }
 
+export type LayoutItemWidth = 'full' | 'half' | 'third';
+
 export type LayoutItem =
-  | { type: 'input'; inputId: string; width?: 'full' | 'half' | 'third' }
+  | { type: 'input'; inputId: string; width?: LayoutItemWidth }
   | { type: 'result'; stepId: string; style: 'headline' | 'card' | 'row' }
-  /** Each listed part's cost, then the total. */
-  | { type: 'breakdown'; title?: string; partIds: string[] }
-  | { type: 'text'; text: string }
-  | { type: 'divider' };
+  /** Each listed part's cost, then the total. `id` tells repeated items apart while editing. */
+  | { type: 'breakdown'; id?: string; title?: string; partIds: string[] }
+  | { type: 'text'; id?: string; text: string }
+  | { type: 'divider'; id?: string };
 
 export type Condition =
   /** Toggle (boolean), choice (option id), or material/labor pick (variable name). */

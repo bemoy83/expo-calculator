@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; steps 1–3 done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–4 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -455,6 +455,38 @@ Each step is committed separately, like the reskin.
   closing it without anything being stored.
 - Later: session test values don't carry into a module's copy (the copy's choice option ids
   are new).
+
+**Step 4 — Builder: layout view** (`LayoutCanvas`, `LayoutInspector`):
+- The builder has **Parts | Layout** tabs. The layout canvas draws the page with the same
+  renderer as the staff view (`components/calculator/CalculatorLayoutItem.tsx`), live, so
+  test values can be typed while arranging. **Preview** hides the editing chrome and the
+  inspector.
+- **Selecting**: clicking or focusing an item selects it; the "Section" tag selects its
+  section. **Moving**: drag an item by its handle within or between sections (dnd-kit, one
+  sortable group per section, empty sections accept drops), or use the inspector's Section
+  select and earlier/later buttons (keyboard-friendly).
+- **Inspector**: for an input, width (⅓, ½, full), how it's shown (number box, stepper,
+  slider; switch or checkbox; dropdown, buttons in a row, radio list), Edit input, remove
+  from page. For a result, which step and style (row, card, headline). A breakdown's title
+  and parts; a text block's text; dividers. For a section, title, description, move, delete
+  (its inputs become "Not on the page"), and adding an unplaced input, a hidden result, a
+  new input (placed in that section), a breakdown, text or a divider. With nothing selected
+  it lists inputs not on the page with Place buttons.
+- **New widgets** in the staff view: stepper (steps by the input's step, else 1 in its unit,
+  within min/max), slider (min–max, else 0–100 in its unit, value shown beside it), switch
+  (now the default for yes/no), vertical radio list. The input dialog gained lowest,
+  highest and step for numbers.
+- **Pure edits** (tested): `addSection`, `updateSection`, `removeSection`, `moveSection`,
+  `insertLayoutItem` (an input or result already placed moves rather than showing twice),
+  `moveLayoutItem`, `removeLayoutItem`, `updateLayoutItem`, `unplacedInputs`, `widgetsFor`,
+  `layoutItemKey`/`findLayoutItem`. Breakdowns, text and dividers get ids
+  (`ensureLayoutIds`, on opening the builder) so a selection survives moves.
+- On the canvas, sections of results go in a side column only on very wide screens (2xl),
+  as the inspector takes the room; the staff view still uses lg.
+- Checked in the browser on the partition wall's builder copy, without saving: a new
+  "Framing" section, Stud spacing switched to buttons and moved there via the inspector,
+  Lumber dragged into it, a result restyled as a card, Preview, then Cancel → Discard with
+  nothing stored.
 
 ## Open questions
 
