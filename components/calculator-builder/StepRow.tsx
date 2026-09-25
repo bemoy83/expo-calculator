@@ -7,12 +7,13 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { keyProblem, suggestKey } from '@/lib/calculator/editing';
-import { describeStepProblem, displayUnit, formatStepValue } from '@/lib/calculator/format';
+import { describeCondition, describeStepProblem, displayUnit, formatStepValue } from '@/lib/calculator/format';
 import { callToExpression, expressionToCall } from '@/lib/calculator/step-source';
 import type { Calculator, CalculatorLibrary, CalculatorStep, StepFormat, StepResult, StepSource } from '@/lib/calculator/types';
 import type { FunctionParamKind } from '@/lib/types';
 import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
 import { cn } from '@/lib/utils';
+import { ConditionEditor } from './ConditionEditor';
 import { FunctionCallEditor } from './FunctionCallEditor';
 import { StepFormulaEditor } from './StepFormulaEditor';
 
@@ -152,6 +153,11 @@ export function StepRow({
                 {step.key} = {shownFormula || '…'}
               </code>
             )}
+            {!expanded && step.enabledWhen && (
+              <span className="block mt-0.5 text-[11px] text-ink-muted truncate">
+                Only when {describeCondition(step.enabledWhen, calculator, library)}
+              </span>
+            )}
           </span>
         </button>
         <div className="shrink-0 max-w-[45%] pt-0.5 text-right">{value}</div>
@@ -280,6 +286,19 @@ export function StepRow({
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             <Checkbox label="This is the part's cost" checked={isCost} onChange={(event) => onSetCost(event.target.checked)} />
             <Checkbox label="Show to staff" checked={isShown} onChange={(event) => onSetShown(event.target.checked)} />
+          </div>
+
+          <div>
+            <ConditionEditor
+              label="Only calculate when…"
+              calculator={calculator}
+              condition={step.enabledWhen}
+              library={library}
+              onChange={(enabledWhen) => onChange({ ...step, enabledWhen })}
+            />
+            {step.enabledWhen && (
+              <p className="mt-1 pl-6 text-xs text-ink-muted">Otherwise this step counts as 0, and so do totals that use it.</p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">

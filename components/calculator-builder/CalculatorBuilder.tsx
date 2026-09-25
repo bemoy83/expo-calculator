@@ -31,6 +31,7 @@ import {
   removePart,
   removeStep,
   reorderStep,
+  setInputCondition,
   setPartCost,
   setStepShown,
   suggestKey,
@@ -195,6 +196,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
 
   const layoutActions: LayoutInspectorActions = {
     onUpdateSection: (sectionId, patch) => edit((current) => updateSection(current, sectionId, patch)),
+    onSetInputCondition: (input, condition) => edit((current) => setInputCondition(current, input.id, condition)),
     onMoveSection: (sectionId, direction) => edit((current) => moveSection(current, sectionId, direction)),
     onRemoveSection: (sectionId) => {
       edit((current) => removeSection(current, sectionId));
@@ -364,6 +366,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
                 calculator={calculator}
                 selectedSection={selectedSection}
                 selectedItem={selectedItem}
+                library={library}
                 actions={layoutActions}
               />
             </div>

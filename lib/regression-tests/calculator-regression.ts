@@ -5,12 +5,16 @@ import {
   addPart,
   addSection,
   addStep,
+  conditionInputs,
+  defaultCondition,
   findLayoutItem,
   insertLayoutItem,
   moveLayoutItem,
   moveSection,
+  removeInput,
   removeLayoutItem,
   removeSection,
+  setInputCondition,
   unplacedInputs,
   updateSection,
   widgetsFor,
@@ -28,6 +32,7 @@ import {
   updateStep,
 } from '../calculator/editing';
 import { evaluateCalculator } from '../calculator/evaluate';
+import { describeCondition } from '../calculator/format';
 import { calculatorFromModule } from '../calculator/from-module';
 import { callToExpression, expressionToCall } from '../calculator/step-source';
 import { getFunctionParamKinds } from '../functions/param-kinds';
@@ -719,5 +724,75 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
     usage.calculators.map((item) => item.name).join(',') === 'Sheeting calc,Formula calc' &&
       describeFunctionUsage(usage).startsWith('Sheeting calc (calculator)') &&
       findFunctionUsage('spill', [], functions, undefined, [savedCalc]).calculators.length === 0
+  );
+}
+
+// ---- Conditions (step 6) ----
+
+{
+  const insulation: CalculatorInput = { id: 'in-ins', key: 'insulation', label: 'Include insulation', widget: 'toggle', value: { kind: 'boolean' } };
+  const finish: CalculatorInput = {
+    id: 'in-fin',
+    key: 'finish',
+    label: 'Finish',
+    widget: 'dropdown',
+    value: { kind: 'choice', options: [{ id: 'matte', label: 'Matte', value: 1 }, { id: 'gloss', label: 'Gloss', value: 2 }], default: 'matte' },
+  };
+  const height: CalculatorInput = { id: 'in-h', key: 'height', label: 'Height', widget: 'number', value: { kind: 'number', unitSymbol: 'cm', default: 2.4 } };
+  const paint: CalculatorInput = { id: 'in-p', key: 'paint', label: 'Paint', widget: 'picker', value: { kind: 'material', default: 'paint_2_7' } };
+  const calc = build(
+    [insulation, finish, height, { ...paint, visibleWhen: { inputKey: 'finish', op: 'isNot', value: 'matte' } }],
+    [{ id: 'p', name: 'P', costStepId: 'step-ins' }],
+    [
+      expressionStep('p', 'ins', '100', { enabledWhen: { inputKey: 'insulation', op: 'is', value: true }, format: 'money' }),
+      expressionStep('p', 'tall', 'height * 10', { enabledWhen: { inputKey: 'height', op: '>', value: 3 } }),
+      expressionStep('p', 'glossy', 'finish', { enabledWhen: { inputKey: 'finish', op: '>=', value: 2 } }),
+    ],
+    { layout: [{ id: 's', visibleWhen: { inputKey: 'insulation', op: 'is', value: true }, items: [{ type: 'input', inputId: 'in-p' }] }] }
+  );
+  const off = evaluateCalculator(calc, {}, library);
+  const on = evaluateCalculator(calc, { insulation: true, height: 3.5, finish: 'gloss' }, library);
+  assertCheck(
+    'steps calculate only when their condition holds: toggles, numbers in base units, choice values',
+    off.steps['step-ins'].status === 'disabled' &&
+      close(off.total, 0) &&
+      off.steps['step-tall'].status === 'disabled' &&
+      off.steps['step-glossy'].status === 'disabled' &&
+      on.steps['step-ins'].status === 'ok' &&
+      close(on.total, 100) &&
+      close(on.steps['step-tall'].value, 35) &&
+      close(on.steps['step-glossy'].value, 2),
+    JSON.stringify({ off: off.steps, on: on.steps })
+  );
+
+  const catalog = { materials: library.materials, labor: [] };
+  assertCheck(
+    'describes conditions in words, numbers in the input unit',
+    describeCondition({ inputKey: 'insulation', op: 'is', value: true }, calc, catalog) === 'Include insulation is on' &&
+      describeCondition({ inputKey: 'insulation', op: 'is', value: false }, calc, catalog) === 'Include insulation is off' &&
+      describeCondition({ inputKey: 'finish', op: 'isNot', value: 'matte' }, calc, catalog) === 'Finish is not Matte' &&
+      describeCondition({ inputKey: 'height', op: '>', value: 3 }, calc, catalog) === 'Height > 300 cm' &&
+      describeCondition({ inputKey: 'paint', op: 'is', value: 'paint_2_7' }, calc, catalog) === 'Paint is paint_2_7' &&
+      describeCondition({ inputKey: 'gone', op: 'is', value: true }, calc, catalog).includes('deleted'),
+    describeCondition({ inputKey: 'height', op: '>', value: 3 }, calc, catalog)
+  );
+
+  const withoutInsulation = removeInput(calc, 'in-ins');
+  const withoutFinish = removeInput(calc, 'in-fin');
+  assertCheck(
+    'deleting an input clears the conditions that tested it, so nothing stays hidden for good',
+    withoutInsulation.steps.find((step) => step.id === 'step-ins')?.enabledWhen === undefined &&
+      withoutInsulation.layout[0].visibleWhen === undefined &&
+      withoutFinish.inputs.find((input) => input.id === 'in-p')?.visibleWhen === undefined &&
+      withoutFinish.steps.find((step) => step.id === 'step-tall')?.enabledWhen?.inputKey === 'height'
+  );
+
+  assertCheck(
+    'offers every input but text notes and the input itself for a condition, starting from a sensible test',
+    conditionInputs(calc, 'finish').map((input) => input.key).join(',') === 'insulation,height,paint' &&
+      JSON.stringify(defaultCondition(insulation)) === JSON.stringify({ inputKey: 'insulation', op: 'is', value: true }) &&
+      defaultCondition(finish).value === 'matte' &&
+      defaultCondition(height).op === '>' &&
+      setInputCondition(calc, 'in-p', undefined).inputs.find((input) => input.id === 'in-p')?.visibleWhen === undefined
   );
 }

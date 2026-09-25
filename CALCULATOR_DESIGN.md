@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; steps 1–5 done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–6 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -513,6 +513,27 @@ Each step is committed separately, like the reskin.
   set to a fixed 2.5 and Width typed 4 gave 10 m²; "New input…" created "Wall length" and
   linked it; switching back gave the formula `area_rectangle(width_2, 2.5)`. The function
   editor shows "Expects" per parameter. Nothing was stored.
+
+**Step 6 — Conditions** (`ConditionEditor`):
+- **Steps**: "Only calculate when…" in the step editor; when it doesn't hold the step is 0
+  (so are totals using it) and shows "Off (0)". Collapsed steps show "Only when …".
+- **Inputs and sections**: "Show only when…" in the layout inspector. On the canvas, items
+  and sections with a condition carry "Shown only when …"; a hidden input shows as a
+  placeholder while editing and disappears in Preview and for staff.
+- **The editor** picks an input (any but text notes and, for an input, itself; it starts on
+  a yes/no input) and a test shaped by its kind: yes/no "is on/off"; choice "is/is not" an
+  option or "is more than/at least/less than/at most" a number; material/labor "is/is not"
+  an item; number compared with a value typed in its unit (stored in base units).
+- `describeCondition` (format.ts) words conditions ("Width > 300 cm", "Finish is not
+  Matte"). Deleting an input also clears conditions that tested it (`removeInput`), since a
+  condition on a missing input would hide its item for good. `setInputCondition`,
+  `conditionInputs`, `defaultCondition` are in editing.ts. All tested.
+- **Semantics kept simple**: a hidden input still counts with its value or default; steps
+  that should drop out need their own "Only calculate when" (the inspector says so).
+- Checked in the browser on the partition wall's builder copy, without saving: "Paint
+  area" only when "Painted on both sides" is on (Off (0) until switched on), the Paint
+  picker shown only when it's on, then in Preview the picker disappears and reappears with
+  the switch. Nothing was stored.
 
 ## Open questions
 

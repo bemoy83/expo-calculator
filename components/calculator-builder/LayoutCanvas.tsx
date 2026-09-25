@@ -23,6 +23,7 @@ import {
   type LayoutRenderContext,
 } from '@/components/calculator/CalculatorLayoutItem';
 import { findLayoutItem, layoutItemKey, type LayoutPosition } from '@/lib/calculator/editing';
+import { describeCondition } from '@/lib/calculator/format';
 import type { LayoutItem, LayoutSection } from '@/lib/calculator/types';
 import { cn } from '@/lib/utils';
 
@@ -98,6 +99,11 @@ function CanvasItem({
       >
         <GripVertical className="h-4 w-4" aria-hidden="true" />
       </button>
+      {item.type === 'input' && context.inputsById.get(item.inputId)?.visibleWhen && (
+        <p className="mb-1 text-[11px] text-action">
+          Shown only when {describeCondition(context.inputsById.get(item.inputId)!.visibleWhen!, context.calculator, context.library)}
+        </p>
+      )}
       {missing ? (
         <p className="text-xs italic text-ink-faint">{describeItem(item, context)}</p>
       ) : hidden ? (
@@ -147,6 +153,12 @@ function CanvasSection({
         >
           Section{section.title ? ` · ${section.title}` : ''}
         </button>
+      )}
+      {!preview && section.visibleWhen && (
+        <p className="-mt-1 mb-2 text-[11px] text-action">
+          Shown only when {describeCondition(section.visibleWhen, context.calculator, context.library)}
+          {!isShown(section.visibleWhen, context) && ' (hidden now)'}
+        </p>
       )}
       <SectionHeading section={section} />
       <SortableContext items={keys} strategy={rectSortingStrategy}>

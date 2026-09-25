@@ -14,12 +14,15 @@ import { isStepShown, unplacedInputs, widgetsFor, type LayoutPosition } from '@/
 import type {
   Calculator,
   CalculatorInput,
+  CalculatorLibrary,
+  Condition,
   InputWidget,
   LayoutItem,
   LayoutItemWidth,
   LayoutSection,
 } from '@/lib/calculator/types';
 import { cn } from '@/lib/utils';
+import { ConditionEditor } from './ConditionEditor';
 
 const WIDGET_LABEL: Record<InputWidget, string> = {
   number: 'Number box',
@@ -47,7 +50,8 @@ const RESULT_STYLES: Array<{ value: 'row' | 'card' | 'headline'; label: string }
 ];
 
 export interface LayoutInspectorActions {
-  onUpdateSection: (sectionId: string, patch: Partial<Pick<LayoutSection, 'title' | 'description'>>) => void;
+  onUpdateSection: (sectionId: string, patch: Partial<Pick<LayoutSection, 'title' | 'description' | 'visibleWhen'>>) => void;
+  onSetInputCondition: (input: CalculatorInput, condition: Condition | undefined) => void;
   onMoveSection: (sectionId: string, direction: -1 | 1) => void;
   onRemoveSection: (sectionId: string) => void;
   onAddSection: () => void;
@@ -142,10 +146,12 @@ function PlacementControls({
 function SectionPanel({
   calculator,
   section,
+  library,
   actions,
 }: {
   calculator: Calculator;
   section: LayoutSection;
+  library: CalculatorLibrary;
   actions: LayoutInspectorActions;
 }) {
   const index = calculator.layout.indexOf(section);
@@ -164,6 +170,13 @@ function SectionPanel({
         rows={2}
         value={section.description ?? ''}
         onChange={(event) => actions.onUpdateSection(section.id, { description: event.target.value || undefined })}
+      />
+      <ConditionEditor
+        label="Show this section only when…"
+        calculator={calculator}
+        condition={section.visibleWhen}
+        library={library}
+        onChange={(visibleWhen) => actions.onUpdateSection(section.id, { visibleWhen })}
       />
 
       <div className="space-y-2">
@@ -242,11 +255,13 @@ function ItemPanel({
   calculator,
   item,
   position,
+  library,
   actions,
 }: {
   calculator: Calculator;
   item: LayoutItem;
   position: LayoutPosition;
+  library: CalculatorLibrary;
   actions: LayoutInspectorActions;
 }) {
   const update = (next: LayoutItem) => actions.onUpdateItem(position, next);
@@ -291,6 +306,19 @@ function ItemPanel({
             )}
             {input.widget === 'slider' && input.value.kind === 'number' && (input.value.min === undefined || input.value.max === undefined) && (
               <p className="text-xs text-ink-muted">Set the lowest and highest value in the input to choose the slider&apos;s range (it uses 0–100 until then).</p>
+            )}
+            <ConditionEditor
+              label="Show only when…"
+              calculator={calculator}
+              condition={input.visibleWhen}
+              exceptKey={input.key}
+              library={library}
+              onChange={(condition) => actions.onSetInputCondition(input, condition)}
+            />
+            {input.visibleWhen && (
+              <p className="text-xs text-ink-muted">
+                While hidden, its default is used. Steps that should drop out need their own &ldquo;Only calculate when&rdquo;.
+              </p>
             )}
             <Button variant="secondary" size="sm" onClick={() => actions.onEditInput(input)}>
               <Pencil className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
@@ -383,16 +411,20 @@ export function LayoutInspector({
   calculator,
   selectedSection,
   selectedItem,
+  library,
   actions,
 }: {
   calculator: Calculator;
   selectedSection?: LayoutSection;
   selectedItem?: { item: LayoutItem; position: LayoutPosition };
+  library: CalculatorLibrary;
   actions: LayoutInspectorActions;
 }) {
-  if (selectedSection) return <SectionPanel calculator={calculator} section={selectedSection} actions={actions} />;
+  if (selectedSection) return <SectionPanel calculator={calculator} section={selectedSection} library={library} actions={actions} />;
   if (selectedItem) {
-    return <ItemPanel calculator={calculator} item={selectedItem.item} position={selectedItem.position} actions={actions} />;
+    return (
+      <ItemPanel calculator={calculator} item={selectedItem.item} position={selectedItem.position} library={library} actions={actions} />
+    );
   }
 
   const unplaced = unplacedInputs(calculator);

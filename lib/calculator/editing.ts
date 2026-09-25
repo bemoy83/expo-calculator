@@ -177,13 +177,52 @@ export function updateInput(calculator: Calculator, updated: CalculatorInput): C
   return { ...renamed, inputs: renamed.inputs.map((input) => (input.id === updated.id ? { ...updated, visibleWhen: input.visibleWhen } : input)) };
 }
 
-/** Removes an input and its place in the layout. Formulas that read it will say so. */
+/**
+ * Removes an input, its place in the layout, and conditions that test it (a condition on a
+ * deleted input would hide its item for good). Formulas that read it will say so.
+ */
 export function removeInput(calculator: Calculator, inputId: string): Calculator {
+  const key = calculator.inputs.find((input) => input.id === inputId)?.key;
+  const keep = (condition: Condition | undefined) => (condition?.inputKey === key ? undefined : condition);
   return {
     ...calculator,
-    inputs: calculator.inputs.filter((input) => input.id !== inputId),
-    layout: withoutLayoutItems(calculator, (item) => item.type === 'input' && item.inputId === inputId),
+    inputs: calculator.inputs
+      .filter((input) => input.id !== inputId)
+      .map((input) => ({ ...input, visibleWhen: keep(input.visibleWhen) })),
+    steps: calculator.steps.map((step) => ({ ...step, enabledWhen: keep(step.enabledWhen) })),
+    layout: withoutLayoutItems(calculator, (item) => item.type === 'input' && item.inputId === inputId).map((section) => ({
+      ...section,
+      visibleWhen: keep(section.visibleWhen),
+    })),
   };
+}
+
+/** Sets or clears when an input is shown. */
+export function setInputCondition(calculator: Calculator, inputId: string, condition: Condition | undefined): Calculator {
+  return {
+    ...calculator,
+    inputs: calculator.inputs.map((input) => (input.id === inputId ? { ...input, visibleWhen: condition } : input)),
+  };
+}
+
+/** Inputs a condition can test: everything but text notes and, for an input, itself. */
+export function conditionInputs(calculator: Calculator, exceptKey?: string): CalculatorInput[] {
+  return calculator.inputs.filter((input) => input.value.kind !== 'text' && input.key !== exceptKey);
+}
+
+/** A starting condition on an input: on / its first option / its first catalog pick / > 0. */
+export function defaultCondition(input: CalculatorInput, firstCatalogItem?: string): Condition {
+  switch (input.value.kind) {
+    case 'boolean':
+      return { inputKey: input.key, op: 'is', value: true };
+    case 'choice':
+      return { inputKey: input.key, op: 'is', value: input.value.options[0]?.id ?? '' };
+    case 'material':
+    case 'labor':
+      return { inputKey: input.key, op: 'is', value: firstCatalogItem ?? '' };
+    default:
+      return { inputKey: input.key, op: '>', value: 0 };
+  }
 }
 
 // ---- Steps ----
