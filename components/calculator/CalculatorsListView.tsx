@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Calculator as CalculatorIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Calculator as CalculatorIcon, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { isModuleView } from '@/hooks/use-calculators';
 import type { Calculator } from '@/lib/calculator/types';
 
 function pluralize(count: number, singular: string) {
@@ -27,21 +30,35 @@ function groupByCategory(calculators: Calculator[]) {
 }
 
 export function CalculatorsListView({ calculators }: { calculators: Calculator[] }) {
+  const router = useRouter();
   const groups = groupByCategory(calculators);
+  const newCalculator = () => router.push('/calculator/edit');
 
   return (
     <>
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight text-ink">Calculators</h1>
-        <p className="text-xs text-ink-muted">{pluralize(calculators.length, 'calculator')}</p>
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Calculators</h1>
+          <p className="text-xs text-ink-muted">{pluralize(calculators.length, 'calculator')}</p>
+        </div>
+        <Button onClick={newCalculator} className="shrink-0 self-start sm:self-auto">
+          <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+          New calculator
+        </Button>
       </div>
 
       {calculators.length === 0 ? (
         <EmptyState
           icon={CalculatorIcon}
           title="No calculators yet"
-          description="Every module shows up here as a calculator. Create a module to get started."
+          description="Build one from inputs and steps, test each part as you go, and staff get one simple form."
           iconSize="small"
+          actions={
+            <Button onClick={newCalculator}>
+              <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+              New calculator
+            </Button>
+          }
         />
       ) : (
         <div className="space-y-6">
@@ -80,7 +97,7 @@ function CalculatorCard({ calculator }: { calculator: Calculator }) {
       <Card className="h-full p-4 hover:bg-surface-hover transition-colors">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-[15px] font-semibold text-ink">{calculator.name}</h3>
-          {calculator.sourceModuleId && (
+          {isModuleView(calculator) && (
             <Chip size="sm" variant="muted">
               From module
             </Chip>

@@ -7,6 +7,8 @@ interface CalculatorsStore {
   calculators: Calculator[];
   addCalculator: (calculator: Omit<Calculator, 'id' | 'createdAt' | 'updatedAt'>) => Calculator;
   updateCalculator: (id: string, updates: Partial<Omit<Calculator, 'id' | 'createdAt'>>) => void;
+  /** Saves a calculator the builder edited: replaces the one with its id, or adds it. */
+  saveCalculator: (calculator: Calculator) => Calculator;
   deleteCalculator: (id: string) => void;
   getCalculator: (id: string) => Calculator | undefined;
 }
@@ -29,6 +31,16 @@ export const useCalculatorsStore = create<CalculatorsStore>()(
             calculator.id === id ? { ...calculator, ...updates, updatedAt: new Date().toISOString() } : calculator
           ),
         }));
+      },
+
+      saveCalculator: (calculator) => {
+        const saved = { ...calculator, updatedAt: new Date().toISOString() };
+        set((state) => ({
+          calculators: state.calculators.some((existing) => existing.id === saved.id)
+            ? state.calculators.map((existing) => (existing.id === saved.id ? saved : existing))
+            : [...state.calculators, saved],
+        }));
+        return saved;
       },
 
       deleteCalculator: (id) => {

@@ -7,13 +7,22 @@ import { useLaborStore } from '@/lib/stores/labor-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
 
+/** A module shown as a calculator (converted on the fly), as opposed to a saved calculator. */
+export function isModuleView(calculator: Calculator): boolean {
+  return calculator.id.startsWith('module-');
+}
+
 // Saved calculators, followed by every module shown as a calculator (converted on the fly
-// until modules are retired, so a module edit shows up straight away).
+// until modules are retired, so a module edit shows up straight away). A module that has
+// been saved as a calculator is shown only as that calculator.
 export function useCalculators(): Calculator[] {
   const saved = useCalculatorsStore((state) => state.calculators);
   const modules = useModulesStore((state) => state.modules);
   const fromModules = useMemo(() => calculatorsFromModules(modules), [modules]);
-  return useMemo(() => [...saved, ...fromModules], [saved, fromModules]);
+  return useMemo(() => {
+    const savedFrom = new Set(saved.map((calculator) => calculator.sourceModuleId).filter(Boolean));
+    return [...saved, ...fromModules.filter((calculator) => !savedFrom.has(calculator.sourceModuleId))];
+  }, [saved, fromModules]);
 }
 
 export function useCalculatorLibrary(): CalculatorLibrary {

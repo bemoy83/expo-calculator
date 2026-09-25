@@ -12,6 +12,7 @@ interface EditorPageHeaderProps {
   /** Optional validity indicator, e.g. for the formula. */
   status?: { valid: boolean; validLabel: string; invalidLabel: string; detail?: string };
   submitLabel: string;
+  cancelLabel?: string;
   onCancel: () => void;
   onSubmit: () => void;
 }
@@ -24,6 +25,7 @@ export function EditorPageHeader({
   placeholderName,
   status,
   submitLabel,
+  cancelLabel = 'Cancel',
   onCancel,
   onSubmit,
 }: EditorPageHeaderProps) {
@@ -51,7 +53,7 @@ export function EditorPageHeader({
           </span>
         )}
         <Button variant="ghost" size="sm" onClick={onCancel}>
-          Cancel
+          {cancelLabel}
         </Button>
         <Button size="sm" onClick={onSubmit}>
           {submitLabel}

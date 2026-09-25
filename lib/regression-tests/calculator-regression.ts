@@ -1,5 +1,22 @@
 import { callFunction } from '../calculator/call-function';
 import { orderSteps, rewriteExpression, scanExpression } from '../calculator/dependencies';
+import {
+  addInput,
+  addPart,
+  addStep,
+  copyCalculator,
+  createEmptyCalculator,
+  isStepShown,
+  keyProblem,
+  moveStepToPart,
+  removePart,
+  removeStep,
+  setPartCost,
+  setStepShown,
+  suggestKey,
+  updateInput,
+  updateStep,
+} from '../calculator/editing';
 import { evaluateCalculator } from '../calculator/evaluate';
 import { calculatorFromModule } from '../calculator/from-module';
 import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues } from '../calculator/types';
@@ -456,3 +473,94 @@ assertCheck(
 );
 const ordered = orderSteps(['c', 'b', 'a'], new Map([['c', ['b']], ['b', ['a']], ['a', []]]));
 assertCheck('orders steps after the steps they read', ordered.order.join(',') === 'a,b,c' && ordered.cycles.size === 0);
+
+// ---- Editing (builder) ----
+
+{
+  let n = 0;
+  const makeId = () => `e-${++n}`;
+  let calc = createEmptyCalculator(makeId, 'now');
+  const partId = calc.parts[0].id;
+  const widthInput: CalculatorInput = { id: makeId(), key: 'width', label: 'Width', widget: 'number', value: { kind: 'number', default: 2 } };
+  const sheetsInput: CalculatorInput = { id: makeId(), key: 'sheets', label: 'Sheets', widget: 'picker', value: { kind: 'material', default: 'mdf_6mm' } };
+  calc = addInput(calc, widthInput, makeId);
+  calc = addInput(calc, sheetsInput, makeId);
+  calc = addStep(calc, { id: 'a', partId, key: 'area', label: 'Area', source: { type: 'expression', expression: 'width * sheets.width' } });
+  calc = addStep(calc, {
+    id: 'b',
+    partId,
+    key: 'cols',
+    label: 'Cols',
+    source: { type: 'call', functionName: 'sheets_width', args: { width: { type: 'step', key: 'area' }, material: { type: 'input', key: 'sheets' } } },
+    enabledWhen: { inputKey: 'width', op: '>', value: 0 },
+  });
+  calc = setPartCost(calc, partId, 'a');
+  calc = setStepShown(calc, 'b', true, makeId);
+
+  assertCheck(
+    'new inputs are placed in the inputs section; shown steps go before the breakdown',
+    calc.layout[0].items.map((item) => (item.type === 'input' ? item.inputId : '')).join(',') === `${widthInput.id},${sheetsInput.id}` &&
+      calc.layout[1].items.map((item) => item.type).join(',') === 'result,breakdown' &&
+      isStepShown(calc, 'b') &&
+      calc.steps[0].format === 'money',
+    JSON.stringify(calc.layout)
+  );
+
+  const inputsRenamed = updateInput(updateInput(calc, { ...widthInput, key: 'wall_width' }), { ...sheetsInput, key: 'board' });
+  const renamed = updateStep(inputsRenamed, { ...inputsRenamed.steps[0], key: 'wall_area' });
+  const renamedB = renamed.steps.find((step) => step.id === 'b')!;
+  assertCheck(
+    'renaming a key rewrites formulas, properties, bindings and conditions',
+    renamed.steps[0].source.type === 'expression' &&
+      renamed.steps[0].source.expression === 'wall_width * board.width' &&
+      renamedB.source.type === 'call' &&
+      renamedB.source.args.width.type === 'step' &&
+      (renamedB.source.args.width as { key: string }).key === 'wall_area' &&
+      (renamedB.source.args.material as { key: string }).key === 'board' &&
+      renamedB.enabledWhen?.inputKey === 'wall_width' &&
+      close(evaluateCalculator(renamed, {}, library).total, evaluateCalculator(calc, {}, library).total!),
+    JSON.stringify(renamed.steps)
+  );
+
+  assertCheck(
+    'suggests free names and explains unusable ones',
+    suggestKey(calc, 'Width') === 'width_2' &&
+      suggestKey(calc, 'Wall area (m²)') === 'wall_area_m' &&
+      keyProblem(calc, 'width') !== undefined &&
+      keyProblem(calc, 'width', widthInput.id) === undefined &&
+      keyProblem(calc, '2x') !== undefined
+  );
+
+  const withoutA = removeStep(calc, 'a');
+  assertCheck(
+    "removing a step clears it as the part's cost and from the layout",
+    withoutA.parts[0].costStepId === undefined && withoutA.steps.length === 1 && !isStepShown(removeStep(calc, 'b'), 'b')
+  );
+
+  const extraPart = { id: 'p2', name: 'Paint' };
+  const twoParts = addPart(calc, extraPart);
+  const breakdown = twoParts.layout[1].items.find((item) => item.type === 'breakdown');
+  const moved = moveStepToPart(twoParts, 'a', 'p2');
+  assertCheck(
+    'a new part joins the breakdown; moving a step drops it as the old part cost; removing a part removes its steps',
+    breakdown?.type === 'breakdown' &&
+      breakdown.partIds.join(',') === `${partId},p2` &&
+      moved.parts[0].costStepId === undefined &&
+      moved.steps.find((step) => step.id === 'a')?.partId === 'p2' &&
+      removePart(moved, 'p2').steps.map((step) => step.id).join(',') === 'b'
+  );
+
+  const copied = copyCalculator(wall, makeId, 'now');
+  const copiedResult = evaluateCalculator(copied, { ...wallValues, stud_spacing: undefined, spill: undefined }, library);
+  const originalResult = evaluateCalculator(wall, { ...wallValues, stud_spacing: undefined, spill: undefined }, library);
+  assertCheck(
+    'a copy gets new ids everywhere and calculates the same',
+    copied.id !== wall.id &&
+      copied.sourceModuleId === wall.sourceModuleId &&
+      copied.steps.every((step) => !wall.steps.some((original) => original.id === step.id)) &&
+      copied.parts[0].costStepId === copied.steps[copied.steps.length - 1].id &&
+      copied.layout[0].items.every((item) => item.type !== 'input' || copied.inputs.some((input) => input.id === item.inputId)) &&
+      originalResult.parts[wall.parts[0].id].missingInputs.join(',') === copiedResult.parts[copied.parts[0].id].missingInputs.join(','),
+    JSON.stringify(copiedResult.parts)
+  );
+}

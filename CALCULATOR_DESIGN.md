@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; steps 1–2 done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–3 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -422,6 +422,39 @@ Each step is committed separately, like the reskin.
   navigation, Reset clears them, no console errors from the calculator pages, and no
   sideways scroll at phone width. `npm run build` passes.
 - Later: on a phone the results come after all inputs; a sticky total bar may be needed.
+
+**Step 3 — Builder: parts view** (`components/calculator-builder/`, `app/calculator/edit`):
+- **Where it starts**: "New calculator" on the Calculators page (`/calculator/edit`), or
+  Edit in the staff view (`/calculator/edit?id=…`). Editing a module shown as a calculator
+  opens a copy (`copyCalculator`, fresh ids, `sourceModuleId` kept); nothing is stored until
+  Save, and once saved the module's on-the-fly version is hidden in favour of the saved one.
+  Deleting that calculator brings the module's version back.
+- **Parts view**: one card per part with the inputs its steps read (live test values, shared
+  across parts and with the staff view), values it reads from other parts, its steps with
+  live values or what they need, and its cost. Steps expand to edit label, name (follows
+  the label until edited), formula (the module editor's autocomplete: inputs, steps,
+  material/labor properties, functions), format, unit, "This is the part's cost" and "Show
+  to staff"; they can be reordered and moved to another part. An "Unknown name" error offers
+  "Create input …", opening the input dialog with that name. Parts can be added, renamed,
+  reordered and deleted (with their steps, after confirming).
+- **Inputs** are created and edited in a dialog: label, name, kind (number, choice, yes/no,
+  material, labor, text note), unit, default, choice values (typed in the unit, stored in
+  base units), category for pickers, help. Inputs no step uses yet sit in "Inputs not used
+  yet".
+- **Pure edits** (`lib/calculator/editing.ts`, tested): renaming an input or step rewrites
+  every formula (including `key.property`), binding and condition that uses it; removing
+  something removes it from the layout and as a part's cost. Until the layout view (step 4),
+  the layout is kept automatically: new inputs are added to the first inputs section, "Show
+  to staff" adds a result row before the results section's breakdown, and a new part joins
+  a breakdown listing all parts.
+- **Save** needs only a name; steps with errors can be saved (the header counts them). A new
+  calculator's URL switches to its id on save. Close/Cancel asks before discarding changes.
+- Checked in the browser on an empty origin: building a calculator from nothing (step →
+  "Create input" → dialog → live values → cost → rename carried into the formula → save →
+  staff view → delete); and on real data, opening the partition wall in the builder and
+  closing it without anything being stored.
+- Later: session test values don't carry into a module's copy (the copy's choice option ids
+  are new).
 
 ## Open questions
 
