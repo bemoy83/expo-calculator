@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: **proposal**, agreed direction 2026-09-25, not started. This is the working source
+Status: agreed direction 2026-09-25; step 1 (engine and model) done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -364,6 +364,36 @@ Each step is committed separately, like the reskin.
 9. **Quotes on calculators** — send to quote, `calculatorId` line items, simplified quote page.
 10. **Remove** modules, templates, linking and the quote workspace; export/import update.
 11. **Staff devices** — calculator pack export/import and use-only mode.
+
+## Implementation notes
+
+**Step 1 — Engine and model** (`lib/calculator/`, `lib/stores/calculators-store.ts`):
+- `types.ts`: the model above, plus results. Values are keyed by input key; numbers in base
+  units, choices by option id, pickers by variable name.
+- `evaluate.ts`: `resolveInputValues` (typed value, else default; blank numbers, unpicked
+  or deleted materials are left out; toggles default to off) and `evaluateCalculator`. Step
+  statuses: ok, disabled (condition off, counts as 0), missing (names the inputs), blocked
+  (names the steps it waits on), error. A step is only evaluated when everything it reads is
+  available, so missing values never reach `evaluateFormula` and log nothing. Part results
+  give the inputs used, steps read from other parts, missing inputs, status and cost; the
+  total is the sum of part costs once all are available.
+- `dependencies.ts`: an expression scanner that tells calls from values (so `spill(spill)`
+  works) and skips exponents; per-step dependencies and errors known before evaluation
+  (unknown names, missing functions, unbound parameters, `out.x`, text inputs in math,
+  properties of non-picker inputs); ordering by what steps read, with circular references
+  found as strongly connected components. Names clashing with an input or another step
+  error on those steps.
+- `call-function.ts`: `callFunction(fn, args, library)` with values by parameter name,
+  catalogs including labor. The function test panel still uses its own copy; it moves onto
+  `callFunction` with parameter kinds in step 5.
+- `from-module.ts`: `calculatorFromModule`, as described under Migration. Numeric dropdowns
+  with a unit keep base-unit option values; text options are numbered 1…n with a warning;
+  an output whose name clashes with a field is renamed (`area_2`), rewriting later outputs'
+  bare references to it but not the cost formula's, matching how modules evaluated them.
+- The store is in place but nothing uses it yet.
+- Checked: 18 regression checks (`calculator-regression.ts`), including parity with
+  `calculateModuleInstance` for the partition wall; and, read-only, the four real drafts
+  (Framing, Sheet Installation, Paint, Partition wall) give the same cost converted as today.
 
 ## Open questions
 

@@ -1,0 +1,452 @@
+import { callFunction } from '../calculator/call-function';
+import { orderSteps, rewriteExpression, scanExpression } from '../calculator/dependencies';
+import { evaluateCalculator } from '../calculator/evaluate';
+import { calculatorFromModule } from '../calculator/from-module';
+import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues } from '../calculator/types';
+import { calculateModuleInstance } from '../calculations/module-calculator';
+import type { CalculationModule, Material, MaterialProperty, SharedFunction } from '../types';
+import { normalizeToBase } from '../units';
+import { assertCheck } from './test-helpers';
+
+console.log('\n=== Calculator Regression ===');
+
+const close = (a: number | undefined, b: number) => a !== undefined && Math.abs(a - b) < 1e-6;
+
+let ids = 0;
+const createId = () => `id-${++ids}`;
+
+function fn(name: string, parameters: string[], formula: string): SharedFunction {
+  return {
+    id: `fn-${name}`,
+    displayName: name,
+    name,
+    formula,
+    parameters: parameters.map((param) => ({ name: param, label: param })),
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+function prop(name: string, type: 'number' | 'price', value: number, unitSymbol?: string): MaterialProperty {
+  return {
+    id: `p-${name}`,
+    name,
+    type,
+    value,
+    unitSymbol,
+    storedValue: unitSymbol ? normalizeToBase(value, unitSymbol) : value,
+  };
+}
+
+function material(variableName: string, category: string, price: number, properties: MaterialProperty[]): Material {
+  return { id: `m-${variableName}`, name: variableName, category, unit: 'pcs', price, variableName, properties, createdAt: '', updatedAt: '' };
+}
+
+// The partition-wall functions and the "Partition wall" module, the reference version.
+const functions: SharedFunction[] = [
+  fn('area_rectangle', ['width', 'height'], 'width * height'),
+  fn('perimeter_rectangle', ['width', 'height'], '2 * (width + height)'),
+  fn('stud_count', ['width', 'stud_spacing'], 'floor(width / stud_spacing)'),
+  fn('spill', ['spill'], '(1 + spill / 100)'),
+  fn('sheets_width', ['width', 'material'], 'ceil(width/material.width)'),
+  fn('sheets_height', ['height', 'material'], 'ceil(round((height - material.height) / material.height , 1)) + 1'),
+];
+
+const materials: Material[] = [
+  material('lumber_48x98', 'Lumber', 37.9, [prop('width', 'number', 48, 'mm'), prop('price', 'price', 37.9, 'm')]),
+  material('mdf_6mm', 'Sheets', 312.56, [
+    prop('width', 'number', 1200, 'mm'),
+    prop('height', 'number', 2440, 'mm'),
+    prop('price_per_sheet', 'price', 312.56),
+    prop('price_per_m2', 'price', 10, 'm2'),
+  ]),
+  material('paint_2_7', 'Paint', 299, [
+    prop('coverage', 'number', 10, 'm2'),
+    prop('volume', 'number', 2.7),
+    prop('price_per_bucket', 'price', 299),
+  ]),
+];
+
+const library: CalculatorLibrary = { materials, labor: [], functions };
+
+const partitionWall: CalculationModule = {
+  id: 'partition-wall',
+  name: 'Partition wall',
+  fields: [
+    { id: 'f1', label: 'Width', type: 'number', variableName: 'width', unitSymbol: 'm', unitCategory: 'length' },
+    { id: 'f2', label: 'Height', type: 'number', variableName: 'height', unitSymbol: 'm', unitCategory: 'length' },
+    { id: 'f3', label: 'Stud spacing', type: 'dropdown', variableName: 'stud_spacing', options: ['40', '60'], dropdownMode: 'numeric', unitSymbol: 'cm', unitCategory: 'length', defaultValue: 0.6 },
+    { id: 'f4', label: 'Lumber', type: 'material', variableName: 'lumber', materialCategory: 'Lumber' },
+    { id: 'f5', label: 'Spill', type: 'dropdown', variableName: 'spill', options: ['0', '10', '15'], unitSymbol: '%' },
+    { id: 'f6', label: 'Sheets', type: 'material', variableName: 'sheets', materialCategory: 'Sheets' },
+    { id: 'f7', label: 'Sheeting on both sides', type: 'boolean', variableName: 'sheeting_on_both_sides' },
+    { id: 'f8', label: 'Paint', type: 'material', variableName: 'paint', materialCategory: 'Paint' },
+    { id: 'f9', label: 'Paint layers', type: 'number', variableName: 'paint_layers', defaultValue: 2 },
+    { id: 'f10', label: 'Painted on both sides', type: 'boolean', variableName: 'painted_on_both_sides' },
+    { id: 'f11', label: 'Quantity', type: 'number', variableName: 'quantity', unitSymbol: 'pcs', defaultValue: 1 },
+  ],
+  formula:
+    '(((out.framing*spill(spill))*lumber.price) + (out.sheet_count * sheets.price_per_sheet) + ((ceil(out.paint_volume/paint.volume))*paint.price_per_bucket))*quantity',
+  computedOutputs: [
+    { id: 'o1', label: 'Paint area', variableName: 'paint_area', expression: 'area_rectangle(width, height)', unitSymbol: 'm2' },
+    { id: 'o2', label: 'Framing', variableName: 'framing', expression: 'perimeter_rectangle(width, height)+ height * stud_count(width, stud_spacing)', unitSymbol: 'm' },
+    { id: 'o3', label: 'Sheet count', variableName: 'sheet_count', expression: 'sheets_height(height, sheets) * sheets_width(width, sheets) * ((sheeting_on_both_sides ==1) + 1)', unitSymbol: 'pcs' },
+    { id: 'o4', label: 'Paint volume', variableName: 'paint_volume', expression: 'area_rectangle(width, height) * paint_layers * ((painted_on_both_sides ==1) + 1) / paint.coverage', unitSymbol: 'l' },
+  ],
+  createdAt: '',
+  updatedAt: '',
+};
+
+const moduleValues = {
+  width: 4,
+  height: 2.5,
+  stud_spacing: 0.6,
+  lumber: 'lumber_48x98',
+  spill: '10',
+  sheets: 'mdf_6mm',
+  sheeting_on_both_sides: false,
+  paint: 'paint_2_7',
+  paint_layers: 2,
+  painted_on_both_sides: false,
+  quantity: 1,
+};
+
+const { calculator: wall, warnings: wallWarnings } = calculatorFromModule(partitionWall, { createId, now: 'now' });
+const inputByKey = (calculator: Calculator, key: string) => calculator.inputs.find((input) => input.key === key)!;
+const stepByKey = (calculator: Calculator, key: string) => calculator.steps.find((step) => step.key === key)!;
+const optionId = (input: CalculatorInput, label: string) =>
+  input.value.kind === 'choice' ? input.value.options.find((option) => option.label === label)!.id : '';
+
+// ---- Conversion ----
+
+const studSpacing = inputByKey(wall, 'stud_spacing');
+const spillInput = inputByKey(wall, 'spill');
+assertCheck(
+  'converts fields to inputs of the right kind, keeping choice values in base units',
+  wall.inputs.length === 11 &&
+    inputByKey(wall, 'width').value.kind === 'number' &&
+    inputByKey(wall, 'lumber').value.kind === 'material' &&
+    inputByKey(wall, 'sheeting_on_both_sides').value.kind === 'boolean' &&
+    studSpacing.value.kind === 'choice' &&
+    close(studSpacing.value.options.find((option) => option.label === '60')?.value, 0.6) &&
+    studSpacing.value.default === optionId(studSpacing, '60') &&
+    spillInput.value.kind === 'choice' &&
+    close(spillInput.value.options.find((option) => option.label === '10')?.value, 10) &&
+    wallWarnings.length === 0,
+  JSON.stringify({ studSpacing: studSpacing.value, wallWarnings })
+);
+
+const wallCost = wall.steps.find((step) => step.id === wall.parts[0].costStepId)!;
+assertCheck(
+  'converts outputs to steps in one part, with the cost formula as its cost step and out.x renamed',
+  wall.parts.length === 1 &&
+    wall.parts[0].name === 'Partition wall' &&
+    wall.steps.map((step) => step.key).join(',') === 'paint_area,framing,sheet_count,paint_volume,cost' &&
+    wall.steps.every((step) => step.partId === wall.parts[0].id) &&
+    wallCost.format === 'money' &&
+    wallCost.source.type === 'expression' &&
+    !wallCost.source.expression.includes('out.') &&
+    wallCost.source.expression.includes('(framing*spill(spill))'),
+  wallCost.source.type === 'expression' ? wallCost.source.expression : ''
+);
+
+// ---- Evaluation ----
+
+const wallValues: CalculatorValues = {
+  width: 4,
+  height: 2.5,
+  stud_spacing: optionId(studSpacing, '60'),
+  lumber: 'lumber_48x98',
+  spill: optionId(spillInput, '10'),
+  sheets: 'mdf_6mm',
+  sheeting_on_both_sides: false,
+  paint: 'paint_2_7',
+  paint_layers: 2,
+  painted_on_both_sides: false,
+  quantity: 1,
+};
+const wallResult = evaluateCalculator(wall, wallValues, library);
+const moduleResult = calculateModuleInstance({
+  moduleDef: partitionWall,
+  fieldValues: moduleValues,
+  materials,
+  functions,
+  roundCost: false,
+});
+const stepValue = (key: string) => wallResult.steps[stepByKey(wall, key).id];
+assertCheck(
+  'gives the same cost and outputs as the module it came from (2716.56)',
+  close(wallResult.total, moduleResult.cost) &&
+    close(wallResult.total, 1167.32 + 1250.24 + 299) &&
+    close(wallResult.quoteCost, moduleResult.cost) &&
+    close(stepValue('framing').value, moduleResult.computedValues['out.framing']) &&
+    close(stepValue('sheet_count').value, 4) &&
+    close(stepValue('paint_volume').value, 2) &&
+    wallResult.parts[wall.parts[0].id].status === 'ok',
+  JSON.stringify({ total: wallResult.total, module: moduleResult.cost, errors: moduleResult.errors })
+);
+
+// Missing values are reported, not thrown or logged.
+const originalError = console.error;
+let logged = 0;
+console.error = () => {
+  logged += 1;
+};
+const partial = evaluateCalculator(wall, { width: 4 }, library);
+console.error = originalError;
+const wallPart = partial.parts[wall.parts[0].id];
+assertCheck(
+  'reports the inputs a step is missing instead of evaluating it, without console errors',
+  logged === 0 &&
+    partial.steps[stepByKey(wall, 'paint_area').id].status === 'missing' &&
+    (partial.steps[stepByKey(wall, 'paint_area').id].missingInputs ?? []).join(',') === 'height' &&
+    partial.steps[stepByKey(wall, 'sheet_count').id].missingInputs?.join(',') === 'height,sheets' &&
+    wallPart.status === 'missing' &&
+    wallPart.missingInputs.join(',') === 'height,lumber,spill,sheets,paint' &&
+    partial.total === undefined,
+  JSON.stringify({ logged, missing: wallPart.missingInputs })
+);
+assertCheck(
+  'applies defaults: choice default, number default, toggles off',
+  partial.resolvedValues.stud_spacing === 0.6 &&
+    partial.resolvedValues.paint_layers === 2 &&
+    partial.resolvedValues.quantity === 1 &&
+    partial.resolvedValues.sheeting_on_both_sides === false &&
+    !('height' in partial.resolvedValues),
+  JSON.stringify(partial.resolvedValues)
+);
+assertCheck(
+  'treats a picked material that is no longer in the catalog as missing',
+  !('paint' in evaluateCalculator(wall, { ...wallValues, paint: 'deleted_paint' }, library).resolvedValues)
+);
+
+// ---- Parts, order, errors ----
+
+function expressionStep(partId: string, key: string, expression: string, extra: Partial<CalculatorStep> = {}): CalculatorStep {
+  return { id: `step-${key}`, partId, key, label: key, source: { type: 'expression', expression }, ...extra };
+}
+function numberInput(key: string, defaultValue?: number): CalculatorInput {
+  return { id: `input-${key}`, key, label: key, widget: 'number', value: { kind: 'number', default: defaultValue } };
+}
+function build(inputs: CalculatorInput[], parts: Calculator['parts'], steps: CalculatorStep[], extra: Partial<Calculator> = {}): Calculator {
+  return { id: 'c', name: 'Test', inputs, parts, steps, layout: [], createdAt: '', updatedAt: '', ...extra };
+}
+
+const split = build(
+  [
+    numberInput('width', 4),
+    numberInput('height', 2.5),
+    numberInput('layers'),
+    { id: 'input-paint', key: 'paint', label: 'Paint', widget: 'picker', value: { kind: 'material', category: 'Paint' } },
+    { id: 'input-include', key: 'include_paint', label: 'Include paint', widget: 'toggle', value: { kind: 'boolean', default: true } },
+  ],
+  [
+    { id: 'framing', name: 'Framing', costStepId: 'step-framing_cost' },
+    { id: 'paint', name: 'Paint', costStepId: 'step-paint_cost' },
+  ],
+  [
+    // Listed out of order on purpose: paint_cost reads steps listed after it.
+    expressionStep('paint', 'paint_cost', 'ceil(paint_litres / paint.volume) * paint.price_per_bucket', {
+      format: 'money',
+      enabledWhen: { inputKey: 'include_paint', op: 'is', value: true },
+    }),
+    expressionStep('paint', 'paint_litres', 'wall_area * layers / paint.coverage'),
+    expressionStep('framing', 'framing_cost', 'wall_area * 10', { format: 'money' }),
+    expressionStep('framing', 'wall_area', 'area_rectangle(width, height)', { unitSymbol: 'm2' }),
+  ]
+);
+const splitResult = evaluateCalculator(split, { paint: 'paint_2_7' }, library);
+assertCheck(
+  'keeps problems in their part: Framing costs while Paint waits for layers',
+  splitResult.parts.framing.status === 'ok' &&
+    close(splitResult.parts.framing.cost, 100) &&
+    splitResult.parts.paint.status === 'missing' &&
+    splitResult.parts.paint.missingInputs.join(',') === 'layers' &&
+    splitResult.steps['step-paint_cost'].status === 'blocked' &&
+    splitResult.steps['step-paint_cost'].blockedBy?.join(',') === 'paint_litres' &&
+    splitResult.total === undefined,
+  JSON.stringify(splitResult.parts)
+);
+assertCheck(
+  "lists a part's inputs and the steps it reads from other parts",
+  splitResult.parts.paint.inputKeys.join(',') === 'layers,paint,include_paint' &&
+    splitResult.parts.paint.externalStepKeys.join(',') === 'wall_area' &&
+    splitResult.parts.framing.inputKeys.join(',') === 'width,height',
+  JSON.stringify({ paint: splitResult.parts.paint.inputKeys, framing: splitResult.parts.framing.inputKeys })
+);
+
+const splitFull = evaluateCalculator(split, { paint: 'paint_2_7', layers: 2 }, library);
+assertCheck(
+  'evaluates steps in dependency order, whatever their list order, and sums part costs',
+  close(splitFull.steps['step-paint_litres'].value, 2) &&
+    close(splitFull.parts.paint.cost, 299) &&
+    close(splitFull.total, 399) &&
+    close(splitFull.steps['step-wall_area'].displayValue, 10),
+  JSON.stringify({ total: splitFull.total })
+);
+
+const splitOff = evaluateCalculator(split, { paint: 'paint_2_7', layers: 2, include_paint: false }, library);
+assertCheck(
+  'a step whose condition is off counts as 0',
+  splitOff.steps['step-paint_cost'].status === 'disabled' && close(splitOff.parts.paint.cost, 0) && close(splitOff.total, 100)
+);
+
+const broken = build(
+  [numberInput('width', 2)],
+  [{ id: 'p', name: 'P', costStepId: 'step-total' }],
+  [
+    expressionStep('p', 'good', 'width * 2'),
+    expressionStep('p', 'typo', 'widht * 2'),
+    expressionStep('p', 'uses_typo', 'typo + good'),
+    expressionStep('p', 'loop_a', 'loop_b + 1'),
+    expressionStep('p', 'loop_b', 'loop_a + 1'),
+    expressionStep('p', 'after_loop', 'loop_a * 2'),
+    expressionStep('p', 'width', '1'),
+    expressionStep('p', 'total', 'good'),
+  ]
+);
+const brokenResult = evaluateCalculator(broken, {}, library);
+const statusOf = (key: string) => brokenResult.steps[`step-${key}`];
+assertCheck(
+  'reports unknown names, circular references and clashing names on their own steps',
+  statusOf('good').status === 'ok' &&
+    statusOf('typo').status === 'error' &&
+    (statusOf('typo').message ?? '').includes('widht') &&
+    statusOf('uses_typo').status === 'blocked' &&
+    statusOf('loop_a').status === 'error' &&
+    (statusOf('loop_a').message ?? '').includes('loop_a → loop_b → loop_a') &&
+    statusOf('after_loop').status === 'blocked' &&
+    statusOf('width').status === 'error' &&
+    close(brokenResult.total, 4),
+  JSON.stringify(brokenResult.steps)
+);
+
+// ---- Function-call steps ----
+
+const called = build(
+  [
+    numberInput('width', 3.6),
+    { id: 'input-sheets', key: 'sheets', label: 'Sheets', widget: 'picker', value: { kind: 'material', default: 'mdf_6mm' } },
+  ],
+  [{ id: 'p', name: 'Sheeting', costStepId: 'step-cost' }],
+  [
+    {
+      id: 'step-columns',
+      partId: 'p',
+      key: 'columns',
+      label: 'Columns',
+      source: { type: 'call', functionName: 'sheets_width', args: { width: { type: 'input', key: 'width' }, material: { type: 'input', key: 'sheets' } } },
+    },
+    {
+      id: 'step-cost',
+      partId: 'p',
+      key: 'cost',
+      label: 'Cost',
+      source: {
+        type: 'call',
+        functionName: 'area_rectangle',
+        args: { width: { type: 'step', key: 'columns' }, height: { type: 'property', inputKey: 'sheets', property: 'price_per_sheet' } },
+      },
+      format: 'money',
+    },
+    {
+      id: 'step-spilled',
+      partId: 'p',
+      key: 'spilled',
+      label: 'With spill',
+      source: { type: 'call', functionName: 'spill', args: { spill: { type: 'constant', value: 15, unitSymbol: '%' } } },
+    },
+    {
+      id: 'step-unbound',
+      partId: 'p',
+      key: 'unbound',
+      label: 'Unbound',
+      source: { type: 'call', functionName: 'area_rectangle', args: { width: { type: 'input', key: 'width' } } },
+    },
+  ]
+);
+const calledResult = evaluateCalculator(called, {}, library);
+assertCheck(
+  'function-call steps bind inputs, steps, material properties and constants',
+  close(calledResult.steps['step-columns'].value, 3) &&
+    close(calledResult.total, 3 * 312.56) &&
+    close(calledResult.steps['step-spilled'].value, 1.15) &&
+    calledResult.steps['step-unbound'].status === 'error' &&
+    (calledResult.steps['step-unbound'].message ?? '').includes('height'),
+  JSON.stringify(calledResult.steps)
+);
+
+assertCheck(
+  'callFunction evaluates with named values and names any it is missing',
+  close(callFunction(functions[0], { width: 2, height: 3 }, library), 6) &&
+    (() => {
+      try {
+        callFunction(functions[0], { width: 2 }, library);
+        return false;
+      } catch (error) {
+        return error instanceof Error && error.message.includes('height');
+      }
+    })()
+);
+
+// ---- Conversion edge cases ----
+
+const clash: CalculationModule = {
+  id: 'clash',
+  name: 'Clash',
+  fields: [
+    { id: 'a', label: 'Area', type: 'number', variableName: 'area', defaultValue: 5 },
+    { id: 'b', label: 'Finish', type: 'dropdown', variableName: 'finish', options: ['Matte', 'Gloss'], defaultValue: 'Gloss' },
+    { id: 'c', label: 'Blank', type: 'number', variableName: '' },
+  ],
+  formula: 'out.area + area',
+  computedOutputs: [
+    { id: 'o1', label: 'Area out', variableName: 'area', expression: 'area * 2' },
+    { id: 'o2', label: 'Double', variableName: 'double_area', expression: 'area + 1' },
+  ],
+  createdAt: '',
+  updatedAt: '',
+};
+const { calculator: clashCalc, warnings: clashWarnings } = calculatorFromModule(clash, { createId });
+const clashExpr = (key: string) => {
+  const source = stepByKey(clashCalc, key).source;
+  return source.type === 'expression' ? source.expression : '';
+};
+const clashResult = evaluateCalculator(clashCalc, {}, library);
+const clashModule = calculateModuleInstance({ moduleDef: clash, fieldValues: { area: 5 }, materials, functions, roundCost: false });
+assertCheck(
+  'renames an output that clashes with a field, keeping what each formula read',
+  clashExpr('area_2') === 'area * 2' &&
+    clashExpr('double_area') === 'area_2 + 1' &&
+    clashExpr('cost') === 'area_2 + area' &&
+    close(clashResult.total, clashModule.cost) &&
+    close(clashResult.steps[stepByKey(clashCalc, 'double_area').id].value, clashModule.computedValues['out.double_area']),
+  JSON.stringify({ exprs: clashCalc.steps.map((step) => step.source), total: clashResult.total, module: clashModule })
+);
+const finish = inputByKey(clashCalc, 'finish');
+assertCheck(
+  'numbers text dropdown options, keeps their default, and warns about both',
+  finish.value.kind === 'choice' &&
+    finish.value.options.map((option) => option.value).join(',') === '1,2' &&
+    finish.value.default === optionId(finish, 'Gloss') &&
+    clashWarnings.some((warning) => warning.includes('Finish')) &&
+    clashWarnings.some((warning) => warning.includes('area_2')) &&
+    clashWarnings.some((warning) => warning.includes('Blank')) &&
+    clashCalc.inputs.length === 2,
+  JSON.stringify(clashWarnings)
+);
+
+// ---- Expression helpers ----
+
+assertCheck(
+  'scans names, telling calls from values and skipping exponents',
+  scanExpression('spill(spill) * 1e5 + sheets.width')
+    .map((token) => `${token.text}${token.isCall ? '()' : ''}`)
+    .join(' ') === 'spill() spill sheets.width'
+);
+assertCheck(
+  'rewrites only the names asked for',
+  rewriteExpression('out.a + a + b(a)', (token) => (token.text === 'out.a' ? 'a_2' : null)) === 'a_2 + a + b(a)'
+);
+const ordered = orderSteps(['c', 'b', 'a'], new Map([['c', ['b']], ['b', ['a']], ['a', []]]));
+assertCheck('orders steps after the steps they read', ordered.order.join(',') === 'a,b,c' && ordered.cycles.size === 0);
