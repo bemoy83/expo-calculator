@@ -58,6 +58,17 @@ export function useFunctionEditorState({
     valid: true,
   });
 
+  // A save attempt's formula error goes stale as soon as the formula is edited; from then
+  // on the live check (formulaValidation) reports its state.
+  useEffect(() => {
+    setErrors((prev) => {
+      if (!prev.formula) return prev;
+      const next = { ...prev };
+      delete next.formula;
+      return next;
+    });
+  }, [formData.formula]);
+
   useEffect(() => {
     if (formData.displayName && !hasManuallyEditedVariableName) {
       const generatedName = labelToVariableName(formData.displayName);

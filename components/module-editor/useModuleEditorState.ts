@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFieldManager } from '@/hooks/use-field-manager';
 import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
 import { useFormulaValidation } from '@/hooks/use-formula-validation';
@@ -59,6 +59,17 @@ export function useModuleEditorState({
   const [computedOutputs, setComputedOutputs] = useState<ComputedOutput[]>([]);
   const [computedOutputErrors, setComputedOutputErrors] = useState<Record<string, Record<string, string>>>({});
   const formulaTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // A save attempt's formula error goes stale as soon as the formula is edited; from then
+  // on the live check (formulaValidation) reports its state.
+  useEffect(() => {
+    setErrors((prev) => {
+      if (!prev.formula) return prev;
+      const next = { ...prev };
+      delete next.formula;
+      return next;
+    });
+  }, [formData.formula]);
 
   const {
     fields,
