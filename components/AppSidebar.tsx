@@ -8,6 +8,7 @@ import { useTheme } from 'next-themes';
 import { Download, FileText, Settings, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CurrencySelector } from '@/components/shared/CurrencySelector';
+import { FIELD_LABEL } from '@/components/ui/field-styles';
 import { exportAllData, downloadDataAsJSON } from '@/lib/utils/data-export';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
@@ -128,9 +129,8 @@ export function AppSidebar({ id, isOpen, onClose, onImportData }: AppSidebarProp
         <NavList items={catalogItems} isActive={isActive} showCounts={mounted} itemHeight="h-[34px]" />
       </nav>
 
-      <div className="px-3 pt-3 pb-4 space-y-3 border-t border-border">
+      <div className="px-3 pt-3 pb-4 border-t border-border">
         <SettingsMenu onImportData={onImportData} />
-        <ColorModeSwitch mounted={mounted} />
       </div>
     </div>
   );
@@ -184,32 +184,37 @@ function NavList({
   );
 }
 
-function ColorModeSwitch({ mounted }: { mounted: boolean }) {
+// Rendered only inside the open Settings menu, so always after mount: resolvedTheme is known.
+function ColorModeSwitch() {
   const { resolvedTheme, setTheme } = useTheme();
-  const activeMode = mounted ? resolvedTheme : undefined;
 
   return (
-    <div role="group" aria-label="Color mode" className="flex gap-1 p-1 rounded-full bg-border">
-      {(['light', 'dark'] as const).map((mode) => {
-        const active = activeMode === mode;
-        return (
-          <button
-            key={mode}
-            type="button"
-            aria-pressed={active}
-            onClick={() => setTheme(mode)}
-            className={cn(
-              'flex-1 py-1.5 rounded-full text-[11px] transition-colors',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-              active
-                ? 'bg-surface text-ink font-semibold shadow-card'
-                : 'text-ink-muted font-medium hover:text-ink'
-            )}
-          >
-            {mode === 'light' ? 'Light' : 'Dark'}
-          </button>
-        );
-      })}
+    <div>
+      <span id="color-mode-label" className={FIELD_LABEL}>
+        Appearance
+      </span>
+      <div role="group" aria-labelledby="color-mode-label" className="flex gap-1 p-1 rounded-full bg-border">
+        {(['light', 'dark'] as const).map((mode) => {
+          const active = resolvedTheme === mode;
+          return (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setTheme(mode)}
+              className={cn(
+                'flex-1 py-1.5 rounded-full text-[11px] transition-colors',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
+                active
+                  ? 'bg-surface text-ink font-semibold shadow-card'
+                  : 'text-ink-muted font-medium hover:text-ink'
+              )}
+            >
+              {mode === 'light' ? 'Light' : 'Dark'}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -286,7 +291,8 @@ function SettingsMenuPanel({
       className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border-strong rounded-[10px] shadow-panel z-50 overflow-hidden"
     >
       <div className="p-2 max-h-[70vh] overflow-y-auto">
-        <div className="px-2.5 pt-2 pb-2">
+        <div className="px-2.5 pt-2 pb-2 space-y-3">
+          <ColorModeSwitch />
           <CurrencySelector />
         </div>
 
