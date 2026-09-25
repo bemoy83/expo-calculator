@@ -16,6 +16,8 @@ export interface Calculator {
   layout: LayoutSection[];
   /** Step whose value goes to a quote; the calculator total when unset. */
   quoteCostStepId?: string;
+  /** The module this calculator was converted from, if any. */
+  sourceModuleId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -105,6 +107,11 @@ export interface CalculatorStep {
   source: StepSource;
   unitCategory?: UnitCategory;
   unitSymbol?: string;
+  /**
+   * Show the unit as a label, without converting from base units. Modules showed their
+   * outputs this way, so converted modules keep it where the unit isn't a base unit.
+   */
+  unitIsLabel?: boolean;
   format?: StepFormat;
   decimals?: number;
   /** When false the step is 0 (e.g. "Include insulation" off). */
@@ -161,7 +168,7 @@ export interface StepResult {
   /** Value in the step's unit, for display. */
   displayValue?: number;
   message?: string;
-  /** Input keys with no value (missing). */
+  /** Input keys without a value that this step needs, directly or through the steps it reads. */
   missingInputs?: string[];
   /** Step keys this one waits on (blocked). */
   blockedBy?: string[];

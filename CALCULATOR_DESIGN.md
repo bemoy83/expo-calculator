@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; step 1 (engine and model) done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–2 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -394,6 +394,34 @@ Each step is committed separately, like the reskin.
 - Checked: 18 regression checks (`calculator-regression.ts`), including parity with
   `calculateModuleInstance` for the partition wall; and, read-only, the four real drafts
   (Framing, Sheet Installation, Paint, Partition wall) give the same cost converted as today.
+
+**Step 2 — Run view and Calculators page**:
+- **Home is Calculators** (`app/page.tsx`); the quote board moved to `/quotes/board` and the
+  sidebar's Quotes item with it (the builder stays at `/quotes`). A calculator opens at
+  `/calculator?id=…`: calculators live in the browser, so the static export can't have a
+  page per calculator.
+- **Modules show up as calculators, converted on the fly** (`calculatorsFromModules`,
+  `hooks/use-calculators.ts`), marked "From module", with ids derived from the module's.
+  Nothing is written to storage, and a module edit shows straight away. Saved calculators
+  (none yet) list first.
+- **Run view** (`components/calculator/`): the layout's sections; sections holding only
+  results sit in a sticky side column on wide screens. Inputs by widget: number (typed in
+  its unit, blank allowed), checkbox, dropdown or segmented choice, material/labor picker,
+  text. Results say why they have no value ("Needs Width and Height", "Waiting on …", or the
+  error), and a result names every input it's missing, including those missing further up
+  (`StepResult.missingInputs` now includes upstream inputs). Inputs are marked "Needed to
+  calculate" only once something has been typed. `visibleWhen` on sections and inputs is
+  already respected.
+- **Values** are kept per calculator for the session (`calculator-session-store`, not
+  persisted): they survive moving between pages, not a reload. Reset returns to defaults.
+- **Units**: modules showed output units as labels without converting. Converted outputs
+  whose unit isn't a base unit (the partition wall's paint volume in l) get `unitIsLabel`,
+  so they still show "2 L" rather than 2000 L; other steps convert from base units.
+- Checked in the browser with real data: the partition wall gives 2716.56 kr as in the
+  quote draft, "Sheeting on both sides" gives 8 sheets and 3966.80 kr, values survive
+  navigation, Reset clears them, no console errors from the calculator pages, and no
+  sideways scroll at phone width. `npm run build` passes.
+- Later: on a phone the results come after all inputs; a sticky total bar may be needed.
 
 ## Open questions
 

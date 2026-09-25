@@ -182,6 +182,10 @@ assertCheck(
     close(stepValue('framing').value, moduleResult.computedValues['out.framing']) &&
     close(stepValue('sheet_count').value, 4) &&
     close(stepValue('paint_volume').value, 2) &&
+    // Shown as 2 l, as the module showed it, not converted from m³.
+    close(stepValue('paint_volume').displayValue, 2) &&
+    stepByKey(wall, 'paint_volume').unitIsLabel === true &&
+    stepByKey(wall, 'framing').unitIsLabel === undefined &&
     wallResult.parts[wall.parts[0].id].status === 'ok',
   JSON.stringify({ total: wallResult.total, module: moduleResult.cost, errors: moduleResult.errors })
 );
@@ -201,6 +205,8 @@ assertCheck(
     partial.steps[stepByKey(wall, 'paint_area').id].status === 'missing' &&
     (partial.steps[stepByKey(wall, 'paint_area').id].missingInputs ?? []).join(',') === 'height' &&
     partial.steps[stepByKey(wall, 'sheet_count').id].missingInputs?.join(',') === 'height,sheets' &&
+    // The cost reads the outputs, so it also names what they are missing.
+    (partial.steps[wallCost.id].missingInputs ?? []).join(',') === 'height,lumber,spill,sheets,paint' &&
     wallPart.status === 'missing' &&
     wallPart.missingInputs.join(',') === 'height,lumber,spill,sheets,paint' &&
     partial.total === undefined,

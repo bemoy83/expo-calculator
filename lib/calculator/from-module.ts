@@ -1,6 +1,6 @@
 import type { CalculationModule, Field } from '../types';
 import { generateId } from '../utils';
-import { getUnitCategory, normalizeToBase } from '../units';
+import { convertFromBase, getUnitCategory, normalizeToBase } from '../units';
 import { rewriteExpression } from './dependencies';
 import type { Calculator, CalculatorInput, CalculatorStep, ChoiceOption, LayoutItem } from './types';
 
@@ -187,6 +187,7 @@ export function calculatorFromModule(
       source: { type: 'expression', expression: renameOutputs(output.expression, earlier) },
       unitSymbol: output.unitSymbol,
       unitCategory: output.unitCategory ?? (output.unitSymbol ? getUnitCategory(output.unitSymbol) : undefined),
+      unitIsLabel: output.unitSymbol ? convertFromBase(1, output.unitSymbol) !== 1 || undefined : undefined,
       format: 'number',
     });
     earlier.add(output.variableName);
@@ -216,6 +217,7 @@ export function calculatorFromModule(
     inputs,
     parts: [part],
     steps,
+    sourceModuleId: module.id,
     layout: [
       { id: createId(), items: inputs.map((input) => ({ type: 'input', inputId: input.id })) },
       { id: createId(), title: 'Results', items: resultItems },
@@ -224,4 +226,17 @@ export function calculatorFromModule(
     updatedAt: now,
   };
   return { calculator, warnings };
+}
+
+// Every module as a calculator, converted on the fly so it always matches the module. Ids are
+// derived from the module's, so they stay the same from one conversion to the next.
+export function calculatorsFromModules(modules: CalculationModule[]): Calculator[] {
+  return modules.map((module) => {
+    let n = 0;
+    const { calculator } = calculatorFromModule(module, {
+      createId: () => `${module.id}:${++n}`,
+      now: module.updatedAt,
+    });
+    return { ...calculator, id: `module-${module.id}`, createdAt: module.createdAt };
+  });
 }

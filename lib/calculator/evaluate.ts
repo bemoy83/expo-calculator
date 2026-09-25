@@ -106,6 +106,7 @@ export function evaluateCalculator(
   }
   const { order, cycles, afterCycle } = orderSteps([...stepsByKey.keys()], readsOf);
 
+  const inputOrder = calculator.inputs.map((input) => input.key);
   const results: Record<string, StepResult> = {};
   const byKey = new Map<string, StepResult>();
   const stepValues: Record<string, number> = {};
@@ -114,7 +115,9 @@ export function evaluateCalculator(
     const full: StepResult = { stepId: step.id, key: step.key, ...result };
     if (full.value !== undefined) {
       full.displayValue =
-        step.unitSymbol && step.format !== 'money' ? convertFromBase(full.value, step.unitSymbol) : full.value;
+        step.unitSymbol && step.format !== 'money' && !step.unitIsLabel
+          ? convertFromBase(full.value, step.unitSymbol)
+          : full.value;
       stepValues[step.key] = full.value;
     }
     results[step.id] = full;
@@ -179,16 +182,24 @@ export function evaluateCalculator(
       if (!outcome) return finish(step, { status: 'disabled', value: 0 });
     }
 
-    const missingInputs = deps.inputs.filter((key) => !(key in resolved));
+    const directMissing = deps.inputs.filter((key) => !(key in resolved));
     const blockedBy = deps.steps.filter((key) => {
       const status = byKey.get(key)?.status;
       return status !== 'ok' && status !== 'disabled';
     });
-    if (missingInputs.length > 0) {
+    // Missing inputs include those the steps it waits on are missing, so a result can say
+    // everything it needs, not only what it reads directly.
+    const upstreamMissing = new Set(blockedBy.flatMap((key) => byKey.get(key)?.missingInputs ?? []));
+    const missingInputs = inputOrder.filter((key) => directMissing.includes(key) || upstreamMissing.has(key));
+    if (directMissing.length > 0) {
       return finish(step, { status: 'missing', missingInputs, blockedBy: blockedBy.length ? blockedBy : undefined });
     }
     if (blockedBy.length > 0 || afterCycle.has(step.key)) {
-      return finish(step, { status: 'blocked', blockedBy });
+      return finish(step, {
+        status: 'blocked',
+        blockedBy,
+        missingInputs: missingInputs.length > 0 ? missingInputs : undefined,
+      });
     }
 
     try {
@@ -205,7 +216,6 @@ export function evaluateCalculator(
   }
 
   // Parts: what each reads, what it's missing, and its cost.
-  const inputOrder = calculator.inputs.map((input) => input.key);
   const parts: Record<string, PartResult> = {};
   for (const part of calculator.parts) {
     const partSteps = calculator.steps.filter((step) => step.partId === part.id);
