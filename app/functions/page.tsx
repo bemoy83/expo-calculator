@@ -9,7 +9,6 @@ import { Chip } from '@/components/ui/Chip';
 import { describeFunctionUsage, findFunctionUsage, formatFunctionSignature } from '@/lib/functions/function-usage';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
-import { useModulesStore } from '@/lib/stores/modules-store';
 import { SharedFunction } from '@/lib/types';
 import { Plus, FunctionSquare, Trash2 } from 'lucide-react';
 import { FunctionEditorView } from './FunctionEditorView';
@@ -17,7 +16,6 @@ import { FunctionEditorView } from './FunctionEditorView';
 export default function FunctionsPage() {
   const functions = useFunctionsStore((state) => state.functions);
   const deleteFunction = useFunctionsStore((state) => state.deleteFunction);
-  const modules = useModulesStore((state) => state.modules);
   const calculators = useCalculatorsStore((state) => state.calculators);
   const [editingFunctionId, setEditingFunctionId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -42,7 +40,7 @@ export default function FunctionsPage() {
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-ink">Functions</h1>
           <p className="text-xs text-ink-muted">
-            {functions.length} {functions.length === 1 ? 'function' : 'functions'} · reusable calculations to call from module formulas
+            {functions.length} {functions.length === 1 ? 'function' : 'functions'} · reusable calculations to call from calculators
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="shrink-0">
@@ -55,7 +53,7 @@ export default function FunctionsPage() {
         <EmptyState
           icon={FunctionSquare}
           title="No functions yet"
-          description="Create reusable functions to use across your modules and formulas."
+          description="Create reusable functions to use across your calculators and formulas."
           iconSize="small"
           actions={
             <Button onClick={() => setShowCreate(true)}>
@@ -68,8 +66,8 @@ export default function FunctionsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {functions.map((func) => {
             const title = func.displayName || func.name;
-            const usage = findFunctionUsage(func.name, modules, functions, func.id, calculators);
-            const usageCount = usage.modules.length + usage.functions.length + usage.calculators.length;
+            const usage = findFunctionUsage(func.name, functions, func.id, calculators);
+            const usageCount = usage.functions.length + usage.calculators.length;
             return (
               <EntityCard
                 key={func.id}
@@ -88,7 +86,7 @@ export default function FunctionsPage() {
                       message:
                         usageCount > 0
                           ? `It's used by ${describeFunctionUsage(usage)}. Deleting it will stop those formulas from calculating.`
-                          : 'It isn’t used by any module or function.',
+                          : 'It isn’t used by any calculator or function.',
                     },
                   },
                 ]}

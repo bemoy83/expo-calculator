@@ -5,7 +5,6 @@ import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Quote, QuoteLineItem } from "@/lib/types";
 import { formatInstanceLabel } from "@/lib/quotes/nickname";
-import { getQuoteDraftSummary } from "@/lib/quotes/quote-board";
 import { useCurrencyStore } from "@/lib/stores/currency-store";
 
 type RateFormData = { taxRate: number; markupPercent: number };
@@ -16,9 +15,7 @@ interface QuoteSummaryCardProps {
   formData: RateFormData;
   onFormDataChange: (updates: Partial<RateFormData>) => void;
   removeLineItem: (id: string) => void;
-  reopenLineItem?: (id: string) => void;
-  canReopenLineItem?: (item: QuoteLineItem) => boolean;
-  /** Opens a calculator line in its calculator (instead of reopening a module draft). */
+  /** Opens a calculator line in its calculator with its values. */
   editLineItem?: (item: QuoteLineItem) => void;
   canEditLineItem?: (item: QuoteLineItem) => boolean;
   /** Shown when there are no line items. */
@@ -35,15 +32,12 @@ export function QuoteSummaryCard({
   formData,
   onFormDataChange,
   removeLineItem,
-  reopenLineItem,
-  canReopenLineItem,
   editLineItem,
   canEditLineItem,
-  emptyMessage = "No line items yet. Lock in a draft from the workspace to add it to the quote.",
+  emptyMessage = "No lines yet. Open a calculator, fill it in, and use Send to quote.",
   onExport,
 }: QuoteSummaryCardProps) {
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
-  const drafts = getQuoteDraftSummary(quote);
   const itemCount = quote.lineItems.length;
 
   return (
@@ -64,7 +58,6 @@ export function QuoteSummaryCard({
       <ul className="flex-1 min-h-0 overflow-y-auto" aria-label="Line items">
         {quote.lineItems.map((item) => {
           const itemName = formatInstanceLabel(item.moduleName, item.nickname);
-          const canReopen = canReopenLineItem ? canReopenLineItem(item) : true;
           return (
             <li
               key={item.id}
@@ -103,18 +96,6 @@ export function QuoteSummaryCard({
                       aria-label={`Edit line item in its calculator: ${itemName}`}
                     >
                       Edit
-                    </button>
-                  )}
-                  {reopenLineItem && (
-                    <button
-                      type="button"
-                      onClick={() => reopenLineItem(item.id)}
-                      disabled={!canReopen}
-                      className="row-action transition-opacity rounded px-0.5 text-[11px] font-medium text-action hover:underline disabled:text-ink-faint disabled:no-underline disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-                      title={canReopen ? "Move back to the workspace to edit" : "This item's module no longer exists"}
-                      aria-label={`Reopen line item for editing: ${itemName}`}
-                    >
-                      Reopen
                     </button>
                   )}
                   <button
@@ -162,12 +143,6 @@ export function QuoteSummaryCard({
           <Printer className="h-4 w-4 mr-1.5" aria-hidden="true" />
           Export quote
         </Button>
-        {drafts.count > 0 && (
-          <p className="mt-2 text-center text-[10.5px] text-ink-faint">
-            Excludes {drafts.count} {drafts.count === 1 ? "draft" : "drafts"} in the workspace (
-            <span className="font-numeric">{formatCurrency(drafts.cost)}</span>)
-          </p>
-        )}
       </div>
     </section>
   );

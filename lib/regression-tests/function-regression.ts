@@ -1,54 +1,35 @@
 import {
-  addParameterFromModuleField,
+  addParameterFromName,
   buildFunctionSaveData,
   collectFunctionAutocompleteCandidates,
-  getAvailableModuleFieldNames,
+  getAvailableInputNames,
   getFormulaWithInsertedOperator,
   getFormulaWithInsertedToken,
   validateFunctionEditorForm,
 } from '../functions/function-editor-helpers';
-import type { CalculationModule, Labor, SharedFunction } from '../types';
+import type { Calculator } from '../calculator/types';
+import type { Labor, SharedFunction } from '../types';
 import { assertCheck } from './test-helpers';
 
 console.log('\n=== Function Editor Helper Regression ===');
 
-const functionModules: CalculationModule[] = [
-  {
-    id: 'module-a',
-    name: 'Module A',
-    fields: [
-      { id: 'width', label: 'Width', type: 'number', variableName: 'width' },
-      { id: 'height', label: 'Height', type: 'number', variableName: 'height' },
-    ],
-    formula: 'width * height',
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: 'module-b',
-    name: 'Module B',
-    fields: [
-      { id: 'width-duplicate', label: 'Width', type: 'number', variableName: 'Width' },
-      { id: 'depth', label: 'Depth', type: 'number', variableName: 'depth' },
-    ],
-    formula: 'depth',
-    createdAt: '',
-    updatedAt: '',
-  },
-];
+const inputCalculators = [
+  { inputs: [{ key: 'width', value: { kind: 'number' } }, { key: 'height', value: { kind: 'number' } }] },
+  { inputs: [{ key: 'Width', value: { kind: 'number' } }, { key: 'depth', value: { kind: 'number' } }, { key: 'note', value: { kind: 'text' } }] },
+] as unknown as Calculator[];
 assertCheck(
-  'collects unique module field names for function parameters',
-  getAvailableModuleFieldNames(functionModules).join(',') === 'depth,height,width'
+  'collects unique calculator input names (not text notes) for function parameters',
+  getAvailableInputNames(inputCalculators).join(',') === 'depth,height,width'
 );
 
-const parameters = addParameterFromModuleField(
+const parameters = addParameterFromName(
   [{ name: 'width', label: 'width', required: true }],
   'height'
 );
 assertCheck(
-  'adds module fields as function parameters without duplicates',
+  'adds input names as function parameters without duplicates',
   parameters.length === 2 &&
-    addParameterFromModuleField(parameters, 'HEIGHT') === parameters
+    addParameterFromName(parameters, 'HEIGHT') === parameters
 );
 
 const functions: SharedFunction[] = [

@@ -30,7 +30,7 @@ export interface ModuleCardShellProps {
 }
 
 /**
- * Shared shell for sortable module cards to keep header styling consistent across contexts.
+ * Shared shell for collapsible cards (function parameters) to keep header styling consistent.
  * The shell leaves body/content rendering to callers.
  */
 export function ModuleCardShell({
@@ -82,7 +82,7 @@ export function ModuleCardShell({
           role="button"
           tabIndex={0}
           aria-expanded={!isCollapsed}
-          aria-label={`${isCollapsed ? "Expand" : "Collapse"} module ${accessibleTitle}`}
+          aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${accessibleTitle}`}
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

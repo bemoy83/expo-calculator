@@ -724,12 +724,12 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
   );
 
   const savedCalc = { ...asCall, name: 'Sheeting calc' };
-  const usage = findFunctionUsage('sheets_width', [], functions, undefined, [savedCalc, { ...calc, id: 'x', name: 'Formula calc' }]);
+  const usage = findFunctionUsage('sheets_width', functions, undefined, [savedCalc, { ...calc, id: 'x', name: 'Formula calc' }]);
   assertCheck(
     'function usage lists calculators calling it, by step or formula',
     usage.calculators.map((item) => item.name).join(',') === 'Sheeting calc,Formula calc' &&
       describeFunctionUsage(usage).startsWith('Sheeting calc (calculator)') &&
-      findFunctionUsage('spill', [], functions, undefined, [savedCalc]).calculators.length === 0
+      findFunctionUsage('spill', functions, undefined, [savedCalc]).calculators.length === 0
   );
 }
 
@@ -1071,7 +1071,7 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
   );
 
   const quote: Quote = {
-    id: 'q', name: 'Q', workspaceModules: [], lineItems: [], subtotal: 0, markupPercent: 10, markupAmount: 0, taxRate: 0.25, taxAmount: 0, total: 0, createdAt: '', updatedAt: '',
+    id: 'q', name: 'Q', lineItems: [], subtotal: 0, markupPercent: 10, markupAmount: 0, taxRate: 0.25, taxAmount: 0, total: 0, createdAt: '', updatedAt: '',
   };
   const added = putLineItem(quote, line!);
   const replaced = putLineItem(added, { ...line!, id: 'other', cost: 100 }, 'line-1');

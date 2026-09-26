@@ -15,7 +15,7 @@ interface FunctionTestPanelProps {
   functions: SharedFunction[];
 }
 
-// Try the function with sample numbers, the way a module call evaluates it. Session only.
+// Try the function with sample values, the way a calculator step calls it. Session only.
 export function FunctionTestPanel({ draft, functions }: FunctionTestPanelProps) {
   const materials = useMaterialsStore((state) => state.materials);
   const labor = useLaborStore((state) => state.labor);

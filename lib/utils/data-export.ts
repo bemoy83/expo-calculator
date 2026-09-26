@@ -1,46 +1,43 @@
+import type { Calculator } from '../calculator/types';
 import { CalculationModule, Material, ModuleTemplate, SharedFunction, Labor } from '../types';
-import { useModulesStore } from '../stores/modules-store';
+import { useCalculatorsStore } from '../stores/calculators-store';
 import { useMaterialsStore } from '../stores/materials-store';
 import { useCategoriesStore } from '../stores/categories-store';
-import { useTemplatesStore } from '../stores/templates-store';
 import { useFunctionsStore } from '../stores/functions-store';
 import { useLaborStore } from '../stores/labor-store';
 
 export interface ExportedData {
   version: string;
   exportedAt: string;
-  modules: CalculationModule[];
   materials: Material[];
   labor?: Labor[];
   customCategories: string[];
-  functions?: SharedFunction[]; // Optional for backward compatibility
-  templates?: ModuleTemplate[]; // Since 1.1.0; files from 1.0.0 have none
+  functions?: SharedFunction[];
+  /** Since 2.0.0. */
+  calculators?: Calculator[];
+  /** Files before 2.0.0: turned into calculators on import. */
+  modules?: CalculationModule[];
+  /** Files 1.1.0: turned into calculators on import. */
+  templates?: ModuleTemplate[];
 }
 
-// 1.1.0: templates are exported (module IDs are remapped on import).
-export const EXPORT_VERSION = '1.1.0';
+// 2.0.0: calculators replace modules and templates (older files still import; their modules
+// and templates become calculators).
+export const EXPORT_VERSION = '2.0.0';
 
 /**
- * Export all application data (Modules, Materials, Labor, Categories, Functions, Templates).
+ * Export all application data (calculators, functions, materials, labor, categories).
  * Quotes are not exported: they stay on this device and an import leaves them alone.
  */
 export function exportAllData(): ExportedData {
-  const modules = useModulesStore.getState().modules;
-  const materials = useMaterialsStore.getState().materials;
-  const labor = useLaborStore.getState().labor;
-  const customCategories = useCategoriesStore.getState().customCategories;
-  const functions = useFunctionsStore.getState().functions;
-  const templates = useTemplatesStore.getState().templates;
-
   return {
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
-    modules,
-    materials,
-    labor,
-    customCategories,
-    functions,
-    templates,
+    calculators: useCalculatorsStore.getState().calculators,
+    functions: useFunctionsStore.getState().functions,
+    materials: useMaterialsStore.getState().materials,
+    labor: useLaborStore.getState().labor,
+    customCategories: useCategoriesStore.getState().customCategories,
   };
 }
 
@@ -51,10 +48,10 @@ export function downloadDataAsJSON(data: ExportedData, filename?: string): void 
   const jsonString = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonString], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  
+
   const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const finalFilename = filename || `cost-estimator-data-${dateStr}.json`;
-  
+
   const a = document.createElement('a');
   a.href = url;
   a.download = finalFilename;
@@ -63,4 +60,3 @@ export function downloadDataAsJSON(data: ExportedData, filename?: string): void 
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-

@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { SectionBar } from '@/components/module-editor/SectionBar';
+import { SectionBar } from '@/components/shared/SectionBar';
 import { CalculatorInputField } from '@/components/calculator/CalculatorInputField';
 import { describeInputs, describeStepProblem, formatStepValue } from '@/lib/calculator/format';
 import type {

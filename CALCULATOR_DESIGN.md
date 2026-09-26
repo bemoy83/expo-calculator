@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; steps 1–9 done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–10 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -603,6 +603,40 @@ Each step is committed separately, like the reskin.
   the calculator with the same values; width 5 and Update line changed that line to $3320.95
   (still one line); the test quote was then deleted. The old-drafts notice wasn't seen, as no
   quote in the dataset has drafts.
+
+**Step 10 — Modules, templates, linking and the quote workspace removed**:
+- **Nothing is lost**: on first load, every module and template that isn't a saved calculator
+  yet becomes one, under the id it was shown with (`module-…`, `template-…`), so quote lines
+  and Edit keep finding them (`lib/calculator/legacy.ts`, `importLegacyCalculators` in the
+  calculators store, run once and flagged `legacyImported`). The old `modules-store` and
+  `templates-store` data is left in browser storage, unread after that. Saved quotes lose the
+  old builder's drafts on load (quotes store v1), with a notice naming the quotes that had
+  them; their lines and totals are unchanged.
+- **Removed**: the Modules and Templates pages and editors, the module and template stores,
+  field linking, template link analysis, the quote workspace (drafts, linking, template
+  application, reopen, module picker, module field inputs), the on-the-fly conversion
+  (`convertedFrom`, copying a module or template into the builder), unused helpers
+  (`function-dependencies`, `AlertBanner`) and their tests. The sidebar is Calculators and
+  Quotes, then Functions, Materials, Labor. `Quote.workspaceModules` and the workspace types
+  are gone; `CalculationModule` and `ModuleTemplate` stay, documented as retired types read
+  only for conversion. `SectionBar` moved to `components/shared`, `FormulaOperatorGuide` to
+  `components/formula`.
+- **Kept on purpose**: `calculatorFromModule`/`calculatorFromTemplate` (conversion and old
+  export files) and the old module calculator, used only by the tests to check that a
+  conversion keeps the cost.
+- **Export/import 2.0.0**: calculators, functions, materials, labor and categories. Calculators
+  keep their ids on import. Older files still import, their modules and templates converted
+  like stored ones (with a notice). Replace only replaces the kinds a file contains; merge
+  skips calculators whose id or name is taken.
+- **Elsewhere**: a function's usage and the material/labor editors' "used in" counts now look
+  at calculators; the function editor offers calculator input names as parameters instead of
+  module fields.
+- Checked: 137 regression checks, including the one-time conversion (and that it doesn't run
+  twice), export → replace round trip keeping ids, merge, old files, and dropping drafts;
+  `npm run build` (no /modules or /templates). In the browser with the test dataset: the four
+  modules and the template became five saved calculators with their old ids, the old storage
+  keys still there; the template calculator gives $2716.56; Edit opens it directly.
+- Not updated: README.md and ONBOARDING.md still describe modules and templates.
 
 ## Open questions
 

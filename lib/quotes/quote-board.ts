@@ -1,40 +1,12 @@
-import { roundMoney } from '../calculations/money';
-import type {
-  CalculationModule,
-  Labor,
-  Material,
-  ModuleTemplate,
-  Quote,
-  QuoteModuleInstance,
-  SharedFunction,
-} from '../types';
-import { applyTemplateToQuoteWorkspace } from './template-application';
+import type { Quote } from '../types';
 
 export const DEFAULT_QUOTE_NAME = 'New Quote';
-
-function sumDraftCosts(drafts: QuoteModuleInstance[]): number {
-  return roundMoney(drafts.reduce((sum, instance) => sum + (instance.calculatedCost || 0), 0));
-}
-
-export interface QuoteDraftSummary {
-  count: number;
-  cost: number;
-}
-
-// Drafts are workspace modules: configured but not added to the quote, so not in its total.
-export function getQuoteDraftSummary(quote: Quote): QuoteDraftSummary {
-  return {
-    count: quote.workspaceModules.length,
-    cost: sumDraftCosts(quote.workspaceModules),
-  };
-}
 
 // A quote that was never saved and holds nothing the user entered. Switching away from one
 // discards it instead of adding an empty "New Quote" to the board.
 export function isPristineQuote(quote: Quote, savedQuotes: Quote[]): boolean {
   const name = quote.name.trim();
   return (
-    quote.workspaceModules.length === 0 &&
     quote.lineItems.length === 0 &&
     (name === '' || name === DEFAULT_QUOTE_NAME) &&
     !savedQuotes.some((saved) => saved.id === quote.id)
@@ -77,21 +49,4 @@ export function formatEditedAt(iso: string, now: Date = new Date()): string {
   if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} h ago`;
   const date = `${edited.getDate()} ${MONTHS[edited.getMonth()]}`;
   return edited.getFullYear() === now.getFullYear() ? date : `${date} ${edited.getFullYear()}`;
-}
-
-// What a template's drafts cost when started as a new quote: the sum of its modules at the
-// default field values that applying a template produces. Markup and tax are not included.
-export function estimateTemplateCost(input: {
-  template: ModuleTemplate;
-  modules: CalculationModule[];
-  materials: Material[];
-  labor: Labor[];
-  functions: SharedFunction[];
-}): number {
-  const { workspaceModules } = applyTemplateToQuoteWorkspace({
-    ...input,
-    workspaceModules: [],
-    getModule: (id) => input.modules.find((module) => module.id === id),
-  });
-  return sumDraftCosts(workspaceModules);
 }

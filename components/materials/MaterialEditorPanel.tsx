@@ -53,7 +53,7 @@ interface MaterialEditorPanelProps {
   onSave: (id: string | null, data: Omit<Partial<Material>, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onClose: () => void;
   onDelete?: (id: string) => void;
-  /** Modules whose formulas reference this material. */
+  /** Calculators that name this material in a formula or offer it in a picker. */
   usageCount: number;
 }
 
@@ -240,7 +240,7 @@ export function MaterialEditorPanel({
   return (
     <CatalogEditorPanel
       title={isCreating ? 'New material' : 'Edit material'}
-      subtitle={isCreating ? undefined : `used in ${usageCount} ${usageCount === 1 ? 'module' : 'modules'}`}
+      subtitle={isCreating ? undefined : `used in ${usageCount} ${usageCount === 1 ? 'calculator' : 'calculators'}`}
       submitLabel={isCreating ? 'Create' : 'Save'}
       onSubmit={handleSubmit}
       onClose={onClose}
@@ -373,7 +373,7 @@ export function MaterialEditorPanel({
 
         {otherProperties.length === 0 && !isAddingProperty && (
           <p className="mt-1 text-xs text-draft">
-            No properties. Modules that read one (e.g. <code className="font-numeric">{variableName || 'name'}.thickness</code>) can&apos;t calculate.
+            No properties. Calculators that read one (e.g. <code className="font-numeric">{variableName || 'name'}.thickness</code>) can&apos;t calculate.
           </p>
         )}
 

@@ -5,18 +5,19 @@ import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
 import { useParameterManager } from '@/hooks/use-parameter-manager';
 import { validateFormula } from '@/lib/formula-evaluator';
 import {
-  addParameterFromModuleField,
+  addParameterFromName,
   buildFunctionSaveData,
   collectFunctionAutocompleteCandidates,
   FunctionFormData,
-  getAvailableModuleFieldNames,
+  getAvailableInputNames,
   getExistingParameterNames,
   getFormulaWithInsertedOperator,
   getFormulaWithInsertedToken,
   isFunctionEditorFormSubmittable,
   validateFunctionEditorForm,
 } from '@/lib/functions/function-editor-helpers';
-import type { CalculationModule, Labor, SharedFunction } from '@/lib/types';
+import type { Calculator } from '@/lib/calculator/types';
+import type { Labor, SharedFunction } from '@/lib/types';
 import { labelToVariableName } from '@/lib/utils';
 
 interface UseFunctionEditorStateOptions {
@@ -24,7 +25,8 @@ interface UseFunctionEditorStateOptions {
   existingFunction: SharedFunction | null;
   functions: SharedFunction[];
   labor: Labor[];
-  modules: CalculationModule[];
+  /** Calculators, whose input names are offered as parameters. */
+  calculators: Calculator[];
   addFunction: (func: Omit<SharedFunction, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateFunction: (id: string, func: Partial<SharedFunction>) => void;
   onClose: () => void;
@@ -35,7 +37,7 @@ export function useFunctionEditorState({
   existingFunction,
   functions,
   labor,
-  modules,
+  calculators,
   addFunction,
   updateFunction,
   onClose,
@@ -50,7 +52,7 @@ export function useFunctionEditorState({
     category: existingFunction?.category || '',
   });
   // The call name follows the display name only while creating. For a saved function it's
-  // the name module formulas call, so it must never change as a side effect of a label edit.
+  // the name formulas call, so it must never change as a side effect of a label edit.
   const [hasManuallyEditedVariableName, setHasManuallyEditedVariableName] = useState(!!existingFunction);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [parameterErrors] = useState<Record<number, Record<string, string>>>({});
@@ -108,9 +110,9 @@ export function useFunctionEditorState({
     validateFormulaInput(formData.formula);
   }, [formData.formula, validateFormulaInput]);
 
-  const availableModuleFieldNames = useMemo(
-    () => getAvailableModuleFieldNames(modules),
-    [modules]
+  const availableInputNames = useMemo(
+    () => getAvailableInputNames(calculators),
+    [calculators]
   );
 
   const existingParameterNames = useMemo(
@@ -120,7 +122,7 @@ export function useFunctionEditorState({
 
   const addParameterFromField = useCallback(
     (fieldName: string) => {
-      setParameters((prev) => addParameterFromModuleField(prev, fieldName));
+      setParameters((prev) => addParameterFromName(prev, fieldName));
     },
     [setParameters]
   );
@@ -233,7 +235,7 @@ export function useFunctionEditorState({
     formulaValidation,
     parameters,
     expandedParameters,
-    availableModuleFieldNames,
+    availableInputNames,
     existingParameterNames,
     formulaTextareaRef,
     autocomplete,

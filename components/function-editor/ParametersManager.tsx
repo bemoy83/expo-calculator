@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import { SectionBar } from '@/components/module-editor/SectionBar';
+import { SectionBar } from '@/components/shared/SectionBar';
 import { ParameterItem } from './ParameterItem';
 import { FunctionParameter } from '@/hooks/use-parameter-manager';
 import { getFunctionParamKinds } from '@/lib/functions/param-kinds';

@@ -46,7 +46,7 @@ interface LaborEditorPanelProps {
   onSave: (id: string | null, data: Omit<Partial<Labor>, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onClose: () => void;
   onDelete?: (id: string) => void;
-  /** Modules whose formulas reference this labor item. */
+  /** Calculators that name this labor item in a formula or offer it in a picker. */
   usageCount: number;
 }
 
@@ -200,7 +200,7 @@ export function LaborEditorPanel({
   return (
     <CatalogEditorPanel
       title={isCreating ? 'New labor' : 'Edit labor'}
-      subtitle={isCreating ? undefined : `used in ${usageCount} ${usageCount === 1 ? 'module' : 'modules'}`}
+      subtitle={isCreating ? undefined : `used in ${usageCount} ${usageCount === 1 ? 'calculator' : 'calculators'}`}
       submitLabel={isCreating ? 'Create' : 'Save'}
       onSubmit={handleSubmit}
       onClose={onClose}
@@ -269,7 +269,7 @@ export function LaborEditorPanel({
 
         {properties.length === 0 && !isAddingProperty && (
           <p className="mt-1 text-xs text-draft">
-            No properties. Modules that read a productivity rate (e.g. <code className="font-numeric">{variableName || 'name'}.m2_per_hr</code>) can&apos;t calculate.
+            No properties. Calculators that read a productivity rate (e.g. <code className="font-numeric">{variableName || 'name'}.m2_per_hr</code>) can&apos;t calculate.
           </p>
         )}
 

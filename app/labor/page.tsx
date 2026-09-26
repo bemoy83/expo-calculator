@@ -6,9 +6,9 @@ import { LaborEditorPanel } from '@/components/labor/LaborEditorPanel';
 import { LaborRow } from '@/components/labor/LaborRow';
 import { CatalogPageShell } from '@/components/shared/catalog/CatalogPageShell';
 import { useCatalogListState } from '@/components/shared/catalog/useCatalogListState';
-import { countModulesUsingCatalogItem } from '@/lib/catalog/catalog-display';
+import { countCalculatorsUsingCatalogItem } from '@/lib/catalog/catalog-display';
 import { useLaborStore } from '@/lib/stores/labor-store';
-import { useModulesStore } from '@/lib/stores/modules-store';
+import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { Labor } from '@/lib/types';
 
 const LABOR_COLUMNS = [
@@ -24,7 +24,7 @@ export default function LaborPage() {
   const updateLabor = useLaborStore((state) => state.updateLabor);
   const reorderLabor = useLaborStore((state) => state.reorderLabor);
   const deleteLabor = useLaborStore((state) => state.deleteLabor);
-  const modules = useModulesStore((state) => state.modules);
+  const calculators = useCalculatorsStore((state) => state.calculators);
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedLaborId, setSelectedLaborId] = useState<string | null>(null);
@@ -115,7 +115,7 @@ export default function LaborPage() {
           onClose={closeEditor}
           onDelete={handleDelete}
           usageCount={
-            selectedLabor ? countModulesUsingCatalogItem(modules, selectedLabor, 'labor') : 0
+            selectedLabor ? countCalculatorsUsingCatalogItem(calculators, selectedLabor, 'labor') : 0
           }
         />
       }

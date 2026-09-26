@@ -7,7 +7,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 
 interface CatalogEditorPanelProps {
   title: string;
-  /** e.g. "used in 4 modules"; omitted while creating. */
+  /** e.g. "used in 4 calculators"; omitted while creating. */
   subtitle?: string;
   submitLabel: string;
   onSubmit: (event: React.FormEvent) => void;
@@ -81,7 +81,7 @@ export function CatalogEditorPanel({
         <ConfirmDialog
           isOpen={confirmingDelete}
           title="Delete item?"
-          message={`"${deleteName}" will be permanently deleted. Modules that reference it by name will report a missing variable.`}
+          message={`"${deleteName}" will be permanently deleted. Calculators and functions that use it by name will report a missing name.`}
           confirmLabel="Delete"
           destructive
           onConfirm={() => {

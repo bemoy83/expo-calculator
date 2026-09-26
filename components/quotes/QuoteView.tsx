@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calculator as CalculatorIcon, Download, Save, Trash2 } from 'lucide-react';
+import { Calculator as CalculatorIcon, Download, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
 import { useCalculators } from '@/hooks/use-calculators';
@@ -10,7 +10,6 @@ import { downloadQuoteJson, printQuote } from '@/lib/quotes/export';
 import { formatEditedAt } from '@/lib/quotes/quote-board';
 import { useCalculatorSessionStore } from '@/lib/stores/calculator-session-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
-import { useModulesStore } from '@/lib/stores/modules-store';
 import { notify } from '@/lib/stores/notifications-store';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
 import type { Quote, QuoteLineItem } from '@/lib/types';
@@ -22,14 +21,12 @@ type RateForm = { taxRate: number; markupPercent: number };
 export function QuoteView({ quote }: { quote: Quote }) {
   const router = useRouter();
   const calculators = useCalculators();
-  const modules = useModulesStore((state) => state.modules);
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
   const updateCurrentQuote = useQuotesStore((state) => state.updateCurrentQuote);
   const setTaxRate = useQuotesStore((state) => state.setTaxRate);
   const setMarkupPercent = useQuotesStore((state) => state.setMarkupPercent);
   const removeLineItem = useQuotesStore((state) => state.removeLineItem);
   const saveQuote = useQuotesStore((state) => state.saveQuote);
-  const removeWorkspaceDrafts = useQuotesStore((state) => state.removeWorkspaceDrafts);
   const openFromLineItem = useCalculatorSessionStore((state) => state.openFromLineItem);
 
   // Rates as typed (percent), so typing isn't reformatted.
@@ -41,7 +38,6 @@ export function QuoteView({ quote }: { quote: Quote }) {
   }, [quote.id]);
 
   const itemCount = quote.lineItems.length;
-  const drafts = quote.workspaceModules;
 
   const canEdit = (item: QuoteLineItem) =>
     !!item.calculatorId && calculators.some((calculator) => calculator.id === item.calculatorId);
@@ -70,7 +66,7 @@ export function QuoteView({ quote }: { quote: Quote }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => downloadQuoteJson(quote, (id) => modules.find((module) => module.id === id))}>
+          <Button variant="secondary" size="sm" onClick={() => downloadQuoteJson(quote)}>
             <Download className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
             Export JSON
           </Button>
@@ -91,25 +87,6 @@ export function QuoteView({ quote }: { quote: Quote }) {
           </Button>
         </div>
       </div>
-
-      {drafts.length > 0 && (
-        <div className="mb-4 rounded-md border border-draft-border bg-draft-bg px-4 py-3">
-          <p className="text-sm font-medium text-ink">
-            {drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'} from the old quote builder
-          </p>
-          <p className="mt-0.5 text-xs text-ink-body">
-            {drafts
-              .map((draft) => modules.find((module) => module.id === draft.moduleId)?.name ?? 'Missing module')
-              .join(', ')}{' '}
-            — never added to this quote, and no longer used now that quotes are filled from calculators. Add them again
-            from a calculator if you need them.
-          </p>
-          <Button variant="ghost" size="sm" className="mt-2 -ml-2 text-danger" onClick={removeWorkspaceDrafts}>
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-            Remove the drafts
-          </Button>
-        </div>
-      )}
 
       <div className="max-w-2xl">
         <QuoteSummaryCard

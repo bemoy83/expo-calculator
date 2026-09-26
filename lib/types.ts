@@ -77,6 +77,10 @@ export interface ComputedOutput {
   showInQuote?: boolean; // Whether to display in quote summary
 }
 
+/**
+ * A module, from before calculators. Modules and templates are retired: they're only read to
+ * turn them into calculators (from stored data once, and from old export files).
+ */
 export interface CalculationModule {
   id: string;
   name: string;
@@ -147,29 +151,6 @@ export interface SharedFunction {
   updatedAt: string;
 }
 
-export interface FunctionOutput {
-  functionName: string;
-  arguments: Record<string, string>; // Maps parameter name -> field variable name
-  instanceId: string; // Module instance that calculates this function
-}
-
-export interface FunctionLink {
-  sourceInstanceId: string;
-  functionName: string;
-  outputName?: string; // Optional name for the output
-}
-
-export interface QuoteModuleInstance {
-  id: string;
-  moduleId: string;
-  fieldValues: Record<string, string | number | boolean>;
-  fieldLinks?: Record<string, FieldLink>; // Maps fieldVariableName -> link target
-  functionOutputs?: Record<string, FunctionOutput>; // Maps output name -> function output
-  functionInputs?: Record<string, FunctionLink>; // Maps field name -> function link
-  calculatedCost: number;
-  nickname?: string; // User label telling instances of the same module apart (e.g. "North wall")
-}
-
 /**
  * A committed line item in the quote (added via "Add to Quote")
  * This represents a snapshot of a module configuration at the time it was added
@@ -198,9 +179,6 @@ export interface QuoteLineItem {
 export interface Quote {
   id: string;
   name: string;
-  // Workspace modules - editable, not included in totals
-  workspaceModules: QuoteModuleInstance[];
-  // Committed line items - included in totals
   lineItems: QuoteLineItem[];
   subtotal: number;
   markupPercent: number; // Business markup percentage (e.g., 12.5 for 12.5%)
@@ -237,6 +215,7 @@ export interface CalculationResolver {
   resolveProperty: (base: string, property: string) => number | null;
 }
 
+/** A template (a chain of linked modules), from before calculators; see CalculationModule. */
 export interface ModuleTemplate {
   id: string;
   name: string;

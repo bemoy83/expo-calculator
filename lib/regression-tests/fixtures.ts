@@ -2,7 +2,6 @@ import type {
   CalculationModule,
   Labor,
   Material,
-  QuoteModuleInstance,
   SharedFunction,
 } from '../types';
 
@@ -86,26 +85,6 @@ export const quoteModules: CalculationModule[] = [
   },
 ];
 
-export const quoteInstances: QuoteModuleInstance[] = [
-  {
-    id: 'source-instance',
-    moduleId: 'source-module',
-    fieldValues: { width: 2, 'out.area': 6 },
-    calculatedCost: 4,
-  },
-  {
-    id: 'target-instance',
-    moduleId: 'target-module',
-    fieldValues: { linked_width: 0, weight: 1 },
-    fieldLinks: {
-      linked_width: {
-        moduleInstanceId: 'source-instance',
-        fieldVariableName: 'out.area',
-      },
-    },
-    calculatedCost: 0,
-  },
-];
 
 export const templateMaterials: Material[] = [
   {

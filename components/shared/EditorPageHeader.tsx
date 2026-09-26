@@ -4,7 +4,7 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface EditorPageHeaderProps {
-  /** Breadcrumb section, e.g. "Modules". */
+  /** Breadcrumb section, e.g. "Calculators". */
   section: string;
   name: string;
   /** Shown when the name is still empty. */

@@ -13,11 +13,9 @@ import { exportAllData, downloadDataAsJSON } from '@/lib/utils/data-export';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
-import { useModulesStore } from '@/lib/stores/modules-store';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
 import { getBoardQuotes } from '@/lib/quotes/quote-board';
 import { useCalculators } from '@/hooks/use-calculators';
-import { useTemplatesStore } from '@/lib/stores/templates-store';
 
 interface NavItem {
   name: string;
@@ -61,8 +59,6 @@ export function AppSidebar({ id, isOpen, onClose, onImportData }: AppSidebarProp
   // Same count as the board: saved quotes plus the open one if it isn't an untouched new quote.
   const calculatorsCount = useCalculators().length;
   const quotesCount = useQuotesStore((state) => getBoardQuotes(state.quotes, state.currentQuote).length);
-  const templatesCount = useTemplatesStore((state) => state.templates.length);
-  const modulesCount = useModulesStore((state) => state.modules.length);
   const functionsCount = useFunctionsStore((state) => state.functions.length);
   const materialsCount = useMaterialsStore((state) => state.materials.length);
   const laborCount = useLaborStore((state) => state.labor.length);
@@ -80,13 +76,11 @@ export function AppSidebar({ id, isOpen, onClose, onImportData }: AppSidebarProp
   const primaryItems: NavItem[] = [
     // Calculators are the home page; one open at /calculator belongs to it too.
     { name: 'Calculators', href: '/', count: calculatorsCount, alsoActiveOn: ['/calculator'] },
-    // The quote builder at /quotes belongs to the quotes board.
+    // An open quote at /quotes belongs to the quotes board.
     { name: 'Quotes', href: '/quotes/board', count: quotesCount, alsoActiveOn: ['/quotes'] },
-    { name: 'Templates', href: '/templates', count: templatesCount },
   ];
 
   const catalogItems: NavItem[] = [
-    { name: 'Modules', href: '/modules', count: modulesCount },
     { name: 'Functions', href: '/functions', count: functionsCount },
     { name: 'Materials', href: '/materials', count: materialsCount },
     { name: 'Labor', href: '/labor', count: laborCount },

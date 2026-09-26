@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { EditorPageHeader } from '@/components/shared/EditorPageHeader';
-import { SectionBar } from '@/components/module-editor/SectionBar';
+import { SectionBar } from '@/components/shared/SectionBar';
 import {
   addInput,
   addPart,
@@ -39,7 +39,6 @@ import {
   updatePart,
   updateStep,
 } from '@/lib/calculator/editing';
-import { sourceViewId } from '@/hooks/use-calculators';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type {
@@ -253,7 +252,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
 
   const close = () => {
     if (isSaved) router.push(`/calculator?id=${encodeURIComponent(calculator.id)}`);
-    else if (sourceViewId(calculator)) router.push(`/calculator?id=${encodeURIComponent(sourceViewId(calculator)!)}`);
     else router.push('/');
   };
 
@@ -284,11 +282,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
     discard: { title: 'Discard changes?', message: 'Your changes to this calculator have not been saved.', label: 'Discard' },
     'delete-calculator': {
       title: `Delete “${calculator.name}”?`,
-      message: calculator.sourceTemplateId
-        ? 'The calculator is deleted; the template it came from shows as a calculator again.'
-        : calculator.sourceModuleId
-          ? 'The calculator is deleted; the module it came from shows as a calculator again.'
-          : 'The calculator is deleted for good.',
+      message: 'The calculator is deleted for good. Quote lines sent from it keep their price but can no longer be edited.',
       label: 'Delete',
     },
     'delete-part': {

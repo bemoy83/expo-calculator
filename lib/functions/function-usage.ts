@@ -1,8 +1,7 @@
 import type { Calculator } from '../calculator/types';
-import type { CalculationModule, SharedFunction } from '../types';
+import type { SharedFunction } from '../types';
 
 export interface FunctionUsage {
-  modules: Array<{ id: string; name: string }>;
   functions: Array<{ id: string; name: string }>;
   calculators: Array<{ id: string; name: string }>;
 }
@@ -14,12 +13,10 @@ function callsFunction(expression: string | undefined, functionName: string): bo
   return new RegExp(`(^|[^A-Za-z0-9_.])${escaped}\\s*\\(`).test(expression);
 }
 
-// Where a shared function is called: module formulas and computed outputs, other functions'
-// formulas, and saved calculators' steps (function-call steps and formulas). Renaming or
-// deleting it breaks every caller listed here.
+// Where a shared function is called: calculators' steps (function-call steps and formulas)
+// and other functions' formulas. Renaming or deleting it breaks every caller listed here.
 export function findFunctionUsage(
   functionName: string,
-  modules: CalculationModule[],
   functions: SharedFunction[],
   ownId?: string,
   calculators: Calculator[] = []
@@ -34,13 +31,6 @@ export function findFunctionUsage(
         )
       )
       .map((calculator) => ({ id: calculator.id, name: calculator.name })),
-    modules: modules
-      .filter(
-        (module) =>
-          callsFunction(module.formula, functionName) ||
-          (module.computedOutputs ?? []).some((output) => callsFunction(output.expression, functionName))
-      )
-      .map((module) => ({ id: module.id, name: module.name })),
     functions: functions
       .filter((func) => func.id !== ownId && callsFunction(func.formula, functionName))
       .map((func) => ({ id: func.id, name: func.displayName || func.name })),
@@ -50,7 +40,6 @@ export function findFunctionUsage(
 export function describeFunctionUsage(usage: FunctionUsage): string {
   const parts = [
     ...usage.calculators.map((calculator) => `${calculator.name} (calculator)`),
-    ...usage.modules.map((module) => module.name),
     ...usage.functions.map((func) => `${func.name} (function)`),
   ];
   return parts.join(', ');

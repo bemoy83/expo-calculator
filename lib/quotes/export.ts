@@ -1,11 +1,8 @@
 import { roundMoney } from "../calculations/money";
-import type { CalculationModule, Quote } from "../types";
+import type { Quote } from "../types";
 import { formatInstanceName } from "./nickname";
 
-export function buildQuoteExportData(input: {
-  quote: Quote;
-  getModule: (id: string) => CalculationModule | undefined;
-}) {
+export function buildQuoteExportData(input: { quote: Quote }) {
   return {
     quote: {
       name: input.quote.name,
@@ -13,17 +10,8 @@ export function buildQuoteExportData(input: {
       lineItems: input.quote.lineItems.map((item) => ({
         moduleName: item.moduleName,
         nickname: item.nickname,
-        // Calculator lines carry what was shown; old module lines are labelled from the module.
-        fields:
-          item.details ??
-          Object.entries(item.fieldValues).map(([key, value]) => {
-            const moduleDef = item.moduleId ? input.getModule(item.moduleId) : undefined;
-            const field = moduleDef?.fields.find((candidate) => candidate.variableName === key);
-            return {
-              label: field?.label || key,
-              value,
-            };
-          }),
+        // Calculator lines carry what was shown; old module lines only have their values by name.
+        fields: item.details ?? Object.entries(item.fieldValues).map(([label, value]) => ({ label, value })),
         cost: roundMoney(item.cost),
       })),
       subtotal: roundMoney(input.quote.subtotal),
@@ -131,8 +119,8 @@ export function escapeHtml(value: unknown): string {
 }
 
 /** Saves the quote as a JSON file. */
-export function downloadQuoteJson(quote: Quote, getModule: (id: string) => CalculationModule | undefined) {
-  const data = buildQuoteExportData({ quote, getModule });
+export function downloadQuoteJson(quote: Quote) {
+  const data = buildQuoteExportData({ quote });
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

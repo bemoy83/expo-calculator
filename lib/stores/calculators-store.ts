@@ -1,10 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { calculatorsFromLegacy, readLegacyStores } from '../calculator/legacy';
 import type { Calculator } from '../calculator/types';
 import { generateId } from '../utils';
 
 interface CalculatorsStore {
   calculators: Calculator[];
+  /** Set once the retired modules and templates have been turned into calculators. */
+  legacyImported: boolean;
+  /** Turns the retired modules and templates in `storage` into calculators, once. */
+  importLegacyCalculators: (storage: Pick<Storage, 'getItem'>) => void;
   addCalculator: (calculator: Omit<Calculator, 'id' | 'createdAt' | 'updatedAt'>) => Calculator;
   updateCalculator: (id: string, updates: Partial<Omit<Calculator, 'id' | 'createdAt'>>) => void;
   /** Saves a calculator the builder edited: replaces the one with its id, or adds it. */
@@ -17,6 +22,7 @@ export const useCalculatorsStore = create<CalculatorsStore>()(
   persist(
     (set, get) => ({
       calculators: [],
+      legacyImported: false,
 
       addCalculator: (calculatorData) => {
         const now = new Date().toISOString();
@@ -48,9 +54,23 @@ export const useCalculatorsStore = create<CalculatorsStore>()(
       },
 
       getCalculator: (id) => get().calculators.find((calculator) => calculator.id === id),
+
+      importLegacyCalculators: (storage) => {
+        if (get().legacyImported) return;
+        const { modules, templates } = readLegacyStores(storage);
+        const imported = calculatorsFromLegacy(modules, templates, get().calculators);
+        set((state) => ({ calculators: [...state.calculators, ...imported], legacyImported: true }));
+      },
     }),
     {
       name: 'calculators-store',
+      // Once, after loading: every module and template that isn't a calculator yet becomes a
+      // saved one with the id it was shown under (`module-…`, `template-…`), so quote lines
+      // that point at it keep working. The old modules and templates stay in storage.
+      // (This runs while the store is being created, so it goes through the store's own action.)
+      onRehydrateStorage: () => (state) => {
+        if (state && typeof window !== 'undefined') state.importLegacyCalculators(window.localStorage);
+      },
     }
   )
 );

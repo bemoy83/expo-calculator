@@ -12,7 +12,7 @@ export interface FormulaVariableTokenProps {
   value: string;
   isUsed: boolean;
   onInsert: (value: string) => void;
-  /** Blue = this module's fields and outputs, green = material, amber = labor. */
+  /** Blue = the formula's own names (parameters), green = material, amber = labor. */
   origin?: VariableOrigin;
 
   size?: "sm" | "md";

@@ -1,3 +1,5 @@
+// How modules calculated before calculators replaced them. Modules are retired; this stays so
+// the regression tests can check that turning one into a calculator keeps its cost.
 import { evaluateFormula } from '../formula-evaluator';
 import { resolveFieldValuesWithDefaults } from '../field-defaults';
 import {

@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import { FilePlus2, Pencil, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
-import { convertedFrom } from '@/hooks/use-calculators';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type { Calculator, CalculatorLibrary, CalculatorValues, LayoutSection } from '@/lib/calculator/types';
@@ -86,11 +84,6 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
           </p>
           <div className="flex items-center gap-2 min-w-0">
             <h1 className="text-2xl font-bold tracking-tight text-ink truncate">{calculator.name}</h1>
-            {convertedFrom(calculator) && (
-              <Chip size="sm" variant="muted">
-                From {convertedFrom(calculator)}
-              </Chip>
-            )}
           </div>
           {calculator.description && <p className="mt-0.5 text-sm text-ink-muted">{calculator.description}</p>}
         </div>

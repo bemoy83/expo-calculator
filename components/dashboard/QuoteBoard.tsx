@@ -11,7 +11,6 @@ import {
   filterQuotesByName,
   formatEditedAt,
   getBoardQuotes,
-  getQuoteDraftSummary,
   isPristineQuote,
 } from '@/lib/quotes/quote-board';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
@@ -19,9 +18,6 @@ import { useQuotesStore } from '@/lib/stores/quotes-store';
 import type { Quote } from '@/lib/types';
 
 type FormatMoney = (amount: number) => string;
-
-// Amber left edge on quotes with open drafts, repeating the builder's "not in the total" signal.
-const DRAFT_EDGE = 'border-l-[3px] border-l-draft';
 
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
@@ -50,7 +46,6 @@ export function QuoteBoard() {
     () => getBoardQuotes(savedQuotes, currentQuote),
     [savedQuotes, currentQuote]
   );
-  const withDraftsCount = boardQuotes.filter((quote) => quote.workspaceModules.length > 0).length;
 
   // "Where you left off" is the quote open in the builder, unless that one is an untouched new
   // quote; then it's the most recently edited saved quote.
@@ -83,7 +78,7 @@ export function QuoteBoard() {
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-ink">Quotes</h1>
           <p className="text-xs text-ink-muted">
-            {boardQuotes.length} total · {withDraftsCount} with open drafts
+            {pluralize(boardQuotes.length, 'quote')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -160,17 +155,8 @@ export function QuoteBoard() {
   );
 }
 
-function DraftBadge({ count, suffix = '' }: { count: number; suffix?: string }) {
-  return (
-    <span className="shrink-0 px-2 py-0.5 rounded-full bg-draft-bg text-draft text-[10.5px] font-medium">
-      {pluralize(count, 'draft')}
-      {suffix}
-    </span>
-  );
-}
-
 // Mockup 2d: surface card, strong hairline, 10px radius; money in mono, the quote total in
-// committed green (it's what the client pays) and uncounted draft money in amber.
+// committed green (it's what the client pays).
 function ResumeCard({
   quote,
   formatMoney,
@@ -180,15 +166,12 @@ function ResumeCard({
   formatMoney: FormatMoney;
   onOpen: (quote: Quote) => void;
 }) {
-  const drafts = getQuoteDraftSummary(quote);
-
   return (
     <section
       aria-labelledby="resume-quote-heading"
       className={cn(
         'md:col-span-2 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 px-[18px] py-4 rounded-[10px]',
-        'bg-surface border border-border-strong shadow-card',
-        drafts.count > 0 && DRAFT_EDGE
+        'bg-surface border border-border-strong shadow-card'
       )}
     >
       <div className="flex-1 min-w-0">
@@ -200,7 +183,6 @@ function ResumeCard({
         </p>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
           <h2 className="min-w-0 text-[15px] font-semibold text-ink break-words">{quote.name}</h2>
-          {drafts.count > 0 && <DraftBadge count={drafts.count} suffix=" open" />}
         </div>
         <p className="text-[11.5px] font-numeric text-ink-muted">
           {pluralize(quote.lineItems.length, 'item')} · edited {formatEditedAt(quote.updatedAt)}
@@ -208,9 +190,6 @@ function ResumeCard({
       </div>
       <div className="sm:text-right">
         <p className="text-xl font-semibold font-numeric text-committed">{formatMoney(quote.total)}</p>
-        {drafts.count > 0 && (
-          <p className="text-[10.5px] font-numeric text-draft">+{formatMoney(drafts.cost)} uncounted</p>
-        )}
       </div>
       <Button onClick={() => onOpen(quote)} aria-label={`Continue ${quote.name}`} className="shrink-0 h-[38px]">
         Continue
@@ -230,14 +209,11 @@ function QuoteCard({
   onOpen: (quote: Quote) => void;
   onDelete: (quote: Quote) => void;
 }) {
-  const drafts = getQuoteDraftSummary(quote);
-
   return (
     <div
       className={cn(
         'group relative px-4 py-3.5 rounded-[10px] bg-surface border border-border-strong transition-colors',
-        'hover:bg-surface-hover',
-        drafts.count > 0 && DRAFT_EDGE
+        'hover:bg-surface-hover'
       )}
     >
       <div className="flex items-start gap-2 mb-0.5">
@@ -249,7 +225,6 @@ function QuoteCard({
         >
           {quote.name}
         </button>
-        {drafts.count > 0 && <DraftBadge count={drafts.count} />}
         <button
           type="button"
           onClick={() => onDelete(quote)}

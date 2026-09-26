@@ -1,4 +1,5 @@
-import type { CalculationModule, Labor, SharedFunction } from "../types";
+import type { Calculator } from "../calculator/types";
+import type { Labor, SharedFunction } from "../types";
 
 export type FunctionFormData = {
   displayName: string;
@@ -18,13 +19,14 @@ export type FunctionAutocompleteCandidate = {
 
 type FunctionParameter = SharedFunction["parameters"][number];
 
-export function getAvailableModuleFieldNames(modules: CalculationModule[]): string[] {
+/** Input names used in the calculators (text notes left out), each once, for reuse as parameters. */
+export function getAvailableInputNames(calculators: Calculator[]): string[] {
   const uniqueNames = new Map<string, string>();
 
-  modules.forEach((module) => {
-    module.fields.forEach((field) => {
-      const name = field.variableName?.trim();
-      if (!name) return;
+  calculators.forEach((calculator) => {
+    calculator.inputs.forEach((input) => {
+      const name = input.key.trim();
+      if (!name || input.value.kind === 'text') return;
 
       const key = name.toLowerCase();
       if (!uniqueNames.has(key)) {
@@ -44,7 +46,7 @@ export function getExistingParameterNames(parameters: FunctionParameter[]): Set<
   );
 }
 
-export function addParameterFromModuleField(
+export function addParameterFromName(
   parameters: FunctionParameter[],
   fieldName: string
 ): FunctionParameter[] {

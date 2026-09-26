@@ -113,7 +113,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-danger mb-1">Replace all data?</h3>
             <p className="text-sm text-ink-body">
-              This deletes your modules, materials, categories, labor, functions, and templates, then imports the ones in the file. Labor, functions, or templates are kept if the file doesn&apos;t include them (older exports). Quotes and their line items are kept, but drafts still in a quote&apos;s workspace belong to the deleted modules and will no longer show. This can&apos;t be undone.
+              This deletes your calculators, materials, categories, labor, and functions, then imports the ones in the file. Calculators, labor, or functions are kept if the file doesn&apos;t include them. Quotes are kept; lines sent from a calculator that isn&apos;t in the file keep their price but can no longer be edited. This can&apos;t be undone.
             </p>
           </div>
         </div>
@@ -137,7 +137,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-committed mb-2">Import complete</h3>
             <div className="text-sm text-ink-body space-y-1">
-              <p>• {importResult.modulesAdded} module{importResult.modulesAdded !== 1 ? 's' : ''} imported</p>
+              <p>• {importResult.calculatorsAdded} calculator{importResult.calculatorsAdded !== 1 ? 's' : ''} imported</p>
               <p>• {importResult.materialsAdded} material{importResult.materialsAdded !== 1 ? 's' : ''} imported</p>
               {importResult.laborAdded > 0 && (
                 <p>• {importResult.laborAdded} labor item{importResult.laborAdded !== 1 ? 's' : ''} imported</p>
@@ -145,9 +145,6 @@ export function DataImporter({ onClose }: DataImporterProps) {
               <p>• {importResult.categoriesAdded} categor{importResult.categoriesAdded !== 1 ? 'ies' : 'y'} imported</p>
               {importResult.functionsAdded > 0 && (
                 <p>• {importResult.functionsAdded} function{importResult.functionsAdded !== 1 ? 's' : ''} imported</p>
-              )}
-              {importResult.templatesAdded > 0 && (
-                <p>• {importResult.templatesAdded} template{importResult.templatesAdded !== 1 ? 's' : ''} imported</p>
               )}
             </div>
           </div>
@@ -166,7 +163,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-ink-muted mb-4">
-          Import modules, materials, labor, categories, functions, and templates from an exported JSON file. Templates are reconnected to their modules. Quotes aren&apos;t part of an export and are never changed by an import.
+          Import calculators, functions, materials, labor, and categories from an exported JSON file. Files exported before calculators have their modules and templates turned into calculators. Quotes aren&apos;t part of an export and are never changed by an import.
         </p>
 
         <div className="space-y-4">
@@ -199,7 +196,7 @@ export function DataImporter({ onClose }: DataImporterProps) {
                 />
                 <div>
                   <span className="text-sm font-medium text-ink">Replace all data</span>
-                  <p className="text-xs text-ink-muted">Delete your modules, materials, labor, categories, functions, and templates, then import the file&apos;s. Quotes are kept.</p>
+                  <p className="text-xs text-ink-muted">Delete your calculators, materials, labor, categories, and functions, then import the file&apos;s. Quotes are kept.</p>
                 </div>
               </label>
             </div>
@@ -257,9 +254,9 @@ export function DataImporter({ onClose }: DataImporterProps) {
                 <li key={idx}>{err}</li>
               ))}
             </ul>
-            {(importResult.modulesAdded > 0 || importResult.materialsAdded > 0 || importResult.laborAdded > 0 || importResult.categoriesAdded > 0 || importResult.functionsAdded > 0 || importResult.templatesAdded > 0) && (
+            {(importResult.calculatorsAdded > 0 || importResult.materialsAdded > 0 || importResult.laborAdded > 0 || importResult.categoriesAdded > 0 || importResult.functionsAdded > 0) && (
               <p className="mt-2 text-xs">
-                Partial import: {importResult.modulesAdded} modules, {importResult.materialsAdded} materials, {importResult.laborAdded} labor items, {importResult.categoriesAdded} categories, {importResult.functionsAdded} functions, {importResult.templatesAdded} templates imported.
+                Partial import: {importResult.calculatorsAdded} calculators, {importResult.materialsAdded} materials, {importResult.laborAdded} labor items, {importResult.categoriesAdded} categories, {importResult.functionsAdded} functions imported.
               </p>
             )}
           </div>

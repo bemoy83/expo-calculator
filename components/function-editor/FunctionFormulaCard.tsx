@@ -3,7 +3,7 @@
 import { Card } from '@/components/ui/Card';
 import { Textarea } from '@/components/ui/Textarea';
 import { FormulaVariableToken } from '@/components/formula/FormulaVariableToken';
-import { FormulaOperatorGuide } from '@/components/module-editor/formula-builder/FormulaOperatorGuide';
+import { FormulaOperatorGuide } from '@/components/formula/FormulaOperatorGuide';
 import { cn } from '@/lib/utils';
 import { AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
 

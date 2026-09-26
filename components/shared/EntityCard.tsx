@@ -58,15 +58,15 @@ export interface EntityCardProps {
   onClick?: () => void;
   /** Optional description text */
   description?: string;
-  /** Single category (for modules) */
+  /** Single category */
   category?: string;
-  /** Multiple categories (for templates) */
+  /** Multiple categories */
   categories?: string[];
   /** Action buttons to display in top-right corner */
   actions?: EntityCardAction[];
   /** Content sections to display */
   sections?: EntityCardSection[];
-  /** Footer content (e.g., module count) */
+  /** Footer content */
   footer?: React.ReactNode;
   /** Additional CSS classes for the card wrapper */
   wrapperClassName?: string;

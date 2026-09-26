@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { FIELD_LABEL } from '@/components/ui/field-styles';
-import { SectionBar } from '@/components/module-editor/SectionBar';
+import { SectionBar } from '@/components/shared/SectionBar';
 import { isStepShown, unplacedInputs, widgetsFor, type LayoutPosition } from '@/lib/calculator/editing';
 import type {
   Calculator,

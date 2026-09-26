@@ -16,7 +16,6 @@ import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
-import { useModulesStore } from '@/lib/stores/modules-store';
 
 export interface FunctionEditorViewProps {
   functionId: string;
@@ -31,7 +30,6 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
   const getAllCategories = useCategoriesStore((state) => state.getAllCategories);
   const addCategory = useCategoriesStore((state) => state.addCategory);
   const labor = useLaborStore((state) => state.labor);
-  const modules = useModulesStore((state) => state.modules);
   const calculators = useCalculatorsStore((state) => state.calculators);
   const existingFunction = functionId === 'new' ? null : getFunction(functionId) ?? null;
   const isNew = functionId === 'new';
@@ -42,7 +40,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
     existingFunction,
     functions,
     labor,
-    modules,
+    calculators,
     addFunction,
     updateFunction,
     onClose,
@@ -52,9 +50,9 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
   const usage = useMemo(
     () =>
       existingFunction
-        ? findFunctionUsage(existingFunction.name, modules, functions, existingFunction.id, calculators)
-        : { modules: [], functions: [], calculators: [] },
-    [existingFunction, modules, functions, calculators]
+        ? findFunctionUsage(existingFunction.name, functions, existingFunction.id, calculators)
+        : { functions: [], calculators: [] },
+    [existingFunction, functions, calculators]
   );
   const usedBy = describeFunctionUsage(usage);
   const newName = editor.formData.name.trim();
@@ -122,10 +120,10 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
             </p>
           )}
 
-          <Card title="Add parameters from module fields" density="dense">
-            {editor.availableModuleFieldNames.length > 0 ? (
+          <Card title="Add parameters from calculator inputs" density="dense">
+            {editor.availableInputNames.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
-                {editor.availableModuleFieldNames.map((fieldName) => {
+                {editor.availableInputNames.map((fieldName) => {
                   const isAdded = editor.existingParameterNames.has(fieldName.toLowerCase());
                   return (
                     <button
@@ -148,7 +146,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
               </div>
             ) : (
               <p className="text-sm text-ink-muted">
-                No module fields available yet. Create a module with fields to reuse them here.
+                No calculator inputs yet. Inputs you add to calculators can be reused as parameters here.
               </p>
             )}
           </Card>

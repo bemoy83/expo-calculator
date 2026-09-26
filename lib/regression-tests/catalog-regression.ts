@@ -1,9 +1,10 @@
 import {
   countByCategory,
-  countModulesUsingCatalogItem,
+  countCalculatorsUsingCatalogItem,
   formatCatalogPropertyValue,
 } from '../catalog/catalog-display';
-import type { CalculationModule, LaborProperty, MaterialProperty } from '../types';
+import type { Calculator } from '../calculator/types';
+import type { LaborProperty, MaterialProperty } from '../types';
 import { assertCheck } from './test-helpers';
 
 console.log('\n=== Catalog Display Regression ===');
@@ -38,24 +39,30 @@ assertCheck(
   [thickness, legacyDensity, fireRated, laborRate].map(formatCatalogPropertyValue).join(' | ')
 );
 
-const usageModules = [
-  { id: 'a', formula: 'width * mdf18', computedOutputs: [], fields: [] },
-  { id: 'b', formula: 'area / 2', computedOutputs: [{ expression: 'mdf18.thickness * 2' }], fields: [] },
-  { id: 'c', formula: 'mdf180 + ply12', computedOutputs: [], fields: [] },
-  { id: 'd', formula: 'sheet.mdf18', computedOutputs: [], fields: [] },
-  { id: 'e', formula: 'sheets * area', fields: [{ type: 'material', variableName: 'sheets', materialCategory: 'Sheets' }] },
-  { id: 'f', formula: 'any * 2', fields: [{ type: 'material', variableName: 'any', materialCategory: '' }] },
-  { id: 'g', formula: 'crew * hours', fields: [{ type: 'labor', variableName: 'crew', laborCategory: 'Rigging' }] },
-] as unknown as CalculationModule[];
+const calc = (id: string, formulas: string[], pickers: Array<{ kind: 'material' | 'labor'; category?: string }> = []) =>
+  ({
+    id,
+    steps: formulas.map((expression) => ({ source: { type: 'expression', expression } })),
+    inputs: pickers.map((picker) => ({ value: { kind: picker.kind, category: picker.category } })),
+  }) as unknown as Calculator;
+const usageCalculators = [
+  calc('a', ['width * mdf18']),
+  calc('b', ['area / 2', 'mdf18.thickness * 2']),
+  calc('c', ['mdf180 + ply12']),
+  calc('d', ['sheet.mdf18']),
+  calc('e', ['sheets.price * area'], [{ kind: 'material', category: 'Sheets' }]),
+  calc('f', ['any.price * 2'], [{ kind: 'material', category: '' }]),
+  calc('g', ['crew.cost * hours'], [{ kind: 'labor', category: 'Rigging' }]),
+];
 const mdf = { variableName: 'mdf18', category: 'Sheets' };
 assertCheck(
-  'counts modules using an item by name (bare or property) or through a category-matching picker',
+  'counts calculators using an item by name (bare or property) or through a category-matching picker',
   // a, b by name; e (Sheets picker) and f (any-category picker). Not c (prefix) or d (as a property).
-  countModulesUsingCatalogItem(usageModules, mdf, 'material') === 4 &&
-    countModulesUsingCatalogItem(usageModules, { variableName: 'ply12', category: 'Boards' }, 'material') === 2 &&
-    countModulesUsingCatalogItem(usageModules, { variableName: 'rigger', category: 'Rigging' }, 'labor') === 1 &&
-    countModulesUsingCatalogItem(usageModules, { variableName: 'painter', category: 'Paint' }, 'labor') === 0,
-  String(countModulesUsingCatalogItem(usageModules, mdf, 'material'))
+  countCalculatorsUsingCatalogItem(usageCalculators, mdf, 'material') === 4 &&
+    countCalculatorsUsingCatalogItem(usageCalculators, { variableName: 'ply12', category: 'Boards' }, 'material') === 2 &&
+    countCalculatorsUsingCatalogItem(usageCalculators, { variableName: 'rigger', category: 'Rigging' }, 'labor') === 1 &&
+    countCalculatorsUsingCatalogItem(usageCalculators, { variableName: 'painter', category: 'Paint' }, 'labor') === 0,
+  String(countCalculatorsUsingCatalogItem(usageCalculators, mdf, 'material'))
 );
 
 const counts = countByCategory([{ category: 'Boards' }, { category: 'Paint' }, { category: 'Boards' }]);

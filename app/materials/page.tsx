@@ -6,9 +6,9 @@ import { CatalogPageShell } from '@/components/shared/catalog/CatalogPageShell';
 import { useCatalogListState } from '@/components/shared/catalog/useCatalogListState';
 import { MaterialEditorPanel } from '@/components/materials/MaterialEditorPanel';
 import { MaterialRow } from '@/components/materials/MaterialRow';
-import { countModulesUsingCatalogItem } from '@/lib/catalog/catalog-display';
+import { countCalculatorsUsingCatalogItem } from '@/lib/catalog/catalog-display';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
-import { useModulesStore } from '@/lib/stores/modules-store';
+import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { Material } from '@/lib/types';
 
 const MATERIAL_COLUMNS = [
@@ -25,7 +25,7 @@ export default function MaterialsPage() {
   const updateMaterial = useMaterialsStore((state) => state.updateMaterial);
   const reorderMaterials = useMaterialsStore((state) => state.reorderMaterials);
   const deleteMaterial = useMaterialsStore((state) => state.deleteMaterial);
-  const modules = useModulesStore((state) => state.modules);
+  const calculators = useCalculatorsStore((state) => state.calculators);
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export default function MaterialsPage() {
           onClose={closeEditor}
           onDelete={handleDelete}
           usageCount={
-            selectedMaterial ? countModulesUsingCatalogItem(modules, selectedMaterial, 'material') : 0
+            selectedMaterial ? countCalculatorsUsingCatalogItem(calculators, selectedMaterial, 'material') : 0
           }
         />
       }
