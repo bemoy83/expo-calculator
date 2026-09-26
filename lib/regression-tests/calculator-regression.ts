@@ -40,6 +40,7 @@ import { missingProperties, requiredProperties } from '../calculator/requirement
 import { fixPricePropertyStorage, normalizePropertyValue, priceFromBase, priceToBase, propertyValueInUnit } from '../catalog/prices';
 import { getMaterialValue } from '../formula/resolver';
 import { buildCalculatorLineItem, lineWouldChange, putLineItem, rebuildCalculatorLine } from '../quotes/calculator-line-item';
+import { copyName, duplicateLine, groupCalculatorsByCategory, insertLine, lineCalculatorName, lineTitle, moveLine, newCalculatorLine, removeLine } from '../quotes/workspace';
 import { roundMoney } from '../calculations/money';
 import { calculatorFromModule } from '../calculator/from-module';
 import { calculatorFromTemplate, calculatorsFromTemplates } from '../calculator/from-template';
@@ -1250,5 +1251,71 @@ assertCheck(
     close(withUnfinished.subtotal, kept!.cost) &&
       withUnfinished.lineItems.map((item) => item.id).join() === 'line-1,line-2' &&
       withUnfinished.lineItems[1].unfinished === 'Fill in Height'
+  );
+}
+
+// ---- Quote workspace: building the quote (W2) ----
+
+{
+  const money = (amount: number) => `${amount.toFixed(2)} kr`;
+  const fresh = newCalculatorLine({ calculator: wall, library, formatMoney: money, id: 'a', now: 'now' });
+  const filled = rebuildCalculatorLine({ line: fresh, calculator: wall, values: { ...wallValues }, library, formatMoney: money });
+  assertCheck(
+    'a calculator added to the quote starts as an unfinished card at its defaults',
+    fresh.id === 'a' && fresh.calculatorId === wall.id && fresh.cost === 0 && !!fresh.unfinished && !filled.unfinished,
+    JSON.stringify(fresh)
+  );
+
+  let quote: Quote = {
+    id: 'q', name: 'Q', lineItems: [], subtotal: 0, markupPercent: 0, markupAmount: 0, taxRate: 0.25, taxAmount: 0, total: 0,
+    createdAt: '', updatedAt: '',
+  };
+  quote = insertLine(quote, filled);
+  const first = duplicateLine(quote, 'a', 'b', 'later');
+  const second = duplicateLine(first.quote, 'a', 'c', 'later');
+  const third = duplicateLine(second.quote, 'b', 'd', 'later');
+  quote = third.quote;
+  assertCheck(
+    'duplicating copies the values after the cards from the same calculator, with the next free number',
+    quote.lineItems.map((line) => `${line.id}:${lineTitle(line)}`).join() ===
+      `a:Partition wall,b:Partition wall 2,c:Partition wall 3,d:Partition wall 4` &&
+      first.copy!.calculatorValues !== filled.calculatorValues &&
+      first.copy!.calculatorValues?.width === 4 &&
+      first.copy!.createdAt === 'later' &&
+      close(quote.subtotal, filled.cost * 4) &&
+      close(quote.total, filled.cost * 4 * 1.25),
+    JSON.stringify(quote.lineItems.map((line) => [line.id, line.nickname]))
+  );
+  assertCheck(
+    'names: numbered copies of a nickname, and the calculator named beside other nicknames',
+    copyName({ ...filled, nickname: 'North wall' }, []) === 'North wall 2' &&
+      copyName({ ...filled, nickname: 'Wall 2' }, [{ ...filled, nickname: 'Wall 3' }]) === 'Wall 4' &&
+      lineCalculatorName({ moduleName: 'Wood wall', nickname: 'North wall' }) === 'Wood wall' &&
+      lineCalculatorName({ moduleName: 'Wood wall', nickname: 'Wood wall 2' }) === undefined &&
+      lineCalculatorName({ moduleName: 'Wood wall' }) === undefined
+  );
+
+  const moved = moveLine(moveLine(quote, 'd', -1), 'a', -1);
+  const { quote: without, removed } = removeLine(moved, 'c');
+  const restored = insertLine(without, removed!.line, removed!.index);
+  assertCheck(
+    'cards move up and down, and a removed card can be put back where it was',
+    moved.lineItems.map((line) => line.id).join() === 'a,b,d,c' &&
+      moveLine(moved, 'a', -1) === moved &&
+      without.lineItems.map((line) => line.id).join() === 'a,b,d' &&
+      close(without.subtotal, filled.cost * 3) &&
+      restored.lineItems.map((line) => line.id).join() === 'a,b,d,c' &&
+      close(restored.subtotal, filled.cost * 4)
+  );
+
+  const grouped = groupCalculatorsByCategory([
+    { ...wall, id: '1', name: 'Wood wall', category: 'Walls' },
+    { ...wall, id: '2', name: 'Flooring', category: '' },
+    { ...wall, id: '3', name: 'Brick wall', category: 'Walls' },
+  ]);
+  assertCheck(
+    'the calculator picker groups by category, alphabetically, with uncategorised last',
+    grouped.map((group) => `${group.category}:${group.items.map((item) => item.name).join('+')}`).join('|') ===
+      'Walls:Brick wall+Wood wall|Other:Flooring'
   );
 }

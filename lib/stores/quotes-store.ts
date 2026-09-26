@@ -6,8 +6,9 @@ import { calculateQuoteTotals, roundMoney, roundRate } from '../calculations/mon
 import { putLineItem } from '../quotes/calculator-line-item';
 import { DEFAULT_QUOTE_NAME, stashQuote } from '../quotes/quote-board';
 import { notify } from './notifications-store';
+import { duplicateLine, insertLine, moveLine, removeLine } from '../quotes/workspace';
 
-export type SendToQuoteTarget = { quoteId: string; replaceLineItemId?: string } | { newQuoteName: string };
+export type SendToQuoteTarget = { quoteId: string } | { newQuoteName: string };
 
 /**
  * Quotes: saved quotes plus the one open on the quote page. Lines come from calculators
@@ -26,9 +27,15 @@ interface QuotesStore {
    * puts it in place of an existing line. Returns the quote, or null if it no longer exists.
    */
   sendToQuote: (target: SendToQuoteTarget, lineItem: QuoteLineItem) => Quote | null;
-  removeLineItem: (lineItemId: string) => void;
+  /** Removes a line of the open quote, returning it and where it was (for Undo). */
+  removeLineItem: (lineItemId: string) => { line: QuoteLineItem; index: number } | undefined;
   /** Replaces a line of the open quote (a card edited in place) and works out the totals. */
   updateLineItem: (lineItem: QuoteLineItem) => void;
+  /** Puts a line into the open quote at `index` (the end when left out). */
+  insertLineItem: (lineItem: QuoteLineItem, index?: number) => void;
+  /** Copies a line of the open quote, with the next numbered name, right after it; returns the copy's id. */
+  duplicateLineItem: (lineItemId: string) => string | undefined;
+  moveLineItem: (lineItemId: string, direction: -1 | 1) => void;
   recalculateQuote: () => void;
   setTaxRate: (rate: number) => void;
   setMarkupPercent: (percent: number) => void;
@@ -117,13 +124,13 @@ export const useQuotesStore = create<QuotesStore>()(
         }
         // The open quote is the live copy; keep the saved list in step with it.
         if (currentQuote?.id === target.quoteId) {
-          const quote = putLineItem(currentQuote, lineItem, target.replaceLineItemId);
+          const quote = putLineItem(currentQuote, lineItem);
           set({ currentQuote: quote, quotes: stashQuote(quotes, quote) });
           return quote;
         }
         const saved = quotes.find((quote) => quote.id === target.quoteId);
         if (!saved) return null;
-        const quote = putLineItem(saved, lineItem, target.replaceLineItemId);
+        const quote = putLineItem(saved, lineItem);
         set({ quotes: quotes.map((candidate) => (candidate.id === quote.id ? quote : candidate)) });
         return quote;
       },
@@ -136,17 +143,30 @@ export const useQuotesStore = create<QuotesStore>()(
 
       removeLineItem: (lineItemId) => {
         const current = get().currentQuote;
+        if (!current) return undefined;
+        const { quote, removed } = removeLine(current, lineItemId);
+        set({ currentQuote: quote });
+        return removed;
+      },
+
+      insertLineItem: (lineItem, index) => {
+        const current = get().currentQuote;
         if (!current) return;
+        set({ currentQuote: insertLine(current, lineItem, index) });
+      },
 
-        set({
-          currentQuote: {
-            ...current,
-            lineItems: current.lineItems.filter((item) => item.id !== lineItemId),
-            updatedAt: new Date().toISOString(),
-          },
-        });
+      duplicateLineItem: (lineItemId) => {
+        const current = get().currentQuote;
+        if (!current) return undefined;
+        const { quote, copy } = duplicateLine(current, lineItemId, generateId(), new Date().toISOString());
+        set({ currentQuote: quote });
+        return copy?.id;
+      },
 
-        get().recalculateQuote();
+      moveLineItem: (lineItemId, direction) => {
+        const current = get().currentQuote;
+        if (!current) return;
+        set({ currentQuote: moveLine(current, lineItemId, direction) });
       },
 
       // Recalculate quote totals from the line items.

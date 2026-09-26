@@ -39,6 +39,15 @@ function HostedNotification({ notification }: { notification: AppNotification })
         variant={notification.variant}
         onDismiss={() => dismiss(id)}
         showDismissButton
+        action={
+          notification.action && {
+            label: notification.action.label,
+            onClick: () => {
+              notification.action!.onClick();
+              dismiss(id);
+            },
+          }
+        }
       />
     </div>
   );

@@ -25,7 +25,6 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
   const router = useRouter();
   const useOnly = useUseOnlyMode();
   const [sending, setSending] = useState(false);
-  const origin = useCalculatorSessionStore((state) => state.origins[calculator.id]);
 
   const result = useMemo(() => evaluateCalculator(calculator, values, library), [calculator, values, library]);
   const hasValues = Object.values(values).some((value) => value !== undefined);
@@ -79,11 +78,6 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
           </Button>
         </div>
       </div>
-      {origin && (
-        <p className="-mt-2 mb-4 text-xs text-ink-muted">
-          Opened from a quote line: change what you need, then Send to quote to update it.
-        </p>
-      )}
 
       <SendToQuoteDialog
         isOpen={sending}

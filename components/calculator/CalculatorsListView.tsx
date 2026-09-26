@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/shared/EmptyState';
 import type { Calculator } from '@/lib/calculator/types';
 import { formatPackDate } from '@/lib/calculator/format';
+import { groupCalculatorsByCategory } from '@/lib/quotes/workspace';
 import { useDeviceStore } from '@/lib/stores/device-store';
 import { useUseOnlyMode } from '@/hooks/use-device';
 
@@ -15,24 +16,9 @@ function pluralize(count: number, singular: string) {
   return `${count} ${count === 1 ? singular : `${singular}s`}`;
 }
 
-// Calculators grouped by category, alphabetically, with uncategorised ones last.
-function groupByCategory(calculators: Calculator[]) {
-  const groups = new Map<string, Calculator[]>();
-  for (const calculator of calculators) {
-    const category = calculator.category?.trim() || '';
-    groups.set(category, [...(groups.get(category) ?? []), calculator]);
-  }
-  return [...groups.entries()]
-    .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
-    .map(([category, items]) => ({
-      category: category || 'Other',
-      items: [...items].sort((a, b) => a.name.localeCompare(b.name)),
-    }));
-}
-
 export function CalculatorsListView({ calculators }: { calculators: Calculator[] }) {
   const router = useRouter();
-  const groups = groupByCategory(calculators);
+  const groups = groupCalculatorsByCategory(calculators);
   const newCalculator = () => router.push('/calculator/edit');
   const useOnly = useUseOnlyMode();
   const loadedPack = useDeviceStore((state) => state.loadedPack);

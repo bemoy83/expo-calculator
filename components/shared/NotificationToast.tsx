@@ -17,6 +17,8 @@ interface NotificationToastCardProps {
   variant?: NotificationVariant;
   onDismiss?: () => void;
   showDismissButton?: boolean;
+  /** A button such as Undo. */
+  action?: { label: string; onClick: () => void };
 }
 
 const variantConfig = {
@@ -31,6 +33,7 @@ export function NotificationToastCard({
   variant = 'success',
   onDismiss,
   showDismissButton = false,
+  action,
 }: NotificationToastCardProps) {
   const config = variantConfig[variant];
   const Icon = config.icon;
@@ -44,6 +47,15 @@ export function NotificationToastCard({
     >
       <Icon className={cn('h-4 w-4 mt-0.5 shrink-0', config.iconClass)} aria-hidden="true" />
       <p className="text-sm text-ink whitespace-pre-line">{message}</p>
+      {action && (
+        <button
+          type="button"
+          onClick={action.onClick}
+          className="shrink-0 -my-0.5 px-1.5 py-0.5 rounded text-sm font-semibold text-action hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+        >
+          {action.label}
+        </button>
+      )}
       {showDismissButton && onDismiss && (
         <button
           type="button"

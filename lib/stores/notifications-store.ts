@@ -9,12 +9,20 @@ export interface AppNotification {
   variant: NotificationVariant;
   /** Milliseconds before auto-dismiss; 0 keeps it until dismissed. */
   autoHideDuration: number;
+  /** A button on the message, such as Undo; using it dismisses the message. */
+  action?: NotificationAction;
+}
+
+export interface NotificationAction {
+  label: string;
+  onClick: () => void;
 }
 
 interface NotifyInput {
   message: string;
   variant?: NotificationVariant;
   autoHideDuration?: number;
+  action?: NotificationAction;
 }
 
 interface NotificationsStore {
@@ -34,12 +42,12 @@ const MAX_VISIBLE = 4;
 
 export const useNotificationsStore = create<NotificationsStore>()((set) => ({
   notifications: [],
-  notify: ({ message, variant = 'info', autoHideDuration }) => {
+  notify: ({ message, variant = 'info', autoHideDuration, action }) => {
     const id = generateId();
     set((state) => ({
       notifications: [
         ...state.notifications,
-        { id, message, variant, autoHideDuration: autoHideDuration ?? DEFAULT_DURATION[variant] },
+        { id, message, variant, autoHideDuration: autoHideDuration ?? DEFAULT_DURATION[variant], action },
       ].slice(-MAX_VISIBLE),
     }));
     return id;

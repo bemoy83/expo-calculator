@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ChevronRight, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronRight, Copy, RefreshCw, Trash2 } from 'lucide-react';
 import { CalculatorForm, useLayoutContext } from '@/components/calculator/CalculatorForm';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
 import type { Calculator, CalculatorLibrary, CalculatorValue, CalculatorValues } from '@/lib/calculator/types';
 import { formatInstanceLabel } from '@/lib/quotes/nickname';
+import { lineCalculatorName, lineTitle } from '@/lib/quotes/workspace';
 import { lineWouldChange, rebuildCalculatorLine } from '@/lib/quotes/calculator-line-item';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import type { QuoteLineItem } from '@/lib/types';
@@ -21,6 +23,11 @@ interface QuoteLineCardProps {
   onToggle: () => void;
   onChange: (line: QuoteLineItem) => void;
   onRemove: () => void;
+  /** Left out for cards that can't be copied (their calculator is gone). */
+  onDuplicate?: () => void;
+  onMove: (direction: -1 | 1) => void;
+  isFirst: boolean;
+  isLast: boolean;
 }
 
 // A quote line as a card: closed, one line with its name, summary and cost; open, its
@@ -39,19 +46,27 @@ function CardShell({
   line,
   open,
   onToggle,
+  onChange,
   onRemove,
+  onDuplicate,
+  onMove,
+  isFirst,
+  isLast,
   summary,
   notice,
   children,
-}: Pick<QuoteLineCardProps, 'line' | 'open' | 'onToggle' | 'onRemove'> & {
+}: Omit<QuoteLineCardProps, 'calculator' | 'library'> & {
   summary?: string;
   notice?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const formatMoney = useCurrencyStore((state) => state.formatCurrency);
   const name = formatInstanceLabel(line.moduleName, line.nickname);
+  const title = lineTitle(line);
+  const calculatorName = lineCalculatorName(line);
   return (
     <section
+      id={`quote-line-${line.id}`}
       aria-label={name}
       className={cn('rounded-[10px] border bg-surface', line.unfinished ? 'border-draft-border' : 'border-border')}
     >
@@ -67,8 +82,8 @@ function CardShell({
         />
         <span className="flex-1 min-w-0">
           <span className="block text-sm font-semibold text-ink break-words">
-            {line.moduleName}
-            {line.nickname && <span className="font-normal text-ink-muted"> · {line.nickname}</span>}
+            {title}
+            {calculatorName && <span className="font-normal text-ink-muted"> · {calculatorName}</span>}
           </span>
           {line.unfinished ? (
             <span className="block text-xs text-draft">{line.unfinished}</span>
@@ -87,8 +102,28 @@ function CardShell({
       {notice}
       {open && (
         <div className="px-4 pb-4 pt-1 space-y-3">
+          <div className="max-w-xs">
+            <Input
+              label="Name on the quote"
+              value={line.nickname ?? ''}
+              placeholder={line.moduleName}
+              onChange={(event) => onChange({ ...line, nickname: event.target.value || undefined })}
+            />
+          </div>
           {children}
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-1.5 pt-1">
+            {onDuplicate && (
+              <Button variant="secondary" size="sm" onClick={onDuplicate} aria-label={`Duplicate ${name}`}>
+                <Copy className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                Duplicate
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => onMove(-1)} disabled={isFirst} aria-label={`Move ${name} up`}>
+              <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => onMove(1)} disabled={isLast} aria-label={`Move ${name} down`}>
+              <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={onRemove} aria-label={`Remove ${name} from the quote`}>
               <Trash2 className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
               Remove
@@ -100,15 +135,8 @@ function CardShell({
   );
 }
 
-function EditableLineCard({
-  line,
-  calculator,
-  library,
-  open,
-  onToggle,
-  onChange,
-  onRemove,
-}: QuoteLineCardProps & { calculator: Calculator }) {
+function EditableLineCard({ calculator, library, ...props }: QuoteLineCardProps & { calculator: Calculator }) {
+  const { line, onChange } = props;
   const formatMoney = useCurrencyStore((state) => state.formatCurrency);
   const values: CalculatorValues = useMemo(() => line.calculatorValues ?? {}, [line.calculatorValues]);
   const result = useMemo(() => evaluateCalculator(calculator, values, library), [calculator, values, library]);
@@ -147,29 +175,17 @@ function EditableLineCard({
   ) : undefined;
 
   return (
-    <CardShell
-      line={line}
-      open={open}
-      onToggle={onToggle}
-      onRemove={onRemove}
-      summary={line.primarySummary || line.secondarySummary || line.fieldSummary}
-      notice={notice}
-    >
+    <CardShell {...props} summary={line.primarySummary || line.secondarySummary || line.fieldSummary} notice={notice}>
       <CalculatorForm context={context} variant="card" />
     </CardShell>
   );
 }
 
-function ReadOnlyLineCard({ line, open, onToggle, onRemove }: QuoteLineCardProps) {
+function ReadOnlyLineCard({ calculator: _calculator, library: _library, onDuplicate: _onDuplicate, ...props }: QuoteLineCardProps) {
+  const { line } = props;
   const details = line.details ?? [];
   return (
-    <CardShell
-      line={line}
-      open={open}
-      onToggle={onToggle}
-      onRemove={onRemove}
-      summary={line.primarySummary || line.secondarySummary || line.fieldSummary}
-    >
+    <CardShell {...props} summary={line.primarySummary || line.secondarySummary || line.fieldSummary}>
       <p className="text-xs text-ink-muted">
         {line.calculatorId
           ? "This line's calculator no longer exists, so it can't be changed; it keeps what it had."

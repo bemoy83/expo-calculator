@@ -864,3 +864,27 @@ Each step is tested, shown, and committed on `quote-workspace` after review.
   height made it unfinished (counted 0, noted); changing the calculator's formula left the
   line at its kept cost with "Worked out now" and Update, which applied it; deleting the
   calculator left a read-only card.
+
+**W2 — Building the quote** (`lib/quotes/workspace.ts`, `AddCalculatorDialog.tsx`, the
+quotes store, `QuoteLineCard.tsx`, `QuoteView.tsx`):
+- **Add calculator** (quote header, below the cards, and the empty state) opens a picker
+  by category with search (Enter picks a single match); the calculator is added as a new
+  card at its defaults (`newCalculatorLine`: unfinished until it calculates), opened and
+  scrolled into view.
+- **Duplicate** copies a card's values with the next free numbered name ("Wood wall 2", a
+  nickname "Wall 2" → "Wall 3", skipping names in use; `copyName`) and puts the copy after
+  the run of cards from the same calculator, so duplicating Wall 1 twice gives 1, 2, 3.
+- A card's title is its nickname, else its calculator's name; the calculator's name shows
+  beside a nickname that doesn't start with it ("Gable end · Wood wall"). Open cards have a
+  "Name on the quote" field, move up/down, and Remove, which says "Removed …" with Undo
+  (notifications can now carry an action) and puts the card back where it was.
+- "Close all" above the cards when any is open.
+- The calculator page's Edit round trip is gone (session-store origins, "Update the line it
+  was opened from", "Opened from a quote line"); Send to quote only adds.
+- Store: `insertLineItem`, `duplicateLineItem`, `moveLineItem`, and `removeLineItem`
+  returning what it removed; each works out the totals (`insertLine`, `duplicateLine`,
+  `moveLine`, `removeLine`).
+- Checked in the browser on an empty origin with two test calculators: added Wood wall from
+  the picker by typing and Enter, filled it, duplicated it twice (Wood wall 2 and 3 in
+  order, open), changed Wood wall 2, added Flooring, and the total came to the sum; removed
+  Wood wall 3 and Undo put it back in place; moved Flooring up, renamed a card, Close all.

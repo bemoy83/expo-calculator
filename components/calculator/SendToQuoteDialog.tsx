@@ -2,23 +2,20 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ModalDialog } from '@/components/shared/ModalDialog';
 import type { CalculatorLibrary, CalculatorResult, CalculatorValues, Calculator } from '@/lib/calculator/types';
 import { buildCalculatorLineItem } from '@/lib/quotes/calculator-line-item';
 import { DEFAULT_QUOTE_NAME, getBoardQuotes } from '@/lib/quotes/quote-board';
-import { useCalculatorSessionStore } from '@/lib/stores/calculator-session-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { notify } from '@/lib/stores/notifications-store';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
 
 const NEW_QUOTE = 'new';
 
-// Adds the calculator's result to a quote as a line: an existing quote or a new one, with an
-// optional label (e.g. "North wall"). Opened from a quote line with Edit, it offers to update
-// that line instead of adding another.
+// Adds the calculator's result to a quote as a line (a card there): an existing quote or a
+// new one, with an optional label (e.g. "North wall").
 export function SendToQuoteDialog({
   isOpen,
   onClose,
@@ -38,30 +35,23 @@ export function SendToQuoteDialog({
   const savedQuotes = useQuotesStore((state) => state.quotes);
   const currentQuote = useQuotesStore((state) => state.currentQuote);
   const sendToQuote = useQuotesStore((state) => state.sendToQuote);
-  const origin = useCalculatorSessionStore((state) => state.origins[calculator.id]);
-  const clearOrigin = useCalculatorSessionStore((state) => state.clearOrigin);
 
   const quotes = useMemo(() => getBoardQuotes(savedQuotes, currentQuote), [savedQuotes, currentQuote]);
-  const originQuote = origin ? quotes.find((quote) => quote.id === origin.quoteId) : undefined;
-  const originLine = originQuote?.lineItems.find((item) => item.id === origin?.lineItemId);
 
   const [target, setTarget] = useState(NEW_QUOTE);
   const [newName, setNewName] = useState('');
   const [nickname, setNickname] = useState('');
-  const [replace, setReplace] = useState(true);
 
-  // Start each time from the line it was opened from, else the most recently edited quote.
+  // Start each time from the most recently edited quote.
   useEffect(() => {
     if (!isOpen) return;
-    setTarget(originQuote?.id ?? quotes[0]?.id ?? NEW_QUOTE);
+    setTarget(quotes[0]?.id ?? NEW_QUOTE);
     setNewName(DEFAULT_QUOTE_NAME);
-    setNickname(originLine?.nickname ?? '');
-    setReplace(true);
+    setNickname('');
     // Only when it opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  const replacing = !!originLine && target === originQuote?.id && replace;
   const cost = result.quoteCost;
 
   const send = () => {
@@ -71,19 +61,16 @@ export function SendToQuoteDialog({
       return;
     }
     const quote = sendToQuote(
-      target === NEW_QUOTE
-        ? { newQuoteName: newName }
-        : { quoteId: target, replaceLineItemId: replacing ? originLine!.id : undefined },
+      target === NEW_QUOTE ? { newQuoteName: newName } : { quoteId: target },
       outcome.lineItem
     );
     if (!quote) {
       notify({ variant: 'error', message: 'That quote no longer exists.' });
       return;
     }
-    clearOrigin(calculator.id);
     notify({
       variant: 'success',
-      message: `${replacing ? 'Updated' : 'Added'} ${calculator.name} (${formatMoney(outcome.lineItem.cost)}) ${replacing ? 'in' : 'to'} “${quote.name}”.`,
+      message: `Added ${calculator.name} (${formatMoney(outcome.lineItem.cost)}) to “${quote.name}”.`,
     });
     onClose();
   };
@@ -115,13 +102,6 @@ export function SendToQuoteDialog({
         {target === NEW_QUOTE && (
           <Input label="Name of the new quote" value={newName} onChange={(event) => setNewName(event.target.value)} />
         )}
-        {originLine && target === originQuote?.id && (
-          <Checkbox
-            label={`Update the line it was opened from (${formatMoney(originLine.cost)}) instead of adding another`}
-            checked={replace}
-            onChange={(event) => setReplace(event.target.checked)}
-          />
-        )}
         <Input
           label="Label (optional)"
           value={nickname}
@@ -134,7 +114,7 @@ export function SendToQuoteDialog({
             Cancel
           </Button>
           <Button type="submit" size="sm" disabled={cost === undefined}>
-            {replacing ? 'Update line' : 'Add to quote'}
+            Add to quote
           </Button>
         </div>
       </form>

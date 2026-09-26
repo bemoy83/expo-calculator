@@ -1,14 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Calculator as CalculatorIcon, Download, Save } from 'lucide-react';
+import { ChevronsDownUp, Download, Plus, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { AddCalculatorDialog } from '@/components/quotes/AddCalculatorDialog';
 import { QuoteLineCard } from '@/components/quotes/QuoteLineCard';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
 import { useCalculatorLibrary, useCalculators } from '@/hooks/use-calculators';
 import { downloadQuoteJson, printQuote } from '@/lib/quotes/export';
 import { formatEditedAt } from '@/lib/quotes/quote-board';
+import { lineTitle, newCalculatorLine } from '@/lib/quotes/workspace';
+import type { Calculator } from '@/lib/calculator/types';
+import { generateId } from '@/lib/utils';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { notify } from '@/lib/stores/notifications-store';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
@@ -19,7 +22,6 @@ type RateForm = { taxRate: number; markupPercent: number };
 // A quote as a workspace: its lines are calculator cards, filled in and changed in place,
 // beside the quote sheet with markup, VAT, the total, and export.
 export function QuoteView({ quote }: { quote: Quote }) {
-  const router = useRouter();
   const calculators = useCalculators();
   const library = useCalculatorLibrary();
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
@@ -29,6 +31,10 @@ export function QuoteView({ quote }: { quote: Quote }) {
   const removeLineItem = useQuotesStore((state) => state.removeLineItem);
   const saveQuote = useQuotesStore((state) => state.saveQuote);
   const updateLineItem = useQuotesStore((state) => state.updateLineItem);
+  const insertLineItem = useQuotesStore((state) => state.insertLineItem);
+  const duplicateLineItem = useQuotesStore((state) => state.duplicateLineItem);
+  const moveLineItem = useQuotesStore((state) => state.moveLineItem);
+  const [adding, setAdding] = useState(false);
   const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
   const toggle = (id: string) =>
     setOpenIds((current) => {
@@ -37,6 +43,33 @@ export function QuoteView({ quote }: { quote: Quote }) {
       else next.add(id);
       return next;
     });
+  // New and duplicated cards open, and come into view.
+  const openAndShow = (id: string) => {
+    setOpenIds((current) => new Set(current).add(id));
+    requestAnimationFrame(() =>
+      document.getElementById(`quote-line-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    );
+  };
+
+  const addCalculator = (calculator: Calculator) => {
+    const line = newCalculatorLine({ calculator, library, formatMoney: formatCurrency, id: generateId(), now: new Date().toISOString() });
+    insertLineItem(line);
+    setAdding(false);
+    openAndShow(line.id);
+  };
+  const duplicate = (id: string) => {
+    const copyId = duplicateLineItem(id);
+    if (copyId) openAndShow(copyId);
+  };
+  const remove = (id: string) => {
+    const removed = removeLineItem(id);
+    if (!removed) return;
+    notify({
+      message: `Removed “${lineTitle(removed.line)}”.`,
+      autoHideDuration: 8000,
+      action: { label: 'Undo', onClick: () => insertLineItem(removed.line, removed.index) },
+    });
+  };
 
   // Rates as typed (percent), so typing isn't reformatted.
   const [rates, setRates] = useState<RateForm>({ taxRate: quote.taxRate * 100, markupPercent: quote.markupPercent });
@@ -84,31 +117,55 @@ export function QuoteView({ quote }: { quote: Quote }) {
             <Save className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
             Save quote
           </Button>
-          <Button size="sm" onClick={() => router.push('/')}>
-            <CalculatorIcon className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-            Add from a calculator
+          <Button size="sm" onClick={() => setAdding(true)}>
+            <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+            Add calculator
           </Button>
         </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
         <div className="space-y-3 min-w-0">
-          {quote.lineItems.map((item) => (
-            <QuoteLineCard
-              key={item.id}
-              line={item}
-              calculator={calculatorOf(item)}
-              library={library}
-              open={openIds.has(item.id)}
-              onToggle={() => toggle(item.id)}
-              onChange={updateLineItem}
-              onRemove={() => removeLineItem(item.id)}
-            />
-          ))}
-          {itemCount === 0 && (
-            <p className="rounded-[10px] border border-dashed border-border-strong px-4 py-10 text-center text-sm text-ink-muted">
-              No lines yet. Open a calculator, fill it in, and use Send to quote.
-            </p>
+          {openIds.size > 0 && (
+            <div className="flex justify-end -mb-1">
+              <Button variant="ghost" size="sm" onClick={() => setOpenIds(new Set())}>
+                <ChevronsDownUp className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                Close all
+              </Button>
+            </div>
+          )}
+          {quote.lineItems.map((item, index) => {
+            const calculator = calculatorOf(item);
+            return (
+              <QuoteLineCard
+                key={item.id}
+                line={item}
+                calculator={calculator}
+                library={library}
+                open={openIds.has(item.id)}
+                onToggle={() => toggle(item.id)}
+                onChange={updateLineItem}
+                onRemove={() => remove(item.id)}
+                onDuplicate={calculator ? () => duplicate(item.id) : undefined}
+                onMove={(direction) => moveLineItem(item.id, direction)}
+                isFirst={index === 0}
+                isLast={index === itemCount - 1}
+              />
+            );
+          })}
+          {itemCount === 0 ? (
+            <div className="rounded-[10px] border border-dashed border-border-strong px-4 py-10 text-center">
+              <p className="text-sm text-ink-muted">No lines yet. Add a calculator, fill it in, and duplicate it for each wall, room or part.</p>
+              <Button size="sm" className="mt-3" onClick={() => setAdding(true)}>
+                <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                Add calculator
+              </Button>
+            </div>
+          ) : (
+            <Button variant="secondary" size="sm" onClick={() => setAdding(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              Add calculator
+            </Button>
           )}
         </div>
         <QuoteSummaryCard
@@ -119,11 +176,12 @@ export function QuoteView({ quote }: { quote: Quote }) {
             if (updates.taxRate !== undefined) setTaxRate(updates.taxRate / 100);
             if (updates.markupPercent !== undefined) setMarkupPercent(updates.markupPercent);
           }}
-          removeLineItem={removeLineItem}
-          emptyMessage="No lines yet. Open a calculator, fill it in, and use Send to quote."
+          removeLineItem={remove}
+          emptyMessage="No lines yet."
           onExport={() => printQuote(quote, formatCurrency)}
         />
       </div>
+      <AddCalculatorDialog isOpen={adding} onClose={() => setAdding(false)} calculators={calculators} onPick={addCalculator} />
     </>
   );
 }

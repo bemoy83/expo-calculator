@@ -3,8 +3,9 @@
 import React from "react";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Quote, QuoteLineItem } from "@/lib/types";
+import { Quote } from "@/lib/types";
 import { formatInstanceLabel } from "@/lib/quotes/nickname";
+import { lineCalculatorName, lineTitle } from "@/lib/quotes/workspace";
 import { useCurrencyStore } from "@/lib/stores/currency-store";
 import { normalizeNumberInput } from '@/components/ui/Input';
 import { shownNumberText } from '@/lib/utils';
@@ -17,9 +18,6 @@ interface QuoteSummaryCardProps {
   formData: RateFormData;
   onFormDataChange: (updates: Partial<RateFormData>) => void;
   removeLineItem: (id: string) => void;
-  /** Opens a calculator line in its calculator with its values. */
-  editLineItem?: (item: QuoteLineItem) => void;
-  canEditLineItem?: (item: QuoteLineItem) => boolean;
   /** Shown when there are no line items. */
   emptyMessage?: string;
   onExport: () => void;
@@ -34,8 +32,6 @@ export function QuoteSummaryCard({
   formData,
   onFormDataChange,
   removeLineItem,
-  editLineItem,
-  canEditLineItem,
   emptyMessage = "No lines yet. Open a calculator, fill it in, and use Send to quote.",
   onExport,
 }: QuoteSummaryCardProps) {
@@ -68,9 +64,9 @@ export function QuoteSummaryCard({
             >
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-ink break-words">
-                  {item.moduleName}
-                  {item.nickname && (
-                    <span className="text-[11.5px] font-normal font-numeric text-ink-muted"> · {item.nickname}</span>
+                  {lineTitle(item)}
+                  {lineCalculatorName(item) && (
+                    <span className="text-[11.5px] font-normal text-ink-muted"> · {lineCalculatorName(item)}</span>
                   )}
                 </p>
                 {item.primarySummary && (
@@ -87,24 +83,6 @@ export function QuoteSummaryCard({
                   <p className="text-sm font-medium font-numeric text-ink">{formatCurrency(item.cost)}</p>
                 )}
                 <div className="flex gap-2 justify-end mt-1">
-                  {editLineItem && (
-                    <button
-                      type="button"
-                      onClick={() => editLineItem(item)}
-                      disabled={canEditLineItem ? !canEditLineItem(item) : false}
-                      className="row-action transition-opacity rounded px-0.5 text-[11px] font-medium text-action hover:underline disabled:text-ink-faint disabled:no-underline disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-                      title={
-                        canEditLineItem && !canEditLineItem(item)
-                          ? item.calculatorId
-                            ? "This line's calculator no longer exists"
-                            : 'Lines from the old quote builder can’t be edited'
-                          : 'Open in its calculator with these values'
-                      }
-                      aria-label={`Edit line item in its calculator: ${itemName}`}
-                    >
-                      Edit
-                    </button>
-                  )}
                   <button
                     type="button"
                     onClick={() => removeLineItem(item.id)}
