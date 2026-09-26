@@ -1,3 +1,6 @@
+import { getFunctionParamKinds } from '../functions/param-kinds';
+import type { FunctionParamKind, SharedFunction } from '../types';
+import { getUnitCategory } from '../units';
 import { labelToVariableName } from '../utils';
 import { rewriteExpression } from './dependencies';
 import type {
@@ -237,6 +240,71 @@ export function updateStep(calculator: Calculator, updated: CalculatorStep): Cal
   if (!previous) return calculator;
   const renamed = renameKeyReferences(calculator, previous.key, updated.key);
   return { ...renamed, steps: renamed.steps.map((step) => (step.id === updated.id ? updated : step)) };
+}
+
+function inputFits(input: CalculatorInput, kind: FunctionParamKind): boolean {
+  switch (kind) {
+    case 'number':
+      return input.value.kind === 'number' || input.value.kind === 'choice';
+    default:
+      return input.value.kind === kind;
+  }
+}
+
+function inputFromParameter(param: SharedFunction['parameters'][number], kind: FunctionParamKind, key: string, id: string): CalculatorInput {
+  const value: InputValueSpec =
+    kind === 'number'
+      ? {
+          kind: 'number',
+          unitCategory: param.unitCategory ?? (param.unitSymbol ? getUnitCategory(param.unitSymbol) : undefined),
+          unitSymbol: param.unitSymbol || undefined,
+        }
+      : { kind };
+  return { id, key, label: param.label || param.name, value, widget: defaultWidget(kind) };
+}
+
+/**
+ * Gives each parameter of a call step that has no value yet the input of the same name, or
+ * else the result of that name, or else a new input made from the parameter (its label,
+ * unit and kind), so a function's `width` and `height` become the calculator's inputs once.
+ */
+export function bindCallParameters(
+  calculator: Calculator,
+  stepId: string,
+  functions: SharedFunction[],
+  createId: CreateId
+): { calculator: Calculator; created: CalculatorInput[] } {
+  const step = calculator.steps.find((candidate) => candidate.id === stepId);
+  if (!step || step.source.type !== 'call') return { calculator, created: [] };
+  const source = step.source;
+  const fn = functions.find((candidate) => candidate.name === source.functionName);
+  if (!fn) return { calculator, created: [] };
+  const kinds = getFunctionParamKinds(fn);
+  let next = calculator;
+  const args = { ...source.args };
+  const created: CalculatorInput[] = [];
+  for (const param of fn.parameters) {
+    if (!param.name || args[param.name]) continue;
+    const kind = kinds[param.name] ?? 'number';
+    const input = next.inputs.find((candidate) => candidate.key === param.name);
+    if (input && inputFits(input, kind)) {
+      args[param.name] = { type: 'input', key: input.key };
+      continue;
+    }
+    const result = kind === 'number' && next.steps.find((candidate) => candidate.key === param.name && candidate.id !== stepId);
+    if (result) {
+      args[param.name] = { type: 'step', key: result.key };
+      continue;
+    }
+    const newInput = inputFromParameter(param, kind, suggestKey(next, param.name, undefined, 'value'), createId());
+    next = addInput(next, newInput, createId);
+    created.push(newInput);
+    args[param.name] = { type: 'input', key: newInput.key };
+  }
+  return {
+    calculator: { ...next, steps: next.steps.map((candidate) => (candidate.id === stepId ? { ...step, source: { ...source, args } } : candidate)) },
+    created,
+  };
 }
 
 /** Removes a step, its place in the layout, and its role as a part's cost. */

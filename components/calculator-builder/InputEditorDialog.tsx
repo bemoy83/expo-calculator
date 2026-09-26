@@ -58,7 +58,8 @@ function draftFrom(
   calculator: Calculator,
   suggestedKey?: string,
   suggestedKind?: InputKind,
-  suggestedLabel?: string
+  suggestedLabel?: string,
+  suggestedUnitSymbol?: string
 ): Draft {
   if (!input) {
     const key = suggestedKey ?? '';
@@ -67,7 +68,7 @@ function draftFrom(
       key,
       keyTouched: !!suggestedKey,
       kind: suggestedKind ?? 'number',
-      unitSymbol: '',
+      unitSymbol: suggestedUnitSymbol ?? '',
       defaultValue: '',
       defaultOn: false,
       min: '',
@@ -118,6 +119,8 @@ interface InputEditorDialogProps {
   suggestedKind?: InputKind;
   /** For a new input: its label. */
   suggestedLabel?: string;
+  /** For a new input: its unit. */
+  suggestedUnitSymbol?: string;
   library: CalculatorLibrary;
   onSave: (input: CalculatorInput) => void;
   onDelete?: (input: CalculatorInput) => void;
@@ -134,22 +137,23 @@ export function InputEditorDialog({
   suggestedKey,
   suggestedKind,
   suggestedLabel,
+  suggestedUnitSymbol,
   library,
   onSave,
   onDelete,
   onClose,
 }: InputEditorDialogProps) {
-  const [draft, setDraft] = useState<Draft>(() => draftFrom(input, calculator, suggestedKey, suggestedKind, suggestedLabel));
+  const [draft, setDraft] = useState<Draft>(() => draftFrom(input, calculator, suggestedKey, suggestedKind, suggestedLabel, suggestedUnitSymbol));
   const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setDraft(draftFrom(input, calculator, suggestedKey, suggestedKind, suggestedLabel));
+      setDraft(draftFrom(input, calculator, suggestedKey, suggestedKind, suggestedLabel, suggestedUnitSymbol));
       setShowErrors(false);
     }
     // Reset only when the dialog opens for another input.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, input?.id, suggestedKey, suggestedKind, suggestedLabel]);
+  }, [isOpen, input?.id, suggestedKey, suggestedKind, suggestedLabel, suggestedUnitSymbol]);
 
   const set = (patch: Partial<Draft>) => setDraft((current) => ({ ...current, ...patch }));
 

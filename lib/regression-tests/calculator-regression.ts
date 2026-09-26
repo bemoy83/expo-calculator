@@ -5,6 +5,7 @@ import {
   addPart,
   addSection,
   addStep,
+  bindCallParameters,
   conditionInputs,
   defaultCondition,
   findLayoutItem,
@@ -1087,5 +1088,77 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
       replaced.lineItems[0].id === 'line-1' &&
       close(replaced.subtotal, 100) &&
       appended.lineItems.length === 2
+  );
+}
+
+// ---- Inputs from function parameters ----
+
+{
+  const area = {
+    ...fn('area_of', ['width', 'height', 'board'], 'width * height * board.price'),
+    parameters: [
+      { name: 'width', label: 'Width', unitSymbol: 'mm' },
+      { name: 'height', label: 'Height', unitSymbol: 'mm' },
+      { name: 'board', label: 'Board', kind: 'material' as const },
+    ],
+  };
+  const pick = (calc: Calculator) =>
+    bindCallParameters(
+      updateStep(calc, { ...calc.steps[0], source: { type: 'call', functionName: 'area_of', args: {} } }),
+      calc.steps[0].id,
+      [area],
+      createId
+    );
+
+  const fresh = pick(build([], [{ id: 'p', name: 'P' }], [expressionStep('p', 'cost', '')], {
+    layout: [{ id: 'inputs', items: [] }],
+  }));
+  const args = fresh.calculator.steps[0].source.type === 'call' ? fresh.calculator.steps[0].source.args : {};
+  const width = fresh.calculator.inputs.find((input) => input.key === 'width');
+  assertCheck(
+    'picking a function makes an input per parameter, with its label, unit and kind, and links them',
+    fresh.created.map((input) => input.key).join() === 'width,height,board' &&
+      width?.label === 'Width' &&
+      width.value.kind === 'number' &&
+      width.value.unitSymbol === 'mm' &&
+      width.value.unitCategory === 'length' &&
+      fresh.calculator.inputs.find((input) => input.key === 'board')?.value.kind === 'material' &&
+      (args.width as { key: string }).key === 'width' &&
+      (args.board as { key: string }).key === 'board' &&
+      fresh.calculator.layout[0].items.length === 3,
+    JSON.stringify(fresh.calculator)
+  );
+
+  const existing = pick(
+    build(
+      [numberInput('width', 4), { ...numberInput('board'), label: 'Board number' }],
+      [{ id: 'p', name: 'P' }],
+      [expressionStep('p', 'cost', ''), expressionStep('p', 'height', '2')]
+    )
+  );
+  const linked = existing.calculator.steps[0].source.type === 'call' ? existing.calculator.steps[0].source.args : {};
+  assertCheck(
+    'reuses an input or result of the same name, and makes a new name when the one in use is the wrong kind',
+    existing.created.map((input) => input.key).join() === 'board_2' &&
+      linked.width.type === 'input' &&
+      linked.height.type === 'step' &&
+      (linked.board as { key: string }).key === 'board_2' &&
+      existing.calculator.inputs.length === 3,
+    JSON.stringify(linked)
+  );
+
+  const kept = bindCallParameters(
+    updateStep(fresh.calculator, {
+      ...fresh.calculator.steps[0],
+      source: { type: 'call', functionName: 'area_of', args: { width: { type: 'constant', value: 2 } } },
+    }),
+    fresh.calculator.steps[0].id,
+    [area],
+    createId
+  );
+  const keptArgs = kept.calculator.steps[0].source.type === 'call' ? kept.calculator.steps[0].source.args : {};
+  assertCheck(
+    'leaves parameters that already have a value alone and adds nothing twice',
+    kept.created.length === 0 && keptArgs.width.type === 'constant' && kept.calculator.inputs.length === 3
   );
 }

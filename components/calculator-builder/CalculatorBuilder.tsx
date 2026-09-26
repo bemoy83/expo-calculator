@@ -15,6 +15,7 @@ import {
   addPart,
   addSection,
   addStep,
+  bindCallParameters,
   ensureLayoutIds,
   findLayoutItem,
   insertLayoutItem,
@@ -95,6 +96,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
     suggestedKey?: string;
     suggestedKind?: InputKind;
     suggestedLabel?: string;
+    suggestedUnitSymbol?: string;
     sectionId?: string;
     /** A function-call step parameter to link the new input to. */
     bindTo?: { stepId: string; paramName: string };
@@ -130,6 +132,24 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
     };
     edit((current) => addStep(current, step));
     setExpandedStepId(step.id);
+  };
+
+  // Picking a function links its parameters to inputs of the same name, making the missing ones.
+  const changeStep = (step: CalculatorStep) => {
+    const previous = calculator.steps.find((candidate) => candidate.id === step.id);
+    const picked =
+      step.source.type === 'call' &&
+      !!step.source.functionName &&
+      (previous?.source.type !== 'call' || previous.source.functionName !== step.source.functionName);
+    if (!picked) {
+      edit((current) => updateStep(current, step));
+      return;
+    }
+    const { calculator: next, created } = bindCallParameters(updateStep(calculator, step), step.id, library.functions, generateId);
+    edit(() => next);
+    if (created.length > 0) {
+      notify({ message: `Added ${created.length === 1 ? 'an input' : `${created.length} inputs`}: ${created.map((input) => input.label).join(', ')}.` });
+    }
   };
 
   const addNewPart = () => {
@@ -449,7 +469,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
                   : edit((current) => removePart(current, part.id))
               }
               onAddStep={() => addStepTo(part.id)}
-              onStepChange={(step) => edit((current) => updateStep(current, step))}
+              onStepChange={changeStep}
               onSetCost={(stepId) => edit((current) => setPartCost(current, part.id, stepId))}
               onSetShown={(stepId, shown) => edit((current) => setStepShown(current, stepId, shown, generateId))}
               onMoveStep={(stepId, direction) => edit((current) => reorderStep(current, stepId, direction))}
@@ -467,11 +487,13 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
                   step?.source.type === 'call'
                     ? library.functions.find((candidate) => candidate.name === (step.source as { functionName: string }).functionName)
                     : undefined;
-                const label = fn?.parameters.find((param) => param.name === paramName)?.label || paramName;
+                const param = fn?.parameters.find((candidate) => candidate.name === paramName);
+                const label = param?.label || paramName;
                 setInputDialog({
                   suggestedKey: suggestKey(calculator, label, undefined, 'value'),
                   suggestedKind: kind,
                   suggestedLabel: label,
+                  suggestedUnitSymbol: param?.unitSymbol,
                   bindTo: { stepId, paramName },
                 });
               }}
@@ -536,6 +558,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
         suggestedKey={inputDialog?.suggestedKey}
         suggestedKind={inputDialog?.suggestedKind}
         suggestedLabel={inputDialog?.suggestedLabel}
+        suggestedUnitSymbol={inputDialog?.suggestedUnitSymbol}
         library={library}
         onSave={saveInput}
         onDelete={(input) => setPending({ kind: 'delete-input', input })}

@@ -691,9 +691,23 @@ Each step is committed separately, like the reskin.
 ## Open questions
 
 - **Saved runs.** Is it useful to save a filled-in calculator by name ("Smith deck") and
-  reopen it later, separate from quotes?
+  reopen it later, separate from quotes? Needs real-world use to answer.
 - **Repeating groups.** Some jobs have "N walls, each with its own size". The model above
-  has fixed inputs. A repeating section (add/remove rows, results summed) is a natural
-  later addition — is it needed early?
-- **String dropdowns** in existing modules: how are they used in formulas today? Check
-  each during step 1 to pick the conversion.
+  has fixed inputs. A repeating section (add/remove rows, results summed) is common and
+  high impact: the next larger addition.
+- **Copy a part** from another calculator (see Parts): a workflow improvement to consider.
+- Low priority: a sticky total bar on phones; session test values in a module's copy.
+
+## After step 11: workflow improvements
+
+**Inputs from function parameters.** Work usually starts with functions, so a function's
+parameters now define the calculator's inputs rather than the other way round. Picking a
+function for a step (or switching a plain call formula to a function step) gives every
+parameter without a value, in order: the input of the same name if it is the right kind
+(a number parameter takes a number or choice input, material/labor/yes-no their own), else
+a result of that name, else a new input made from the parameter: its name as the key (or
+`board_2` when the name is taken by something of the wrong kind), its label, and for
+numbers its unit. A notice names the inputs added. Parameters that already have a value
+are left alone, and changing a binding or removing an input doesn't re-create anything.
+"New input…" on a parameter now starts with the parameter's unit too
+(`bindCallParameters` in lib/calculator/editing.ts).
