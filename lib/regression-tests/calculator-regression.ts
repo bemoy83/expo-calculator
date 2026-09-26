@@ -36,6 +36,8 @@ import { describeCondition } from '../calculator/format';
 import { missingProperties, requiredProperties } from '../calculator/requirements';
 import { fixPricePropertyStorage, normalizePropertyValue, priceFromBase, priceToBase, propertyValueInUnit } from '../catalog/prices';
 import { getMaterialValue } from '../formula/resolver';
+import { buildCalculatorLineItem, putLineItem } from '../quotes/calculator-line-item';
+import { roundMoney } from '../calculations/money';
 import { calculatorFromModule } from '../calculator/from-module';
 import { calculatorFromTemplate, calculatorsFromTemplates } from '../calculator/from-template';
 import { callToExpression, expressionToCall } from '../calculator/step-source';
@@ -43,7 +45,7 @@ import { getFunctionParamKinds } from '../functions/param-kinds';
 import { describeFunctionUsage, findFunctionUsage } from '../functions/function-usage';
 import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues } from '../calculator/types';
 import { calculateModuleInstance } from '../calculations/module-calculator';
-import type { CalculationModule, Material, MaterialProperty, ModuleTemplate, SharedFunction } from '../types';
+import type { CalculationModule, Material, MaterialProperty, ModuleTemplate, Quote, SharedFunction } from '../types';
 import { normalizeToBase } from '../units';
 import { assertCheck } from './test-helpers';
 
@@ -1036,5 +1038,54 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
   assertCheck(
     'converts templates on the fly with stable ids',
     live[0].id === 'template-wall' && JSON.stringify(calculatorsFromTemplates([template], modules)) === JSON.stringify(live)
+  );
+}
+
+// ---- Send to quote (step 9) ----
+
+{
+  const money = (amount: number) => `${amount.toFixed(2)} kr`;
+  const values: CalculatorValues = { ...wallValues };
+  const result = evaluateCalculator(wall, values, library);
+  const outcome = buildCalculatorLineItem({ calculator: wall, values, result, library, formatMoney: money, nickname: ' North wall ', id: 'line-1', now: 'now' });
+  const line = outcome.ok ? outcome.lineItem : undefined;
+  assertCheck(
+    "turns a calculator's result into a quote line with its cost, values, summary and details",
+    !!line &&
+      line.calculatorId === wall.id &&
+      line.moduleName === 'Partition wall' &&
+      line.nickname === 'North wall' &&
+      close(line.cost, 2716.56) &&
+      line.calculatorValues?.width === 4 &&
+      line.primarySummary === 'Paint area 10 m² · Framing 28 m · Sheet count 4 pcs' &&
+      (line.secondarySummary ?? '').startsWith('Width: 4 m · Height: 2.5 m · Stud spacing: 60 cm · Lumber: lumber_48x98') &&
+      line.details?.some((detail) => detail.label === 'Cost' && detail.value === '2716.56 kr') === true &&
+      line.details?.some((detail) => detail.label === 'Sheeting on both sides' && detail.value === 'No') === true,
+    JSON.stringify(line)
+  );
+
+  const incomplete = buildCalculatorLineItem({ calculator: wall, values: { width: 4 }, result: evaluateCalculator(wall, { width: 4 }, library), library, formatMoney: money });
+  assertCheck(
+    'refuses a line without a total, naming what to fill in',
+    !incomplete.ok && incomplete.error.startsWith('Fill in Height')
+  );
+
+  const quote: Quote = {
+    id: 'q', name: 'Q', workspaceModules: [], lineItems: [], subtotal: 0, markupPercent: 10, markupAmount: 0, taxRate: 0.25, taxAmount: 0, total: 0, createdAt: '', updatedAt: '',
+  };
+  const added = putLineItem(quote, line!);
+  const replaced = putLineItem(added, { ...line!, id: 'other', cost: 100 }, 'line-1');
+  const appended = putLineItem(added, { ...line!, id: 'line-2' }, 'missing');
+  assertCheck(
+    'adds a line or replaces one in place, and works out the totals again',
+    added.lineItems.length === 1 &&
+      close(added.subtotal, 2716.56) &&
+      close(added.markupAmount, 271.66) &&
+      close(added.taxAmount, roundMoney((2716.56 + 271.66) * 0.25)) &&
+      close(added.total, added.subtotal + added.markupAmount + added.taxAmount) &&
+      replaced.lineItems.length === 1 &&
+      replaced.lineItems[0].id === 'line-1' &&
+      close(replaced.subtotal, 100) &&
+      appended.lineItems.length === 2
   );
 }

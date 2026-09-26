@@ -8,7 +8,6 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { cn } from '@/lib/utils';
 import {
-  estimateTemplateCost,
   filterQuotesByName,
   formatEditedAt,
   getBoardQuotes,
@@ -16,14 +15,8 @@ import {
   isPristineQuote,
 } from '@/lib/quotes/quote-board';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
-import { useFunctionsStore } from '@/lib/stores/functions-store';
-import { useLaborStore } from '@/lib/stores/labor-store';
-import { useMaterialsStore } from '@/lib/stores/materials-store';
-import { useModulesStore } from '@/lib/stores/modules-store';
-import { notify } from '@/lib/stores/notifications-store';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
-import { useTemplatesStore } from '@/lib/stores/templates-store';
-import type { ModuleTemplate, Quote } from '@/lib/types';
+import type { Quote } from '@/lib/types';
 
 type FormatMoney = (amount: number) => string;
 
@@ -46,13 +39,7 @@ export function QuoteBoard() {
   const currentQuote = useQuotesStore((state) => state.currentQuote);
   const openQuote = useQuotesStore((state) => state.openQuote);
   const startNewQuote = useQuotesStore((state) => state.startNewQuote);
-  const applyTemplate = useQuotesStore((state) => state.applyTemplate);
   const deleteQuote = useQuotesStore((state) => state.deleteQuote);
-  const templates = useTemplatesStore((state) => state.templates);
-  const modules = useModulesStore((state) => state.modules);
-  const materials = useMaterialsStore((state) => state.materials);
-  const labor = useLaborStore((state) => state.labor);
-  const functions = useFunctionsStore((state) => state.functions);
   const { formatCurrency } = useCurrencyStore();
 
   useEffect(() => {
@@ -74,35 +61,12 @@ export function QuoteBoard() {
     ? filterQuotesByName(boardQuotes, search)
     : boardQuotes.filter((quote) => quote.id !== resumeQuote?.id);
 
-  const templateEstimates = useMemo(
-    () =>
-      new Map(
-        templates.map((template) => [
-          template.id,
-          estimateTemplateCost({ template, modules, materials, labor, functions }),
-        ])
-      ),
-    [templates, modules, materials, labor, functions]
-  );
-
   const handleOpen = (quote: Quote) => {
     if (openQuote(quote.id)) router.push('/quotes');
   };
 
   const handleNewQuote = () => {
     startNewQuote();
-    router.push('/quotes');
-  };
-
-  const handleStartFromTemplate = (template: ModuleTemplate) => {
-    startNewQuote(template.name);
-    const result = applyTemplate(template.id);
-    if (result.warnings.length > 0) {
-      notify({
-        variant: 'warning',
-        message: `Template applied with ${pluralize(result.warnings.length, 'warning')}: ${result.warnings.join('; ')}`,
-      });
-    }
     router.push('/quotes');
   };
 
@@ -150,7 +114,7 @@ export function QuoteBoard() {
             <EmptyState
               icon={FileText}
               title="No quotes yet"
-              description="Start a quote from scratch, or launch one from a template."
+              description="Open a calculator, fill it in, and use Send to quote. Or start an empty quote here."
               iconSize="small"
               actions={
                 <Button onClick={handleNewQuote}>
@@ -181,13 +145,6 @@ export function QuoteBoard() {
             </div>
           )}
         </div>
-
-        <TemplateRail
-          templates={templates}
-          estimates={templateEstimates}
-          formatMoney={formatCurrency}
-          onStart={handleStartFromTemplate}
-        />
       </div>
 
       <ConfirmDialog
@@ -307,64 +264,5 @@ function QuoteCard({
       </p>
       <p className="text-lg font-semibold font-numeric text-ink">{formatMoney(quote.total)}</p>
     </div>
-  );
-}
-
-// Mockup 2d's permanent launch rail. `sunken-2` rather than `sunken`: in dark mode `sunken`
-// is darker than the canvas, which reads as a hole rather than a tray.
-function TemplateRail({
-  templates,
-  estimates,
-  formatMoney,
-  onStart,
-}: {
-  templates: ModuleTemplate[];
-  estimates: Map<string, number>;
-  formatMoney: FormatMoney;
-  onStart: (template: ModuleTemplate) => void;
-}) {
-  return (
-    <aside aria-labelledby="template-rail-heading" className="w-full lg:w-[290px] shrink-0">
-      <div className="flex flex-col gap-2.5 p-3.5 rounded-[10px] bg-sunken-2 border border-border-strong">
-        <h2
-          id="template-rail-heading"
-          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted"
-        >
-          Launch a template
-        </h2>
-        {templates.length === 0 ? (
-          <p className="text-[13px] text-ink-muted">
-            No templates yet. Save a quote&apos;s workspace as a template from the Quote Builder.
-          </p>
-        ) : (
-          <ul className="space-y-2.5">
-            {templates.map((template, index) => (
-              <li
-                key={template.id}
-                className="px-[13px] py-3 rounded-lg bg-surface border border-border-strong"
-              >
-                <p className="text-[13px] font-semibold text-ink truncate">{template.name}</p>
-                <p className="text-[10.5px] font-numeric text-ink-muted mb-2">
-                  {pluralize(template.moduleInstances.length, 'module')} · ≈{' '}
-                  {formatMoney(estimates.get(template.id) ?? 0)}
-                </p>
-                <Button
-                  size="sm"
-                  variant={index === 0 ? 'primary' : 'secondary'}
-                  onClick={() => onStart(template)}
-                  aria-label={`Start quote from ${template.name}`}
-                  className={cn('w-full', index !== 0 && 'text-action')}
-                >
-                  Start quote
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="mt-1.5 text-[11px] text-ink-muted">
-          Templates carry their field links, so a value typed once feeds every module linked to it.
-        </p>
-      </div>
-    </aside>
   );
 }

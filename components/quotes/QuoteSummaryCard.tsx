@@ -18,6 +18,11 @@ interface QuoteSummaryCardProps {
   removeLineItem: (id: string) => void;
   reopenLineItem?: (id: string) => void;
   canReopenLineItem?: (item: QuoteLineItem) => boolean;
+  /** Opens a calculator line in its calculator (instead of reopening a module draft). */
+  editLineItem?: (item: QuoteLineItem) => void;
+  canEditLineItem?: (item: QuoteLineItem) => boolean;
+  /** Shown when there are no line items. */
+  emptyMessage?: string;
   onExport: () => void;
 }
 
@@ -32,6 +37,9 @@ export function QuoteSummaryCard({
   removeLineItem,
   reopenLineItem,
   canReopenLineItem,
+  editLineItem,
+  canEditLineItem,
+  emptyMessage = "No line items yet. Lock in a draft from the workspace to add it to the quote.",
   onExport,
 }: QuoteSummaryCardProps) {
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
@@ -79,6 +87,24 @@ export function QuoteSummaryCard({
               <div className="text-right shrink-0">
                 <p className="text-sm font-medium font-numeric text-ink">{formatCurrency(item.cost)}</p>
                 <div className="flex gap-2 justify-end mt-1">
+                  {editLineItem && (
+                    <button
+                      type="button"
+                      onClick={() => editLineItem(item)}
+                      disabled={canEditLineItem ? !canEditLineItem(item) : false}
+                      className="row-action transition-opacity rounded px-0.5 text-[11px] font-medium text-action hover:underline disabled:text-ink-faint disabled:no-underline disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                      title={
+                        canEditLineItem && !canEditLineItem(item)
+                          ? item.calculatorId
+                            ? "This line's calculator no longer exists"
+                            : 'Lines from the old quote builder can’t be edited'
+                          : 'Open in its calculator with these values'
+                      }
+                      aria-label={`Edit line item in its calculator: ${itemName}`}
+                    >
+                      Edit
+                    </button>
+                  )}
                   {reopenLineItem && (
                     <button
                       type="button"
@@ -105,9 +131,7 @@ export function QuoteSummaryCard({
           );
         })}
         {itemCount === 0 && (
-          <li className="px-4 py-8 text-center text-xs text-ink-muted">
-            No line items yet. Lock in a draft from the workspace to add it to the quote.
-          </li>
+          <li className="px-4 py-8 text-center text-xs text-ink-muted">{emptyMessage}</li>
         )}
       </ul>
 

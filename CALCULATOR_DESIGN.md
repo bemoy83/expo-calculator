@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; steps 1–8 done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–9 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -578,6 +578,31 @@ Each step is committed separately, like the reskin.
   (11 inputs, 3 parts) and gives $1167.32 + $1250.24 + $299.00 = $2716.56; Edit opens a
   copy with the three parts and no errors, and Close returns without storing anything; the
   Templates and Modules cards open their calculators; no console errors.
+
+**Step 9 — Quotes on calculators**:
+- **Send to quote** in the staff view (disabled until the calculator has a total): pick an
+  existing quote (most recently edited first) or a new one by name, add an optional label
+  ("North wall"). `buildCalculatorLineItem` (`lib/quotes/calculator-line-item.ts`) makes the
+  line: the quote cost, `calculatorId`, the values it was sent with, a summary (results on
+  the page that aren't money, then the inputs, as shown) and label/value `details` for
+  export; hidden inputs and sections are left out. `putLineItem` adds or replaces a line and
+  works out the totals; `sendToQuote` in the quotes store writes it to the open quote (keeping
+  the saved copy in step), a saved one, or a new saved one.
+- **Edit** on a calculator line opens its calculator with the line's values and remembers the
+  line (`openFromLineItem` in the session store); Send to quote then offers "Update the line it
+  was opened from", ticked. Old module lines can't be edited.
+- **The quote page** (`QuoteView`) is the quote only: name, lines with Edit and Remove,
+  markup, VAT, total, Export JSON, print, and "Add from a calculator". The module workspace
+  (drafts, linking, templates, module picker) is no longer shown; a quote that still has old
+  drafts lists them with "Remove the drafts". The Quotes board lost the "Launch a template"
+  rail. Line items keep `moduleId` (now optional) for old lines; export uses a line's
+  `details` when it has them, and print shows its summary. The workspace code is removed in
+  step 10.
+- Checked in the browser with the test dataset: the partition wall template sent to a new
+  quote "Step 9 check" as $2716.56 with its summary; the quote page lists it; Edit reopened
+  the calculator with the same values; width 5 and Update line changed that line to $3320.95
+  (still one line); the test quote was then deleted. The old-drafts notice wasn't seen, as no
+  quote in the dataset has drafts.
 
 ## Open questions
 

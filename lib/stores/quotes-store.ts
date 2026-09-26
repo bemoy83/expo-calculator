@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Quote, QuoteModuleInstance, Field, ModuleTemplate } from '../types';
+import { Quote, QuoteLineItem, QuoteModuleInstance, Field, ModuleTemplate } from '../types';
 import { generateId } from '../utils';
 import { calculateQuoteTotals, roundMoney, roundRate } from '../calculations/money';
 import { applyTemplateToQuoteWorkspace } from '../quotes/template-application';
@@ -32,6 +32,9 @@ import { useFunctionsStore } from './functions-store';
 import { useLaborStore } from './labor-store';
 import { notify } from './notifications-store';
 import { DEFAULT_QUOTE_NAME, stashQuote } from '../quotes/quote-board';
+import { putLineItem } from '../quotes/calculator-line-item';
+
+export type SendToQuoteTarget = { quoteId: string; replaceLineItemId?: string } | { newQuoteName: string };
 
 function getQuoteWorkspaceContext() {
   return {
@@ -88,6 +91,13 @@ interface QuotesStore {
   setMarkupPercent: (percent: number) => void;
   saveQuote: () => void;
   deleteQuote: (id: string) => void;
+  /**
+   * Adds a calculator's line to a quote (the open one, a saved one, or a new saved one), or
+   * puts it in place of an existing line. Returns the quote, or null if it no longer exists.
+   */
+  sendToQuote: (target: SendToQuoteTarget, lineItem: QuoteLineItem) => Quote | null;
+  /** Drops the open quote's drafts from the old module workspace. */
+  removeWorkspaceDrafts: () => void;
   // Template management
   createTemplateFromWorkspace: (name: string, description?: string) => ModuleTemplate | null;
   applyTemplate: (templateId: string) => { success: boolean; warnings: string[]; appliedModules: number };
@@ -353,6 +363,50 @@ export const useQuotesStore = create<QuotesStore>()(
         return true;
       },
       
+      sendToQuote: (target, lineItem) => {
+        const { quotes, currentQuote } = get();
+        if ('newQuoteName' in target) {
+          const now = new Date().toISOString();
+          const quote = putLineItem(
+            {
+              id: generateId(),
+              name: target.newQuoteName.trim() || DEFAULT_QUOTE_NAME,
+              workspaceModules: [],
+              lineItems: [],
+              subtotal: 0,
+              markupPercent: 0,
+              markupAmount: 0,
+              taxRate: 0,
+              taxAmount: 0,
+              total: 0,
+              createdAt: now,
+              updatedAt: now,
+            },
+            lineItem
+          );
+          set({ quotes: [...quotes, quote] });
+          return quote;
+        }
+        // The open quote is the live copy; keep the saved list in step with it.
+        if (currentQuote?.id === target.quoteId) {
+          const quote = putLineItem(currentQuote, lineItem, target.replaceLineItemId);
+          set({ currentQuote: quote, quotes: stashQuote(quotes, quote) });
+          return quote;
+        }
+        const saved = quotes.find((quote) => quote.id === target.quoteId);
+        if (!saved) return null;
+        const quote = putLineItem(saved, lineItem, target.replaceLineItemId);
+        set({ quotes: quotes.map((candidate) => (candidate.id === quote.id ? quote : candidate)) });
+        return quote;
+      },
+
+      removeWorkspaceDrafts: () => {
+        const current = get().currentQuote;
+        if (!current) return;
+        set({ currentQuote: { ...current, workspaceModules: [], updatedAt: new Date().toISOString() } });
+        get().saveQuote();
+      },
+
       removeLineItem: (lineItemId) => {
         const current = get().currentQuote;
         if (!current) return;

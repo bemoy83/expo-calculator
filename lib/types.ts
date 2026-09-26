@@ -176,8 +176,16 @@ export interface QuoteModuleInstance {
  */
 export interface QuoteLineItem {
   id: string;
-  moduleId: string;
+  /** The module a line from the old quote builder came from. */
+  moduleId?: string;
+  /** The calculator a line was sent from with "Send to quote". */
+  calculatorId?: string;
+  /** Display name: the calculator's (or, for old lines, the module's) name. */
   moduleName: string;
+  /** The calculator's values when it was sent, to open it again with them. */
+  calculatorValues?: Record<string, string | number | boolean>;
+  /** What was entered and worked out, as shown: for export and print. */
+  details?: Array<{ label: string; value: string }>;
   nickname?: string; // Carried over from the workspace instance when it was committed
   fieldValues: Record<string, string | number | boolean>;
   fieldSummary: string; // Brief summary of key input values (fallback if no computed outputs)

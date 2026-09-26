@@ -13,14 +13,17 @@ export function buildQuoteExportData(input: {
       lineItems: input.quote.lineItems.map((item) => ({
         moduleName: item.moduleName,
         nickname: item.nickname,
-        fields: Object.entries(item.fieldValues).map(([key, value]) => {
-          const moduleDef = input.getModule(item.moduleId);
-          const field = moduleDef?.fields.find((candidate) => candidate.variableName === key);
-          return {
-            label: field?.label || key,
-            value,
-          };
-        }),
+        // Calculator lines carry what was shown; old module lines are labelled from the module.
+        fields:
+          item.details ??
+          Object.entries(item.fieldValues).map(([key, value]) => {
+            const moduleDef = item.moduleId ? input.getModule(item.moduleId) : undefined;
+            const field = moduleDef?.fields.find((candidate) => candidate.variableName === key);
+            return {
+              label: field?.label || key,
+              value,
+            };
+          }),
         cost: roundMoney(item.cost),
       })),
       subtotal: roundMoney(input.quote.subtotal),
@@ -76,7 +79,7 @@ export function buildQuotePrintHtml(input: {
     html += `
         <tr>
           <td>${escapeHtml(formatInstanceName(item.moduleName, item.nickname))}</td>
-          <td>${escapeHtml(item.fieldSummary)}</td>
+          <td>${escapeHtml([item.primarySummary, item.secondarySummary || item.fieldSummary].filter(Boolean).join(' — '))}</td>
           <td class="right-align">${escapeHtml(formatCurrency(item.cost))}</td>
         </tr>
       `;
@@ -125,4 +128,27 @@ export function escapeHtml(value: unknown): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+/** Saves the quote as a JSON file. */
+export function downloadQuoteJson(quote: Quote, getModule: (id: string) => CalculationModule | undefined) {
+  const data = buildQuoteExportData({ quote, getModule });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = getQuoteExportFileName(quote.name);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/** Opens the printable quote in a new window and prints it (or saves it as PDF). */
+export function printQuote(quote: Quote, formatCurrency: (amount: number) => string) {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+  printWindow.document.write(buildQuotePrintHtml({ quote, formatCurrency }));
+  printWindow.document.close();
+  printWindow.print();
 }
