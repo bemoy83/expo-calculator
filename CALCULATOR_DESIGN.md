@@ -729,3 +729,12 @@ live in lib/formula/identifiers.ts and every check and scan uses them. Regex `\b
 as separators, so the scans that used it match names standalone through helpers instead,
 without lookbehind (older Safari can't parse it, and staff devices may be old iPads). Other
 accented letters (é, ä, ö) are still stripped from generated names and refused in typed ones.
+
+**Decimal comma.** Every number box accepts 2,5 as well as 2.5, and spaces as thousands
+separators ("1 200,50"). The shared Input renders `type="number"` as a text box with the
+decimal keypad (type="number" drops "2,5" in English-set browsers and on a Norwegian iPad
+keypad) and rewrites what's typed as it goes, comma to point, keeping the caret
+(`normalizeNumberInput`, `normalizeNumberText`). Boxes bound straight to a number (quote
+markup and VAT, property values) keep the text being typed while it means the stored number,
+so "12." doesn't snap back to "12" (`shownNumberText`), as number boxes did before. The
+comma shows as a point once typed; numbers elsewhere are still shown with a point.

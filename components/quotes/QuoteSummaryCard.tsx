@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { Quote, QuoteLineItem } from "@/lib/types";
 import { formatInstanceLabel } from "@/lib/quotes/nickname";
 import { useCurrencyStore } from "@/lib/stores/currency-store";
+import { normalizeNumberInput } from '@/components/ui/Input';
+import { shownNumberText } from '@/lib/utils';
 
 type RateFormData = { taxRate: number; markupPercent: number };
 
@@ -160,6 +162,7 @@ function RateRow({
   amount: string;
 }) {
   const id = React.useId();
+  const [typed, setTyped] = React.useState<string | null>(null);
   return (
     <div className="flex items-center justify-between gap-2.5 py-1.5">
       <label htmlFor={id} className="text-[12.5px] text-ink-body">
@@ -169,12 +172,16 @@ function RateRow({
         <div className="flex items-center h-8 w-[78px] pl-2 pr-1 rounded-md bg-surface border border-border-strong focus-within:border-action focus-within:ring-[3px] focus-within:ring-action/20">
           <input
             id={id}
-            type="number"
-            min="0"
-            max="100"
-            step="0.01"
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            value={shownNumberText(typed, value)}
+            onChange={(event) => {
+              normalizeNumberInput(event.target);
+              setTyped(event.target.value);
+              onChange(event.target.value);
+            }}
+            onBlur={() => setTyped(null)}
             className="w-full min-w-0 bg-transparent text-[13px] font-medium font-numeric text-ink focus:outline-none"
           />
           <span className="px-1.5 py-0.5 rounded bg-sunken text-[10.5px] font-medium font-numeric text-ink-body" aria-hidden="true">

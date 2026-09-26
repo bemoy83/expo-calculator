@@ -7,7 +7,7 @@ import { validateFormula } from '../formula-evaluator';
 import { findFunctionUsage } from '../functions/function-usage';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import type { Material, SharedFunction } from '../types';
-import { labelToVariableName } from '../utils';
+import { labelToVariableName, normalizeNumberText, shownNumberText } from '../utils';
 import { assertCheck, testFormula } from './test-helpers';
 
 console.log('\n=== Norwegian Names Regression ===');
@@ -123,4 +123,21 @@ assertCheck(
     renamedSum.type === 'expression' &&
     renamedSum.expression === 'areal * 2 + vegghøyde',
   JSON.stringify(evaluateCalculator(calculator, {}, library).steps)
+);
+
+assertCheck(
+  'number boxes read a decimal comma and Norwegian thousands spaces',
+  normalizeNumberText('2,5') === '2.5' &&
+    normalizeNumberText('1 200,50') === '1200.50' &&
+    normalizeNumberText('1 200,5') === '1200.5' &&
+    normalizeNumberText('-0,25 kr') === '-0.25' &&
+    normalizeNumberText('2.5') === '2.5'
+);
+assertCheck(
+  'a number box keeps what is typed while it means the stored number, else shows the stored one',
+  shownNumberText('12.', 12) === '12.' &&
+    shownNumberText('', 0) === '' &&
+    shownNumberText('-', 0) === '-' &&
+    shownNumberText('12.5', 12) === 12 &&
+    shownNumberText(null, 7) === 7
 );
