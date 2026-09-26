@@ -12,6 +12,7 @@ import { useLaborStore } from '@/lib/stores/labor-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { notify } from '@/lib/stores/notifications-store';
 import { downloadDataAsJSON, exportCalculatorPack } from '@/lib/utils/data-export';
+import { showsStaffResults } from '@/lib/calculator/editing';
 import { formatPackDate } from '@/lib/calculator/format';
 
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
@@ -93,6 +94,11 @@ export function PackExporter({ onClose }: { onClose: () => void }) {
                         <span className="block text-xs text-ink-faint truncate">{calculator.category}</span>
                       )}
                     </span>
+                    {!showsStaffResults(calculator) && (
+                      <Chip size="sm" className="bg-draft-bg text-draft" title="Staff won't see any results: show a step or set a part's cost">
+                        Shows no results
+                      </Chip>
+                    )}
                     {status === 'new' && <Chip size="sm" variant="muted">Not in last pack</Chip>}
                     {status === 'changed' && <Chip size="sm" variant="primaryTonal">Changed since</Chip>}
                   </label>

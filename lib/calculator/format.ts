@@ -29,6 +29,14 @@ function joinNames(names: string[]): string {
 }
 
 /** Why a step has no value, in words staff understand; undefined when it has one. */
+/** A step's name for staff: its label, else its formula name made readable (wall_area → Wall area). */
+export function stepDisplayLabel(step: Pick<CalculatorStep, 'label' | 'key'>): string {
+  const label = step.label.trim();
+  if (label) return label;
+  const words = step.key.replace(/_+/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export function describeStepProblem(result: StepResult | undefined, calculator: Calculator): string | undefined {
   if (!result) return 'Not calculated.';
   if (result.status === 'ok' || result.status === 'disabled') return undefined;

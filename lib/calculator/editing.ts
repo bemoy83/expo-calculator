@@ -349,6 +349,27 @@ export function isStepShown(calculator: Calculator, stepId: string): boolean {
   return calculator.layout.some((section) => section.items.some((item) => item.type === 'result' && item.stepId === stepId));
 }
 
+/** The parts of a breakdown that have a cost step; parts without one aren't listed. */
+export function costedParts(calculator: Calculator, partIds: string[]): CalculatorPart[] {
+  const stepIds = new Set(calculator.steps.map((step) => step.id));
+  return calculator.parts.filter((part) => partIds.includes(part.id) && !!part.costStepId && stepIds.has(part.costStepId));
+}
+
+/**
+ * Whether staff see any result: a step shown on the page, or a breakdown with a part that has
+ * a cost. A calculator without either calculates but shows staff nothing.
+ */
+export function showsStaffResults(calculator: Calculator): boolean {
+  const stepIds = new Set(calculator.steps.map((step) => step.id));
+  return calculator.layout.some((section) =>
+    section.items.some(
+      (item) =>
+        (item.type === 'result' && stepIds.has(item.stepId)) ||
+        (item.type === 'breakdown' && costedParts(calculator, item.partIds).length > 0)
+    )
+  );
+}
+
 /** Shows a step's result to staff (at the end of the results section) or hides it. */
 export function setStepShown(calculator: Calculator, stepId: string, shown: boolean, createId: CreateId): Calculator {
   if (shown === isStepShown(calculator, stepId)) return calculator;

@@ -753,3 +753,14 @@ The function editor tidies a valid formula; a step formula is tidied when it par
 spacing changes: the tidied text is kept only if mathjs reads it exactly as the original,
 and nothing happens if focus came back (an operator button or suggestion inserting), so the
 text never shifts under a click (lib/formula/prettify.ts).
+
+**Calculators that show staff nothing.** A calculator whose only result item is a breakdown
+of parts without a cost, and no shown step, calculated but showed staff an empty
+"Part 1 — No cost / Total —" (found with a real pack, 2026-09-26). Now a breakdown lists
+only parts with a cost and shows nothing when none has one (the layout canvas says why);
+the builder warns "Staff won't see any results" until a step is shown or made a part's cost,
+and warns about shown steps without a label; the pack dialog marks such calculators "Shows
+no results"; and the staff page says the calculator shows no results yet instead of being
+blank (`showsStaffResults`, `costedParts`). A shown step without a label is shown by its
+formula name made readable (`step` → "Step", `framing_length` → "Framing length";
+`stepDisplayLabel`), on the page and in quote lines.

@@ -1,6 +1,6 @@
 import { calculateQuoteTotals, roundMoney } from '../calculations/money';
 import { evaluateCondition, selectedChoiceId } from '../calculator/conditions';
-import { describeInputs, displayUnit, formatStepValue } from '../calculator/format';
+import { describeInputs, displayUnit, formatStepValue, stepDisplayLabel } from '../calculator/format';
 import type {
   Calculator,
   CalculatorInput,
@@ -94,7 +94,7 @@ export function buildCalculatorLineItem(input: {
         const stepResult = step ? result.steps[step.id] : undefined;
         if (!step || stepResult?.displayValue === undefined || stepResult.status !== 'ok') continue;
         const { text, unit } = formatStepValue(step, stepResult.displayValue, formatMoney);
-        shownResults.push({ label: step.label, value: unit ? `${text} ${unit}` : text, money: step.format === 'money' });
+        shownResults.push({ label: stepDisplayLabel(step), value: unit ? `${text} ${unit}` : text, money: step.format === 'money' });
       }
     }
   }

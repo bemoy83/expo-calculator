@@ -22,7 +22,7 @@ import {
   itemSpan,
   type LayoutRenderContext,
 } from '@/components/calculator/CalculatorLayoutItem';
-import { findLayoutItem, layoutItemKey, type LayoutPosition } from '@/lib/calculator/editing';
+import { costedParts, findLayoutItem, layoutItemKey, type LayoutPosition } from '@/lib/calculator/editing';
 import { describeCondition } from '@/lib/calculator/format';
 import type { LayoutItem, LayoutSection } from '@/lib/calculator/types';
 import { cn } from '@/lib/utils';
@@ -67,6 +67,7 @@ function CanvasItem({
   const missing =
     (item.type === 'input' && !context.inputsById.has(item.inputId)) ||
     (item.type === 'result' && !context.calculator.steps.some((step) => step.id === item.stepId));
+  const emptyBreakdown = item.type === 'breakdown' && costedParts(context.calculator, item.partIds).length === 0;
 
   if (preview) {
     return <div className={itemSpan(item)}>{rendered}</div>;
@@ -108,6 +109,10 @@ function CanvasItem({
         <p className="text-xs italic text-ink-faint">{describeItem(item, context)}</p>
       ) : hidden ? (
         <p className="text-xs italic text-ink-faint">{describeItem(item, context)} (hidden by its condition)</p>
+      ) : emptyBreakdown ? (
+        <p className="text-xs italic text-ink-faint">
+          Breakdown: no part in it has a cost yet, so staff don&apos;t see it. Set a part&apos;s cost in the Parts view.
+        </p>
       ) : (
         rendered
       )}

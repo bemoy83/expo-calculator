@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { FilePlus2, Pencil, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { showsStaffResults } from '@/lib/calculator/editing';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type { Calculator, CalculatorLibrary, CalculatorValues, LayoutSection } from '@/lib/calculator/types';
@@ -129,6 +130,13 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
         result={result}
         library={library}
       />
+
+      {!showsStaffResults(calculator) && (
+        <p className="mb-4 text-sm text-ink-muted">
+          This calculator doesn&apos;t show any results yet.
+          {useOnly ? ' Ask whoever made it to show a result and send a new pack.' : ' Edit it and tick “Show to staff” on a step.'}
+        </p>
+      )}
 
       <div className={cn('grid gap-5', sideSections.length > 0 && 'lg:grid-cols-[minmax(0,1fr)_340px] items-start')}>
         <div className="space-y-5 min-w-0">{mainSections.map(renderSection)}</div>

@@ -6,6 +6,8 @@ import {
   addSection,
   addStep,
   bindCallParameters,
+  costedParts,
+  showsStaffResults,
   conditionInputs,
   defaultCondition,
   findLayoutItem,
@@ -33,7 +35,7 @@ import {
   updateStep,
 } from '../calculator/editing';
 import { evaluateCalculator } from '../calculator/evaluate';
-import { describeCondition } from '../calculator/format';
+import { describeCondition, stepDisplayLabel } from '../calculator/format';
 import { missingProperties, requiredProperties } from '../calculator/requirements';
 import { fixPricePropertyStorage, normalizePropertyValue, priceFromBase, priceToBase, propertyValueInUnit } from '../catalog/prices';
 import { getMaterialValue } from '../formula/resolver';
@@ -1162,3 +1164,36 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
     kept.created.length === 0 && keptArgs.width.type === 'constant' && kept.calculator.inputs.length === 3
   );
 }
+
+// ---- Results staff see ----
+
+{
+  const parts = [{ id: 'p1', name: 'Framing' }, { id: 'p2', name: 'Paint', costStepId: 'gone' }];
+  const steps = [expressionStep('p1', 'length', '2 * 3')];
+  const onlyBreakdown = build([], parts, steps, {
+    layout: [{ id: 'r', title: 'Results', items: [{ type: 'breakdown', partIds: ['p1', 'p2'] }] }],
+  });
+  const withCost = { ...onlyBreakdown, parts: [{ ...parts[0], costStepId: 'step-length' }, parts[1]] };
+  const shownStep = build([], parts, steps, {
+    layout: [{ id: 'r', items: [{ type: 'result', stepId: 'step-length', style: 'row' }] }],
+  });
+  const shownDeleted = build([], parts, steps, {
+    layout: [{ id: 'r', items: [{ type: 'result', stepId: 'deleted', style: 'row' }] }],
+  });
+  assertCheck(
+    'staff see results only from a shown step or a breakdown with a costed part',
+    !showsStaffResults(onlyBreakdown) &&
+      costedParts(onlyBreakdown, ['p1', 'p2']).length === 0 &&
+      showsStaffResults(withCost) &&
+      costedParts(withCost, ['p1', 'p2']).map((part) => part.name).join() === 'Framing' &&
+      showsStaffResults(shownStep) &&
+      !showsStaffResults(shownDeleted)
+  );
+}
+
+assertCheck(
+  "a step without a label is shown to staff by its formula name, made readable",
+  stepDisplayLabel({ label: '', key: 'framing_length' }) === 'Framing length' &&
+    stepDisplayLabel({ label: '  ', key: 'step' }) === 'Step' &&
+    stepDisplayLabel({ label: 'Lumber', key: 'step' }) === 'Lumber'
+);

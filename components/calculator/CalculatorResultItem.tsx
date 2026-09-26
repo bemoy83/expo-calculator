@@ -1,6 +1,7 @@
 'use client';
 
-import { describeStepProblem, formatStepValue } from '@/lib/calculator/format';
+import { costedParts } from '@/lib/calculator/editing';
+import { describeStepProblem, formatStepValue, stepDisplayLabel } from '@/lib/calculator/format';
 import type { Calculator, CalculatorResult, CalculatorStep, LayoutItem } from '@/lib/calculator/types';
 import { cn } from '@/lib/utils';
 
@@ -46,7 +47,9 @@ function StepValue({
 }
 
 // A result or breakdown placed in the layout. Results without a value say why instead
-// ("Needs Height", "Waiting on Framing", or the error).
+// ("Needs Height", "Waiting on Framing", or the error). A breakdown lists the parts that have
+// a cost, and shows nothing when none has.
+
 export function CalculatorResultItem({
   item,
   calculator,
@@ -59,7 +62,8 @@ export function CalculatorResultItem({
   formatMoney: FormatMoney;
 }) {
   if (item.type === 'breakdown') {
-    const parts = calculator.parts.filter((part) => item.partIds.includes(part.id));
+    const parts = costedParts(calculator, item.partIds);
+    if (parts.length === 0) return null;
     return (
       <div>
         {item.title && <p className="mb-2 text-xs font-medium text-ink-muted">{item.title}</p>}
@@ -73,10 +77,10 @@ export function CalculatorResultItem({
                 <dd className="text-right">
                   {cost !== undefined ? (
                     <span className="font-numeric text-sm text-ink tabular-nums">{formatMoney(cost)}</span>
-                  ) : costStep ? (
-                    <StepValue step={costStep} calculator={calculator} result={result} formatMoney={formatMoney} size="row" />
                   ) : (
-                    <span className="text-xs text-ink-muted">No cost</span>
+                    costStep && (
+                      <StepValue step={costStep} calculator={calculator} result={result} formatMoney={formatMoney} size="row" />
+                    )
                   )}
                 </dd>
               </div>
@@ -99,7 +103,7 @@ export function CalculatorResultItem({
   if (item.style === 'headline') {
     return (
       <div className="pt-1">
-        <p className="text-xs font-medium text-ink-muted">{step.label}</p>
+        <p className="text-xs font-medium text-ink-muted">{stepDisplayLabel(step)}</p>
         <div className="mt-1" aria-live="polite">
           <StepValue step={step} calculator={calculator} result={result} formatMoney={formatMoney} size="headline" />
         </div>
@@ -110,7 +114,7 @@ export function CalculatorResultItem({
   if (item.style === 'card') {
     return (
       <div className="rounded-md border border-border bg-sunken px-3 py-2.5">
-        <p className="text-xs font-medium text-ink-muted">{step.label}</p>
+        <p className="text-xs font-medium text-ink-muted">{stepDisplayLabel(step)}</p>
         <div className="mt-0.5">
           <StepValue step={step} calculator={calculator} result={result} formatMoney={formatMoney} size="card" />
         </div>
@@ -120,7 +124,7 @@ export function CalculatorResultItem({
 
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
-      <span className="text-sm text-ink-body">{step.label}</span>
+      <span className="text-sm text-ink-body">{stepDisplayLabel(step)}</span>
       <span className="text-right">
         <StepValue step={step} calculator={calculator} result={result} formatMoney={formatMoney} size="row" />
       </span>

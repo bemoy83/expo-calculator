@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -35,12 +35,14 @@ import {
   setInputCondition,
   setPartCost,
   setStepShown,
+  showsStaffResults,
   suggestKey,
   updateInput,
   updatePart,
   updateStep,
 } from '@/lib/calculator/editing';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
+import { stepDisplayLabel } from '@/lib/calculator/format';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type {
   Calculator,
@@ -112,6 +114,8 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
   const result = useMemo(() => evaluateCalculator(calculator, values, library), [calculator, values, library]);
   const required = useMemo(() => requiredProperties(calculator, library.functions), [calculator, library.functions]);
   const errorCount = Object.values(result.steps).filter((step) => step.status === 'error').length;
+  const showsNothing = calculator.steps.length > 0 && !showsStaffResults(calculator);
+  const unnamedShown = calculator.steps.filter((step) => !step.label.trim() && isStepShown(calculator, step.id));
   const usedInputs = new Set(Object.values(result.parts).flatMap((part) => part.inputKeys));
   const unusedInputs = calculator.inputs.filter((input) => !usedInputs.has(input.key));
 
@@ -369,6 +373,28 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
           </Button>
         )}
       </div>
+
+      {showsNothing && (
+        <div role="status" className="mb-5 flex items-start gap-2.5 p-3 bg-draft-bg border border-draft-border rounded-lg">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-draft" aria-hidden="true" />
+          <p className="text-sm text-ink-body">
+            <span className="font-medium text-ink">Staff won&apos;t see any results.</span> Tick &ldquo;Show to staff&rdquo; on a
+            step, or make a step a part&apos;s cost, so the calculator shows what it works out.
+          </p>
+        </div>
+      )}
+      {!showsNothing && unnamedShown.length > 0 && (
+        <div role="status" className="mb-5 flex items-start gap-2.5 p-3 bg-draft-bg border border-draft-border rounded-lg">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-draft" aria-hidden="true" />
+          <p className="text-sm text-ink-body">
+            <span className="font-medium text-ink">
+              {unnamedShown.length === 1 ? 'A step shown to staff has no label.' : `${unnamedShown.length} steps shown to staff have no label.`}
+            </span>{' '}
+            Staff see {unnamedShown.map((step) => `“${stepDisplayLabel(step)}”`).join(', ')} instead; give{' '}
+            {unnamedShown.length === 1 ? 'it a label' : 'them labels'} that say what they are.
+          </p>
+        </div>
+      )}
 
       {view === 'layout' ? (
         <div className={cn('grid gap-5 items-start', !preview && 'lg:grid-cols-[minmax(0,1fr)_300px]')}>
