@@ -64,6 +64,7 @@ import { InputEditorDialog } from './InputEditorDialog';
 import { LayoutCanvas, type LayoutSelection } from './LayoutCanvas';
 import { LayoutInspector, type LayoutInspectorActions } from './LayoutInspector';
 import { BuilderInputField, PartCard } from './PartCard';
+import { FormulaLegend } from '@/components/formula/FormulaText';
 
 const EMPTY_VALUES: CalculatorValues = {};
 
@@ -361,11 +362,14 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
             </button>
           ))}
         </div>
-        <p className="text-xs text-ink-muted flex-1 min-w-[200px]">
-          {view === 'parts'
-            ? 'The math: parts, their steps, and the inputs they use.'
-            : 'What staff see: arrange inputs and results into sections.'}
-        </p>
+        <div className="flex-1 min-w-[200px] space-y-1">
+          <p className="text-xs text-ink-muted">
+            {view === 'parts'
+              ? 'The math: parts, their steps, and the inputs they use. A step can use any input and any other step’s result.'
+              : 'What staff see: arrange inputs and results into sections.'}
+          </p>
+          {view === 'parts' && <FormulaLegend />}
+        </div>
         {view === 'layout' && (
           <Button variant="secondary" size="sm" onClick={() => setPreview((current) => !current)} aria-pressed={preview}>
             {preview ? <EyeOff className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" /> : <Eye className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />}

@@ -12,9 +12,13 @@ import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { SharedFunction } from '@/lib/types';
 import { Plus, FunctionSquare, Trash2 } from 'lucide-react';
 import { FunctionEditorView } from './FunctionEditorView';
+import { FormulaLegend, FormulaText } from '@/components/formula/FormulaText';
+import { useCalculatorLibrary } from '@/hooks/use-calculators';
+import { functionFormulaNames } from '@/lib/calculator/formula-tokens';
 
 export default function FunctionsPage() {
   const functions = useFunctionsStore((state) => state.functions);
+  const library = useCalculatorLibrary();
   const deleteFunction = useFunctionsStore((state) => state.deleteFunction);
   const calculators = useCalculatorsStore((state) => state.calculators);
   const [editingFunctionId, setEditingFunctionId] = useState<string | null>(null);
@@ -63,6 +67,8 @@ export default function FunctionsPage() {
           }
         />
       ) : (
+        <>
+        <FormulaLegend inputLabel="parameter" className="mb-3" />
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {functions.map((func) => {
             const title = func.displayName || func.name;
@@ -95,9 +101,11 @@ export default function FunctionsPage() {
                     label: 'Call as',
                     content: (
                       <div>
-                        <code className="block text-[13px] font-numeric font-medium text-action break-all">
-                          {formatFunctionSignature(func)}
-                        </code>
+                        <FormulaText
+                          expression={formatFunctionSignature(func)}
+                          names={functionFormulaNames(func, library)}
+                          className="block text-[13px] font-medium text-ink-muted break-all"
+                        />
                         <p className={`mt-1 text-xs ${usageCount > 0 ? 'text-ink-muted' : 'text-ink-faint'}`}>
                           {usageCount > 0 ? `Used by ${describeFunctionUsage(usage)}` : 'Not used yet'}
                         </p>
@@ -110,7 +118,7 @@ export default function FunctionsPage() {
                     content: (
                       <div className="flex flex-wrap gap-1.5">
                         {func.parameters.map((param) => (
-                          <Chip key={param.name} size="sm" variant="primaryTonal">
+                          <Chip key={param.name} size="sm" variant="flat" className="text-token-input">
                             {param.label}
                             {param.unitSymbol && <span className="ml-1 font-numeric opacity-70">{param.unitSymbol}</span>}
                           </Chip>
@@ -123,7 +131,7 @@ export default function FunctionsPage() {
                     label: 'Formula',
                     content: (
                       <code className="block px-2.5 py-2 rounded-md bg-sunken text-xs leading-relaxed font-numeric text-ink-body whitespace-pre-wrap break-words">
-                        {func.formula}
+                        <FormulaText expression={func.formula} names={functionFormulaNames(func, library)} />
                         {func.returnUnitSymbol && <span className="text-ink-faint"> → {func.returnUnitSymbol}</span>}
                       </code>
                     ),
@@ -134,6 +142,7 @@ export default function FunctionsPage() {
             );
           })}
         </div>
+        </>
       )}
     </Layout>
   );

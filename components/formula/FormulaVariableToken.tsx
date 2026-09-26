@@ -12,7 +12,7 @@ export interface FormulaVariableTokenProps {
   value: string;
   isUsed: boolean;
   onInsert: (value: string) => void;
-  /** Blue = the formula's own names (parameters), green = material, amber = labor. */
+  /** Coloured as in formulas: the formula's own names (parameters) as inputs, material and labor as properties. */
   origin?: VariableOrigin;
 
   size?: "sm" | "md";
@@ -22,9 +22,9 @@ export interface FormulaVariableTokenProps {
 }
 
 const ORIGIN_STYLES: Record<VariableOrigin, { base: string; used: string }> = {
-  field: { base: "bg-action-bg text-action", used: "border-action" },
-  material: { base: "bg-committed-bg text-committed", used: "border-committed" },
-  labor: { base: "bg-draft-bg text-draft", used: "border-draft" },
+  field: { base: "bg-sunken text-token-input", used: "border-token-input" },
+  material: { base: "bg-sunken text-token-property", used: "border-token-property" },
+  labor: { base: "bg-sunken text-token-property", used: "border-token-property" },
 };
 
 // A variable in the formula palette: click to insert. Tinted by origin; a variable already

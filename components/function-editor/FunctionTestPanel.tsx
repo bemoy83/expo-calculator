@@ -8,6 +8,7 @@ import { formatFunctionSignature } from '@/lib/functions/function-usage';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import type { SharedFunction } from '@/lib/types';
+import { FormulaText } from '@/components/formula/FormulaText';
 
 interface FunctionTestPanelProps {
   /** The function as currently edited (unsaved values included). */
@@ -48,7 +49,16 @@ export function FunctionTestPanel({ draft, functions }: FunctionTestPanelProps) 
         <span className="text-[11px] text-ink-faint">not saved</span>
       </div>
       <div className="px-4 py-3.5 space-y-3.5">
-        <code className="block text-xs font-numeric text-action break-all">{formatFunctionSignature(draft)}</code>
+        <FormulaText
+          expression={formatFunctionSignature(draft)}
+          names={{
+            inputs: new Set(parameters.map((param) => param.name)),
+            results: new Set(),
+            functions: new Set([draft.name, ...functions.map((fn) => fn.name)]),
+            catalog: new Set(),
+          }}
+          className="block text-xs text-ink-muted break-all"
+        />
         {parameters.length === 0 ? (
           <p className="text-xs text-ink-muted">Add parameters to try this function with sample values.</p>
         ) : (

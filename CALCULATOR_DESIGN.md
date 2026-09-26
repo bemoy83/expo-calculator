@@ -702,6 +702,32 @@ Each step is committed separately, like the reskin.
   What that gives up: totals across walls (paint bought for the total area) and settings
   shared by all walls; a quote-level material summary could cover the first later.
 - **Copy a part** from another calculator (see Parts): a workflow improvement to consider.
+- **One result feeding another** (raised 2026-09-26, being answered with real jobs). The
+  old templates' "linking" did two jobs: an output of one module fed an input of the next
+  (Framing → Sheeting → Paint), and the same input was shared between modules. Inside a
+  calculator both are solved: inputs are asked once, and any step can read any other step's
+  result, in any part and any order (function parameters list "Result · …", formulas take
+  the step's name). What's open:
+  - **Between cards in a quote.** A quote is separate calculators again, so the old
+    question returns there: should one card use another's results? E.g. a Paint card from
+    the total wall area of every Wood wall card, Skirting from the Flooring card's
+    perimeter, lumber or paint bought once for the whole job rather than rounded up per
+    wall. Today each card stands alone and such numbers are typed across by hand.
+    Options: (a) keep cards separate and put what belongs together in one calculator;
+    (b) quote totals a card can read ("sum of Wall area over the Wood wall cards"), with
+    nothing linked card to card, so copying or removing cards can't break anything;
+    (c) card-to-card links ("from Flooring → perimeter"), the most flexible but the old
+    linking and its breakage.
+  - **Inside a calculator, visibility.** Chaining works but is easy to miss: autocomplete
+    tags results like inputs, a step doesn't show what it uses or what uses it, there's no
+    "continue from this result", and an unknown name only offers "Create input".
+  - To settle it: two or three real jobs where a number would be retyped from one card
+    into another. Mostly whole-job totals → (b); none → only the visibility work.
+  - First example (2026-09-26): the converted Framing module, whose Cost step repeats the
+    whole lumber formula times `material.price` instead of `lumber_count * material.price`.
+    That is the within-a-calculator kind, already supported: it's a readability problem,
+    so readability comes first (see "Formula colours" below). A hint that spots a formula
+    repeating another step's formula is still open.
 - Low priority: a sticky total bar on phones; session test values in a module's copy.
 
 ## After step 11: workflow improvements
@@ -770,6 +796,28 @@ no results"; and the staff page says the calculator shows no results yet instead
 blank (`showsStaffResults`, `costedParts`). A shown step without a label is shown by its
 formula name made readable (`step` → "Step", `framing_length` → "Framing length";
 `stepDisplayLabel`), on the page and in quote lines.
+
+
+**Formula colours.** Names in formulas are coloured by kind, as text (no chips), with the
+same palette everywhere: inputs (and a function's parameters) teal, results of other steps
+purple, functions pink (round, ceil, sum… included), material and labor properties coral,
+names nothing matches red with a dotted underline; numbers and operators stay plain. The
+hues are new tokens (`--token-*`, `text-token-*`), kept apart from action blue, committed
+green, draft amber and danger red; hovering a name says what kind it is.
+`classifyFormula` (lib/calculator/formula-tokens.ts) splits a formula; `FormulaText` and
+`FormulaLegend` (components/formula/FormulaText.tsx) draw it. Used at rest: closed steps
+(now up to two lines, so the end of a formula shows), the function-step preview line, the
+Functions list (formula, "Call as", parameter chips), the function editor's variable
+chips; and in both formulas' autocomplete, where each suggestion and its tag take its
+colour ("result" for steps). A colour key sits under the builder's Parts tab text and on
+the Functions page and editor. Native select options can't be coloured; they keep their
+"Input ·" / "Result ·" prefixes and the coloured preview line below. The suggestion list
+is kept inside the window (`clampSuggestionLeft`). The formula boxes are coloured while
+typing too (step formulas and the function editor): `Textarea`'s `highlight` draws the
+coloured formula behind the box with the same box, font, padding and wrapping, and the
+box's own text is see-through, so the caret, selection, autocomplete and auto-grow work as
+before. Parameter chips and signatures in the function editor ("Reuse parameters", the
+parameter list, "Try it") use the same colours.
 
 ## Quote workspace
 

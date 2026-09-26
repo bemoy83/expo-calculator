@@ -453,3 +453,9 @@ export function useFormulaAutocomplete({
 
 
 
+
+/** Keeps a suggestion list of `width` px inside the window, however near its right edge the caret is. */
+export function clampSuggestionLeft(left: number, width = 320): number {
+  if (typeof window === 'undefined') return left;
+  return Math.max(8, Math.min(left, window.innerWidth - width - 8));
+}

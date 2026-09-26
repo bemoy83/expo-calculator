@@ -51,6 +51,13 @@ const config: Config = {
           bg: "rgb(var(--draft-bg) / <alpha-value>)",
           border: "rgb(var(--draft-border) / <alpha-value>)",
         },
+        // Formula names by kind (see FormulaText).
+        token: {
+          input: "rgb(var(--token-input) / <alpha-value>)",
+          result: "rgb(var(--token-result) / <alpha-value>)",
+          function: "rgb(var(--token-function) / <alpha-value>)",
+          property: "rgb(var(--token-property) / <alpha-value>)",
+        },
         danger: {
           DEFAULT: "rgb(var(--danger) / <alpha-value>)",
           bg: "rgb(var(--danger-bg) / <alpha-value>)",

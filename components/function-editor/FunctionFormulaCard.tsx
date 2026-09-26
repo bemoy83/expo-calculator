@@ -5,9 +5,11 @@ import { Textarea } from '@/components/ui/Textarea';
 import { FormulaVariableToken } from '@/components/formula/FormulaVariableToken';
 import { FormulaOperatorGuide } from '@/components/formula/FormulaOperatorGuide';
 import { cn } from '@/lib/utils';
-import { AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
+import { AutocompleteSuggestion, clampSuggestionLeft } from '@/hooks/use-formula-autocomplete';
 import { containsStandalone } from '@/lib/formula/identifiers';
 import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
+import { FormulaLegend, FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
+import type { FormulaNames } from '@/lib/calculator/formula-tokens';
 
 interface WordInfo {
   word: string;
@@ -23,6 +25,8 @@ interface ParameterInfo {
 }
 
 interface FunctionFormulaCardProps {
+  /** Names the formula can use, to colour it as it's typed. */
+  formulaNames?: FormulaNames;
   formula: string;
   onFormulaChange: (formula: string) => void;
   formulaTextareaRef: React.RefObject<HTMLTextAreaElement>;
@@ -45,6 +49,7 @@ interface FunctionFormulaCardProps {
 }
 
 export function FunctionFormulaCard({
+  formulaNames,
   formula,
   onFormulaChange,
   formulaTextareaRef,
@@ -116,6 +121,7 @@ export function FunctionFormulaCard({
             ref={formulaTextareaRef}
             label="Formula"
             value={formula}
+            highlight={formulaNames ? <FormulaText expression={formula} names={formulaNames} /> : undefined}
             onChange={(e) => {
               onFormulaChange(e.target.value);
               // Update autocomplete immediately with the new value
@@ -185,7 +191,7 @@ export function FunctionFormulaCard({
               className="fixed z-50 bg-surface border border-border-strong rounded-lg shadow-panel max-h-64 overflow-y-auto py-1"
               style={{
                 top: `${autocompletePosition.top}px`,
-                left: `${autocompletePosition.left}px`,
+                left: `${clampSuggestionLeft(autocompletePosition.left)}px`,
                 minWidth: '280px',
               }}
               onMouseDown={(e) => e.preventDefault()} // Prevent blur
@@ -207,16 +213,17 @@ export function FunctionFormulaCard({
                       isSelected ? 'bg-action-bg text-ink' : 'text-ink-body hover:bg-surface-hover'
                     )}
                   >
-                    <code className="text-xs font-numeric flex-1">{suggestion.displayName}</code>
+                    <code className={cn('text-xs font-numeric flex-1', TOKEN_TEXT[suggestionToken(suggestion.type).kind])}>
+                      {suggestion.displayName}
+                    </code>
                     {isRecent && <span className="text-xs text-ink-faint" title="Recently used">●</span>}
                     <span
                       className={cn(
-                        'text-[10.5px] px-1.5 py-0.5 rounded-full font-medium',
-                        suggestion.type === 'field' && 'bg-action-bg text-action',
-                        (suggestion.type === 'function' || suggestion.type === 'constant') && 'bg-sunken text-ink-body'
+                        'text-[10.5px] uppercase tracking-wide font-medium',
+                        TOKEN_TEXT[suggestionToken(suggestion.type).kind] || 'text-ink-faint'
                       )}
                     >
-                      {suggestion.type}
+                      {suggestion.type === 'field' ? 'parameter' : suggestionToken(suggestion.type).label}
                     </span>
                   </button>
                 );
@@ -230,6 +237,7 @@ export function FunctionFormulaCard({
           Use parameter names, functions, and constants in your formula. Example: if you have parameters &quot;width&quot; and &quot;height&quot;,
           your formula could be &quot;width * height&quot; or &quot;area(width, height)&quot;.
         </p>
+        <FormulaLegend inputLabel="parameter" />
         <FormulaOperatorGuide onInsertOperator={onInsertOperator} />
       </div>
     </Card>

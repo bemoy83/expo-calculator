@@ -2,10 +2,12 @@
 
 import { useMemo, useRef } from 'react';
 import { Textarea } from '@/components/ui/Textarea';
-import { useFormulaAutocomplete, type AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
+import { clampSuggestionLeft, useFormulaAutocomplete, type AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
 import type { Calculator, CalculatorLibrary, CalculatorStep } from '@/lib/calculator/types';
 import { cn } from '@/lib/utils';
 import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
+import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
+import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
 
 const MATH_FUNCTIONS = [
   { name: 'ceil', description: 'Round up' },
@@ -16,16 +18,6 @@ const MATH_FUNCTIONS = [
   { name: 'abs', description: 'Absolute value' },
   { name: 'sqrt', description: 'Square root' },
 ];
-
-const TYPE_LABEL: Record<AutocompleteSuggestion['type'], string> = {
-  field: 'input',
-  material: 'material',
-  property: 'property',
-  function: 'function',
-  constant: 'constant',
-  labor: 'labor',
-  laborProperty: 'property',
-};
 
 // Names a step's formula can use: inputs, other steps, properties of picked materials/labor,
 // functions, and constants.
@@ -95,6 +87,7 @@ export function StepFormulaEditor({
   onChange: (value: string) => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
   const candidates = useCandidates(calculator, step, library);
   const stepKeys = useMemo(() => new Set(calculator.steps.map((other) => other.key)), [calculator.steps]);
   const {
@@ -127,6 +120,7 @@ export function StepFormulaEditor({
         spellCheck={false}
         placeholder="e.g. area_rectangle(width, height)"
         className="font-numeric text-[13px] leading-relaxed"
+        highlight={<FormulaText expression={value} names={formulaNames} />}
         onChange={(event) => {
           onChange(event.target.value);
           requestAnimationFrame(() => updateAutocompleteSuggestionsFinal());
@@ -148,10 +142,12 @@ export function StepFormulaEditor({
           role="listbox"
           aria-label="Suggestions"
           className="fixed z-50 min-w-[280px] max-h-64 overflow-y-auto py-1 rounded-lg border border-border-strong bg-surface shadow-panel"
-          style={{ top: autocompletePosition.top, left: autocompletePosition.left }}
+          style={{ top: autocompletePosition.top, left: clampSuggestionLeft(autocompletePosition.left) }}
           onMouseDown={(event) => event.preventDefault()}
         >
-          {autocompleteSuggestions.slice(0, 8).map((suggestion, index) => (
+          {autocompleteSuggestions.slice(0, 8).map((suggestion, index) => {
+            const token = suggestionToken(suggestion.type, suggestion.type === 'field' && stepKeys.has(suggestion.name));
+            return (
             <button
               key={`${suggestion.name}-${index}`}
               type="button"
@@ -164,15 +160,16 @@ export function StepFormulaEditor({
                 index === selectedSuggestionIndex ? 'bg-action-bg text-ink' : 'text-ink-body hover:bg-surface-hover'
               )}
             >
-              <code className="flex-1 text-xs font-numeric">{suggestion.displayName}</code>
+              <code className={cn('flex-1 text-xs font-numeric', TOKEN_TEXT[token.kind])}>{suggestion.displayName}</code>
               {suggestion.description && (
                 <span className="max-w-[160px] truncate text-[11px] text-ink-muted">{suggestion.description}</span>
               )}
-              <span className="text-[10px] uppercase tracking-wide text-ink-faint">
-                {suggestion.type === 'field' && stepKeys.has(suggestion.name) ? 'step' : TYPE_LABEL[suggestion.type]}
+              <span className={cn('text-[10px] uppercase tracking-wide font-medium', TOKEN_TEXT[token.kind] || 'text-ink-faint')}>
+                {token.label}
               </span>
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

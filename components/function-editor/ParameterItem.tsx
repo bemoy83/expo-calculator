@@ -64,7 +64,7 @@ export function ParameterItem({
       metaChips={[
         <span key="position" className="text-[11px] font-numeric text-ink-faint">#{index + 1}</span>,
         parameter.name ? (
-          <span key="name" className="px-2 py-0.5 rounded-full bg-action-bg text-[11px] font-numeric font-medium text-action">
+          <span key="name" className="px-2 py-0.5 rounded-full bg-sunken text-[11px] font-numeric font-medium text-token-input">
             {parameter.name}
           </span>
         ) : null,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -17,6 +17,8 @@ import { ConditionEditor } from './ConditionEditor';
 import { FunctionCallEditor } from './FunctionCallEditor';
 import { StepFormulaEditor } from './StepFormulaEditor';
 import { NAME } from '@/lib/formula/identifiers';
+import { FormulaText } from '@/components/formula/FormulaText';
+import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
 
 const FORMAT_OPTIONS: Array<{ value: StepFormat; label: string }> = [
   { value: 'number', label: 'Number' },
@@ -83,6 +85,7 @@ export function StepRow({
   const isError = result?.status === 'error';
   const unknown = unknownNameIn(result?.message);
   const nameProblem = keyProblem(calculator, step.key, step.id);
+  const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
   const expression = step.source.type === 'expression' ? step.source.expression : '';
   const shownFormula =
     step.source.type === 'expression'
@@ -150,9 +153,10 @@ export function StepRow({
               )}
             </span>
             {!expanded && (
-              <code className="block mt-0.5 text-[11.5px] font-numeric text-ink-muted truncate">
-                {step.key} = {shownFormula || '…'}
-              </code>
+              <span className="block mt-0.5 text-[11.5px] text-ink-muted line-clamp-2 break-all">
+                <code className="font-numeric text-token-result">{step.key}</code> ={' '}
+                {shownFormula ? <FormulaText expression={shownFormula} names={formulaNames} /> : '…'}
+              </span>
             )}
             {!expanded && step.enabledWhen && (
               <span className="block mt-0.5 text-[11px] text-ink-muted truncate">

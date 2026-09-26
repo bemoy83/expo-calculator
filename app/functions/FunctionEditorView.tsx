@@ -16,6 +16,8 @@ import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
+import { useCalculatorLibrary } from '@/hooks/use-calculators';
+import { functionFormulaNames } from '@/lib/calculator/formula-tokens';
 
 export interface FunctionEditorViewProps {
   functionId: string;
@@ -31,6 +33,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
   const addCategory = useCategoriesStore((state) => state.addCategory);
   const labor = useLaborStore((state) => state.labor);
   const calculators = useCalculatorsStore((state) => state.calculators);
+  const library = useCalculatorLibrary();
   const existingFunction = functionId === 'new' ? null : getFunction(functionId) ?? null;
   const isNew = functionId === 'new';
   const [confirmingRename, setConfirmingRename] = useState(false);
@@ -141,7 +144,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
                         disabled={isAdded}
                         title={suggestion.label}
                         aria-label={isAdded ? `${description} is already a parameter` : `Add ${description} as a parameter`}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full border text-[11px] font-numeric font-medium transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-action enabled:hover:opacity-80 disabled:cursor-default bg-action-bg text-action border-transparent disabled:border-action"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full border text-[11px] font-numeric font-medium transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-action enabled:hover:opacity-80 disabled:cursor-default bg-sunken text-token-input border-transparent disabled:border-token-input"
                       >
                         {isAdded ? (
                           <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
@@ -179,6 +182,7 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
         <div className="space-y-4 lg:sticky lg:top-sticky-offset lg:max-h-[calc(100vh-var(--app-header-h)-3rem)] lg:overflow-y-auto lg:pr-1">
           <FunctionFormulaCard
             formula={editor.formData.formula}
+            formulaNames={functionFormulaNames({ parameters: editor.parameters }, library)}
             onFormulaChange={(formula) => editor.handleFormDataChange({ formula })}
             formulaTextareaRef={editor.formulaTextareaRef}
             formulaValidation={editor.formulaValidation}

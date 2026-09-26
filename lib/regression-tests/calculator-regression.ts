@@ -36,6 +36,7 @@ import {
 } from '../calculator/editing';
 import { evaluateCalculator } from '../calculator/evaluate';
 import { describeCondition, stepDisplayLabel } from '../calculator/format';
+import { classifyFormula } from '../calculator/formula-tokens';
 import { missingProperties, requiredProperties } from '../calculator/requirements';
 import { fixPricePropertyStorage, normalizePropertyValue, priceFromBase, priceToBase, propertyValueInUnit } from '../catalog/prices';
 import { getMaterialValue } from '../formula/resolver';
@@ -1317,5 +1318,31 @@ assertCheck(
     'the calculator picker groups by category, alphabetically, with uncategorised last',
     grouped.map((group) => `${group.category}:${group.items.map((item) => item.name).join('+')}`).join('|') ===
       'Walls:Brick wall+Wood wall|Other:Flooring'
+  );
+}
+
+// ---- Formula colours ----
+
+{
+  const names = {
+    inputs: new Set(['width', 'height', 'material']),
+    results: new Set(['lumber_count']),
+    functions: new Set(['stud_count']),
+    catalog: new Set(['mdf_6mm']),
+  };
+  const kinds = (expression: string) =>
+    classifyFormula(expression, names)
+      .filter((segment) => segment.kind !== 'plain')
+      .map((segment) => `${segment.text}:${segment.kind}`)
+      .join(' ');
+  const pieces = classifyFormula('lumber_count * material.price', names);
+  assertCheck(
+    'formulas split into inputs, results, functions, properties and unknown names, keeping every character',
+    kinds('lumber_count * material.price') === 'lumber_count:result material.price:property' &&
+      kinds('ceil(stud_count(width, 0.6) * height) + mdf_6mm.price + mdf_6mm') ===
+        'ceil:function stud_count:function width:input height:input mdf_6mm.price:property mdf_6mm:property' &&
+      kinds('sum(lumber_count) + 2e3 * pi + nope + missing(1) + other.x') ===
+        'sum:function lumber_count:result nope:unknown missing:unknown other.x:unknown' &&
+      pieces.map((segment) => segment.text).join('') === 'lumber_count * material.price'
   );
 }

@@ -64,6 +64,11 @@
   --ink-faint: 117 114 109; /* #75726d */
   --on-accent: 255 255 255; /* #ffffff */
   --action: 36 85 214; /* #2455d6 */
+  /* Formula names by kind, as text: kept apart from action, committed, draft and danger. */
+  --token-input: 15 110 86; /* #0f6e56 teal */
+  --token-result: 83 74 183; /* #534ab7 purple */
+  --token-function: 153 53 86; /* #993556 pink */
+  --token-property: 153 60 29; /* #993c1d coral */
   --action-solid: 17 17 16; /* #111110 */
   --action-bg: 233 239 252; /* #e9effc */
   --action-border: 195 210 245; /* #c3d2f5 */
@@ -96,6 +101,10 @@
   --ink-faint: 125 125 122; /* #7d7d7a */
   --on-accent: 11 11 11; /* #0b0b0b */
   --action: 138 168 255; /* #8aa8ff */
+  --token-input: 93 202 165; /* #5dcaa5 */
+  --token-result: 175 169 236; /* #afa9ec */
+  --token-function: 237 147 177; /* #ed93b1 */
+  --token-property: 240 153 123; /* #f0997b */
   --action-solid: 245 245 244; /* #f5f5f4 */
   --action-bg: 26 34 56; /* #1a2238 */
   --action-border: 44 58 99; /* #2c3a63 */

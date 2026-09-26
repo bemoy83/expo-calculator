@@ -9,6 +9,8 @@ import type { Binding, Calculator, CalculatorLibrary, CalculatorStep, StepSource
 import { getFunctionParamKinds } from '@/lib/functions/param-kinds';
 import type { FunctionParamKind, SharedFunction } from '@/lib/types';
 import { getUnitCategory } from '@/lib/units';
+import { FormulaText } from '@/components/formula/FormulaText';
+import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
 
 type CallSource = Extract<StepSource, { type: 'call' }>;
 type Param = SharedFunction['parameters'][number];
@@ -204,9 +206,9 @@ export function FunctionCallEditor({
       )}
 
       {fn && (
-        <code className="block text-[11.5px] font-numeric text-ink-muted break-all">
-          = {callToExpression(source, library.functions)}
-        </code>
+        <p className="text-[11.5px] text-ink-muted break-all">
+          = <FormulaText expression={callToExpression(source, library.functions)} names={calculatorFormulaNames(calculator, library)} />
+        </p>
       )}
     </div>
   );
