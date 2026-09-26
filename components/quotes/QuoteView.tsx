@@ -7,7 +7,8 @@ import { AddCalculatorDialog } from '@/components/quotes/AddCalculatorDialog';
 import { QuoteLineCard } from '@/components/quotes/QuoteLineCard';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
 import { useCalculatorLibrary, useCalculators } from '@/hooks/use-calculators';
-import { downloadQuoteJson, printQuote } from '@/lib/quotes/export';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { downloadQuoteJson, lineDisplayName, printQuote, unfinishedLines } from '@/lib/quotes/export';
 import { formatEditedAt } from '@/lib/quotes/quote-board';
 import { lineTitle, newCalculatorLine } from '@/lib/quotes/workspace';
 import type { Calculator } from '@/lib/calculator/types';
@@ -35,6 +36,12 @@ export function QuoteView({ quote }: { quote: Quote }) {
   const duplicateLineItem = useQuotesStore((state) => state.duplicateLineItem);
   const moveLineItem = useQuotesStore((state) => state.moveLineItem);
   const [adding, setAdding] = useState(false);
+  // An export waiting on "Export anyway" because some lines aren't finished.
+  const [pendingExport, setPendingExport] = useState<'print' | 'json' | null>(null);
+  const unfinished = unfinishedLines(quote);
+  const runExport = (kind: 'print' | 'json') =>
+    kind === 'print' ? printQuote(quote, formatCurrency) : downloadQuoteJson(quote);
+  const requestExport = (kind: 'print' | 'json') => (unfinished.length > 0 ? setPendingExport(kind) : runExport(kind));
   const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
   const toggle = (id: string) =>
     setOpenIds((current) => {
@@ -98,11 +105,14 @@ export function QuoteView({ quote }: { quote: Quote }) {
           />
           <p className="text-xs text-ink-muted">
             {itemCount} {itemCount === 1 ? 'line item' : 'line items'} ·{' '}
+            {/* The total is in the quote sheet too, but on a phone that's below every card. */}
+            <span className="font-numeric font-medium text-ink">{formatCurrency(quote.total)}</span>
+            {unfinished.length > 0 && <span className="text-draft"> ({unfinished.length} not finished)</span>} ·{' '}
             <span className="font-numeric">edited {formatEditedAt(quote.updatedAt)}</span>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => downloadQuoteJson(quote)}>
+          <Button variant="secondary" size="sm" onClick={() => requestExport('json')}>
             <Download className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
             Export JSON
           </Button>
@@ -178,9 +188,23 @@ export function QuoteView({ quote }: { quote: Quote }) {
           }}
           removeLineItem={remove}
           emptyMessage="No lines yet."
-          onExport={() => printQuote(quote, formatCurrency)}
+          onExport={() => requestExport('print')}
         />
       </div>
+      <ConfirmDialog
+        isOpen={pendingExport !== null}
+        title={unfinished.length === 1 ? '1 line isn’t finished' : `${unfinished.length} lines aren’t finished`}
+        message={`${unfinished
+          .slice(0, 5)
+          .map((item) => `${lineDisplayName(item)}: ${item.unfinished}`)
+          .join('\n')}${unfinished.length > 5 ? `\n…and ${unfinished.length - 5} more` : ''}\n\nThey aren’t included in the total. Export anyway?`}
+        confirmLabel="Export anyway"
+        onConfirm={() => {
+          if (pendingExport) runExport(pendingExport);
+          setPendingExport(null);
+        }}
+        onCancel={() => setPendingExport(null)}
+      />
       <AddCalculatorDialog isOpen={adding} onClose={() => setAdding(false)} calculators={calculators} onPick={addCalculator} />
     </>
   );

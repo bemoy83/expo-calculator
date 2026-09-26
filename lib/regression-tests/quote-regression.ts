@@ -1,6 +1,6 @@
 import './memory-local-storage';
 import { calculateQuoteTotals } from '../calculations/money';
-import { buildQuoteExportData, buildQuotePrintHtml, getQuoteExportFileName } from '../quotes/export';
+import { buildQuoteExportData, buildQuotePrintHtml, getQuoteExportFileName, lineDisplayName, unfinishedLines } from '../quotes/export';
 import {
   filterQuotesByName,
   formatEditedAt,
@@ -198,7 +198,27 @@ assertCheck(
     buildQuotePrintHtml({
       quote: nicknamedExportQuote,
       formatCurrency: (amount) => `$${amount.toFixed(2)}`,
-    }).includes('<td>Source · North &lt;wall&gt;</td>')
+    }).includes('<td>North &lt;wall&gt; · Source</td>')
+);
+const unfinishedQuote: Quote = {
+  ...exportQuote,
+  lineItems: [
+    exportQuote.lineItems[0],
+    { ...exportQuote.lineItems[0], id: 'u', moduleName: 'Wood wall', nickname: 'Wood wall 2', cost: 0, unfinished: 'Fill in Height' },
+  ],
+};
+const unfinishedHtml = buildQuotePrintHtml({ quote: unfinishedQuote, formatCurrency: (amount) => `$${amount.toFixed(2)}` });
+assertCheck(
+  'print and JSON export mark unfinished lines and say they are not in the total',
+  unfinishedLines(unfinishedQuote).length === 1 &&
+    unfinishedHtml.includes('<td>Wood wall 2</td>') &&
+    unfinishedHtml.includes('<td>Fill in Height</td>') &&
+    unfinishedHtml.includes('<em>Not finished</em>') &&
+    unfinishedHtml.includes('1 line is not finished and not included in the total') &&
+    !quotePrintHtml.includes('Not finished') &&
+    buildQuoteExportData({ quote: unfinishedQuote }).quote.lineItems[1].unfinished === 'Fill in Height' &&
+    !('unfinished' in buildQuoteExportData({ quote: unfinishedQuote }).quote.lineItems[0]) &&
+    lineDisplayName({ ...exportQuote.lineItems[0], moduleName: 'Wood wall', nickname: 'Gable end' }) === 'Gable end · Wood wall'
 );
 assertCheck(
   'builds quote JSON export file names',

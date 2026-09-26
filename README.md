@@ -1,8 +1,9 @@
 # Event Construction Cost Estimator
 
 A web app for pricing construction and event builds with purpose-built calculators. The
-owner builds calculators in the app (no code); staff open one, fill in a simple form, and
-send the result to a quote.
+owner builds calculators in the app (no code); staff use them on their own, or build a
+quote from them: add a calculator to the quote, fill it in, duplicate it for each wall or
+room, and mix in other calculators.
 
 Everything runs in the browser and is saved in its local storage. There is no server,
 database or account. Data moves between devices as exported files.
@@ -14,7 +15,7 @@ database or account. Data moves between devices as exported files.
 | **Functions** | Reusable math with named, unit-aware parameters, e.g. `stud_count(width, spacing)`. Functions can call other functions. | Functions page |
 | **Catalogs** | Materials (with a default price and extra prices such as per m² or per pallet, plus properties like width) and labor (with a rate). | Materials and Labor pages |
 | **Calculators** | Inputs, the steps that calculate from them, grouped into **parts**, and a layout of what staff see. | Calculators page → New calculator / Edit |
-| **Quotes** | Lines sent from calculators, with markup, VAT, totals, JSON export and print. | Quotes page |
+| **Quotes** | A workspace of calculator cards (one per wall, floor, …), with markup, VAT, the total, JSON export and print. | Quotes page |
 
 ### Calculators and parts
 
@@ -36,10 +37,22 @@ The builder has two tabs: **Parts** (the math, with live test values) and **Layo
 
 ### Quotes
 
-On a calculator, **Send to quote** adds a line to a new or existing quote with the cost, a
-summary and the values used. **Edit** on that line reopens the calculator with those values
-and can update the line. Quotes stay on the device they were made on; they are never part
-of an export or changed by an import.
+A quote is a workspace: each line is a **calculator card**, filled in and changed in place,
+and the total updates as you type.
+
+- **Add calculator** picks a calculator (by category, with search) and adds it as a card.
+- **Duplicate** copies a card with its values as "Wood wall 2", "Wood wall 3", … so only
+  what differs (the width) is changed. Cards can be renamed ("Gable end"), moved, closed to
+  one line, and removed (with Undo).
+- A card that can't calculate yet says what it needs ("Fill in Height") and counts 0; the
+  total says how many lines aren't finished, and print/export ask before going ahead.
+- A card keeps the cost it had when last edited. If prices or the calculator change later,
+  it shows what it would cost now with **Update**, so a quote already given out doesn't
+  change by being opened.
+- On a calculator's own page, **Send to quote** adds it to a quote as a card.
+
+Quotes stay on the device they were made on; they are never part of an export or changed
+by an import.
 
 ## Sharing calculators with staff devices
 

@@ -1,6 +1,17 @@
 import { roundMoney } from "../calculations/money";
-import type { Quote } from "../types";
-import { formatInstanceName } from "./nickname";
+import type { Quote, QuoteLineItem } from "../types";
+import { lineCalculatorName, lineTitle } from "./workspace";
+
+/** A line's name as on its card: "Gable end · Wood wall", "Wood wall 2", "Wood wall". */
+export function lineDisplayName(item: QuoteLineItem): string {
+  const calculatorName = lineCalculatorName(item);
+  return calculatorName ? `${lineTitle(item)} · ${calculatorName}` : lineTitle(item);
+}
+
+/** Lines that couldn't calculate when last edited: they count 0 and aren't in the total. */
+export function unfinishedLines(quote: Quote): QuoteLineItem[] {
+  return quote.lineItems.filter((item) => item.unfinished);
+}
 
 export function buildQuoteExportData(input: { quote: Quote }) {
   return {
@@ -13,6 +24,7 @@ export function buildQuoteExportData(input: { quote: Quote }) {
         // Calculator lines carry what was shown; old module lines only have their values by name.
         fields: item.details ?? Object.entries(item.fieldValues).map(([label, value]) => ({ label, value })),
         cost: roundMoney(item.cost),
+        ...(item.unfinished ? { unfinished: item.unfinished } : {}),
       })),
       subtotal: roundMoney(input.quote.subtotal),
       markupPercent: roundMoney(input.quote.markupPercent || 0),
@@ -47,6 +59,7 @@ export function buildQuotePrintHtml(input: {
           th { background-color: #f5f5f5; font-weight: bold; }
           .total-row { font-weight: bold; background-color: #f9f9f9; }
           .right-align { text-align: right; }
+          .note { color: #8a5a00; }
         </style>
       </head>
       <body>
@@ -55,7 +68,7 @@ export function buildQuotePrintHtml(input: {
         <table>
           <thead>
             <tr>
-              <th>Module</th>
+              <th>Item</th>
               <th>Details</th>
               <th class="right-align">Cost</th>
             </tr>
@@ -66,9 +79,11 @@ export function buildQuotePrintHtml(input: {
   quote.lineItems.forEach((item) => {
     html += `
         <tr>
-          <td>${escapeHtml(formatInstanceName(item.moduleName, item.nickname))}</td>
-          <td>${escapeHtml([item.primarySummary, item.secondarySummary || item.fieldSummary].filter(Boolean).join(' — '))}</td>
-          <td class="right-align">${escapeHtml(formatCurrency(item.cost))}</td>
+          <td>${escapeHtml(lineDisplayName(item))}</td>
+          <td>${escapeHtml(
+            item.unfinished ? item.unfinished : [item.primarySummary, item.secondarySummary || item.fieldSummary].filter(Boolean).join(' — ')
+          )}</td>
+          <td class="right-align">${item.unfinished ? '<em>Not finished</em>' : escapeHtml(formatCurrency(item.cost))}</td>
         </tr>
       `;
   });
@@ -102,6 +117,11 @@ export function buildQuotePrintHtml(input: {
             </tr>
           </tfoot>
         </table>
+        ${
+          unfinishedLines(quote).length > 0
+            ? `<p class="note"><strong>Not finished:</strong> ${unfinishedLines(quote).length === 1 ? '1 line is' : `${unfinishedLines(quote).length} lines are`} not finished and not included in the total.</p>`
+            : ''
+        }
       </body>
       </html>
     `;

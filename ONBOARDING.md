@@ -38,10 +38,12 @@ JSON files.
 | Functions | `functions-store` | Typed, unit-aware parameters with a kind (number, material, labor, yes/no); can call other functions |
 | Catalogs | `materials-store`, `labor-store`, `categories-store` | Materials have a default price (Price / Per) plus price properties (`price_per_m2`, …) and other properties; labor has a rate |
 | Calculators | `calculators-store` | `lib/calculator/types.ts`: inputs, parts, steps, layout, optional quote cost step |
-| Quotes | `quotes-store` | Line items are snapshots with `calculatorId` and the values sent; never exported or imported |
+| Quotes | `quotes-store` | Line items hold `calculatorId`, the calculator's values, and the kept cost (`unfinished` when it can't calculate); the quote page shows them as editable cards. Never exported or imported |
 | Device settings | `device-store` | Use-only mode, the calculator pack loaded, the last pack exported; per browser, never exported |
 
-Retired: modules, templates, field linking and the quote workspace (removed in step 10).
+Retired: modules, templates, field linking and the module quote workspace (removed in step
+10). The quote page became a workspace of calculator cards again afterwards (W1–W2 in
+CALCULATOR_DESIGN.md, "Quote workspace").
 On first load their stored data becomes calculators (`lib/calculator/legacy.ts`), and old
 export files with modules/templates still import. `CalculationModule` and `ModuleTemplate`
 remain only as types for that conversion.
@@ -71,18 +73,22 @@ export can't have a page per calculator.
     default selection, date comparison
   - `from-module.ts`, `from-template.ts`, `legacy.ts` — conversion of retired data
 - `lib/formula/` — parser, validator, unit validation, math runtime (mathjs)
-- `lib/functions/`, `lib/catalog/` (price conversion), `lib/quotes/` (line items, board,
-  export/print)
+- `lib/functions/`, `lib/catalog/` (price conversion), `lib/quotes/` (line items and
+  rebuilding them, board, export/print, `workspace.ts`: adding, duplicating, moving and
+  removing cards)
 - `lib/utils/data-export.ts`, `data-import.ts` — export format 2.0.0 (`kind: 'pack'` marks
   a calculator pack); import validates, converts old files, merges or replaces
 
 ### Components (`components/`)
-- `calculator/` — staff view (`CalculatorRunView`, layout renderer, inputs by widget,
-  results, `SendToQuoteDialog`) and the Calculators list
+- `calculator/` — staff view (`CalculatorRunView`, `CalculatorForm` shared with quote
+  cards, layout renderer, inputs by widget, results, `SendToQuoteDialog`) and the
+  Calculators list
+- `quotes/` — `QuoteView` (cards and the quote sheet), `QuoteLineCard`,
+  `AddCalculatorDialog`, `QuoteSummaryCard`
 - `calculator-builder/` — `CalculatorBuilder` (Parts | Layout tabs), part cards, step
   editors (function call or formula), input dialog, layout canvas and inspector, condition
   editor
-- `function-editor/`, `materials/`, `labor/`, `quotes/`
+- `function-editor/`, `materials/`, `labor/`
 - `AppSidebar.tsx` (navigation and the Settings menu: appearance, currency, use-only mode,
   export/import), `Layout.tsx` (shell, import and pack export dialogs, use-only page gate),
   `DataImporter.tsx`, `PackExporter.tsx`

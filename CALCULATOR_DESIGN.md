@@ -773,7 +773,7 @@ formula name made readable (`step` → "Step", `framing_length` → "Framing len
 
 ## Quote workspace
 
-Status: design agreed 2026-09-26, not built yet.
+Status: design agreed 2026-09-26; W1–W3 built on `quote-workspace`.
 
 The original quote builder's workflow was the intuitive one: load modules into the quote,
 fill them in, duplicate for each wall, mix in other modules, and see the total. Calculators
@@ -888,3 +888,15 @@ quotes store, `QuoteLineCard.tsx`, `QuoteView.tsx`):
   the picker by typing and Enter, filled it, duplicated it twice (Wood wall 2 and 3 in
   order, open), changed Wood wall 2, added Flooring, and the total came to the sum; removed
   Wood wall 3 and Undo put it back in place; moved Flooring up, renamed a card, Close all.
+
+**W3 — Finish** (`lib/quotes/export.ts`, `QuoteView.tsx`, README, ONBOARDING):
+- Print shows an unfinished line's reason and "Not finished" instead of a cost, with a note
+  under the totals; the JSON export carries `unfinished` on such lines. Print names lines as
+  the cards do (`lineDisplayName`: "Gable end · Wood wall"), and its first column is "Item".
+- Export quote and Export JSON ask first when lines aren't finished, listing them ("Wood
+  wall: Fill in Width and Height … They aren't included in the total. Export anyway?").
+- The header line shows the total ("6 line items · $9550.00 (1 not finished) · edited …"),
+  since on a phone the quote sheet comes after every card.
+- Phone width checked: cards, an open card with its actions, and the sheet fit at 375 px
+  with no sideways scroll.
+- README and ONBOARDING describe the quote workspace.
