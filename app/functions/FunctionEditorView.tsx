@@ -120,33 +120,44 @@ export function FunctionEditorView({ functionId, onClose }: FunctionEditorViewPr
             </p>
           )}
 
-          <Card title="Add parameters from calculator inputs" density="dense">
-            {editor.availableInputNames.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {editor.availableInputNames.map((fieldName) => {
-                  const isAdded = editor.existingParameterNames.has(fieldName.toLowerCase());
-                  return (
-                    <button
-                      key={fieldName}
-                      type="button"
-                      onClick={() => editor.addParameterFromField(fieldName)}
-                      disabled={isAdded}
-                      aria-label={isAdded ? `${fieldName} is already a parameter` : `Add ${fieldName} as a parameter`}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full border text-[11px] font-numeric font-medium transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-action enabled:hover:opacity-80 disabled:cursor-default bg-action-bg text-action border-transparent disabled:border-action"
-                    >
-                      {isAdded ? (
-                        <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-                      ) : (
-                        <Plus className="h-3 w-3" aria-hidden="true" />
-                      )}
-                      {fieldName}
-                    </button>
-                  );
-                })}
-              </div>
+          <Card title="Reuse parameters" density="dense">
+            {editor.parameterSuggestions.length > 0 ? (
+              <>
+                <p className="mb-2 text-xs text-ink-muted">
+                  From your other functions and calculator inputs. Adds the parameter with its label, unit and kind.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {editor.parameterSuggestions.map((suggestion) => {
+                    const isAdded = editor.existingParameterNames.has(suggestion.name.toLowerCase());
+                    const detail = suggestion.kind && suggestion.kind !== 'number'
+                      ? suggestion.kind === 'boolean' ? 'yes/no' : suggestion.kind
+                      : suggestion.unitSymbol;
+                    const description = `${suggestion.name}${detail ? ` (${detail})` : ''}`;
+                    return (
+                      <button
+                        key={`${suggestion.name}|${suggestion.kind ?? ''}|${suggestion.unitSymbol ?? ''}`}
+                        type="button"
+                        onClick={() => editor.addParameterFromSuggestion(suggestion)}
+                        disabled={isAdded}
+                        title={suggestion.label}
+                        aria-label={isAdded ? `${description} is already a parameter` : `Add ${description} as a parameter`}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full border text-[11px] font-numeric font-medium transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-action enabled:hover:opacity-80 disabled:cursor-default bg-action-bg text-action border-transparent disabled:border-action"
+                      >
+                        {isAdded ? (
+                          <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                        ) : (
+                          <Plus className="h-3 w-3" aria-hidden="true" />
+                        )}
+                        {suggestion.name}
+                        {detail && <span className="font-normal opacity-70">{detail}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
             ) : (
               <p className="text-sm text-ink-muted">
-                No calculator inputs yet. Inputs you add to calculators can be reused as parameters here.
+                Nothing to reuse yet. Parameters of your other functions, and calculator inputs, show here.
               </p>
             )}
           </Card>

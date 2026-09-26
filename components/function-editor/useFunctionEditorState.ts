@@ -5,11 +5,11 @@ import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
 import { useParameterManager } from '@/hooks/use-parameter-manager';
 import { validateFormula } from '@/lib/formula-evaluator';
 import {
-  addParameterFromName,
+  addSuggestedParameter,
   buildFunctionSaveData,
   collectFunctionAutocompleteCandidates,
   FunctionFormData,
-  getAvailableInputNames,
+  getParameterSuggestions,
   getExistingParameterNames,
   getFormulaWithInsertedOperator,
   getFormulaWithInsertedToken,
@@ -25,7 +25,7 @@ interface UseFunctionEditorStateOptions {
   existingFunction: SharedFunction | null;
   functions: SharedFunction[];
   labor: Labor[];
-  /** Calculators, whose input names are offered as parameters. */
+  /** Calculators, whose inputs are offered as parameters after the other functions' parameters. */
   calculators: Calculator[];
   addFunction: (func: Omit<SharedFunction, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateFunction: (id: string, func: Partial<SharedFunction>) => void;
@@ -110,9 +110,9 @@ export function useFunctionEditorState({
     validateFormulaInput(formData.formula);
   }, [formData.formula, validateFormulaInput]);
 
-  const availableInputNames = useMemo(
-    () => getAvailableInputNames(calculators),
-    [calculators]
+  const parameterSuggestions = useMemo(
+    () => getParameterSuggestions(functions, calculators, existingFunction?.id),
+    [functions, calculators, existingFunction?.id]
   );
 
   const existingParameterNames = useMemo(
@@ -120,9 +120,9 @@ export function useFunctionEditorState({
     [parameters]
   );
 
-  const addParameterFromField = useCallback(
-    (fieldName: string) => {
-      setParameters((prev) => addParameterFromName(prev, fieldName));
+  const addParameterFromSuggestion = useCallback(
+    (suggestion: SharedFunction['parameters'][number]) => {
+      setParameters((prev) => addSuggestedParameter(prev, suggestion));
     },
     [setParameters]
   );
@@ -235,13 +235,13 @@ export function useFunctionEditorState({
     formulaValidation,
     parameters,
     expandedParameters,
-    availableInputNames,
+    parameterSuggestions,
     existingParameterNames,
     formulaTextareaRef,
     autocomplete,
     handleFormDataChange,
     handleVariableNameChange,
-    addParameterFromField,
+    addParameterFromSuggestion,
     addParameter,
     updateParameter,
     removeParameter,

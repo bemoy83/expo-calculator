@@ -711,3 +711,12 @@ numbers its unit. A notice names the inputs added. Parameters that already have 
 are left alone, and changing a binding or removing an input doesn't re-create anything.
 "New input…" on a parameter now starts with the parameter's unit too
 (`bindCallParameters` in lib/calculator/editing.ts).
+
+**Reuse parameters in the function editor.** The "Add parameters from calculator inputs"
+card becomes "Reuse parameters": it offers the parameters of the other functions first,
+then calculator inputs (text notes left out), each with its label, unit and kind, so
+width/height are defined once and picked in every new function. The same name with a
+different unit or kind is offered separately ("height m", "height mm"). A click copies the
+whole definition, filling the new function's blank parameter first, and a name already
+present is ticked and can't be added twice (`getParameterSuggestions`,
+`addSuggestedParameter` in lib/functions/function-editor-helpers.ts).

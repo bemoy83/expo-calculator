@@ -19,23 +19,49 @@ export type FunctionAutocompleteCandidate = {
 
 type FunctionParameter = SharedFunction["parameters"][number];
 
-/** Input names used in the calculators (text notes left out), each once, for reuse as parameters. */
-export function getAvailableInputNames(calculators: Calculator[]): string[] {
-  const uniqueNames = new Map<string, string>();
+/**
+ * Parameters to reuse when writing a function: those of the other functions first, then
+ * calculator inputs (text notes left out), each with its label, unit and kind. The same name
+ * with a different unit or kind is offered separately (width in mm and width in m).
+ */
+export function getParameterSuggestions(
+  functions: SharedFunction[],
+  calculators: Calculator[],
+  exceptFunctionId?: string
+): FunctionParameter[] {
+  const suggestions = new Map<string, FunctionParameter>();
+  const offer = (param: FunctionParameter) => {
+    const name = param.name.trim();
+    if (!name) return;
+    const key = [name.toLowerCase(), param.kind ?? '', param.unitSymbol ?? ''].join('|');
+    if (!suggestions.has(key)) suggestions.set(key, { ...param, name, label: param.label.trim() || name });
+  };
+
+  functions
+    .filter((func) => func.id !== exceptFunctionId)
+    .forEach((func) => func.parameters.forEach((param) => offer({ ...param, required: true })));
 
   calculators.forEach((calculator) => {
     calculator.inputs.forEach((input) => {
-      const name = input.key.trim();
-      if (!name || input.value.kind === 'text') return;
-
-      const key = name.toLowerCase();
-      if (!uniqueNames.has(key)) {
-        uniqueNames.set(key, name);
+      const spec = input.value;
+      if (spec.kind === 'text') return;
+      if (spec.kind === 'number' || spec.kind === 'choice') {
+        offer({
+          name: input.key,
+          label: input.label,
+          unitSymbol: spec.unitSymbol || undefined,
+          unitCategory: spec.unitCategory,
+          required: true,
+        });
+      } else {
+        offer({ name: input.key, label: input.label, kind: spec.kind, required: true });
       }
     });
   });
 
-  return Array.from(uniqueNames.values()).sort((a, b) => a.localeCompare(b));
+  return Array.from(suggestions.values()).sort(
+    (a, b) => a.name.localeCompare(b.name) || (a.unitSymbol ?? '').localeCompare(b.unitSymbol ?? '')
+  );
 }
 
 export function getExistingParameterNames(parameters: FunctionParameter[]): Set<string> {
@@ -46,22 +72,19 @@ export function getExistingParameterNames(parameters: FunctionParameter[]): Set<
   );
 }
 
-export function addParameterFromName(
+/** Adds a copy of `suggestion` unless a parameter has its name, filling a blank one first. */
+export function addSuggestedParameter(
   parameters: FunctionParameter[],
-  fieldName: string
+  suggestion: FunctionParameter
 ): FunctionParameter[] {
-  const trimmedName = fieldName.trim();
-  if (!trimmedName) return parameters;
+  const name = suggestion.name.trim();
+  if (!name) return parameters;
+  if (parameters.some((param) => param.name.trim().toLowerCase() === name.toLowerCase())) return parameters;
 
-  const alreadyExists = parameters.some(
-    (param) => param.name.trim().toLowerCase() === trimmedName.toLowerCase()
-  );
-  if (alreadyExists) return parameters;
-
-  return [
-    ...parameters,
-    { name: trimmedName, label: trimmedName, unitCategory: undefined, unitSymbol: undefined, required: true },
-  ];
+  const added: FunctionParameter = { ...suggestion, name, required: true };
+  const blank = parameters.findIndex((param) => !param.name.trim() && !param.label.trim());
+  if (blank === -1) return [...parameters, added];
+  return parameters.map((param, index) => (index === blank ? added : param));
 }
 
 export function collectFunctionAutocompleteCandidates(input: {

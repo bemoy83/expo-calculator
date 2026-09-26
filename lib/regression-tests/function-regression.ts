@@ -1,8 +1,8 @@
 import {
-  addParameterFromName,
+  addSuggestedParameter,
   buildFunctionSaveData,
   collectFunctionAutocompleteCandidates,
-  getAvailableInputNames,
+  getParameterSuggestions,
   getFormulaWithInsertedOperator,
   getFormulaWithInsertedToken,
   validateFunctionEditorForm,
@@ -14,22 +14,44 @@ import { assertCheck } from './test-helpers';
 console.log('\n=== Function Editor Helper Regression ===');
 
 const inputCalculators = [
-  { inputs: [{ key: 'width', value: { kind: 'number' } }, { key: 'height', value: { kind: 'number' } }] },
-  { inputs: [{ key: 'Width', value: { kind: 'number' } }, { key: 'depth', value: { kind: 'number' } }, { key: 'note', value: { kind: 'text' } }] },
+  {
+    inputs: [
+      { key: 'width', label: 'Width', value: { kind: 'number', unitSymbol: 'mm', unitCategory: 'length' } },
+      { key: 'board', label: 'Board', value: { kind: 'material' } },
+    ],
+  },
+  {
+    inputs: [
+      { key: 'depth', label: 'Depth', value: { kind: 'number' } },
+      { key: 'note', label: 'Note', value: { kind: 'text' } },
+    ],
+  },
 ] as unknown as Calculator[];
+const otherFunctions = [
+  { id: 'self', name: 'self', parameters: [{ name: 'own', label: 'Own' }] },
+  { id: 'a', name: 'a', parameters: [{ name: 'width', label: 'Wall width', unitSymbol: 'mm', unitCategory: 'length' }, { name: 'height', label: 'Height', unitSymbol: 'm' }] },
+  { id: 'b', name: 'b', parameters: [{ name: 'height', label: 'Height', unitSymbol: 'mm' }] },
+] as unknown as SharedFunction[];
+const suggestions = getParameterSuggestions(otherFunctions, inputCalculators, 'self');
 assertCheck(
-  'collects unique calculator input names (not text notes) for function parameters',
-  getAvailableInputNames(inputCalculators).join(',') === 'depth,height,width'
+  "suggests other functions' parameters, then calculator inputs, with label, unit and kind, not the function's own",
+  suggestions.map((param) => `${param.name}:${param.unitSymbol ?? param.kind ?? ''}`).join(',') ===
+    'board:material,depth:,height:m,height:mm,width:mm' &&
+    suggestions.find((param) => param.name === 'width')?.label === 'Wall width',
+  JSON.stringify(suggestions)
 );
 
-const parameters = addParameterFromName(
-  [{ name: 'width', label: 'width', required: true }],
-  'height'
-);
+const blankStart = [{ name: '', label: '', required: true }];
+const parameters = addSuggestedParameter(addSuggestedParameter(blankStart, suggestions[4]), suggestions[2]);
 assertCheck(
-  'adds input names as function parameters without duplicates',
+  'adds a suggested parameter with its unit, filling the blank one first, without duplicates',
   parameters.length === 2 &&
-    addParameterFromName(parameters, 'HEIGHT') === parameters
+    parameters[0].name === 'width' &&
+    parameters[0].unitSymbol === 'mm' &&
+    parameters[0].label === 'Wall width' &&
+    parameters[1].unitSymbol === 'm' &&
+    addSuggestedParameter(parameters, { ...suggestions[3], name: 'HEIGHT' }) === parameters,
+  JSON.stringify(parameters)
 );
 
 const functions: SharedFunction[] = [
