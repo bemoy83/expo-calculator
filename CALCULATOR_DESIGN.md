@@ -738,3 +738,18 @@ keypad) and rewrites what's typed as it goes, comma to point, keeping the caret
 markup and VAT, property values) keep the text being typed while it means the stored number,
 so "12." doesn't snap back to "12" (`shownNumberText`), as number boxes did before. The
 comma shows as a point once typed; numbers elsewhere are still shown with a point.
+
+**Operators & functions in the function editor.** Clicking a function or `()` puts the
+cursor inside the brackets (before the ")" of `round(x, decimals)`, after its comma when
+wrapping), and with text selected wraps it instead of replacing it: selecting
+`width * height` and clicking round(x) gives `round(width * height)`
+(`getFormulaWithInsertedOperator`). An operator gets a space on each side, including at the
+end, so the next value is typed straight after.
+
+**Tidy formulas.** A moment after a formula box is left, its spacing is tidied: one space
+around operators, ", " between arguments, nothing inside brackets or between a function and
+its "(", no space after a sign minus (`round(width*height ,2)+1` → `round(width * height, 2) + 1`).
+The function editor tidies a valid formula; a step formula is tidied when it parses. Only
+spacing changes: the tidied text is kept only if mathjs reads it exactly as the original,
+and nothing happens if focus came back (an operator button or suggestion inserting), so the
+text never shifts under a click (lib/formula/prettify.ts).

@@ -219,22 +219,28 @@ export function getFormulaWithInsertedOperator(input: {
   const before = input.currentValue.substring(0, input.start);
   const after = input.currentValue.substring(input.end);
   const charBefore = input.start > 0 ? input.currentValue[input.start - 1] : "";
-  const needsSpaceBefore =
-    input.start > 0 &&
-    charBefore !== " " &&
-    charBefore !== "(" &&
-    charBefore !== "" &&
-    !["+", "-", "*", "/", "(", "="].includes(charBefore);
+  // Operators get a space on each side, so the next value can be typed straight after.
+  const needsSpaceBefore = input.start > 0 && !/\s/.test(charBefore) && charBefore !== "(";
   const charAfter = input.end < input.currentValue.length ? input.currentValue[input.end] : "";
-  const needsSpaceAfter =
-    input.end < input.currentValue.length &&
-    charAfter !== " " &&
-    charAfter !== ")" &&
-    charAfter !== "" &&
-    !["+", "-", "*", "/", ")", "="].includes(charAfter) &&
-    !input.operator.includes("(") &&
-    !input.operator.includes(")");
-  const insertedText = `${needsSpaceBefore ? " " : ""}${input.operator}${needsSpaceAfter ? " " : ""}`;
+  const needsSpaceAfter = !/\s/.test(charAfter);
+  const spaceBefore = needsSpaceBefore ? " " : "";
+
+  // A function or brackets: what's selected goes inside, as the first argument, and the cursor
+  // goes where the next thing is typed: inside the brackets, or before the ")" of round(x, ).
+  const open = input.operator.indexOf("(");
+  if (open !== -1) {
+    const selected = input.currentValue.substring(input.start, input.end);
+    const inside = input.operator.slice(0, open + 1) + selected;
+    const rest = input.operator.slice(open + 1);
+    const insertedText = `${spaceBefore}${inside}${rest}`;
+    const cursorInRest = !selected ? 0 : rest.startsWith(")") ? rest.length : rest.indexOf(")");
+    return {
+      value: before + insertedText + after,
+      cursorPosition: input.start + spaceBefore.length + inside.length + cursorInRest,
+    };
+  }
+
+  const insertedText = `${spaceBefore}${input.operator}${needsSpaceAfter ? " " : ""}`;
 
   return {
     value: before + insertedText + after,

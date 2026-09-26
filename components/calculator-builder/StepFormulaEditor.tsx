@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { useFormulaAutocomplete, type AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
 import type { Calculator, CalculatorLibrary, CalculatorStep } from '@/lib/calculator/types';
 import { cn } from '@/lib/utils';
+import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
 
 const MATH_FUNCTIONS = [
   { name: 'ceil', description: 'Round up' },
@@ -136,7 +137,11 @@ export function StepFormulaEditor({
             requestAnimationFrame(() => updateAutocompleteSuggestionsFinal());
           }
         }}
-        onBlur={() => setTimeout(() => setIsAutocompleteOpen(false), 200)}
+        onBlur={() => {
+          setTimeout(() => setIsAutocompleteOpen(false), 200);
+          // Tidy the spacing once the box is left; a formula that doesn't parse stays as typed.
+          tidyFormulaAfterBlur(textareaRef.current, onChange);
+        }}
       />
       {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
         <div

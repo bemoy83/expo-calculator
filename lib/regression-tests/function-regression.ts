@@ -133,6 +133,35 @@ assertCheck(
     insertedOperator.cursorPosition === 8
 );
 
+const insert = (currentValue: string, start: number, end: number, operator: string) =>
+  getFormulaWithInsertedOperator({ currentValue, start, end, operator });
+const atEnd = insert('width', 5, 5, '*');
+const afterSpace = insert('width ', 6, 6, '+');
+const atStart = insert('', 0, 0, '-');
+assertCheck(
+  'an operator gets a space on each side, including at the end, so the next value follows',
+  atEnd.value === 'width * ' && atEnd.cursorPosition === 8 &&
+    afterSpace.value === 'width + ' && afterSpace.cursorPosition === 8 &&
+    atStart.value === '- ' && atStart.cursorPosition === 2,
+  JSON.stringify([atEnd, afterSpace, atStart])
+);
+const emptyRound = insert('', 0, 0, 'round()');
+const afterTimes = insert('2 * ', 4, 4, 'ceil()');
+const roundDecimals = insert('', 0, 0, 'round(, )');
+const wrapped = insert('width * height + 1', 0, 14, 'round()');
+const wrappedDecimals = insert('area', 0, 4, 'round(, )');
+const grouped = insert('2 * width + height', 4, 18, '()');
+assertCheck(
+  'a function or brackets put the cursor inside, or wrap the selection and put it where the next thing goes',
+  emptyRound.value === 'round()' && emptyRound.cursorPosition === 6 &&
+    afterTimes.value === '2 * ceil()' && afterTimes.cursorPosition === 9 &&
+    roundDecimals.value === 'round(, )' && roundDecimals.cursorPosition === 6 &&
+    wrapped.value === 'round(width * height) + 1' && wrapped.cursorPosition === 21 &&
+    wrappedDecimals.value === 'round(area, )' && wrappedDecimals.cursorPosition === 12 &&
+    grouped.value === '2 * (width + height)' && grouped.cursorPosition === 20,
+  JSON.stringify([emptyRound, afterTimes, roundDecimals, wrapped, wrappedDecimals, grouped])
+);
+
 const validation = validateFunctionEditorForm({
   formData: {
     displayName: 'Area',

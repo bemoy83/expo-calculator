@@ -5,6 +5,7 @@ import {
 } from '../formula-evaluator';
 import { calculateModuleInstance } from '../calculations/module-calculator';
 import type { CalculationModule } from '../types';
+import { prettifyFormula } from '../formula/prettify';
 import { sharedFunctions } from './fixtures';
 import { assertCheck, assertThrowsFormula, testFormula } from './test-helpers';
 
@@ -306,3 +307,30 @@ assertCheck(
   !unitMismatchValidation.valid && !!unitMismatchValidation.error?.includes('Cannot add length'),
   unitMismatchValidation.error
 );
+
+console.log('\n=== Formula Tidying Regression ===');
+{
+  const cases: Array<[string, string]> = [
+    ['width*height', 'width * height'],
+    ['  round( width*height ,2 )+1', 'round(width * height, 2) + 1'],
+    ['2*(a+b)/ c', '2 * (a + b) / c'],
+    ['-a+ -b*(-2)', '-a + -b * (-2)'],
+    ['a>=b==1', 'a >= b == 1'],
+    ['base_price*(include_tax==1)', 'base_price * (include_tax == 1)'],
+    ['plate.lengde_på_plate*høyde', 'plate.lengde_på_plate * høyde'],
+    ['1.5e3*x', '1.5e3 * x'],
+    ['ceil(høyde/plate.lengde_på_plate)+areal_på_vegg(bredde,høyde)', 'ceil(høyde / plate.lengde_på_plate) + areal_på_vegg(bredde, høyde)'],
+    ['a ? b : c', 'a ? b : c'],
+    ['a and b', 'a and b'],
+  ];
+  const wrong = cases.filter(([input, expected]) => prettifyFormula(input) !== expected);
+  assertCheck(
+    'tidies spacing around operators, commas and brackets without changing what a formula means',
+    wrong.length === 0,
+    JSON.stringify(wrong.map(([input, expected]) => ({ input, expected, got: prettifyFormula(input) })))
+  );
+  assertCheck(
+    "leaves a formula that doesn't parse as written",
+    prettifyFormula('width *  ') === 'width *  ' && prettifyFormula('round(a,') === 'round(a,'
+  );
+}

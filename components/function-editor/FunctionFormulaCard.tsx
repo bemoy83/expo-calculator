@@ -7,6 +7,7 @@ import { FormulaOperatorGuide } from '@/components/formula/FormulaOperatorGuide'
 import { cn } from '@/lib/utils';
 import { AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
 import { containsStandalone } from '@/lib/formula/identifiers';
+import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
 
 interface WordInfo {
   word: string;
@@ -170,6 +171,8 @@ export function FunctionFormulaCard({
             onBlur={() => {
               // Delay closing to allow clicks on suggestions
               setTimeout(() => setIsAutocompleteOpen(false), 200);
+              // Tidy the spacing of a valid formula once the box is left.
+              tidyFormulaAfterBlur(formulaTextareaRef.current, onFormulaChange, () => formulaValidation.valid);
             }}
             rows={4}
             placeholder=""
