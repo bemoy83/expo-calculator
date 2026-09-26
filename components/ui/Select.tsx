@@ -5,7 +5,7 @@ import { FIELD_ERROR, FIELD_LABEL, fieldClasses } from './field-styles';
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -39,7 +39,7 @@ export const Select: React.FC<SelectProps> = ({
           {...props}
         >
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={option.value} value={option.value} disabled={option.disabled}>
               {option.label}
             </option>
           ))}

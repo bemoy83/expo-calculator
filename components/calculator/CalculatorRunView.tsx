@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { isModuleView } from '@/hooks/use-calculators';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
+import { requiredProperties } from '@/lib/calculator/requirements';
 import type { Calculator, CalculatorLibrary, CalculatorValues, LayoutSection } from '@/lib/calculator/types';
 import { useCalculatorSessionStore } from '@/lib/stores/calculator-session-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
@@ -35,6 +36,7 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
   const result = useMemo(() => evaluateCalculator(calculator, values, library), [calculator, values, library]);
   const inputsById = useMemo(() => new Map(calculator.inputs.map((input) => [input.id, input])), [calculator.inputs]);
   const inputsByKey = useMemo(() => new Map(calculator.inputs.map((input) => [input.key, input])), [calculator.inputs]);
+  const required = useMemo(() => requiredProperties(calculator, library.functions), [calculator, library.functions]);
   const hasValues = Object.values(values).some((value) => value !== undefined);
   // Before anything is typed the results already say what they need, so inputs are only
   // marked "needed" once someone has started filling the calculator in.
@@ -49,6 +51,7 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
     inputsById,
     inputsByKey,
     onValueChange: (key, value) => setValue(calculator.id, key, value),
+    required,
   };
 
   const visibleSections = calculator.layout.filter((section) => isShown(section.visibleWhen, context));

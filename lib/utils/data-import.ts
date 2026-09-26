@@ -1,6 +1,7 @@
 import { CalculationModule, Material, ModuleTemplate, SharedFunction, Labor } from '../types';
 import { useModulesStore } from '../stores/modules-store';
 import { useMaterialsStore } from '../stores/materials-store';
+import { fixPricePropertyStorage } from '../catalog/prices';
 import { useCategoriesStore } from '../stores/categories-store';
 import { useTemplatesStore } from '../stores/templates-store';
 import { useFunctionsStore } from '../stores/functions-store';
@@ -240,7 +241,7 @@ export function importData(
             sku: material.sku,
             supplier: material.supplier,
             description: material.description,
-            properties: material.properties,
+            properties: fixPricePropertyStorage(material as Material).properties,
           });
           materialsAdded++;
         } catch (err) {
@@ -264,7 +265,7 @@ export function importData(
               sku: material.sku,
               supplier: material.supplier,
               description: material.description,
-              properties: material.properties,
+              properties: fixPricePropertyStorage(material as Material).properties,
             });
             materialsAdded++;
           } catch (err) {

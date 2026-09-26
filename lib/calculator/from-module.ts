@@ -1,7 +1,7 @@
 import type { CalculationModule, Field } from '../types';
 import { generateId } from '../utils';
 import { convertFromBase, getUnitCategory, normalizeToBase } from '../units';
-import { rewriteExpression } from './dependencies';
+import { isWholeArgument, rewriteExpression } from './dependencies';
 import type { Calculator, CalculatorInput, CalculatorStep, ChoiceOption, LayoutItem } from './types';
 
 export interface ModuleConversion {
@@ -165,8 +165,17 @@ export function calculatorFromModule(
 
   const part = { id: createId(), name: module.name || 'Part', costStepId: undefined as string | undefined };
 
+  // Modules read a bare material or labor field as its price or rate; calculators say so.
+  const pickerSuffix = new Map(
+    inputs.flatMap((input) =>
+      input.value.kind === 'material' ? [[input.key, 'price']] : input.value.kind === 'labor' ? [[input.key, 'cost']] : []
+    ) as Array<[string, string]>
+  );
   const renameOutputs = (expression: string, earlier: Set<string> | null) =>
     rewriteExpression(expression, (token) => {
+      if (!token.property && !token.isCall && pickerSuffix.has(token.base) && !isWholeArgument(expression, token)) {
+        return `${token.base}.${pickerSuffix.get(token.base)}`;
+      }
       if (token.base === 'out' && token.property && outputKeys.has(token.property)) {
         return outputKeys.get(token.property)!;
       }

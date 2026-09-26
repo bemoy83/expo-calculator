@@ -1,18 +1,14 @@
-import { getUnitCategory, normalizeToBase } from '@/lib/units';
+import { normalizePropertyValue } from '@/lib/catalog/prices';
 import { LaborProperty, MaterialProperty } from '@/lib/types';
 
+// Stored value for a number or price property as typed. Prices convert the opposite way to
+// measurements (a price per mm is 1000 × the price per m); see lib/catalog/prices.ts.
 export function normalizeNumericProperty(
   value: number,
-  unitSymbol?: string
+  unitSymbol?: string,
+  type: MaterialProperty['type'] | LaborProperty['type'] = 'number'
 ): Pick<MaterialProperty | LaborProperty, 'storedValue' | 'unitCategory'> {
-  if (!unitSymbol) {
-    return { storedValue: value };
-  }
-
-  return {
-    storedValue: normalizeToBase(value, unitSymbol),
-    unitCategory: getUnitCategory(unitSymbol),
-  };
+  return normalizePropertyValue(value, type, unitSymbol);
 }
 
 export function applyNumericPropertyNormalization<T extends Partial<MaterialProperty | LaborProperty>>(
@@ -22,7 +18,7 @@ export function applyNumericPropertyNormalization<T extends Partial<MaterialProp
     return property;
   }
 
-  const normalized = normalizeNumericProperty(property.value, property.unitSymbol);
+  const normalized = normalizeNumericProperty(property.value, property.unitSymbol, property.type);
   return {
     ...property,
     ...normalized,

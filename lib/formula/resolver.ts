@@ -1,5 +1,6 @@
 import { CalculationResolver, Material, Labor } from '../types';
 import { UnitCategory, getUnitCategory, normalizeToBase } from '../units';
+import { priceToBase } from '../catalog/prices';
 import { EvaluationContext } from './types';
 
 type FieldValues = Record<string, string | number | boolean>;
@@ -70,7 +71,7 @@ export function createFormulaResolver(context: EvaluationContext): FormulaResolv
 
     const material = materialsByVariableName.get(fieldValue);
     if (material) {
-      const propertyValue = resolveMaterialPropertyForMap(fieldValue, propertyName);
+      const propertyValue = getMaterialValue(material, propertyName);
       if (propertyValue === null) {
         throw new Error(`Property "${propertyName}" not found on selected material "${material.name}" for field "${fieldVar}"`);
       }
@@ -79,7 +80,7 @@ export function createFormulaResolver(context: EvaluationContext): FormulaResolv
 
     const laborItem = laborByVariableName.get(fieldValue);
     if (laborItem) {
-      const propertyValue = resolveLaborPropertyForMap(fieldValue, propertyName);
+      const propertyValue = getLaborValue(laborItem, propertyName);
       if (propertyValue === null) {
         throw new Error(`Property "${propertyName}" not found on selected labor "${laborItem.name}" for field "${fieldVar}"`);
       }
@@ -173,7 +174,8 @@ export function getMaterialPropertyValueFromMaterial(
       return property.storedValue;
     }
     const rawValue = typeof property.value === 'number' ? property.value : Number(property.value) || 0;
-    return property.unitSymbol ? normalizeToBase(rawValue, property.unitSymbol) : rawValue;
+    if (!property.unitSymbol) return rawValue;
+    return property.type === 'price' ? priceToBase(rawValue, property.unitSymbol) : normalizeToBase(rawValue, property.unitSymbol);
   }
 
   if (property.type === 'boolean') {
@@ -186,6 +188,23 @@ export function getMaterialPropertyValueFromMaterial(
   }
 
   return null;
+}
+
+/**
+ * A property of a picked material, where `price` without a property of that name is the
+ * material's default price (its Price per unit).
+ */
+export function getMaterialValue(material: Material, propertyName: string): number | null {
+  const value = getMaterialPropertyValueFromMaterial(material, propertyName);
+  if (value !== null) return value;
+  return propertyName === 'price' ? material.price : null;
+}
+
+/** A property of picked labor, where `cost` without a property of that name is its rate. */
+export function getLaborValue(laborItem: Labor, propertyName: string): number | null {
+  const value = getLaborPropertyValueFromLabor(laborItem, propertyName);
+  if (value !== null) return value;
+  return propertyName === 'cost' ? laborItem.cost : null;
 }
 
 /**

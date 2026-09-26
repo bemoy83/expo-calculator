@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import { PriceForm } from '@/components/materials/PriceForm';
 import { PropertyForm } from '@/components/materials/PropertyForm';
 import {
   CatalogEditorPanel,
@@ -22,6 +23,7 @@ import {
 import { useClearErrorsOnChange } from '@/components/shared/catalog/useClearErrorsOnChange';
 import { COMMON_MATERIAL_PROPERTIES, Material, MaterialProperty, MaterialPropertyType } from '@/lib/types';
 import { formatCatalogPropertyValue } from '@/lib/catalog/catalog-display';
+import { propertyValueInUnit } from '@/lib/catalog/prices';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { getUnitCategory } from '@/lib/units';
 import { generateId, labelToVariableName } from '@/lib/utils';
@@ -107,6 +109,10 @@ export function MaterialEditorPanel({
   const [newProperty, setNewProperty] = useState<NewMaterialProperty>(emptyNewProperty);
   const [propertyErrors, setPropertyErrors] = useState<Record<string, string>>({});
   const [isAddingProperty, setIsAddingProperty] = useState(false);
+  // Other prices are price properties; they're edited in the Prices section.
+  const [priceFormFor, setPriceFormFor] = useState<string | 'new' | null>(null);
+  const prices = properties.filter((property) => property.type === 'price');
+  const otherProperties = properties.filter((property) => property.type !== 'price');
 
   useEffect(() => {
     setFormData(toFormData(material));
@@ -116,6 +122,7 @@ export function MaterialEditorPanel({
     setEditingPropertyId(null);
     setNewProperty(emptyNewProperty);
     setIsAddingProperty(false);
+    setPriceFormFor(null);
   }, [material]);
 
   const selectedMaterialId = material?.id ?? null;
@@ -153,7 +160,10 @@ export function MaterialEditorPanel({
   };
 
   const addProperty = () => {
-    const nameError = validatePropertyName(properties, newProperty.name);
+    const nameError =
+      newProperty.name.trim() === 'price'
+        ? '“price” means the default price in formulas; use another name.'
+        : validatePropertyName(properties, newProperty.name);
     if (nameError) {
       setPropertyErrors({ ...propertyErrors, new: nameError });
       return;
@@ -165,7 +175,7 @@ export function MaterialEditorPanel({
     if (newProperty.type === 'number' || newProperty.type === 'price') {
       const rawValue = Number(newProperty.value) || 0;
       value = rawValue;
-      normalized = normalizeNumericProperty(rawValue, newProperty.unitSymbol);
+      normalized = normalizeNumericProperty(rawValue, newProperty.unitSymbol, newProperty.type);
     } else if (newProperty.type === 'boolean') {
       value = newProperty.value === 'true' || newProperty.value === '1';
     } else {
@@ -266,31 +276,86 @@ export function MaterialEditorPanel({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Input
-          label="Price"
-          type="number"
-          step="0.01"
-          min="0"
-          value={formData.price}
-          onChange={(event) => setFormData({ ...formData, price: event.target.value })}
-          error={errors.price}
-          required
-          className="font-numeric"
-        />
-        <Input
-          label="Per unit"
-          value={formData.unit}
-          onChange={(event) => setFormData({ ...formData, unit: event.target.value })}
-          error={errors.unit}
-          required
-        />
+      <div>
+        <PanelSectionHeading
+          aside={
+            priceFormFor === null && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setPriceFormFor('new')}>
+                <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                Add price
+              </Button>
+            )
+          }
+        >
+          Prices
+        </PanelSectionHeading>
+        <div className="mt-1 grid grid-cols-2 gap-3">
+          <Input
+            label="Default price"
+            type="number"
+            step="0.01"
+            min="0"
+            value={formData.price}
+            onChange={(event) => setFormData({ ...formData, price: event.target.value })}
+            error={errors.price}
+            required
+            className="font-numeric"
+          />
+          <Input
+            label="Per"
+            value={formData.unit}
+            onChange={(event) => setFormData({ ...formData, unit: event.target.value })}
+            error={errors.unit}
+            required
+          />
+        </div>
+        <div className="mt-2">
+          <FormulaReference
+            variableName={variableName ? `${variableName}.price` : ''}
+            value={`${formatCurrency(Number(formData.price) || 0)} / ${formData.unit.trim() || 'unit'}`}
+          />
+        </div>
+        <div className="mt-1">
+          {prices.map((price) =>
+            priceFormFor === price.id ? (
+              <PriceForm
+                key={price.id}
+                price={price}
+                validateName={(name, id) => validatePropertyName(properties, name, id)}
+                onSave={(updated) => {
+                  setProperties(properties.map((property) => (property.id === updated.id ? updated : property)));
+                  setPriceFormFor(null);
+                }}
+                onCancel={() => setPriceFormFor(null)}
+              />
+            ) : (
+              <CatalogPropertyRow
+                key={price.id}
+                name={price.name}
+                reference={`${variableName}.${price.name}`}
+                value={`${formatCurrency(propertyValueInUnit(price) ?? 0)}${price.unitSymbol ? ` / ${price.unitSymbol}` : ''}`}
+                onEdit={() => setPriceFormFor(price.id)}
+                onRemove={() => setProperties(properties.filter((property) => property.id !== price.id))}
+              />
+            )
+          )}
+        </div>
+        {priceFormFor === 'new' && (
+          <PriceForm
+            validateName={(name, id) => validatePropertyName(properties, name, id)}
+            onSave={(price) => {
+              setProperties([...properties, price]);
+              setPriceFormFor(null);
+            }}
+            onCancel={() => setPriceFormFor(null)}
+          />
+        )}
+        {prices.length === 0 && priceFormFor === null && (
+          <p className="mt-2 text-xs text-ink-muted">
+            Sold more than one way? Add a price per m², per sheet or per pallet instead of listing the material twice.
+          </p>
+        )}
       </div>
-
-      <FormulaReference
-        variableName={variableName}
-        value={`${formatCurrency(Number(formData.price) || 0)} / ${formData.unit.trim() || 'unit'}`}
-      />
 
       <div>
         <PanelSectionHeading
@@ -306,14 +371,14 @@ export function MaterialEditorPanel({
           Properties
         </PanelSectionHeading>
 
-        {properties.length === 0 && !isAddingProperty && (
+        {otherProperties.length === 0 && !isAddingProperty && (
           <p className="mt-1 text-xs text-draft">
             No properties. Modules that read one (e.g. <code className="font-numeric">{variableName || 'name'}.thickness</code>) can&apos;t calculate.
           </p>
         )}
 
         <div className="mt-1">
-          {properties.map((prop) =>
+          {otherProperties.map((prop) =>
             editingPropertyId === prop.id ? (
               <div key={prop.id} className="my-2 p-3 rounded-md border border-border">
                 <PropertyForm

@@ -12,6 +12,7 @@ import {
 } from '@/lib/calculations/catalog-index';
 import { selectedChoiceId } from '@/lib/calculator/conditions';
 import { displayUnit } from '@/lib/calculator/format';
+import { missingProperties } from '@/lib/calculator/requirements';
 import type { CalculatorInput, CalculatorLibrary, CalculatorValue } from '@/lib/calculator/types';
 import { convertFromBase, normalizeToBase } from '@/lib/units';
 import { cn, formatDisplayNumber } from '@/lib/utils';
@@ -27,6 +28,8 @@ interface CalculatorInputFieldProps {
   library: CalculatorLibrary;
   formatMoney: (amount: number) => string;
   onChange: (value: CalculatorValue | undefined) => void;
+  /** For material/labor inputs: properties the calculator reads from what's picked. */
+  requiredProperties?: string[];
 }
 
 // One calculator input as staff see it: the widget for its kind, its unit, help text, and a
@@ -40,6 +43,7 @@ export function CalculatorInputField({
   library,
   formatMoney,
   onChange,
+  requiredProperties,
 }: CalculatorInputFieldProps) {
   const id = useId();
   const helpId = `${id}-help`;
@@ -205,6 +209,7 @@ export function CalculatorInputField({
           library={library}
           formatMoney={formatMoney}
           onChange={onChange}
+          requiredProperties={requiredProperties}
         />
       );
       break;
@@ -291,6 +296,8 @@ function NumberControl({
   );
 }
 
+// Items lacking a property the calculator reads from them can't be picked; they stay listed,
+// marked with what they lack, so it's clear why.
 function PickerControl({
   id,
   kind,
@@ -301,6 +308,7 @@ function PickerControl({
   library,
   formatMoney,
   onChange,
+  requiredProperties,
 }: {
   id: string;
   kind: 'material' | 'labor';
@@ -311,18 +319,21 @@ function PickerControl({
   library: CalculatorLibrary;
   formatMoney: (amount: number) => string;
   onChange: (value: string | undefined) => void;
+  requiredProperties?: string[];
 }) {
   const index = useMemo(() => createCatalogIndex(library.materials, library.labor), [library.materials, library.labor]);
-  const options =
-    kind === 'material'
-      ? getSortedMaterialsForCategory(index, category).map((item) => ({
-          value: item.variableName,
-          label: `${item.name} · ${formatMoney(item.price)}/${item.unit}`,
-        }))
-      : getSortedLaborForCategory(index, category).map((item) => ({
-          value: item.variableName,
-          label: `${item.name} · ${formatMoney(item.cost)}/h`,
-        }));
+  const items = kind === 'material' ? getSortedMaterialsForCategory(index, category) : getSortedLaborForCategory(index, category);
+  const options = items.map((item) => {
+    const missing = missingProperties(item, requiredProperties);
+    const price = 'price' in item ? `${formatMoney(item.price)}/${item.unit}` : `${formatMoney(item.cost)}/h`;
+    return {
+      value: item.variableName,
+      label: missing.length > 0 ? `${item.name} · missing ${missing.join(', ')}` : `${item.name} · ${price}`,
+      disabled: missing.length > 0 && item.variableName !== value,
+    };
+  });
+  const selected = items.find((item) => item.variableName === value);
+  const selectedMissing = selected ? missingProperties(selected, requiredProperties) : [];
 
   return (
     <>
@@ -337,6 +348,11 @@ function PickerControl({
       {options.length === 0 && (
         <p className="mt-1 text-xs text-ink-muted">
           Nothing in {category ? `“${category}”` : 'the catalog'} yet.
+        </p>
+      )}
+      {selectedMissing.length > 0 && (
+        <p className="mt-1 text-xs text-danger">
+          {selected!.name} has no {selectedMissing.join(', ')}, which this calculator needs. Choose another or add it in the catalog.
         </p>
       )}
     </>

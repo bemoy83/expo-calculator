@@ -31,6 +31,7 @@ export function BuilderInputField({
   formatMoney,
   onValueChange,
   onEdit,
+  requiredProperties,
 }: {
   input: CalculatorInput;
   values: CalculatorValues;
@@ -39,6 +40,7 @@ export function BuilderInputField({
   formatMoney: FormatMoney;
   onValueChange: (key: string, value: CalculatorValue | undefined) => void;
   onEdit: (input: CalculatorInput) => void;
+  requiredProperties?: string[];
 }) {
   return (
     <div className="relative group">
@@ -50,6 +52,7 @@ export function BuilderInputField({
         library={library}
         formatMoney={formatMoney}
         onChange={(value) => onValueChange(input.key, value)}
+        requiredProperties={requiredProperties}
       />
       <button
         type="button"
@@ -70,6 +73,8 @@ interface PartCardProps {
   values: CalculatorValues;
   library: CalculatorLibrary;
   formatMoney: FormatMoney;
+  /** Properties read from each material/labor input. */
+  required: Map<string, string[]>;
   isFirst: boolean;
   isLast: boolean;
   expandedStepId: string | null;
@@ -101,6 +106,7 @@ export function PartCard({
   values,
   library,
   formatMoney,
+  required,
   isFirst,
   isLast,
   expandedStepId,
@@ -195,6 +201,7 @@ export function PartCard({
                   formatMoney={formatMoney}
                   onValueChange={onValueChange}
                   onEdit={onEditInput}
+                  requiredProperties={required.get(input.key)}
                 />
               ))}
             </div>

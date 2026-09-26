@@ -43,6 +43,8 @@ export interface LayoutRenderContext {
   inputsById: Map<string, CalculatorInput>;
   inputsByKey: Map<string, CalculatorInput>;
   onValueChange: (key: string, value: CalculatorValue | undefined) => void;
+  /** Properties read from each material/labor input (see requiredProperties). */
+  required: Map<string, string[]>;
 }
 
 export function isShown(condition: Condition | undefined, context: LayoutRenderContext): boolean {
@@ -67,6 +69,7 @@ export function CalculatorLayoutItem({ item, context }: { item: LayoutItem; cont
           library={context.library}
           formatMoney={context.formatMoney}
           onChange={(value) => context.onValueChange(input.key, value)}
+          requiredProperties={context.required.get(input.key)}
         />
       );
     }

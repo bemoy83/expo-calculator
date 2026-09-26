@@ -39,6 +39,13 @@ export function scanExpression(expression: string): ExpressionToken[] {
   return tokens;
 }
 
+/** A name passed whole as a function argument, as in `sheets_width(width, sheets)`. */
+export function isWholeArgument(expression: string, token: ExpressionToken): boolean {
+  const before = expression.slice(0, token.start).trimEnd().slice(-1);
+  const after = expression.slice(token.end).trimStart().charAt(0);
+  return (before === '(' || before === ',') && (after === ')' || after === ',');
+}
+
 /** Replaces identifiers for which `replace` returns a string; keeps the rest as written. */
 export function rewriteExpression(
   expression: string,
@@ -173,8 +180,19 @@ export function getStepDependencies(step: CalculatorStep, scope: DependencyScope
       }
       continue;
     }
-    if (scope.inputKinds.has(token.base)) readInput(token.base);
-    else if (scope.stepKeys.has(token.base)) steps.add(token.base);
+    if (scope.inputKinds.has(token.base)) {
+      // A picked material or labor is passed whole to functions; in arithmetic the formula
+      // names which of its values it means.
+      const kind = scope.inputKinds.get(token.base);
+      if (isPickerKind(kind) && !isWholeArgument(expression, token)) {
+        const own = kind === 'material' ? 'price' : 'cost';
+        errors.push(
+          `Say which value of "${token.base}" to use: ${token.base}.${own} for its default ${own}, or a property such as ${token.base}.${
+            kind === 'material' ? 'price_per_sheet' : 'm2_per_hr'
+          }.`
+        );
+      } else readInput(token.base);
+    } else if (scope.stepKeys.has(token.base)) steps.add(token.base);
     else if (!MATH_FUNCTIONS.has(token.base) && !scope.catalogNames.has(token.base)) {
       errors.push(`Unknown name "${token.base}".`);
     }

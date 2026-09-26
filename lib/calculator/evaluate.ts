@@ -1,5 +1,5 @@
 import { evaluateFormula } from '../formula/evaluator';
-import { getLaborPropertyValueFromLabor, getMaterialPropertyValueFromMaterial } from '../formula/resolver';
+import { getLaborValue, getMaterialValue } from '../formula/resolver';
 import { convertFromBase, normalizeToBase } from '../units';
 import { callFunction, type FunctionArgValue } from './call-function';
 import { evaluateCondition, selectedChoiceId } from './conditions';
@@ -137,12 +137,12 @@ export function evaluateCalculator(
         const kind = inputsByKey.get(binding.inputKey)?.value.kind;
         if (kind === 'labor') {
           const item = library.labor.find((candidate) => candidate.variableName === selected);
-          const value = item ? getLaborPropertyValueFromLabor(item, binding.property) : null;
+          const value = item ? getLaborValue(item, binding.property) : null;
           if (value === null) throw new Error(`"${item?.name ?? selected}" has no property "${binding.property}".`);
           return value;
         }
         const item = library.materials.find((candidate) => candidate.variableName === selected);
-        const value = item ? getMaterialPropertyValueFromMaterial(item, binding.property) : null;
+        const value = item ? getMaterialValue(item, binding.property) : null;
         if (value === null) throw new Error(`"${item?.name ?? selected}" has no property "${binding.property}".`);
         return value;
       }

@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { MaterialProperty, MaterialPropertyType } from '@/lib/types';
-import { getAllUnitSymbols, getUnitCategory, convertFromBase } from '@/lib/units';
+import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
+import { propertyValueInUnit } from '@/lib/catalog/prices';
 import { labelToVariableName } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 
@@ -59,7 +60,7 @@ export function PropertyForm({
   // For edit mode with number/price types, handle unit conversion for display
   const displayValue = isEditMode && property && isNumberOrPrice && typeof propertyData.value === 'number'
     ? property.unitSymbol && property.storedValue !== undefined
-      ? convertFromBase(property.storedValue, property.unitSymbol)
+      ? propertyValueInUnit({ ...property, type: propertyData.type }) ?? propertyData.value
       : propertyData.value
     : typeof propertyData.value === 'number' || typeof propertyData.value === 'string'
     ? propertyData.value
@@ -145,7 +146,8 @@ export function PropertyForm({
           onChange={(e) => handleTypeChange(e.target.value as MaterialPropertyType)}
           options={[
             { value: 'number', label: 'Number' },
-            { value: 'price', label: 'Price' },
+            // Prices are added in the Prices section; an old price property keeps its type here.
+            ...(propertyData.type === 'price' ? [{ value: 'price', label: 'Price' }] : []),
             { value: 'string', label: 'String' },
             { value: 'boolean', label: 'Boolean' },
           ]}

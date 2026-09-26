@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Material } from '../types';
 import { generateId } from '../utils';
+import { fixPricePropertyStorage } from '../catalog/prices';
 
 interface MaterialsStore {
   materials: Material[];
@@ -70,6 +71,15 @@ export const useMaterialsStore = create<MaterialsStore>()(
     }),
     {
       name: 'materials-store',
+      // v1: price properties per mm/cm/l stored the price like a length; recompute them.
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as { materials?: Material[] };
+        if (version < 1 && Array.isArray(state?.materials)) {
+          return { ...state, materials: state.materials.map(fixPricePropertyStorage) } as MaterialsStore;
+        }
+        return state as MaterialsStore;
+      },
     }
   )
 );

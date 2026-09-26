@@ -33,6 +33,9 @@ import {
 } from '../calculator/editing';
 import { evaluateCalculator } from '../calculator/evaluate';
 import { describeCondition } from '../calculator/format';
+import { missingProperties, requiredProperties } from '../calculator/requirements';
+import { fixPricePropertyStorage, normalizePropertyValue, priceFromBase, priceToBase, propertyValueInUnit } from '../catalog/prices';
+import { getMaterialValue } from '../formula/resolver';
 import { calculatorFromModule } from '../calculator/from-module';
 import { callToExpression, expressionToCall } from '../calculator/step-source';
 import { getFunctionParamKinds } from '../functions/param-kinds';
@@ -794,5 +797,115 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
       defaultCondition(finish).value === 'matte' &&
       defaultCondition(height).op === '>' &&
       setInputCondition(calc, 'in-p', undefined).inputs.find((input) => input.id === 'in-p')?.visibleWhen === undefined
+  );
+}
+
+// ---- Catalog prices (step 7) ----
+
+{
+  assertCheck(
+    'prices convert the opposite way to measurements; unknown units are labels',
+    close(priceToBase(10, 'mm'), 10000) &&
+      close(priceFromBase(10000, 'mm'), 10) &&
+      close(priceToBase(10, 'm2'), 10) &&
+      close(priceToBase(4200, 'pallet'), 4200) &&
+      close(normalizePropertyValue(10, 'price', 'cm').storedValue, 1000) &&
+      close(normalizePropertyValue(10, 'number', 'cm').storedValue, 0.1)
+  );
+  const oldStyle: Material = material('trim', 'Trim', 5, [
+    { id: 'p1', name: 'price_per_mm', type: 'price', value: 0.05, unitSymbol: 'mm', storedValue: 0.00005 },
+    { id: 'p2', name: 'width', type: 'number', value: 20, unitSymbol: 'mm', storedValue: 0.02 },
+  ]);
+  const fixed = fixPricePropertyStorage(oldStyle);
+  assertCheck(
+    'recomputes price properties stored like lengths, leaving other properties alone',
+    close(fixed.properties![0].storedValue, 50) && close(fixed.properties![1].storedValue, 0.02) && close(propertyValueInUnit(fixed.properties![0]), 0.05)
+  );
+
+  const calc = build(
+    [
+      numberInput('width', 4),
+      numberInput('height', 2.5),
+      { id: 'input-sheets', key: 'sheets', label: 'Sheets', widget: 'picker', value: { kind: 'material', default: 'mdf_6mm' } },
+    ],
+    [{ id: 'p', name: 'Sheeting', costStepId: 'step-cost' }],
+    [
+      expressionStep('p', 'count', 'sheets_height(height, sheets) * sheets_width(width, sheets)'),
+      expressionStep('p', 'cost', 'count * sheets.price', { format: 'money' }),
+      expressionStep('p', 'per_m2', 'width * height * sheets.price_per_m2'),
+      expressionStep('p', 'bare', 'count * sheets'),
+    ]
+  );
+  const result = evaluateCalculator(calc, {}, library);
+  assertCheck(
+    '`.price` is the default price; a named price is used as is; a bare material in arithmetic asks which value',
+    close(result.steps['step-cost'].value, 4 * 312.56) &&
+      close(result.steps['step-per_m2'].value, 100) &&
+      result.steps['step-count'].status === 'ok' &&
+      result.steps['step-bare'].status === 'error' &&
+      (result.steps['step-bare'].message ?? '').includes('sheets.price'),
+    JSON.stringify(result.steps)
+  );
+  assertCheck(
+    'getMaterialValue: a real property wins, `price` falls back to the default price',
+    getMaterialValue(materials[1], 'price') === 312.56 && getMaterialValue(materials[0], 'price') === 37.9 && getMaterialValue(materials[1], 'nope') === null
+  );
+
+  // A module that reads the bare material as its price, like Sheet Installation.
+  const sheetModule: CalculationModule = {
+    id: 'sheet-install',
+    name: 'Sheet Installation',
+    fields: [
+      { id: 's1', label: 'Width', type: 'number', variableName: 'width', unitSymbol: 'm' },
+      { id: 's2', label: 'Height', type: 'number', variableName: 'height', unitSymbol: 'm' },
+      { id: 's3', label: 'Sheets', type: 'material', variableName: 'sheets', materialCategory: 'Sheets' },
+    ],
+    formula: 'sheets_height(height, sheets) * sheets_width(width, sheets) * sheets',
+    computedOutputs: [],
+    createdAt: '',
+    updatedAt: '',
+  };
+  const converted = calculatorFromModule(sheetModule, { createId }).calculator;
+  const costStep = converted.steps.find((step) => step.key === 'cost')!;
+  const convertedResult = evaluateCalculator(converted, { width: 4, height: 2.5, sheets: 'mdf_6mm' }, library);
+  const moduleCost = calculateModuleInstance({
+    moduleDef: sheetModule,
+    fieldValues: { width: 4, height: 2.5, sheets: 'mdf_6mm' },
+    materials,
+    functions,
+    roundCost: false,
+  }).cost;
+  assertCheck(
+    'converting a module rewrites a bare material used as its price to `.price`, keeping the cost',
+    costStep.source.type === 'expression' &&
+      costStep.source.expression === 'sheets_height(height, sheets) * sheets_width(width, sheets) * sheets.price' &&
+      close(convertedResult.total, moduleCost) &&
+      close(moduleCost, 4 * 312.56),
+    costStep.source.type === 'expression' ? costStep.source.expression : ''
+  );
+
+  const required = requiredProperties(
+    {
+      ...calc,
+      steps: [
+        ...calc.steps,
+        {
+          id: 'step-bound',
+          partId: 'p',
+          key: 'bound',
+          label: 'Bound',
+          source: { type: 'call', functionName: 'area_rectangle', args: { width: { type: 'property', inputKey: 'sheets', property: 'thickness' }, height: { type: 'input', key: 'height' } } },
+        },
+      ],
+    },
+    functions
+  );
+  assertCheck(
+    'works out the properties read from a picked material: in formulas, bindings, and inside functions',
+    required.get('sheets')?.join(',') === 'height,price_per_m2,thickness,width' &&
+      missingProperties(materials[1], required.get('sheets')).join(',') === 'thickness' &&
+      missingProperties(materials[0], required.get('sheets')).join(',') === 'height,price_per_m2,thickness' &&
+      missingProperties(materials[0], undefined).length === 0,
+    JSON.stringify([...required])
   );
 }

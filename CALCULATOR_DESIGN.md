@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; steps 1–6 done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–7 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -534,6 +534,24 @@ Each step is committed separately, like the reskin.
   area" only when "Painted on both sides" is on (Off (0) until switched on), the Paint
   picker shown only when it's on, then in Preview the picker disappears and reappears with
   the switch. Nothing was stored.
+
+**Step 7 — Catalog prices**:
+- Differs from the plan: the **default price stays the material's own Price / Per fields**
+  (no data migration; modules, quotes and pickers keep reading them). Other prices are price
+  properties, edited in the material editor's new **Prices** section (amount, per unit, name
+  suggested as price_per_<unit>; "price" is reserved).
+- Prices convert the opposite way to measurements (`lib/catalog/prices.ts`); a materials-store
+  migration (v1) and data import recompute price properties' stored values.
+- `x.price` / `x.cost` fall back to the default price / labor rate (`getMaterialValue`,
+  `getLaborValue`). In calculators a bare material in arithmetic is an error pointing to
+  `x.price`; module conversion rewrites it (parity kept on the four real modules).
+- Pickers mark and disable items missing a property the calculator reads
+  (`lib/calculator/requirements.ts`).
+- Checked: 209 regression checks; the four real modules keep their cost when converted
+  (Sheet Installation now reads `sheets.price`); in the browser, the Prices section,
+  adding a per-pallet price (then cancelled), and a picker marking both sheets "missing
+  weight" for a step reading `sheets.weight`. The v1 migration ran on the real catalog and
+  left every stored price the same.
 
 ## Open questions
 

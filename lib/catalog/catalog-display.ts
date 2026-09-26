@@ -1,5 +1,5 @@
 import type { CalculationModule, LaborProperty, MaterialProperty } from '../types';
-import { convertFromBase } from '../units';
+import { propertyValueInUnit } from './prices';
 
 // Strips float noise from unit conversion (0.018 m → 18.000000000000004 mm).
 function cleanNumber(value: number): number {
@@ -13,7 +13,8 @@ export function formatCatalogPropertyValue(prop: MaterialProperty | LaborPropert
   }
   const isNumeric = prop.type === 'number' || prop.type === 'price';
   if (isNumeric && prop.unitSymbol && prop.storedValue !== undefined) {
-    return `${cleanNumber(convertFromBase(prop.storedValue, prop.unitSymbol))} ${prop.unitSymbol}`;
+    const shown = cleanNumber(propertyValueInUnit(prop) ?? 0);
+    return prop.type === 'price' ? `${shown} per ${prop.unitSymbol}` : `${shown} ${prop.unitSymbol}`;
   }
   const legacyUnit = 'unit' in prop ? prop.unit : undefined;
   const unit = prop.unitSymbol || legacyUnit;

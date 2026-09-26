@@ -40,6 +40,7 @@ import {
   updateStep,
 } from '@/lib/calculator/editing';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
+import { requiredProperties } from '@/lib/calculator/requirements';
 import type {
   Calculator,
   CalculatorInput,
@@ -107,6 +108,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
   const formatMoney = useCurrencyStore((state) => state.formatCurrency);
 
   const result = useMemo(() => evaluateCalculator(calculator, values, library), [calculator, values, library]);
+  const required = useMemo(() => requiredProperties(calculator, library.functions), [calculator, library.functions]);
   const errorCount = Object.values(result.steps).filter((step) => step.status === 'error').length;
   const usedInputs = new Set(Object.values(result.parts).flatMap((part) => part.inputKeys));
   const unusedInputs = calculator.inputs.filter((input) => !usedInputs.has(input.key));
@@ -177,6 +179,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
     inputsById,
     inputsByKey,
     onValueChange: (key, value) => setValue(calculator.id, key, value),
+    required,
   };
   const selectedSection =
     selection?.type === 'section' ? calculator.layout.find((section) => section.id === selection.sectionId) : undefined;
@@ -435,6 +438,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
               values={values}
               library={library}
               formatMoney={formatMoney}
+              required={required}
               isFirst={index === 0}
               isLast={index === calculator.parts.length - 1}
               expandedStepId={expandedStepId}
