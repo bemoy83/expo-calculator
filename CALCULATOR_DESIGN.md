@@ -6,7 +6,9 @@ calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
 ## Direction (decisions)
 
-- **The calculator is the main feature.** Quotes stay, but secondary.
+- **The calculator is the main feature.** Quotes stay, but secondary. Building a quote
+  works like the original quote builder, though (decided 2026-09-26): calculators are
+  loaded into the quote as cards, duplicated per wall, and mixed. See "Quote workspace".
 - **Clear separation of math and input.** Math lives in **functions** (as today). A
   calculator only declares inputs, connects them to functions, and lays out the page.
 - **Built in the app, not in code.** Calculators are data, made with an in-app builder by
@@ -315,6 +317,8 @@ property/price not present on some materials in the input's category.
   line items keep displaying unchanged.
 - The Quote Builder's workspace (drafts, linking, templates) is replaced by "send to quote"
   from calculators. The quote page keeps line items, markup, tax, totals, export/print.
+  Superseded 2026-09-26: the quote page becomes a workspace of calculator cards again (see
+  "Quote workspace"), without drafts or linking.
 - Existing workspace drafts are dropped after conversion (they reference modules), with a
   notice — to confirm against real data before doing it.
 
@@ -692,9 +696,11 @@ Each step is committed separately, like the reskin.
 
 - **Saved runs.** Is it useful to save a filled-in calculator by name ("Smith deck") and
   reopen it later, separate from quotes? Needs real-world use to answer.
-- **Repeating groups.** Some jobs have "N walls, each with its own size". The model above
-  has fixed inputs. A repeating section (add/remove rows, results summed) is common and
-  high impact: the next larger addition.
+- **Repeating groups** (rows inside a calculator, "N walls") — not planned (2026-09-26).
+  Designed and the engine built, then dropped in favour of the quote workspace: a wall
+  calculator duplicated per wall covers "N walls" the way the original quote builder did.
+  What that gives up: totals across walls (paint bought for the total area) and settings
+  shared by all walls; a quote-level material summary could cover the first later.
 - **Copy a part** from another calculator (see Parts): a workflow improvement to consider.
 - Low priority: a sticky total bar on phones; session test values in a module's copy.
 
@@ -764,3 +770,97 @@ no results"; and the staff page says the calculator shows no results yet instead
 blank (`showsStaffResults`, `costedParts`). A shown step without a label is shown by its
 formula name made readable (`step` → "Step", `framing_length` → "Framing length";
 `stepDisplayLabel`), on the page and in quote lines.
+
+## Quote workspace
+
+Status: design agreed 2026-09-26, not built yet.
+
+The original quote builder's workflow was the intuitive one: load modules into the quote,
+fill them in, duplicate for each wall, mix in other modules, and see the total. Calculators
+come back into the quote that way: **the quote is the workspace, and its lines are
+calculator cards.** Calculating stays the main feature; the standalone calculator page and
+Send to quote remain.
+
+### Decisions (2026-09-26)
+
+- **Lines are live cards.** No drafts and no send step inside the quote: a card is a quote
+  line, filled in and changed in place, and the total updates as you type.
+- **Kept prices.** A card keeps the cost it had when last edited, so a quote given to a
+  customer doesn't change by being opened. If recalculating now gives another cost (prices
+  or the calculator changed), the card says so ("Now 2,840 kr") with Update.
+- **Unfinished cards** count 0, show what they still need, and the total says how many
+  lines aren't finished; print and export warn about them.
+- Repeating groups are dropped (see Open questions).
+
+### Cards
+
+- **Add calculator** (on the quote) opens a picker of calculators by category, with search;
+  the chosen one is added as a new card, open, at its defaults.
+- A card, open: its name ("Wood wall", or a nickname such as "North wall"), the
+  calculator's own layout (inputs and results, as on the calculator page), and its cost.
+  Closed: one line with the name, a short summary ("4 m × 2.5 m · Framing 28 m") and cost.
+- **Duplicate** copies a card with its values and puts it after the original, named
+  "Wood wall 2" (then 3, …), open, so only what differs is changed.
+- **Rename**, **move up/down**, **remove** (with undo in the notice), open/close, and
+  "Close all".
+- A card whose calculator was deleted, and old lines from the module quote builder, stay
+  read-only: name, details and cost, and Remove.
+
+### Line items
+
+- A calculator line keeps what it has: `calculatorId`, `calculatorValues`, `details`,
+  summaries, `cost`. It gains `incomplete?: true` (it couldn't calculate when last edited:
+  cost 0) and `missing?: string[]` (what it needs, for the closed card and print).
+- Editing a card rebuilds its line with `buildCalculatorLineItem` (unchanged, except that an
+  unfinished calculation gives an incomplete line instead of an error) and recalculates the
+  quote totals. Values change on every keystroke, so the line is rebuilt from the live
+  result, not re-evaluated separately.
+- Opening a quote evaluates each calculator line once to compare with its kept cost
+  ("Now … — Update"); nothing changes until Update or an edit.
+- The quote total counts complete lines; `calculateQuoteTotals` is unchanged since
+  incomplete lines cost 0. The summary shows "1 line not finished".
+
+### Elsewhere
+
+- **Calculator page**: Send to quote adds a card to the chosen quote (as now, a line), and
+  "Update line" for a card opened with Edit goes away: cards are edited in the quote.
+- **Quotes board** and print/export are unchanged apart from the unfinished warning.
+- Use-only (staff) devices can do all of this; nothing here is owner-only.
+
+### Build order
+
+Each step is tested, shown, and committed on `quote-workspace` after review.
+
+- **W1 — Cards**: calculator lines as cards in the quote: open/close, live editing with
+  cost, details and totals rebuilt, unfinished lines, kept prices with Update, read-only
+  cards for deleted calculators and old module lines. Regression tests for rebuilding lines,
+  incomplete lines and price comparison.
+- **W2 — Building the quote**: Add calculator picker, Duplicate with numbered names,
+  rename, move, remove with undo, Close all; the calculator page's Send to quote and Edit
+  adjusted; empty state.
+- **W3 — Finish**: print/export warnings for unfinished lines, phone layout, README and
+  ONBOARDING.
+
+### Implementation notes
+
+**W1 — Cards** (`components/quotes/QuoteLineCard.tsx`, `QuoteView.tsx`,
+`components/calculator/CalculatorForm.tsx`, `lib/quotes/calculator-line-item.ts`):
+- The quote page is two columns: the lines as cards, and the quote sheet (now without
+  Edit; unfinished lines say "Not finished" and the total notes how many aren't counted).
+- `CalculatorForm` (sections, main and side columns) and `useLayoutContext` are taken out of
+  the calculator page so a card draws the calculator exactly as its page does; the card
+  variant uses lighter section boxes and a side column only on very wide screens.
+- A card evaluates its calculator with the line's `calculatorValues`; each change rebuilds
+  the line (`rebuildCalculatorLine`: same id, nickname and date; `allowUnfinished`) and
+  `updateLineItem` puts it in place and works out the totals. A line that can't calculate
+  is `unfinished` ("Fill in Height", cost 0).
+- Kept prices: the card also works out what the line would be now; when that differs
+  (`lineWouldChange`: cost, or finished/unfinished) it shows "Worked out now: X instead of Y"
+  with Update, which puts the recalculated line in.
+- Lines whose calculator was deleted, and old module lines, are read-only cards with their
+  details. Cards start closed; W2 opens new and duplicated ones.
+- Checked in the browser on an empty origin: a line sent from a test calculator showed as a
+  card; editing the width changed the card, the sheet and the total live; clearing the
+  height made it unfinished (counted 0, noted); changing the calculator's formula left the
+  line at its kept cost with "Worked out now" and Update, which applied it; deleting the
+  calculator left a read-only card.

@@ -39,7 +39,7 @@ import { describeCondition, stepDisplayLabel } from '../calculator/format';
 import { missingProperties, requiredProperties } from '../calculator/requirements';
 import { fixPricePropertyStorage, normalizePropertyValue, priceFromBase, priceToBase, propertyValueInUnit } from '../catalog/prices';
 import { getMaterialValue } from '../formula/resolver';
-import { buildCalculatorLineItem, putLineItem } from '../quotes/calculator-line-item';
+import { buildCalculatorLineItem, lineWouldChange, putLineItem, rebuildCalculatorLine } from '../quotes/calculator-line-item';
 import { roundMoney } from '../calculations/money';
 import { calculatorFromModule } from '../calculator/from-module';
 import { calculatorFromTemplate, calculatorsFromTemplates } from '../calculator/from-template';
@@ -1197,3 +1197,58 @@ assertCheck(
     stepDisplayLabel({ label: '  ', key: 'step' }) === 'Step' &&
     stepDisplayLabel({ label: 'Lumber', key: 'step' }) === 'Lumber'
 );
+
+// ---- Quote workspace: lines as cards (W1) ----
+
+{
+  const money = (amount: number) => `${amount.toFixed(2)} kr`;
+  const built = buildCalculatorLineItem({
+    calculator: wall, values: { ...wallValues }, result: evaluateCalculator(wall, wallValues, library), library,
+    formatMoney: money, nickname: 'North wall', id: 'line-1', now: '2026-01-01',
+  });
+  const kept = built.ok ? built.lineItem : undefined;
+
+  const edited = rebuildCalculatorLine({ line: kept!, calculator: wall, values: { ...wallValues, width: 2 }, library, formatMoney: money });
+  const cleared = rebuildCalculatorLine({ line: kept!, calculator: wall, values: { ...wallValues, height: undefined }, library, formatMoney: money });
+  assertCheck(
+    'a card edited in place keeps its id, nickname and date, and an unfinished one costs 0 and says what it needs',
+    !!kept &&
+      edited.id === 'line-1' && edited.nickname === 'North wall' && edited.createdAt === '2026-01-01' &&
+      edited.calculatorValues?.width === 2 && edited.cost < kept.cost && edited.unfinished === undefined &&
+      cleared.cost === 0 && cleared.unfinished === 'Fill in Height' && cleared.id === 'line-1',
+    JSON.stringify([edited.cost, cleared.cost, cleared.unfinished])
+  );
+
+  const pricier: CalculatorLibrary = {
+    ...library,
+    // Every price doubled, price properties included.
+    materials: library.materials.map((item) => ({
+      ...item,
+      price: item.price * 2,
+      properties: item.properties?.map((property) =>
+        property.type === 'price'
+          ? { ...property, value: Number(property.value) * 2, storedValue: property.storedValue === undefined ? undefined : property.storedValue * 2 }
+          : property
+      ),
+    })),
+  };
+  const now = rebuildCalculatorLine({ line: kept!, calculator: wall, values: kept!.calculatorValues!, library: pricier, formatMoney: money });
+  const same = rebuildCalculatorLine({ line: kept!, calculator: wall, values: kept!.calculatorValues!, library, formatMoney: money });
+  assertCheck(
+    'a kept line is compared with what it would cost now: changed prices show, unchanged ones do not',
+    lineWouldChange(kept!, now) && now.cost > kept!.cost && !lineWouldChange(kept!, same) && lineWouldChange(kept!, cleared),
+    JSON.stringify([kept!.cost, now.cost, same.cost])
+  );
+
+  const quote: Quote = {
+    id: 'q', name: 'Q', lineItems: [kept!, { ...kept!, id: 'line-2' }], subtotal: 0, markupPercent: 0, markupAmount: 0,
+    taxRate: 0, taxAmount: 0, total: 0, createdAt: '', updatedAt: '',
+  };
+  const withUnfinished = putLineItem(putLineItem(quote, kept!, 'line-1'), { ...cleared, id: 'line-2' }, 'line-2');
+  assertCheck(
+    'an unfinished card counts 0 in the total, and replacing a card keeps its place',
+    close(withUnfinished.subtotal, kept!.cost) &&
+      withUnfinished.lineItems.map((item) => item.id).join() === 'line-1,line-2' &&
+      withUnfinished.lineItems[1].unfinished === 'Fill in Height'
+  );
+}

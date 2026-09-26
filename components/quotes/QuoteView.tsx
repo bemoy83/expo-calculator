@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calculator as CalculatorIcon, Download, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { QuoteLineCard } from '@/components/quotes/QuoteLineCard';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
-import { useCalculators } from '@/hooks/use-calculators';
+import { useCalculatorLibrary, useCalculators } from '@/hooks/use-calculators';
 import { downloadQuoteJson, printQuote } from '@/lib/quotes/export';
 import { formatEditedAt } from '@/lib/quotes/quote-board';
-import { useCalculatorSessionStore } from '@/lib/stores/calculator-session-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { notify } from '@/lib/stores/notifications-store';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
@@ -16,18 +16,27 @@ import type { Quote, QuoteLineItem } from '@/lib/types';
 
 type RateForm = { taxRate: number; markupPercent: number };
 
-// A quote: its lines (sent from calculators with "Send to quote"), markup, VAT, total, and
-// export. A calculator line opens in its calculator with Edit; sending it again updates it.
+// A quote as a workspace: its lines are calculator cards, filled in and changed in place,
+// beside the quote sheet with markup, VAT, the total, and export.
 export function QuoteView({ quote }: { quote: Quote }) {
   const router = useRouter();
   const calculators = useCalculators();
+  const library = useCalculatorLibrary();
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
   const updateCurrentQuote = useQuotesStore((state) => state.updateCurrentQuote);
   const setTaxRate = useQuotesStore((state) => state.setTaxRate);
   const setMarkupPercent = useQuotesStore((state) => state.setMarkupPercent);
   const removeLineItem = useQuotesStore((state) => state.removeLineItem);
   const saveQuote = useQuotesStore((state) => state.saveQuote);
-  const openFromLineItem = useCalculatorSessionStore((state) => state.openFromLineItem);
+  const updateLineItem = useQuotesStore((state) => state.updateLineItem);
+  const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
+  const toggle = (id: string) =>
+    setOpenIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   // Rates as typed (percent), so typing isn't reformatted.
   const [rates, setRates] = useState<RateForm>({ taxRate: quote.taxRate * 100, markupPercent: quote.markupPercent });
@@ -39,14 +48,8 @@ export function QuoteView({ quote }: { quote: Quote }) {
 
   const itemCount = quote.lineItems.length;
 
-  const canEdit = (item: QuoteLineItem) =>
-    !!item.calculatorId && calculators.some((calculator) => calculator.id === item.calculatorId);
-  const editLine = (item: QuoteLineItem) => {
-    if (!item.calculatorId || !canEdit(item)) return;
-    saveQuote();
-    openFromLineItem(item.calculatorId, item.calculatorValues ?? {}, { quoteId: quote.id, lineItemId: item.id });
-    router.push(`/calculator?id=${encodeURIComponent(item.calculatorId)}`);
-  };
+  const calculatorOf = (item: QuoteLineItem) =>
+    item.calculatorId ? calculators.find((calculator) => calculator.id === item.calculatorId) : undefined;
 
   return (
     <>
@@ -88,7 +91,26 @@ export function QuoteView({ quote }: { quote: Quote }) {
         </div>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
+        <div className="space-y-3 min-w-0">
+          {quote.lineItems.map((item) => (
+            <QuoteLineCard
+              key={item.id}
+              line={item}
+              calculator={calculatorOf(item)}
+              library={library}
+              open={openIds.has(item.id)}
+              onToggle={() => toggle(item.id)}
+              onChange={updateLineItem}
+              onRemove={() => removeLineItem(item.id)}
+            />
+          ))}
+          {itemCount === 0 && (
+            <p className="rounded-[10px] border border-dashed border-border-strong px-4 py-10 text-center text-sm text-ink-muted">
+              No lines yet. Open a calculator, fill it in, and use Send to quote.
+            </p>
+          )}
+        </div>
         <QuoteSummaryCard
           quote={quote}
           formData={rates}
@@ -98,8 +120,6 @@ export function QuoteView({ quote }: { quote: Quote }) {
             if (updates.markupPercent !== undefined) setMarkupPercent(updates.markupPercent);
           }}
           removeLineItem={removeLineItem}
-          editLineItem={editLine}
-          canEditLineItem={canEdit}
           emptyMessage="No lines yet. Open a calculator, fill it in, and use Send to quote."
           onExport={() => printQuote(quote, formatCurrency)}
         />

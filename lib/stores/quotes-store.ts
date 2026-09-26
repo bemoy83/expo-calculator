@@ -27,6 +27,8 @@ interface QuotesStore {
    */
   sendToQuote: (target: SendToQuoteTarget, lineItem: QuoteLineItem) => Quote | null;
   removeLineItem: (lineItemId: string) => void;
+  /** Replaces a line of the open quote (a card edited in place) and works out the totals. */
+  updateLineItem: (lineItem: QuoteLineItem) => void;
   recalculateQuote: () => void;
   setTaxRate: (rate: number) => void;
   setMarkupPercent: (percent: number) => void;
@@ -124,6 +126,12 @@ export const useQuotesStore = create<QuotesStore>()(
         const quote = putLineItem(saved, lineItem, target.replaceLineItemId);
         set({ quotes: quotes.map((candidate) => (candidate.id === quote.id ? quote : candidate)) });
         return quote;
+      },
+
+      updateLineItem: (lineItem) => {
+        const current = get().currentQuote;
+        if (!current || !current.lineItems.some((item) => item.id === lineItem.id)) return;
+        set({ currentQuote: putLineItem(current, lineItem, lineItem.id) });
       },
 
       removeLineItem: (lineItemId) => {

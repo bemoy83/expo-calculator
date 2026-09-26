@@ -5,23 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FilePlus2, Pencil, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { showsStaffResults } from '@/lib/calculator/editing';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
-import { requiredProperties } from '@/lib/calculator/requirements';
-import type { Calculator, CalculatorLibrary, CalculatorValues, LayoutSection } from '@/lib/calculator/types';
+import type { Calculator, CalculatorLibrary, CalculatorValues } from '@/lib/calculator/types';
 import { useCalculatorSessionStore } from '@/lib/stores/calculator-session-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
-import { cn } from '@/lib/utils';
 import { useUseOnlyMode } from '@/hooks/use-device';
-import {
-  CalculatorLayoutItem,
-  SectionHeading,
-  isResultSection,
-  isShown,
-  itemSpan,
-  type LayoutRenderContext,
-} from './CalculatorLayoutItem';
+import { CalculatorForm, useLayoutContext } from './CalculatorForm';
 import { SendToQuoteDialog } from './SendToQuoteDialog';
 
 const EMPTY_VALUES: CalculatorValues = {};
@@ -38,42 +28,15 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
   const origin = useCalculatorSessionStore((state) => state.origins[calculator.id]);
 
   const result = useMemo(() => evaluateCalculator(calculator, values, library), [calculator, values, library]);
-  const inputsById = useMemo(() => new Map(calculator.inputs.map((input) => [input.id, input])), [calculator.inputs]);
-  const inputsByKey = useMemo(() => new Map(calculator.inputs.map((input) => [input.key, input])), [calculator.inputs]);
-  const required = useMemo(() => requiredProperties(calculator, library.functions), [calculator, library.functions]);
   const hasValues = Object.values(values).some((value) => value !== undefined);
-  // Before anything is typed the results already say what they need, so inputs are only
-  // marked "needed" once someone has started filling the calculator in.
-  const needed = new Set(hasValues ? result.missingInputs : []);
-  const context: LayoutRenderContext = {
+  const context = useLayoutContext({
     calculator,
     values,
     result,
     library,
     formatMoney,
-    needed,
-    inputsById,
-    inputsByKey,
     onValueChange: (key, value) => setValue(calculator.id, key, value),
-    required,
-  };
-
-  const visibleSections = calculator.layout.filter((section) => isShown(section.visibleWhen, context));
-  const mainSections = visibleSections.filter((section) => !isResultSection(section));
-  const sideSections = visibleSections.filter(isResultSection);
-
-  const renderSection = (section: LayoutSection) => (
-    <Card key={section.id} className="p-4 sm:p-5">
-      <SectionHeading section={section} />
-      <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3">
-        {section.items.map((item, index) => (
-          <div key={`${item.type}-${index}`} className={itemSpan(item)}>
-            <CalculatorLayoutItem item={item} context={context} />
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
+  });
 
   return (
     <>
@@ -138,10 +101,7 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
         </p>
       )}
 
-      <div className={cn('grid gap-5', sideSections.length > 0 && 'lg:grid-cols-[minmax(0,1fr)_340px] items-start')}>
-        <div className="space-y-5 min-w-0">{mainSections.map(renderSection)}</div>
-        {sideSections.length > 0 && <div className="space-y-5 lg:sticky lg:top-8">{sideSections.map(renderSection)}</div>}
-      </div>
+      <CalculatorForm context={context} />
     </>
   );
 }

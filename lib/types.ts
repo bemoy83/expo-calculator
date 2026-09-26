@@ -173,6 +173,11 @@ export interface QuoteLineItem {
   primarySummary?: string; // Top computed output (e.g., "12 m lumber" or "45 m² paint area") - only if computed outputs exist
   secondarySummary?: string; // Grouped dimensions (e.g., "2.4 m × 3.0 m × 18 mm") + other fields
   cost: number;
+  /**
+   * Why a calculator line has no cost yet ("Fill in Height"): it couldn't calculate when last
+   * edited, so it counts 0 until it's finished.
+   */
+  unfinished?: string;
   createdAt: string;
 }
 

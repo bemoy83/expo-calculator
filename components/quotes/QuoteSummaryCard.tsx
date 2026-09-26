@@ -41,6 +41,7 @@ export function QuoteSummaryCard({
 }: QuoteSummaryCardProps) {
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
   const itemCount = quote.lineItems.length;
+  const unfinishedCount = quote.lineItems.filter((item) => item.unfinished).length;
 
   return (
     <section
@@ -80,7 +81,11 @@ export function QuoteSummaryCard({
                 </p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-sm font-medium font-numeric text-ink">{formatCurrency(item.cost)}</p>
+                {item.unfinished ? (
+                  <p className="text-xs font-medium text-draft">Not finished</p>
+                ) : (
+                  <p className="text-sm font-medium font-numeric text-ink">{formatCurrency(item.cost)}</p>
+                )}
                 <div className="flex gap-2 justify-end mt-1">
                   {editLineItem && (
                     <button
@@ -141,6 +146,11 @@ export function QuoteSummaryCard({
             {formatCurrency(quote.total)}
           </span>
         </div>
+        {unfinishedCount > 0 && (
+          <p className="mt-1 text-right text-xs text-draft">
+            {unfinishedCount === 1 ? '1 line is' : `${unfinishedCount} lines are`} not finished and not counted.
+          </p>
+        )}
         <Button onClick={onExport} size="lg" className="w-full mt-3">
           <Printer className="h-4 w-4 mr-1.5" aria-hidden="true" />
           Export quote

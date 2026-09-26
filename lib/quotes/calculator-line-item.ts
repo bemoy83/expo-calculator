@@ -1,5 +1,6 @@
 import { calculateQuoteTotals, roundMoney } from '../calculations/money';
 import { evaluateCondition, selectedChoiceId } from '../calculator/conditions';
+import { evaluateCalculator } from '../calculator/evaluate';
 import { describeInputs, displayUnit, formatStepValue, stepDisplayLabel } from '../calculator/format';
 import type {
   Calculator,
@@ -63,16 +64,18 @@ export function buildCalculatorLineItem(input: {
   nickname?: string;
   id?: string;
   now?: string;
+  /** Give a line that can't calculate yet (a card in the quote being filled in) instead of an error. */
+  allowUnfinished?: boolean;
 }): CalculatorLineItemOutcome {
   const { calculator, values, result, library, formatMoney } = input;
-  if (result.quoteCost === undefined) {
-    return {
-      ok: false,
-      error:
-        result.missingInputs.length > 0
-          ? `Fill in ${describeInputs(result.missingInputs, calculator)} first.`
-          : "The calculator can't work out its total yet.",
-    };
+  const unfinished =
+    result.quoteCost === undefined
+      ? result.missingInputs.length > 0
+        ? `Fill in ${describeInputs(result.missingInputs, calculator)}`
+        : "The calculator can't work out its total yet"
+      : undefined;
+  if (unfinished && !input.allowUnfinished) {
+    return { ok: false, error: result.missingInputs.length > 0 ? `${unfinished} first.` : `${unfinished}.` };
   }
 
   const inputsByKey = new Map(calculator.inputs.map((candidate) => [candidate.key, candidate]));
@@ -119,10 +122,45 @@ export function buildCalculatorLineItem(input: {
       primarySummary: measures.length > 0 ? measures.slice(0, 3).map((entry) => `${entry.label} ${entry.value}`).join(' · ') : undefined,
       secondarySummary: inputsSummary || undefined,
       fieldSummary: inputsSummary,
-      cost: roundMoney(result.quoteCost),
+      cost: result.quoteCost === undefined ? 0 : roundMoney(result.quoteCost),
+      ...(unfinished ? { unfinished } : {}),
       createdAt: input.now ?? new Date().toISOString(),
     },
   };
+}
+
+/**
+ * A calculator line worked out again from `values` with the calculator and catalogs as they
+ * are now, keeping its id, nickname and date: what a card in the quote holds after an edit.
+ * A line that can't calculate yet is unfinished (cost 0) rather than refused.
+ */
+export function rebuildCalculatorLine(input: {
+  line: QuoteLineItem;
+  calculator: Calculator;
+  values: CalculatorValues;
+  library: CalculatorLibrary;
+  formatMoney: (amount: number) => string;
+  result?: CalculatorResult;
+}): QuoteLineItem {
+  const { line, calculator, values, library, formatMoney } = input;
+  const result = input.result ?? evaluateCalculator(calculator, values, library);
+  const outcome = buildCalculatorLineItem({
+    calculator,
+    values,
+    result,
+    library,
+    formatMoney,
+    nickname: line.nickname,
+    id: line.id,
+    now: line.createdAt,
+    allowUnfinished: true,
+  });
+  return outcome.ok ? outcome.lineItem : line;
+}
+
+/** Whether a kept line would come out differently now (prices or the calculator changed). */
+export function lineWouldChange(kept: QuoteLineItem, now: QuoteLineItem): boolean {
+  return kept.cost !== now.cost || !!kept.unfinished !== !!now.unfinished;
 }
 
 /** A quote with a line added, or put in place of `replaceId`, and its totals worked out again. */
