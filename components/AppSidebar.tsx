@@ -5,7 +5,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Download, FileText, Settings, Upload, X } from 'lucide-react';
+import { Download, FileText, Package, Settings, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CurrencySelector } from '@/components/shared/CurrencySelector';
 import { FIELD_LABEL } from '@/components/ui/field-styles';
@@ -16,6 +16,8 @@ import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useQuotesStore } from '@/lib/stores/quotes-store';
 import { getBoardQuotes } from '@/lib/quotes/quote-board';
 import { useCalculators } from '@/hooks/use-calculators';
+import { useUseOnlyMode } from '@/hooks/use-device';
+import { useDeviceStore } from '@/lib/stores/device-store';
 
 interface NavItem {
   name: string;
@@ -30,6 +32,7 @@ interface AppSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onImportData: () => void;
+  onExportPack: () => void;
 }
 
 export function AppBrand() {
@@ -49,12 +52,13 @@ export function AppBrand() {
   );
 }
 
-export function AppSidebar({ id, isOpen, onClose, onImportData }: AppSidebarProps) {
+export function AppSidebar({ id, isOpen, onClose, onImportData, onExportPack }: AppSidebarProps) {
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   // Counts come from localStorage-persisted stores, so render them only after mount
   // to keep the prerendered HTML and the first client render identical.
   const [mounted, setMounted] = useState(false);
+  const useOnly = useUseOnlyMode();
 
   // Same count as the board: saved quotes plus the open one if it isn't an untouched new quote.
   const calculatorsCount = useCalculators().length;
@@ -121,14 +125,19 @@ export function AppSidebar({ id, isOpen, onClose, onImportData }: AppSidebarProp
 
       <nav aria-label="Main navigation" className="flex-1 min-h-0 overflow-y-auto px-3">
         <NavList items={primaryItems} isActive={isActive} showCounts={mounted} itemHeight="h-9" />
-        <p className="px-2.5 pt-[22px] pb-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-          Catalog
-        </p>
-        <NavList items={catalogItems} isActive={isActive} showCounts={mounted} itemHeight="h-[34px]" />
+        {/* Use-only mode hides the library pages. */}
+        {!useOnly && (
+          <>
+            <p className="px-2.5 pt-[22px] pb-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+              Catalog
+            </p>
+            <NavList items={catalogItems} isActive={isActive} showCounts={mounted} itemHeight="h-[34px]" />
+          </>
+        )}
       </nav>
 
       <div className="px-3 pt-3 pb-4 border-t border-border">
-        <SettingsMenu onImportData={onImportData} />
+        <SettingsMenu onImportData={onImportData} onExportPack={onExportPack} />
       </div>
     </div>
   );
@@ -217,7 +226,46 @@ function ColorModeSwitch() {
   );
 }
 
-function SettingsMenu({ onImportData }: { onImportData: () => void }) {
+// Rendered only inside the open Settings menu, so always after mount.
+function UseOnlySwitch() {
+  const useOnly = useDeviceStore((state) => state.useOnly);
+  const setUseOnly = useDeviceStore((state) => state.setUseOnly);
+
+  return (
+    <div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={useOnly}
+        aria-describedby="use-only-hint"
+        onClick={() => setUseOnly(!useOnly)}
+        className="w-full flex items-center justify-between gap-2 text-[13px] font-medium text-ink rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+      >
+        Use-only mode
+        <span
+          aria-hidden="true"
+          className={cn(
+            'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
+            useOnly ? 'bg-action-solid' : 'bg-border-strong'
+          )}
+        >
+          <span
+            className={cn(
+              'absolute top-0.5 h-4 w-4 rounded-full bg-surface shadow-card transition-transform',
+              useOnly ? 'translate-x-[18px]' : 'translate-x-0.5'
+            )}
+          />
+        </span>
+      </button>
+      <p id="use-only-hint" className="mt-1 text-[11px] leading-snug text-ink-muted">
+        For staff devices: hides building calculators and the Functions, Materials and Labor pages in this
+        browser. It&apos;s a convenience, not a lock: anyone can switch it off here.
+      </p>
+    </div>
+  );
+}
+
+function SettingsMenu({ onImportData, onExportPack }: { onImportData: () => void; onExportPack: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -263,6 +311,7 @@ function SettingsMenu({ onImportData }: { onImportData: () => void }) {
           id="app-settings-menu"
           onClose={() => setIsOpen(false)}
           onImportData={onImportData}
+          onExportPack={onExportPack}
         />
       )}
     </div>
@@ -273,11 +322,17 @@ function SettingsMenuPanel({
   id,
   onClose,
   onImportData,
+  onExportPack,
 }: {
   id: string;
   onClose: () => void;
   onImportData: () => void;
+  onExportPack: () => void;
 }) {
+  const useOnly = useDeviceStore((state) => state.useOnly);
+  const itemClass =
+    'w-full flex items-center gap-2 h-[34px] px-2.5 rounded-md text-[13px] text-ink-body hover:text-ink hover:bg-surface-hover transition-colors';
+
   const handleExport = () => {
     downloadDataAsJSON(exportAllData());
     onClose();
@@ -292,30 +347,43 @@ function SettingsMenuPanel({
         <div className="px-2.5 pt-2 pb-2 space-y-3">
           <ColorModeSwitch />
           <CurrencySelector />
+          <UseOnlySwitch />
         </div>
 
         <div className="mt-1 pt-1 border-t border-border">
           <div className="px-2.5 pt-2 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Data
           </div>
-          <button
-            type="button"
-            onClick={handleExport}
-            className="w-full flex items-center gap-2 h-[34px] px-2.5 rounded-md text-[13px] text-ink-body hover:text-ink hover:bg-surface-hover transition-colors"
-          >
-            <Download className="h-4 w-4" />
-            Export Data
-          </button>
+          {/* A staff device only loads packs; exporting is for the device calculators are built on. */}
+          {!useOnly && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onExportPack();
+                }}
+                className={itemClass}
+              >
+                <Package className="h-4 w-4" />
+                Export calculator pack…
+              </button>
+              <button type="button" onClick={handleExport} className={itemClass}>
+                <Download className="h-4 w-4" />
+                Export all data
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={() => {
               onClose();
               onImportData();
             }}
-            className="w-full flex items-center gap-2 h-[34px] px-2.5 rounded-md text-[13px] text-ink-body hover:text-ink hover:bg-surface-hover transition-colors"
+            className={itemClass}
           >
             <Upload className="h-4 w-4" />
-            Import Data
+            {useOnly ? 'Load calculator pack' : 'Import data'}
           </button>
         </div>
       </div>

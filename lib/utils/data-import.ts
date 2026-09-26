@@ -7,6 +7,7 @@ import { fixPricePropertyStorage } from '../catalog/prices';
 import { useCategoriesStore } from '../stores/categories-store';
 import { useFunctionsStore } from '../stores/functions-store';
 import { useLaborStore } from '../stores/labor-store';
+import { useDeviceStore } from '../stores/device-store';
 import type { ExportedData } from './data-export';
 
 export interface ImportOptions {
@@ -72,6 +73,12 @@ export function validateImportedData(json: unknown): json is ExportedData {
     !Array.isArray(data.customCategories)
   ) {
     return false;
+  }
+
+  // A pack replaces calculators, functions and catalogs, so it must carry all of them.
+  if (data.kind !== undefined) {
+    if (data.kind !== 'pack') return false;
+    if (!Array.isArray(data.calculators) || !Array.isArray(data.functions) || !Array.isArray(data.labor)) return false;
   }
 
   if (data.calculators !== undefined) {
@@ -203,6 +210,10 @@ export function validateImportedData(json: unknown): json is ExportedData {
  * contain (labor or functions in old files) are left as they are. Calculators keep their ids,
  * so quote lines sent from them still find them. Merge adds what's new and skips anything
  * whose id, name or variable name is taken. Quotes are never touched.
+ *
+ * A calculator pack is imported with replace (it carries every kind it replaces), and the
+ * browser remembers it as the loaded pack; replacing calculators from any other file forgets
+ * that, since the calculators no longer come from the pack.
  */
 export function importData(data: ExportedData, options: ImportOptions): ImportResult {
   const errors: string[] = [];
@@ -320,6 +331,13 @@ export function importData(data: ExportedData, options: ImportOptions): ImportRe
     if (!data.calculators && (data.modules?.length || data.templates?.length)) {
       warnings.push(
         `This file is from before calculators, so its ${data.modules?.length ?? 0} modules and ${data.templates?.length ?? 0} templates were turned into calculators.`
+      );
+    }
+    if (isReplace && hasCalculators(data)) {
+      useDeviceStore.getState().setLoadedPack(
+        data.kind === 'pack'
+          ? { exportedAt: data.exportedAt, loadedAt: new Date().toISOString(), calculatorCount: calculatorsAdded }
+          : undefined
       );
     }
     if (isReplace && !hasCalculators(data)) {

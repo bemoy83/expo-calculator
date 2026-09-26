@@ -1,347 +1,135 @@
 # Project Context
 
-## Project Name
+## Project name
 **Event Construction Cost Estimator** (expo-calculator)
 
 ## Purpose
-A professional web application for building multi-module construction cost estimates with dynamic formula evaluation and reusable calculation modules. 
+Purpose-built construction and event-build calculators, made in the app by the owner and
+used by staff, with quotes built from their results.
 
-**Target Users:**
-- Construction contractors and estimators
-- Event planners managing construction/installation costs
-- Businesses creating detailed cost quotes for clients
+**Users**
+- **The owner** builds calculators, functions and catalogs. Doesn't write code, so
+  everything must be doable in the UI.
+- **Staff** only use calculators and quotes, usually on their own devices in use-only mode.
 
-**Problem Solved:**
-- Enables creation of reusable calculation modules (e.g., "Wall Installation", "Flooring")
-- Supports complex formulas with material prices and field variables
-- Generates professional quotes with automatic calculations
-- Manages materials catalog with pricing
-- Creates templates for common project configurations
+**What it solves**
+- A calculator asks each input once (width, height, stud spacing) and any number of steps
+  read it, so there's no linking of fields between modules.
+- The math lives in reusable **functions**; a calculator wires inputs to them and lays out
+  the page.
+- Big calculators are built part by part (Framing, Sheeting, Paint), each tested on its own,
+  while staff see one form.
+- Prices live in the materials and labor catalogs, so changing a price updates every
+  calculator.
+
+`CALCULATOR_DESIGN.md` is the source of truth for this direction: decisions, data model,
+and implementation notes for each build step (1–11).
 
 ## Platform
-**Web Application** - Single Page Application (SPA) built with Next.js
+Web app, Next.js 14 App Router with **static export** (GitHub Pages under
+`/expo-calculator`). Client-only: no backend, no database, no accounts. All data is in the
+browser's localStorage via Zustand `persist`. Devices share data by exporting and importing
+JSON files.
 
-## Tech Stack
+## Concepts
 
-### Core Framework
-- **Next.js 14.2** - React framework with App Router
-- **React 18.3** - UI library
-- **TypeScript 5.9** - Type safety
+| Layer | Stored in | Notes |
+|---|---|---|
+| Functions | `functions-store` | Typed, unit-aware parameters with a kind (number, material, labor, yes/no); can call other functions |
+| Catalogs | `materials-store`, `labor-store`, `categories-store` | Materials have a default price (Price / Per) plus price properties (`price_per_m2`, …) and other properties; labor has a rate |
+| Calculators | `calculators-store` | `lib/calculator/types.ts`: inputs, parts, steps, layout, optional quote cost step |
+| Quotes | `quotes-store` | Line items are snapshots with `calculatorId` and the values sent; never exported or imported |
+| Device settings | `device-store` | Use-only mode, the calculator pack loaded, the last pack exported; per browser, never exported |
 
-### State Management
-- **Zustand 4.5** - Lightweight state management with persistence middleware
-- **Local Storage** - Data persistence via Zustand persist middleware
+Retired: modules, templates, field linking and the quote workspace (removed in step 10).
+On first load their stored data becomes calculators (`lib/calculator/legacy.ts`), and old
+export files with modules/templates still import. `CalculationModule` and `ModuleTemplate`
+remain only as types for that conversion.
 
-### Styling & UI
-- **Tailwind CSS 3.4** - Utility-first CSS framework
-- **Material Design 3** - Design system compliance
-- **next-themes 0.2** - Theme switching (light/dark/system)
-- **Lucide React 0.344** - Icon library
+## Architecture
 
-### Drag & Drop
-- **@dnd-kit/core 6.3** - Core drag-and-drop functionality
-- **@dnd-kit/sortable 8.0** - Sortable list implementation
-- **@dnd-kit/modifiers 9.0** - Drag modifiers (e.g., restrictToVerticalAxis)
-- **@dnd-kit/utilities 3.2** - Utility functions
+### Pages (`app/`)
+- `/` — Calculators, grouped by category; shows the loaded pack's date
+- `/calculator?id=…` — staff view of a calculator; `/calculator/edit[?id=…]` — the builder
+- `/quotes/board` — quotes list; `/quotes` — the open quote
+- `/functions`, `/materials`, `/labor` — the library pages
 
-### Formula Evaluation
-- **mathjs 12.3** - Mathematical expression evaluation
+Calculators are addressed by query string because they live in the browser and the static
+export can't have a page per calculator.
 
-### Utilities
-- **clsx 2.1** - Conditional className utility
-- **tailwind-merge 2.2** - Merge Tailwind classes intelligently
+### Engine and pure logic (`lib/`)
+- `lib/calculator/` — no React:
+  - `evaluate.ts` — `resolveInputValues`, `evaluateCalculator` (per-step status: ok,
+    disabled, missing, blocked, error; per-part cost and status; total)
+  - `dependencies.ts` — expression scanning, step dependencies, dependency order and cycles
+  - `call-function.ts` — `callFunction`, the one way to call a function (engine and
+    function test panel)
+  - `conditions.ts`, `requirements.ts`, `format.ts`, `step-source.ts`
+  - `editing.ts` — pure edits used by the builder (rename keys everywhere, add/remove
+    inputs, steps, parts, layout items, conditions)
+  - `pack.ts` — calculator packs: functions a set of calculators needs, pack building,
+    default selection, date comparison
+  - `from-module.ts`, `from-template.ts`, `legacy.ts` — conversion of retired data
+- `lib/formula/` — parser, validator, unit validation, math runtime (mathjs)
+- `lib/functions/`, `lib/catalog/` (price conversion), `lib/quotes/` (line items, board,
+  export/print)
+- `lib/utils/data-export.ts`, `data-import.ts` — export format 2.0.0 (`kind: 'pack'` marks
+  a calculator pack); import validates, converts old files, merges or replaces
 
-### Development Tools
-- **ESLint 8.56** - Code linting (Next.js config)
-- **TypeScript** - Static type checking
-- **ts-node** - TypeScript execution for tests
+### Components (`components/`)
+- `calculator/` — staff view (`CalculatorRunView`, layout renderer, inputs by widget,
+  results, `SendToQuoteDialog`) and the Calculators list
+- `calculator-builder/` — `CalculatorBuilder` (Parts | Layout tabs), part cards, step
+  editors (function call or formula), input dialog, layout canvas and inspector, condition
+  editor
+- `function-editor/`, `materials/`, `labor/`, `quotes/`
+- `AppSidebar.tsx` (navigation and the Settings menu: appearance, currency, use-only mode,
+  export/import), `Layout.tsx` (shell, import and pack export dialogs, use-only page gate),
+  `DataImporter.tsx`, `PackExporter.tsx`
+- `ui/` primitives (Button, Card, Chip, Input, Select, Checkbox, Textarea) and `shared/`
+  (ModalDialog, ConfirmDialog, NotificationHost, EmptyState, SortableList, …)
 
-## Architecture Overview
+### Hooks (`hooks/`)
+- `use-calculators.ts` — saved calculators and the library (materials, labor, functions)
+- `use-device.ts` — `useHydrated`, `useUseOnlyMode`, `isBuilderRoute`
+- `use-formula-autocomplete.ts`, `use-parameter-manager.ts`, `use-sortable-list.ts`
 
-### Frontend
-**Next.js App Router Architecture:**
-- **Pages** (`app/` directory):
-  - `/` - Dashboard with overview cards
-  - `/materials` - Materials catalog management
-  - `/modules` - Calculation module editor
-  - `/templates` - Template management (single-page toggle: list ↔ editor)
-  - `/quotes` - Quote builder
+## Staff devices
 
-**Component Structure:**
-- **Layout Components** (`components/Layout.tsx`) - Main navigation and layout wrapper
-- **UI Components** (`components/ui/`) - Reusable primitives (Button, Card, Input, Select, etc.)
-- **Feature Components** (`components/module-editor/`, `components/quotes/`) - Domain-specific components
-- **Shared Components** (`components/shared/`) - Cross-feature reusable components
+- **Calculator pack**: Settings → Export calculator pack… The owner ticks the calculators
+  to share (those in the last pack start ticked; new ones start unticked, so tests and
+  drafts stay out). The file holds them, the functions they call (including nested calls),
+  the whole materials and labor catalogs and categories, and `exportedAt`.
+- **Loading a pack** (Import data) always replaces calculators, functions, materials, labor
+  and categories, after a confirmation that lists what's in it, which calculators it
+  removes, and whether it's older than the loaded pack. Quotes are untouched. The device
+  remembers the pack (`device-store.loadedPack`), shown on the Calculators page.
+- **Use-only mode** hides New calculator, Edit, the Catalog navigation and the builder and
+  library pages (they show a notice instead), and the export items. Loading a pack offers
+  to turn it on. It's a convenience, not security.
 
-**State Management:**
-- **Zustand Stores** (`lib/stores/`):
-  - `materials-store.ts` - Materials catalog
-  - `modules-store.ts` - Calculation modules
-  - `quotes-store.ts` - Quotes and quote builder state
-  - `templates-store.ts` - Template definitions
-  - `categories-store.ts` - Category management
-- All stores use `persist` middleware for localStorage persistence
+## Tech stack
+- Next.js 14.2, React 18.3, TypeScript 5.9 (strict)
+- Zustand 4.5 with `persist`
+- Tailwind CSS 3.4 with the Ink design tokens (CSS variables in `app/globals.css`, light and
+  dark), next-themes for Light/Dark
+- mathjs 12.3 (formulas), dnd-kit (drag and drop), Lucide icons
+- ESLint (Next config), ts-node for the regression tests
 
-**Custom Hooks** (`hooks/`):
-- `use-field-manager.ts` - Field state management for module editor
-- `use-formula-validation.ts` - Formula syntax and variable validation
-- `use-formula-evaluator.ts` - Formula evaluation logic
-- `use-formula-variables.ts` - Variable extraction and autocomplete
-- `use-formula-autocomplete.ts` - Formula editor autocomplete
-- `use-preview-cost.ts` - Cost preview calculations
-- `use-quote-field-linking.ts` - Field linking logic for quote builder
-- `use-sortable-list.ts` - Drag-and-drop list management
-- `use-template-editor.ts` - Template editor state management
-- `use-theme-importer.ts` - Theme import/export functionality
+## Working on it
 
-### Backend
-**None** - Client-side only application with localStorage persistence
+- Checks: `npx tsc --noEmit -p .`, `npm run lint`, `npm run eval:test` (regression tests
+  in `lib/regression-tests/`, entry `run-all.ts`; add tests for new pure logic there).
+- `npm run build` must pass (static export).
+- Persisted stores hydrate from localStorage, so anything rendered from them must match the
+  prerendered HTML on first render: use a mounted flag or `useHydrated`.
+- Keep math out of components: engine and edits are pure functions in `lib/`, tested.
+- Use the design tokens (`bg-surface`, `text-ink-muted`, `border-border`, `text-danger`, …),
+  not raw colors. Dialogs go through `ModalDialog`, confirmations through `ConfirmDialog`,
+  toasts through `notify()`.
+- UI text is plain and short, written for someone who doesn't code.
 
-### Database
-**None** - All data stored in browser localStorage via Zustand persist middleware
-
-### Services / Integrations
-- **None** - Standalone application, no external APIs
-
-## Current Status
-
-### What's Done
-
-**Core Features:**
-✅ Materials catalog with categories, properties, units, and pricing
-✅ Calculation module editor with custom fields (number, text, dropdown, boolean, material)
-✅ Formula builder with real-time validation and autocomplete
-✅ Variable name management and validation
-✅ Unit system with category support (length, area, volume, weight, etc.)
-✅ Template system for reusable module configurations
-✅ Template editor with field linking between module instances
-✅ Quote builder with multiple module instances
-✅ Live cost calculations with automatic updates
-✅ Quote summary with line items, subtotals, tax, and totals
-✅ Data import/export (JSON)
-✅ Theme import/export (Material Design 3 themes)
-✅ Dark/light theme support with system preference detection
-✅ Drag-to-reorder for fields and modules
-✅ Responsive design for all screen sizes
-
-**UI/UX:**
-✅ Material Design 3 compliant color system
-✅ Consistent component library
-✅ Accessible components (ARIA labels, keyboard navigation)
-✅ Smooth animations and transitions
-✅ Professional dashboard layout
-
-**Technical:**
-✅ TypeScript throughout
-✅ Component-based architecture
-✅ Reusable hooks pattern
-✅ State management with Zustand
-✅ Formula evaluation engine
-✅ Unit conversion and normalization
-✅ Field linking system for templates
-
-### What's Missing
-
-**Features:**
-- [ ] User authentication/authorization
-- [ ] Multi-user support
-- [ ] Cloud sync/backup
-- [ ] Print/PDF export for quotes (mentioned but may need enhancement)
-- [ ] Email quote delivery
-- [ ] Quote history/versioning
-- [ ] Material price history/tracking
-- [ ] Module versioning
-- [ ] Advanced formula functions
-- [ ] Formula templates/library
-- [ ] Bulk operations (bulk edit materials, etc.)
-- [ ] Search/filter functionality
-- [ ] Data analytics/reporting
-
-**Technical:**
-- [ ] Backend API (if multi-user needed)
-- [ ] Database (if persistence beyond localStorage needed)
-- [ ] Testing suite (unit tests, integration tests)
-- [ ] E2E testing
-- [ ] Error boundary components
-- [ ] Loading states for async operations
-- [ ] Offline support/PWA features
-
-### Known Bugs
-- Visual jump when dragging modules upward
-- Some hard-coded colors in PDF export (documented in MATERIAL_DESIGN_AUDIT.md)
-- Potential: Large datasets may cause performance issues (no pagination/virtualization)
-
-## Design/UX Rules or Branding Constraints
-
-### Material Design 3 Compliance
-- **Color System**: Full MD3 color palette implementation
-  - Primary, Secondary, Tertiary palettes
-  - Surface container hierarchy (lowest → highest)
-  - Error, Success, Warning colors
-  - Outline and outline-variant
-- **Shape System**: MD3 border radius tokens
-- **Elevation**: MD3 elevation overlay system (0-24)
-- **Typography**: Uses MD3 on-surface/on-primary color roles
-- **Theme Support**: Light and dark modes with CSS custom properties
-
-### Design Principles
-- **Consistent Spacing**: Uses Tailwind spacing scale
-- **Component Variants**: Cards, Buttons, Inputs follow MD3 patterns
-- **Accessibility**: ARIA labels, keyboard navigation, focus states
-- **Responsive**: Mobile-first approach with breakpoints
-- **Visual Feedback**: Hover states, transitions, loading indicators
-
-### UI Patterns
-- **Cards**: Primary container for content sections
-- **Chips**: Used for tags, categories, field types
-- **Elevation**: Depth hierarchy via shadow/elevation classes
-- **Rounded Corners**: Uses MD3 shape tokens (extra-small to extra-large)
-- **Color Roles**: Always use semantic color tokens (md-primary, md-on-surface, etc.)
-
-## Performance / Security / Compliance Constraints
-
-### Performance
-- **Client-Side Only**: No server round-trips, instant interactions
-- **LocalStorage Limits**: ~5-10MB typical limit (monitor data size)
-- **Large Lists**: No virtualization currently - may need for 100+ items
-- **Formula Evaluation**: Uses mathjs - efficient for typical formulas
-- **Re-renders**: Uses React.memo and useMemo where appropriate
-
-### Security
-- **No Authentication**: Currently single-user, no auth needed
-- **XSS Prevention**: React's built-in escaping, no innerHTML usage
-- **Data Validation**: TypeScript types + runtime validation for formulas
-- **Input Sanitization**: Formula evaluation sanitizes inputs via mathjs
-
-### Compliance
-- **No External Data**: No GDPR/privacy concerns (all local)
-- **Accessibility**: WCAG compliance via ARIA labels and keyboard navigation
-
-## Coding Style + Standards
-
-### TypeScript
-- **Strict Mode**: Enabled (`strict: true` in tsconfig.json)
-- **Path Aliases**: `@/*` maps to project root
-- **Type Safety**: All components and functions typed
-- **Interfaces**: Used for object shapes (not types for unions)
-
-### React Patterns
-- **Functional Components**: All components are functional
-- **Hooks**: Custom hooks for reusable logic
-- **Client Components**: Marked with `'use client'` directive
-- **Server Components**: Default (no directive) for static content
-- **Hook Rules**: All hooks called unconditionally at top level
-- **Hydration**: Use hydration guards (`useState` + `useEffect`) for client-only code
-
-### Component Structure
-```typescript
-// Standard component pattern
-'use client';
-
-import { ... } from '...';
-
-interface ComponentProps {
-  // Props typed with interface
-}
-
-export function Component({ prop1, prop2 }: ComponentProps) {
-  // Hooks first
-  const [state, setState] = useState(...);
-  
-  // Memoized values
-  const memoized = useMemo(...);
-  
-  // Callbacks
-  const handleAction = useCallback(...);
-  
-  // Effects
-  useEffect(...);
-  
-  // Early returns AFTER all hooks
-  if (condition) return null;
-  
-  // Render
-  return (...);
-}
-```
-
-### Naming Conventions
-- **Components**: PascalCase (`FieldsManager`, `SortableFieldItem`)
-- **Files**: Match component name (`FieldsManager.tsx`)
-- **Hooks**: camelCase with `use` prefix (`useFieldManager`, `useFormulaValidation`)
-- **Stores**: camelCase with `Store` suffix (`materialsStore`, `modulesStore`)
-- **Types/Interfaces**: PascalCase (`Field`, `CalculationModule`, `Quote`)
-- **Functions**: camelCase (`handleReorder`, `toggleFieldExpanded`)
-- **Constants**: UPPER_SNAKE_CASE or camelCase depending on context
-
-### File Organization
-```
-app/                    # Next.js pages (routes)
-components/             # React components
-  ui/                  # Reusable UI primitives
-  module-editor/       # Module editor specific
-  quotes/              # Quote builder specific
-  shared/              # Cross-feature components
-hooks/                 # Custom React hooks
-lib/                   # Core libraries
-  stores/             # Zustand stores
-  themes/            # Theme management
-  utils/              # Utility functions
-  types.ts            # Shared TypeScript types
-```
-
-### State Management Patterns
-- **Zustand Stores**: One store per domain (materials, modules, quotes, etc.)
-- **Persistence**: All stores use `persist` middleware
-- **Selectors**: Use object selectors for multiple values to reduce re-renders
-- **Actions**: Store actions are pure functions updating state immutably
-
-### Drag & Drop Patterns
-- **SortableList**: Reusable wrapper component for sortable lists
-- **useSortableList**: Shared hook for drag-and-drop logic
-- **Ref Handling**: Use `useCallback` for stable ref callbacks
-- **Component Stability**: Always render components (no early returns before hooks)
-- **Memoization**: Memoize lookups (e.g., module maps) to prevent re-renders
-
-### Code Quality
-- **ESLint**: Next.js ESLint config with React hooks rules
-- **TypeScript**: Strict mode, no `any` types
-- **Comments**: JSDoc for complex functions, inline comments for non-obvious logic
-- **Error Handling**: Try-catch for formula evaluation, validation before operations
-
-### Import Organization
-```typescript
-// 1. React/Next.js imports
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
-// 2. Third-party libraries
-import { useSortable } from '@dnd-kit/sortable';
-
-// 3. Internal components
-import { Layout } from '@/components/Layout';
-import { Card } from '@/components/ui/Card';
-
-// 4. Internal hooks
-import { useFieldManager } from '@/hooks/use-field-manager';
-
-// 5. Internal utilities/types
-import { Field } from '@/lib/types';
-import { generateId } from '@/lib/utils';
-
-// 6. Icons
-import { Plus, Trash2 } from 'lucide-react';
-```
-
-### Key Architectural Principles
-1. **Separation of Concerns**: UI components, business logic (hooks), state (stores)
-2. **Reusability**: Shared components and hooks
-3. **Type Safety**: TypeScript throughout
-4. **Performance**: Memoization, stable references, efficient re-renders
-5. **Accessibility**: ARIA labels, keyboard navigation
-6. **Consistency**: Follow established patterns (FieldsManager → ModulesManager)
-7. **Hydration Safety**: Always guard client-only code
-8. **Hook Stability**: Never call hooks conditionally
-
-
-
+## Known limits
+- localStorage only (typically 5–10 MB per origin); no sync, backup is an export file.
+- Use-only mode is per browser and can be switched off by anyone.
+- Open questions (saved runs, repeating groups) are listed in `CALCULATOR_DESIGN.md`.

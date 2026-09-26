@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; steps 1–10 done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–11 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -299,7 +299,9 @@ property/price not present on some materials in the input's category.
 - **Calculator pack**: an export of calculators plus everything they depend on (the
   functions they call, including nested ones, and the materials/labor catalogs). Staff
   import it; importing a newer pack replaces the calculators, functions and catalogs, and
-  never touches the staff member's quotes.
+  never touches the staff member's quotes. The owner chooses which calculators go in
+  (decided 2026-09-26), so calculators can be built and tested without reaching staff; the
+  full export stays as the owner's backup.
 - **Use-only mode**: a per-browser setting (in the Settings menu) that hides the builder
   and the library pages (Functions, Materials, Labor), leaving Calculators and Quotes.
   Importing a pack offers to turn it on. There are no accounts, so this keeps things
@@ -636,7 +638,55 @@ Each step is committed separately, like the reskin.
   `npm run build` (no /modules or /templates). In the browser with the test dataset: the four
   modules and the template became five saved calculators with their old ids, the old storage
   keys still there; the template calculator gives $2716.56; Edit opens it directly.
-- Not updated: README.md and ONBOARDING.md still describe modules and templates.
+- Not updated: README.md and ONBOARDING.md still describe modules and templates (done in
+  step 11).
+
+**Step 11 — Staff devices** (`lib/calculator/pack.ts`, `lib/stores/device-store.ts`,
+`components/PackExporter.tsx`):
+- **Two exports** in Settings → Data (decided with the user): **Export calculator pack…**
+  for staff devices and **Export all data** as the owner's backup (unchanged, includes
+  unused functions). Import reads both.
+- **Pack file**: the 2.0.0 format with `kind: 'pack'`, the chosen calculators (store order),
+  the functions they call by function-call step or formula plus the functions those call
+  (`functionsUsedBy`, following formulas with the expression scanner; loops and unknown
+  names are fine), the whole materials and labor catalogs, categories and `exportedAt`.
+  Validation requires a pack to carry calculators, functions and labor, since loading it
+  replaces all of them. Downloaded as `calculator-pack-YYYY-MM-DD.json`.
+- **Choosing calculators**: a dialog with a checkbox per calculator, All/None, and a count
+  of calculators, functions, materials and labor. The first pack ticks everything; after
+  that the calculators in the last pack start ticked and new ones start unticked ("Not in
+  last pack"), so drafts and tests stay out until chosen; "Changed since" marks ones edited
+  after the last pack. The last export (date and ids) is kept per browser in the new
+  `device-store`, which is never exported or replaced by an import.
+- **Loading a pack**: the importer recognises a pack and, whatever merge/replace is
+  selected, shows a confirmation instead: the export date and calculator names; a warning
+  if it's older than the loaded pack (still allowed, e.g. to roll back), a note if it's the
+  same one; the device's calculators not in the pack, which it removes; and "Turn on
+  use-only mode" (ticked, not shown if already on). Loading is `importData` in replace
+  mode, so quotes are untouched. Any replace that brings calculators records the loaded
+  pack (date, time loaded, count) for a pack and clears it for any other file.
+- **Which pack**: the Calculators page header shows "Calculator pack from <date>" on a
+  device that loaded one, and "Last pack exported <date>" on the device packs are made on.
+- **Use-only mode**: a switch in Settings with the hint that it's a convenience, not a lock.
+  It hides the Catalog navigation, New calculator (the empty state says to load a pack),
+  Edit on a calculator, and the two export items (Import becomes "Load calculator pack").
+  `/calculator/edit`, `/functions`, `/materials` and `/labor` show a "Not available in
+  use-only mode" notice from `Layout` instead of the page. `useUseOnlyMode` reads the
+  setting through `useHydrated` (`useSyncExternalStore`), so hydration matches the
+  prerendered HTML and client navigation doesn't flash the hidden items.
+- **Docs**: README.md and ONBOARDING.md rewritten for calculators, parts, functions,
+  catalogs, quotes, packs and use-only mode.
+- Checked: 13 new regression checks (`pack-regression.ts`): nested and looping function
+  calls, pack contents and validation, default selection, new/changed marks, date
+  comparison, removed calculators, export remembering the selection, loading replacing
+  calculators, functions and catalogs while quotes stay, and the loaded pack being kept by a
+  merge and forgotten by a non-pack replace. In the browser on an empty origin: imported two
+  calculators and three functions; the pack dialog counted the two functions actually used
+  (a nested call, not the unused one); a new "Draft test" calculator started unticked as
+  "Not in last pack"; loading the pack listed Draft test as removed, turned on use-only
+  mode, and left Calculators and Quotes with the pack date shown, no Edit or New, and the
+  hidden pages showing the notice; an older pack showed the warning (cancelled); switching
+  the mode off brought everything back; the dialog fits at phone width.
 
 ## Open questions
 

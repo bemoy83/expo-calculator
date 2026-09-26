@@ -12,6 +12,7 @@ import type { Calculator, CalculatorLibrary, CalculatorValues, LayoutSection } f
 import { useCalculatorSessionStore } from '@/lib/stores/calculator-session-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { cn } from '@/lib/utils';
+import { useUseOnlyMode } from '@/hooks/use-device';
 import {
   CalculatorLayoutItem,
   SectionHeading,
@@ -31,6 +32,7 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
   const reset = useCalculatorSessionStore((state) => state.reset);
   const formatMoney = useCurrencyStore((state) => state.formatCurrency);
   const router = useRouter();
+  const useOnly = useUseOnlyMode();
   const [sending, setSending] = useState(false);
   const origin = useCalculatorSessionStore((state) => state.origins[calculator.id]);
 
@@ -92,14 +94,16 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
             Reset
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => router.push(`/calculator/edit?id=${encodeURIComponent(calculator.id)}`)}
-          >
-            <Pencil className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-            Edit
-          </Button>
+          {!useOnly && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push(`/calculator/edit?id=${encodeURIComponent(calculator.id)}`)}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+              Edit
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={() => setSending(true)}

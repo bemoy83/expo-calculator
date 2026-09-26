@@ -88,3 +88,10 @@ export function describeCondition(
   const unit = displayUnit(unitSymbol);
   return `${input.label} ${symbol} ${shown}${unit ? ` ${unit}` : ''}`;
 }
+
+/** A pack's export or load time in the viewer's locale, e.g. "26 Sep 2026, 14:05". */
+export function formatPackDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'an unknown date';
+  return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}

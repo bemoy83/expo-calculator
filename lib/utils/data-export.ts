@@ -1,3 +1,4 @@
+import { buildCalculatorPack } from '../calculator/pack';
 import type { Calculator } from '../calculator/types';
 import { CalculationModule, Material, ModuleTemplate, SharedFunction, Labor } from '../types';
 import { useCalculatorsStore } from '../stores/calculators-store';
@@ -5,9 +6,15 @@ import { useMaterialsStore } from '../stores/materials-store';
 import { useCategoriesStore } from '../stores/categories-store';
 import { useFunctionsStore } from '../stores/functions-store';
 import { useLaborStore } from '../stores/labor-store';
+import { useDeviceStore } from '../stores/device-store';
 
 export interface ExportedData {
   version: string;
+  /**
+   * 'pack': a calculator pack for staff devices (the chosen calculators, the functions they
+   * call, the catalogs); loading one replaces all of those. Unset: a full export (backup).
+   */
+  kind?: 'pack';
   exportedAt: string;
   materials: Material[];
   labor?: Labor[];
@@ -42,6 +49,30 @@ export function exportAllData(): ExportedData {
 }
 
 /**
+ * A calculator pack of the chosen calculators, remembered as this browser's last pack export
+ * (which ticks the same calculators next time and marks what changed since).
+ */
+export function exportCalculatorPack(calculatorIds: string[]): ExportedData {
+  const pack = buildCalculatorPack(
+    {
+      calculators: useCalculatorsStore.getState().calculators,
+      functions: useFunctionsStore.getState().functions,
+      materials: useMaterialsStore.getState().materials,
+      labor: useLaborStore.getState().labor,
+      customCategories: useCategoriesStore.getState().customCategories,
+    },
+    calculatorIds,
+    EXPORT_VERSION,
+    new Date().toISOString()
+  );
+  useDeviceStore.getState().setLastPackExport({
+    exportedAt: pack.exportedAt,
+    calculatorIds: (pack.calculators ?? []).map((calculator) => calculator.id),
+  });
+  return pack;
+}
+
+/**
  * Download exported data as a JSON file
  */
 export function downloadDataAsJSON(data: ExportedData, filename?: string): void {
@@ -50,7 +81,8 @@ export function downloadDataAsJSON(data: ExportedData, filename?: string): void 
   const url = URL.createObjectURL(blob);
 
   const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const finalFilename = filename || `cost-estimator-data-${dateStr}.json`;
+  const finalFilename =
+    filename || (data.kind === 'pack' ? `calculator-pack-${dateStr}.json` : `cost-estimator-data-${dateStr}.json`);
 
   const a = document.createElement('a');
   a.href = url;

@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/shared/EmptyState';
 import type { Calculator } from '@/lib/calculator/types';
+import { formatPackDate } from '@/lib/calculator/format';
+import { useDeviceStore } from '@/lib/stores/device-store';
+import { useUseOnlyMode } from '@/hooks/use-device';
 
 function pluralize(count: number, singular: string) {
   return `${count} ${count === 1 ? singular : `${singular}s`}`;
@@ -31,21 +34,48 @@ export function CalculatorsListView({ calculators }: { calculators: Calculator[]
   const router = useRouter();
   const groups = groupByCategory(calculators);
   const newCalculator = () => router.push('/calculator/edit');
+  const useOnly = useUseOnlyMode();
+  const loadedPack = useDeviceStore((state) => state.loadedPack);
+  const lastPackExport = useDeviceStore((state) => state.lastPackExport);
+  // Which pack this device has, so an out-of-date one is easy to spot; on the device packs
+  // are made on, when the last one was exported, to compare against.
+  const packNote = loadedPack
+    ? `Calculator pack from ${formatPackDate(loadedPack.exportedAt)}`
+    : lastPackExport && !useOnly
+      ? `Last pack exported ${formatPackDate(lastPackExport.exportedAt)}`
+      : undefined;
 
   return (
     <>
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-ink">Calculators</h1>
-          <p className="text-xs text-ink-muted">{pluralize(calculators.length, 'calculator')}</p>
+          <p className="text-xs text-ink-muted">
+            {pluralize(calculators.length, 'calculator')}
+            {packNote && (
+              <>
+                {' · '}
+                <span title={loadedPack ? `Loaded ${formatPackDate(loadedPack.loadedAt)}` : undefined}>{packNote}</span>
+              </>
+            )}
+          </p>
         </div>
-        <Button onClick={newCalculator} className="shrink-0 self-start sm:self-auto">
-          <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
-          New calculator
-        </Button>
+        {!useOnly && (
+          <Button onClick={newCalculator} className="shrink-0 self-start sm:self-auto">
+            <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+            New calculator
+          </Button>
+        )}
       </div>
 
-      {calculators.length === 0 ? (
+      {calculators.length === 0 && useOnly ? (
+        <EmptyState
+          icon={CalculatorIcon}
+          title="No calculators on this device yet"
+          description="Ask for a calculator pack file, then load it from Settings → Load calculator pack."
+          iconSize="small"
+        />
+      ) : calculators.length === 0 ? (
         <EmptyState
           icon={CalculatorIcon}
           title="No calculators yet"

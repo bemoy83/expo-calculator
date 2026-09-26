@@ -1,130 +1,130 @@
 # Event Construction Cost Estimator
 
-A professional web application for building multi-module construction cost estimates with dynamic formula evaluation and reusable calculation modules.
+A web app for pricing construction and event builds with purpose-built calculators. The
+owner builds calculators in the app (no code); staff open one, fill in a simple form, and
+send the result to a quote.
 
-## Features
+Everything runs in the browser and is saved in its local storage. There is no server,
+database or account. Data moves between devices as exported files.
 
-### Admin Features
-- **Materials Manager**: Create and manage materials with prices, categories, units, and variable names
-- **Module Manager**: Build reusable calculation modules with:
-  - Custom input fields (number, text, dropdown, boolean)
-  - Variable name assignment for each field
-  - Formula definition using field and material variables
-  - Real-time formula validation
+## How it fits together
 
-### Quote Builder
-- Add multiple modules to a single quote
-- Add the same module multiple times
-- Live calculation updates as values change
-- Running subtotal, tax, and final total
-- Quote summary panel with line items
-- Export quotes as JSON or print/PDF
+| Layer | What it is | Where |
+|---|---|---|
+| **Functions** | Reusable math with named, unit-aware parameters, e.g. `stud_count(width, spacing)`. Functions can call other functions. | Functions page |
+| **Catalogs** | Materials (with a default price and extra prices such as per m² or per pallet, plus properties like width) and labor (with a rate). | Materials and Labor pages |
+| **Calculators** | Inputs, the steps that calculate from them, grouped into **parts**, and a layout of what staff see. | Calculators page → New calculator / Edit |
+| **Quotes** | Lines sent from calculators, with markup, VAT, totals, JSON export and print. | Quotes page |
 
-### Technical Highlights
-- Clean architecture with Zustand state management
-- Formula evaluation engine with variable substitution
-- Variable validation and error handling
-- Dark SaaS dashboard UI with modern design
-- Responsive layout for all screen sizes
+### Calculators and parts
 
-## Getting Started
+- An **input** (width, stud spacing, a sheet material, "painted on both sides") is declared
+  once; any number of steps read it.
+- A **step** either calls a function (pick the function, then give each parameter an
+  input, another step, a material property or price, or a fixed number) or is a short
+  formula. Steps are calculated in the order they depend on each other, not the order
+  they're listed.
+- Steps are grouped into **parts** (Framing, Sheeting, Paint). Each part names its cost
+  step; the calculator's total is the sum of the part costs. While building, each part is
+  tested on its own, and an error only affects the part it's in.
+- The **layout** arranges inputs, results, breakdowns, text and dividers into sections.
+  Inputs can be number boxes, steppers, sliders, switches, dropdowns, buttons or pickers,
+  and sections, inputs and steps can be shown or calculated only when a condition holds.
 
-### Prerequisites
-- Node.js 18+ and npm
+The builder has two tabs: **Parts** (the math, with live test values) and **Layout**
+(what staff see, with a Preview).
 
-### Installation
+### Quotes
 
-1. Install dependencies:
+On a calculator, **Send to quote** adds a line to a new or existing quote with the cost, a
+summary and the values used. **Edit** on that line reopens the calculator with those values
+and can update the line. Quotes stay on the device they were made on; they are never part
+of an export or changed by an import.
+
+## Sharing calculators with staff devices
+
+Settings (bottom of the sidebar) → **Data**:
+
+- **Export calculator pack…** — choose which calculators go to staff (anything still being
+  built or tested can be left out; the ones in the last pack start ticked). The pack holds
+  those calculators, the functions they use (including functions those call), and the
+  materials and labor catalogs, with the date it was exported.
+- **Export all data** — a full backup: every calculator, function, material, labor item
+  and category.
+- **Import data** — loads either kind of file. A calculator pack replaces the device's
+  calculators, functions, materials and labor after showing what it contains, what it will
+  remove, and whether it's older than the pack already loaded. Other files can be merged
+  or replace what's there. Files from before calculators still import: their modules and
+  templates become calculators.
+
+The Calculators page shows which pack a device has ("Calculator pack from …"), and on the
+device packs are made on, when the last one was exported, so an out-of-date device is easy
+to spot.
+
+**Use-only mode** (Settings) is a per-browser switch for staff devices. It hides New
+calculator, Edit and the Functions, Materials and Labor pages, leaving Calculators and
+Quotes; loading a pack offers to turn it on. It's a convenience, not security: anyone can
+switch it off again.
+
+## Getting started
+
+Requires Node.js 18+.
+
 ```bash
 npm install
-```
-
-2. Run the development server:
-```bash
 npm run dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser
+Then open http://localhost:3000.
 
-### Building for Production
+Checks:
 
 ```bash
-npm run build
-npm start
+npx tsc --noEmit -p .
+npm run lint
+npm run eval:test
 ```
 
-## Usage Guide
+`npm run eval:test` runs the regression tests in `lib/regression-tests/` (formulas, units,
+functions, catalogs, the calculator engine, conversions, quotes, export/import and packs).
 
-### 1. Set Up Materials
+### Deploying
 
-Navigate to the **Materials** page and add materials that you'll reference in formulas:
-- Each material needs a unique variable name (e.g., `lumber_price`, `hourly_rate`)
-- Materials can be organized by category
-- Prices can be updated and will automatically affect all future calculations
+`npm run build` produces a static export in `out/`. Pushing to `main` deploys it to GitHub
+Pages under `/expo-calculator` (`.github/workflows/deploy.yml`). Calculators open at
+`/calculator?id=…` because they live in the browser, not in the build.
 
-### 2. Create Calculation Modules
-
-Go to the **Modules** page to create reusable calculation modules:
-- Add custom input fields with different types
-- Assign variable names to each field
-- Write formulas using field variables and material variables
-- Example formula: `width * height * lumber_price + labor_hours * hourly_rate`
-
-### 3. Build Quotes
-
-Use the **Quote Builder** to create client quotes:
-- Add modules to your quote
-- Fill in field values for each module instance
-- Watch costs calculate automatically
-- Adjust tax rate as needed
-- Export or print the final quote
-
-## Formula Syntax
-
-Formulas support standard mathematical operations:
-- Basic: `+`, `-`, `*`, `/`
-- Parentheses: `()`
-- Functions: `sqrt()`, `max()`, `min()`, `abs()`, etc.
-- Constants: `pi`, `e`
-
-Example formulas:
-- `length * width * material_price`
-- `(base_cost + labor_hours * hourly_rate) * 1.1`
-- `sqrt(area) * price_per_unit`
-
-## Project Structure
+## Project structure
 
 ```
-├── app/
-│   ├── page.tsx              # Dashboard
-│   ├── materials/
-│   │   └── page.tsx          # Materials Manager
-│   ├── modules/
-│   │   └── page.tsx          # Module Manager
-│   └── quotes/
-│       └── page.tsx          # Quote Builder
-├── components/
-│   ├── Layout.tsx            # Main layout with navigation
-│   └── ui/                   # Reusable UI components
-├── lib/
-│   ├── stores/               # Zustand state stores
-│   ├── formula-evaluator.ts  # Formula evaluation engine
-│   ├── types.ts              # TypeScript types
-│   └── utils.ts              # Utility functions
-└── package.json
+app/
+  page.tsx                 Calculators (home)
+  calculator/              A calculator (staff view); edit/ is the builder
+  quotes/                  A quote; board/ lists quotes
+  functions/ materials/ labor/
+components/
+  calculator/              Staff view: layout renderer, inputs, results, Send to quote
+  calculator-builder/      Parts view, layout canvas and inspector, step and input editors
+  function-editor/ materials/ labor/ quotes/
+  DataImporter.tsx, PackExporter.tsx, AppSidebar.tsx, Layout.tsx
+  ui/ shared/              Primitives and shared pieces
+lib/
+  calculator/              Engine (evaluate, dependencies, conditions, call-function),
+                           pure editing helpers, packs, and module/template conversion
+  formula/                 Parser, validator, unit checks, math runtime
+  functions/ catalog/ quotes/
+  stores/                  Zustand stores persisted to localStorage
+  utils/data-export.ts, data-import.ts
+  regression-tests/
 ```
 
-## Technologies Used
+`CALCULATOR_DESIGN.md` records the design decisions and what each build step did.
 
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **Zustand** - State management
-- **mathjs** - Formula evaluation
-- **Lucide React** - Icons
+## Technologies
+
+Next.js 14 (App Router, static export), React 18, TypeScript, Tailwind CSS, Zustand,
+mathjs, dnd-kit, next-themes, Lucide icons.
 
 ## License
 
 MIT
-
-
