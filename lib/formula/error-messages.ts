@@ -1,3 +1,5 @@
+import { NAME_START } from './identifiers';
+
 function getErrorContext(errorMessage: string, formula: string): string {
   const charMatch = errorMessage.match(/\(char (\d+)\)/);
   const charPos = charMatch ? parseInt(charMatch[1], 10) : null;
@@ -24,7 +26,7 @@ export function translateParserError(errorMessage: string, formula: string): str
     if (part === '1' || part.match(/^\d+$/)) {
       return `Syntax error${context}: Unexpected number. Check for missing operators (+, -, *, /) between values.`;
     }
-    if (part.match(/^[a-zA-Z_]/)) {
+    if (new RegExp(`^[${NAME_START}]`).test(part)) {
       return `Syntax error${context}: Unexpected variable or function. Check for missing operators or invalid function names.`;
     }
     if (['(', ')', '+', '-', '*', '/'].includes(part)) {

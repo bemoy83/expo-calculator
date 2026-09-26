@@ -1,3 +1,5 @@
+import { matchStandalone, NAME, NAME_WITH_PROPERTY } from './identifiers';
+
 export type IdentifierToken = {
   text: string;
   base: string;
@@ -5,7 +7,7 @@ export type IdentifierToken = {
   hasDot: boolean;
 };
 
-const IDENTIFIER_REGEX = /[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?/g;
+const IDENTIFIER_REGEX = new RegExp(NAME_WITH_PROPERTY, 'g');
 export const MATH_FUNCTIONS = new Set(['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor']);
 
 /**
@@ -26,11 +28,8 @@ export interface FunctionCall {
  */
 export function parseFunctionCalls(formula: string): FunctionCall[] {
   const calls: FunctionCall[] = [];
-  const functionNameRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g;
-  let match;
-
-  while ((match = functionNameRegex.exec(formula)) !== null) {
-    const functionName = match[1];
+  for (const match of matchStandalone(formula, `(${NAME})\\s*\\(`, { openEnd: true })) {
+    const functionName = match.groups[0];
     
     // Skip if it's a math function
     if (MATH_FUNCTIONS.has(functionName)) {
@@ -38,7 +37,7 @@ export function parseFunctionCalls(formula: string): FunctionCall[] {
     }
 
     const startIndex = match.index;
-    const openParenIndex = match.index + match[0].length - 1; // Position of '('
+    const openParenIndex = match.index + match.text.length - 1; // Position of '('
 
     // Find matching closing parenthesis by counting parentheses
     let parenCount = 1;
@@ -174,19 +173,11 @@ export function replaceIdentifiers(
 }
 
 export function parsePropertyReferences(formula: string): Array<{ baseVar: string; propertyName: string; fullMatch: string; isFieldProperty?: boolean }> {
-  const propertyRefRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
-  const matches: Array<{ baseVar: string; propertyName: string; fullMatch: string; isFieldProperty?: boolean }> = [];
-  let match;
-
-  while ((match = propertyRefRegex.exec(formula)) !== null) {
-    matches.push({
-      baseVar: match[1],
-      propertyName: match[2],
-      fullMatch: match[0],
-    });
-  }
-
-  return matches;
+  return matchStandalone(formula, `(${NAME})\\.(${NAME})`).map((match) => ({
+    baseVar: match.groups[0],
+    propertyName: match.groups[1],
+    fullMatch: match.text,
+  }));
 }
 
 export function parseMaterialPropertyReferences(formula: string): Array<{ materialVar: string; propertyName: string; fullMatch: string }> {

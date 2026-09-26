@@ -1,4 +1,5 @@
 import type { FunctionParamKind, SharedFunction } from '../types';
+import { NAME_CHAR, NAME_START } from '../formula/identifiers';
 
 export type { FunctionParamKind } from '../types';
 
@@ -11,7 +12,7 @@ export function getFunctionParamKinds(
     func.parameters.map((param) => {
       if (param.kind) return [param.name, param.kind];
       const escaped = param.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const readsProperty = !!param.name && new RegExp(`(^|[^A-Za-z0-9_.])${escaped}\\.[A-Za-z_]`).test(func.formula);
+      const readsProperty = !!param.name && new RegExp(`(^|[^${NAME_CHAR}.])${escaped}\\.[${NAME_START}]`).test(func.formula);
       return [param.name, readsProperty ? 'material' : 'number'];
     })
   );

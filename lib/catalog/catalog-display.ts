@@ -1,6 +1,7 @@
 import type { Calculator } from '../calculator/types';
 import type { LaborProperty, MaterialProperty } from '../types';
 import { propertyValueInUnit } from './prices';
+import { NAME_CHAR } from '../formula/identifiers';
 
 // Strips float noise from unit conversion (0.018 m → 18.000000000000004 mm).
 function cleanNumber(value: number): number {
@@ -36,7 +37,7 @@ export function countCalculatorsUsingCatalogItem(
   const { variableName, category } = item;
   const references = (expression: string) =>
     !!variableName &&
-    (expression.match(/[A-Za-z0-9_.]+/g) ?? []).some(
+    (expression.match(new RegExp(`[${NAME_CHAR}.]+`, 'g')) ?? []).some(
       (token) => token === variableName || token.startsWith(`${variableName}.`)
     );
   return calculators.filter(

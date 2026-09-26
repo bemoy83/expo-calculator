@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { NAME_CHAR, NAME_START } from './formula/identifiers';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,7 +18,7 @@ export function labelToVariableName(label: string): string {
   let result = label.trim()
     .replace(/\s+/g, '_')
     .replace(/-/g, '_')
-    .replace(/[^a-zA-Z0-9_]/g, '')
+    .replace(new RegExp(`[^${NAME_CHAR}]`, 'g'), '')
     .replace(/_+/g, '_')
     .replace(/^_+|_+$/g, '');
 
@@ -31,7 +32,7 @@ export function labelToVariableName(label: string): string {
 
   result = result.toLowerCase();
 
-  if (!/^[a-zA-Z_]/.test(result)) {
+  if (!new RegExp(`^[${NAME_START}]`).test(result)) {
     result = '_' + result;
   }
 

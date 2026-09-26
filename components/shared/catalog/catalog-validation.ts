@@ -1,8 +1,10 @@
+import { isValidName } from '@/lib/formula/identifiers';
+
 export function validateVariableIdentifier(value: string, label = 'Variable name'): string | null {
   if (!value.trim()) {
     return `${label} is required`;
   }
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
+  if (!isValidName(value)) {
     return `${label} must start with a letter or underscore and contain only letters, numbers, and underscores`;
   }
   return null;
@@ -25,7 +27,7 @@ export function validatePropertyName<T extends { id: string; name: string }>(
   if (!name.trim()) {
     return 'Property name is required';
   }
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+  if (!isValidName(name)) {
     return 'Property name must start with a letter or underscore and contain only letters, numbers, and underscores';
   }
 

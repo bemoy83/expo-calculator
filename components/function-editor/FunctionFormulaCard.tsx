@@ -6,6 +6,7 @@ import { FormulaVariableToken } from '@/components/formula/FormulaVariableToken'
 import { FormulaOperatorGuide } from '@/components/formula/FormulaOperatorGuide';
 import { cn } from '@/lib/utils';
 import { AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
+import { containsStandalone } from '@/lib/formula/identifiers';
 
 interface WordInfo {
   word: string;
@@ -63,8 +64,6 @@ export function FunctionFormulaCard({
   setSelectedSuggestionIndex,
   setIsAutocompleteOpen,
 }: FunctionFormulaCardProps) {
-  const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
   const visibleParameters = parameters
     .map((param, index) => ({
       key: param.name?.trim() || `parameter-${index}`,
@@ -74,8 +73,7 @@ export function FunctionFormulaCard({
 
   const isParameterInFormula = (variableName: string) => {
     if (!formula || !variableName) return false;
-    const regex = new RegExp(`\\b${escapeRegex(variableName)}\\b`);
-    return regex.test(formula);
+    return containsStandalone(formula, variableName);
   };
 
   const usedParametersCount = visibleParameters.filter((param) =>

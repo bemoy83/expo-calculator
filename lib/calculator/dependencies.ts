@@ -2,6 +2,7 @@ import { MATH_FUNCTIONS } from '../formula/parser';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import type { SharedFunction } from '../types';
 import type { Calculator, CalculatorStep, Condition, InputKind } from './types';
+import { NAME_WITH_PROPERTY } from '../formula/identifiers';
 
 export interface ExpressionToken {
   text: string;
@@ -13,7 +14,7 @@ export interface ExpressionToken {
   isCall: boolean;
 }
 
-const IDENTIFIER = /[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?/g;
+const IDENTIFIER = new RegExp(NAME_WITH_PROPERTY, 'g');
 
 // Identifiers in an expression with their positions. Skips the letters of a number such as
 // 1e5 or 2.5e3, which the pattern would otherwise read as a name.

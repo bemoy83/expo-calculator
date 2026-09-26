@@ -1,5 +1,6 @@
 import type { Calculator } from "../calculator/types";
 import type { Labor, SharedFunction } from "../types";
+import { isValidName } from '../formula/identifiers';
 
 export type FunctionFormData = {
   displayName: string;
@@ -101,7 +102,7 @@ export function collectFunctionAutocompleteCandidates(input: {
 
     if (
       trimmedName &&
-      /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmedName) &&
+      isValidName(trimmedName) &&
       !validParamNames.has(trimmedName.toLowerCase())
     ) {
       validParamNames.add(trimmedName.toLowerCase());
@@ -137,10 +138,10 @@ export function collectFunctionAutocompleteCandidates(input: {
     if (
       func.id !== input.functionId &&
       func.name.trim() &&
-      /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(func.name.trim())
+      isValidName(func.name.trim())
     ) {
       const paramNames = func.parameters
-        .filter((param) => param.name.trim() && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(param.name.trim()))
+        .filter((param) => param.name.trim() && isValidName(param.name.trim()))
         .map((param) => param.name.trim())
         .join(", ");
 
@@ -256,7 +257,7 @@ export function validateFunctionEditorForm(input: {
 
   if (!input.formData.name.trim()) {
     errors.name = "Function variable name is required";
-  } else if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input.formData.name.trim())) {
+  } else if (!isValidName(input.formData.name.trim())) {
     errors.name = "Variable name must start with a letter or underscore and contain only letters, numbers, and underscores";
   }
 
@@ -315,7 +316,7 @@ export function isFunctionEditorFormSubmittable(input: {
   return (
     input.formData.displayName.trim() !== "" &&
     input.formData.name.trim() !== "" &&
-    /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input.formData.name.trim()) &&
+    isValidName(input.formData.name.trim()) &&
     input.formData.formula.trim() !== "" &&
     input.formulaValidation.valid &&
     input.parameters.some((param) => param.name.trim() && param.label.trim())

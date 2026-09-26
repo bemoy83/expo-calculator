@@ -15,6 +15,7 @@ import type {
   LayoutItem,
   LayoutSection,
 } from './types';
+import { isValidName } from '../formula/identifiers';
 
 // Pure edits for the calculator builder. Each returns a new calculator and keeps it
 // consistent: renaming a key rewrites every formula, binding and condition that uses it,
@@ -42,8 +43,6 @@ export function createEmptyCalculator(createId: CreateId, now: string): Calculat
 
 // ---- Names ----
 
-const KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
 /** Every name in use: input and step keys. */
 export function takenKeys(calculator: Calculator, except?: string): Set<string> {
   const keys = new Set<string>();
@@ -55,7 +54,7 @@ export function takenKeys(calculator: Calculator, except?: string): Set<string> 
 /** Why a name can't be used for the input or step `ownerId`, or undefined when it can. */
 export function keyProblem(calculator: Calculator, key: string, ownerId?: string): string | undefined {
   if (!key) return 'Give it a name.';
-  if (!KEY_PATTERN.test(key)) return 'Use letters, digits and _, not starting with a digit.';
+  if (!isValidName(key)) return 'Use letters, digits and _, not starting with a digit.';
   if (takenKeys(calculator, ownerId).has(key)) return `"${key}" is already used in this calculator.`;
   return undefined;
 }

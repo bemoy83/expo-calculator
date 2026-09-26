@@ -3,6 +3,7 @@ import { EvaluationContext } from './types';
 import { mathInstance } from './math-runtime';
 import { FunctionCall, MATH_FUNCTIONS, getOutermostFunctionCalls, parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences, replaceIdentifiers } from './parser';
 import { createFormulaResolver } from './resolver';
+import { findStandalone, isValidName, NAME_WITH_PROPERTY } from './identifiers';
 
 function evaluateFunctionCall(
   call: FunctionCall,
@@ -199,8 +200,7 @@ export function evaluateFormula(
     functionCalls = parseFunctionCalls(processedFormula);
     functionNames = new Set(functionCalls.map(call => call.functionName));
 
-    const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\b/g;
-    const matches = processedFormula.match(variableRegex);
+    const matches = findStandalone(processedFormula, NAME_WITH_PROPERTY);
     const unreplacedVars: string[] = [];
 
     const fieldVarsInPropertyRefs = new Set(fieldPropertyRefs.map(ref => ref.fieldVar));
@@ -209,7 +209,7 @@ export function evaluateFormula(
     const functionCallArgs = new Set<string>();
     for (const call of functionCalls) {
       for (const arg of call.arguments) {
-        if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(arg.trim()) && isNaN(Number(arg.trim()))) {
+        if (isValidName(arg.trim()) && isNaN(Number(arg.trim()))) {
           functionCallArgs.add(arg.trim());
         }
       }

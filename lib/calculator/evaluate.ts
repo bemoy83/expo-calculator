@@ -16,6 +16,7 @@ import type {
   PartStatus,
   StepResult,
 } from './types';
+import { isValidName } from '../formula/identifiers';
 
 type Resolved = Record<string, number | boolean | string>;
 
@@ -88,7 +89,7 @@ export function evaluateCalculator(
   const keyCounts = new Map<string, number>();
   for (const step of calculator.steps) keyCounts.set(step.key, (keyCounts.get(step.key) ?? 0) + 1);
   const keyProblem = (step: CalculatorStep): string | undefined => {
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(step.key)) return `"${step.key}" isn't a valid name; use letters, digits and _.`;
+    if (!isValidName(step.key)) return `"${step.key}" isn't a valid name; use letters, digits and _.`;
     if (inputsByKey.has(step.key)) return `The name "${step.key}" is also used by an input.`;
     if ((keyCounts.get(step.key) ?? 0) > 1) return `The name "${step.key}" is used by more than one step.`;
     return undefined;

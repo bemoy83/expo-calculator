@@ -1,6 +1,7 @@
 import { Material } from '../types';
 import { UnitCategory, divideUnits, getUnitCategory } from '../units';
 import { FormulaField } from './validation-types';
+import { NAME_WITH_PROPERTY } from './identifiers';
 
 function getPropertyUnitCategory(property?: { unitCategory?: UnitCategory; unitSymbol?: string }): UnitCategory | undefined {
   return property?.unitCategory || (property?.unitSymbol ? getUnitCategory(property.unitSymbol) : undefined);
@@ -61,7 +62,7 @@ export function validateUnitCompatibility(
     }
   }
 
-  const addSubPattern = /([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\s*([+\-])\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)/g;
+  const addSubPattern = new RegExp(`(${NAME_WITH_PROPERTY})\\s*([+\\-])\\s*(${NAME_WITH_PROPERTY})`, 'g');
   let match;
   while ((match = addSubPattern.exec(formula)) !== null) {
     const var1 = match[1];
@@ -76,7 +77,7 @@ export function validateUnitCompatibility(
     }
   }
 
-  const divPattern = /([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\s*\/\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)/g;
+  const divPattern = new RegExp(`(${NAME_WITH_PROPERTY})\\s*\\/\\s*(${NAME_WITH_PROPERTY})`, 'g');
   while ((match = divPattern.exec(formula)) !== null) {
     const var1 = match[1];
     const var2 = match[2];

@@ -6,5 +6,6 @@ import './function-usage-regression';
 import './data-import-regression';
 import './calculator-regression';
 import './pack-regression';
+import './norwegian-regression';
 
 console.log('\n=== Tests Complete ===');

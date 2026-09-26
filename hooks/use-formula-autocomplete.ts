@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { isNameChar } from '@/lib/formula/identifiers';
 
 export interface AutocompleteSuggestion {
   name: string;
@@ -49,13 +50,13 @@ export function useFormulaAutocomplete({
 
     // Find the start of the current word
     let start = cursorPos;
-    while (start > 0 && /[\w.]/.test(formulaText[start - 1])) {
+    while (start > 0 && (isNameChar(formulaText[start - 1]) || formulaText[start - 1] === '.')) {
       start--;
     }
 
     // Find the end of the current word
     let end = cursorPos;
-    while (end < formulaText.length && /[\w.]/.test(formulaText[end])) {
+    while (end < formulaText.length && (isNameChar(formulaText[end]) || formulaText[end] === '.')) {
       end++;
     }
 

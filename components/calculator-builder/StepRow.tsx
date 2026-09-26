@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { ConditionEditor } from './ConditionEditor';
 import { FunctionCallEditor } from './FunctionCallEditor';
 import { StepFormulaEditor } from './StepFormulaEditor';
+import { NAME } from '@/lib/formula/identifiers';
 
 const FORMAT_OPTIONS: Array<{ value: StepFormat; label: string }> = [
   { value: 'number', label: 'Number' },
@@ -26,7 +27,7 @@ const FORMAT_OPTIONS: Array<{ value: StepFormat; label: string }> = [
 
 /** Names in "Unknown name" errors that could become inputs. */
 export function unknownNameIn(message: string | undefined): string | undefined {
-  return message?.match(/^Unknown name "([A-Za-z_][A-Za-z0-9_]*)"/)?.[1];
+  return message?.match(new RegExp(`^Unknown name "(${NAME})"`))?.[1];
 }
 
 interface StepRowProps {

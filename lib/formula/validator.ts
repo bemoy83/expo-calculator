@@ -1,9 +1,10 @@
 import { Labor, Material, SharedFunction } from '../types';
 import { mathInstance } from './math-runtime';
-import { MATH_FUNCTIONS, escapeRegex, parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
+import { MATH_FUNCTIONS, parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
 import { translateParserError } from './error-messages';
 import { validateUnitCompatibility } from './unit-validation';
 import { FormulaField } from './validation-types';
+import { findStandalone, NAME, NAME_WITH_PROPERTY, replaceStandalone } from './identifiers';
 
 export { analyzeFormulaVariables } from './debug-analysis';
 
@@ -138,8 +139,7 @@ export function validateFormula(
     }
 
     // First, check computed output references (out.variableName) - these must be checked BEFORE property references
-    const computedOutputRefRegex = /\bout\.([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
-    const computedOutputMatches = formula.match(computedOutputRefRegex) || [];
+    const computedOutputMatches = findStandalone(formula, `out\\.${NAME}`);
     for (const match of computedOutputMatches) {
       if (!availableVariables.includes(match)) {
         const outputName = match.replace('out.', '');
@@ -269,8 +269,7 @@ export function validateFormula(
 
     // Now parse identifiers, excluding those that are property parts
     // Also parse computed output references (out.variableName) as single tokens
-    const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\b/g;
-    const matches = formula.match(variableRegex) || [];
+    const matches = findStandalone(formula, NAME_WITH_PROPERTY);
     
     // Separate computed output references from regular identifiers
     const computedOutputRefs = matches.filter(m => m.startsWith('out.'));
@@ -323,9 +322,7 @@ export function validateFormula(
         // Computed outputs are stored in fieldValues with 'out.' prefix
         if (match === 'out') {
           // Check if 'out' is followed by a dot and variable name (e.g., "out.area")
-          const outPattern = /\bout\.([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
-          const outMatches = formula.match(outPattern);
-          if (outMatches && outMatches.length > 0) {
+          if (findStandalone(formula, `out\\.${NAME}`).length > 0) {
             // 'out' is part of a computed output reference, skip it
             continue;
           }
@@ -377,14 +374,12 @@ export function validateFormula(
 
     // Replace property references first
     for (const ref of fieldPropertyRefs) {
-      const regex = new RegExp(`\\b${escapeRegex(ref.fullMatch)}\\b`, 'g');
-      testFormula = testFormula.replace(regex, '1');
+      testFormula = replaceStandalone(testFormula, ref.fullMatch, '1');
     }
     for (const ref of materialPropertyRefs) {
       // Skip if already processed as field property reference
       if (!fieldPropertyRefs.some(fpr => fpr.fullMatch === ref.fullMatch)) {
-        const regex = new RegExp(`\\b${escapeRegex(ref.fullMatch)}\\b`, 'g');
-        testFormula = testFormula.replace(regex, '1');
+        testFormula = replaceStandalone(testFormula, ref.fullMatch, '1');
       }
     }
 
@@ -404,9 +399,8 @@ export function validateFormula(
     for (const varName of allVars) {
       // It's safe to always try replacing here:
       // - We already replaced full property refs like "wallboard.width" above.
-      // - The regex uses word boundaries, so it won't touch "wallboard" inside "wallboard.width".
-      const regex = new RegExp(`\\b${escapeRegex(varName)}\\b`, 'g');
-      testFormula = testFormula.replace(regex, '1');
+      // - A standalone match won't touch "wallboard" inside "wallboard_2"; property refs are gone.
+      testFormula = replaceStandalone(testFormula, varName, '1');
     }
 
     // Phase 1: Unit compatibility validation

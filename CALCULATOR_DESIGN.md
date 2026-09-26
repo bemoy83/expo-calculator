@@ -720,3 +720,12 @@ different unit or kind is offered separately ("height m", "height mm"). A click 
 whole definition, filling the new function's blank parameter first, and a name already
 present is ticked and can't be added twice (`getParameterSuggestions`,
 `addSuggestedParameter` in lib/functions/function-editor-helpers.ts).
+
+**Æ, ø and å in names.** Input, step, function, parameter, material, labor and property
+names may use æ, ø and å (`høyde_på_vegg`, `areal_på_vegg(bredde, høyde)`), and names made
+from labels keep them ("Høyde på vegg" → høyde_på_vegg, not hyde_p_vegg). mathjs already
+read these letters as part of a name; the app's own checks were A–Z only. The name rules now
+live in lib/formula/identifiers.ts and every check and scan uses them. Regex `\b` treats æøå
+as separators, so the scans that used it match names standalone through helpers instead,
+without lookbehind (older Safari can't parse it, and staff devices may be old iPads). Other
+accented letters (é, ä, ö) are still stripped from generated names and refused in typed ones.

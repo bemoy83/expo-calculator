@@ -8,6 +8,7 @@ import { ComputedOutput, Field, SharedFunction, CalculationModule, Material, Lab
 import { labelToVariableName } from '../utils';
 import { validateFormula } from '../formula-evaluator';
 import { useFunctionsStore } from '../stores/functions-store';
+import { findStandalone, isValidName, NAME } from '../formula/identifiers';
 
 /**
  * Validates a computed output variable name
@@ -32,7 +33,7 @@ export function validateComputedOutputVariableName(
   }
 
   // Check: valid identifier pattern
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmedName)) {
+  if (!isValidName(trimmedName)) {
     return {
       valid: false,
       error: 'Variable name must start with a letter or underscore and contain only letters, numbers, and underscores',
@@ -118,10 +119,9 @@ export function validateComputedOutputExpression(
   }
 
   // Check for computed output references with 'out.' prefix (invalid - use variable name directly)
-  const computedOutputRefRegex = /\bout\.([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
-  const matches = expression.match(computedOutputRefRegex);
-  
-  if (matches && matches.length > 0) {
+  const matches = findStandalone(expression, `out\\.${NAME}`);
+
+  if (matches.length > 0) {
     const referencedOutputs = matches.map((match) => match.replace('out.', ''));
     return {
       valid: false,
@@ -132,8 +132,7 @@ export function validateComputedOutputExpression(
   // Check for computed output variable names - allow if they're defined BEFORE this one
   const computedOutputNames = computedOutputs.map((o) => o.variableName.toLowerCase());
   const fieldVariableNames = fields.map((f) => f.variableName.toLowerCase());
-  const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
-  const variableMatches = expression.match(variableRegex) || [];
+  const variableMatches = findStandalone(expression, NAME);
   
   // Find index of current output (if provided) to check order
   const currentOutputIndex = currentOutputId 

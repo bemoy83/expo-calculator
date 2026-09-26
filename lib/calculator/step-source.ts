@@ -3,6 +3,7 @@ import type { SharedFunction } from '../types';
 import { normalizeToBase } from '../units';
 import { formatDisplayNumber } from '../utils';
 import type { Binding, Calculator, StepSource } from './types';
+import { NAME } from '../formula/identifiers';
 
 type CallSource = Extract<StepSource, { type: 'call' }>;
 
@@ -50,7 +51,7 @@ export function expressionToCall(
   for (let i = 0; i < fn.parameters.length; i += 1) {
     const text = call.arguments[i].trim();
     const name = fn.parameters[i].name;
-    const property = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)$/);
+    const property = text.match(new RegExp(`^(${NAME})\\.(${NAME})$`));
     if (inputs.has(text)) args[name] = { type: 'input', key: text };
     else if (stepKeys.has(text)) args[name] = { type: 'step', key: text };
     else if (text !== '' && Number.isFinite(Number(text))) args[name] = { type: 'constant', value: Number(text) };

@@ -1,5 +1,6 @@
 import type { Calculator } from '../calculator/types';
 import type { SharedFunction } from '../types';
+import { NAME_CHAR } from '../formula/identifiers';
 
 export interface FunctionUsage {
   functions: Array<{ id: string; name: string }>;
@@ -10,7 +11,7 @@ function callsFunction(expression: string | undefined, functionName: string): bo
   if (!expression || !functionName) return false;
   // `name(` as a whole identifier: not `xname(` and not a property like `a.name(`.
   const escaped = functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(^|[^A-Za-z0-9_.])${escaped}\\s*\\(`).test(expression);
+  return new RegExp(`(^|[^${NAME_CHAR}.])${escaped}\\s*\\(`).test(expression);
 }
 
 // Where a shared function is called: calculators' steps (function-call steps and formulas)

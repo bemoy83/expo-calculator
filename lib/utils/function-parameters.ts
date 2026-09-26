@@ -5,6 +5,7 @@
  */
 
 import { labelToVariableName } from '../utils';
+import { isValidName } from '../formula/identifiers';
 
 export interface FunctionParameter {
   name: string;
@@ -75,7 +76,7 @@ export function validateParameterName(
   const trimmedName = name.trim();
 
   // Check: valid identifier pattern
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmedName)) {
+  if (!isValidName(trimmedName)) {
     return {
       valid: false,
       error: 'Parameter name must start with a letter or underscore and contain only letters, numbers, and underscores',

@@ -2,6 +2,7 @@ import { Material, SharedFunction } from '../types';
 import { FormulaDebugInfo } from './types';
 import { MATH_FUNCTIONS, parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
 import { FormulaField } from './validation-types';
+import { findStandalone, NAME_WITH_PROPERTY } from './identifiers';
 
 export function analyzeFormulaVariables(
   formula: string,
@@ -43,8 +44,7 @@ export function analyzeFormulaVariables(
     property: ref.propertyName,
   }));
 
-  const variableRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?)\b/g;
-  const matches = formula.match(variableRegex) || [];
+  const matches = findStandalone(formula, NAME_WITH_PROPERTY);
   const computedOutputRefs = matches.filter(m => m.startsWith('out.'));
   const regularMatches = matches.filter(m => !m.startsWith('out.'));
 

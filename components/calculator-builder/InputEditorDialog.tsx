@@ -64,7 +64,7 @@ function draftFrom(
   if (!input) {
     const key = suggestedKey ?? '';
     return {
-      label: suggestedLabel ?? key.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
+      label: suggestedLabel ?? key.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase()),
       key,
       keyTouched: !!suggestedKey,
       kind: suggestedKind ?? 'number',
