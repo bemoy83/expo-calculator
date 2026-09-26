@@ -37,12 +37,13 @@ import { missingProperties, requiredProperties } from '../calculator/requirement
 import { fixPricePropertyStorage, normalizePropertyValue, priceFromBase, priceToBase, propertyValueInUnit } from '../catalog/prices';
 import { getMaterialValue } from '../formula/resolver';
 import { calculatorFromModule } from '../calculator/from-module';
+import { calculatorFromTemplate, calculatorsFromTemplates } from '../calculator/from-template';
 import { callToExpression, expressionToCall } from '../calculator/step-source';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import { describeFunctionUsage, findFunctionUsage } from '../functions/function-usage';
 import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues } from '../calculator/types';
 import { calculateModuleInstance } from '../calculations/module-calculator';
-import type { CalculationModule, Material, MaterialProperty, SharedFunction } from '../types';
+import type { CalculationModule, Material, MaterialProperty, ModuleTemplate, SharedFunction } from '../types';
 import { normalizeToBase } from '../units';
 import { assertCheck } from './test-helpers';
 
@@ -907,5 +908,133 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
       missingProperties(materials[0], required.get('sheets')).join(',') === 'height,price_per_m2,thickness' &&
       missingProperties(materials[0], undefined).length === 0,
     JSON.stringify([...required])
+  );
+}
+
+// ---- Templates (step 8) ----
+
+{
+  const framing: CalculationModule = {
+    id: 'framing',
+    name: 'Framing',
+    fields: [
+      { id: 'f1', label: 'Width', type: 'number', variableName: 'width', unitSymbol: 'm' },
+      { id: 'f2', label: 'Height', type: 'number', variableName: 'height', unitSymbol: 'm' },
+      { id: 'f3', label: 'Stud Spacing', type: 'dropdown', variableName: 'stud_spacing', options: ['40', '60'], dropdownMode: 'numeric', unitSymbol: 'cm', defaultValue: 0.6 },
+      { id: 'f4', label: 'Material', type: 'material', variableName: 'material', materialCategory: 'Lumber' },
+      { id: 'f5', label: 'Quantity', type: 'number', variableName: 'quantity', defaultValue: 1 },
+    ],
+    formula: 'out.lumber_count * material.price',
+    computedOutputs: [
+      { id: 'o1', label: 'Lumber count', variableName: 'lumber_count', expression: '(perimeter_rectangle(width, height) + height * stud_count(width, stud_spacing)) * quantity', unitSymbol: 'm' },
+    ],
+    createdAt: '',
+    updatedAt: '',
+  };
+  const sheeting: CalculationModule = {
+    id: 'sheeting',
+    name: 'Sheet Installation',
+    fields: [
+      { id: 's1', label: 'Width', type: 'number', variableName: 'width', unitSymbol: 'm' },
+      { id: 's2', label: 'Height', type: 'number', variableName: 'height', unitSymbol: 'm' },
+      { id: 's3', label: 'Sheets', type: 'material', variableName: 'sheets', materialCategory: 'Sheets' },
+      { id: 's4', label: 'Quantity', type: 'number', variableName: 'quantity', defaultValue: 1 },
+    ],
+    formula: 'sheets_height(height, sheets) * sheets_width(width, sheets) * quantity * sheets',
+    computedOutputs: [],
+    createdAt: '',
+    updatedAt: '',
+  };
+  const trim: CalculationModule = {
+    id: 'trim',
+    name: 'Trim',
+    fields: [
+      { id: 't1', label: 'Length', type: 'number', variableName: 'length', unitSymbol: 'm' },
+      { id: 't2', label: 'Quantity', type: 'number', variableName: 'quantity', defaultValue: 3 },
+    ],
+    formula: 'length * quantity * 10',
+    computedOutputs: [],
+    createdAt: '',
+    updatedAt: '',
+  };
+  const template: ModuleTemplate = {
+    id: 'wall',
+    name: 'Partition wall template',
+    categories: ['Walls'],
+    moduleInstances: [
+      { id: 'i1', moduleId: 'framing' },
+      {
+        id: 'i2',
+        moduleId: 'sheeting',
+        fieldLinks: {
+          width: { moduleInstanceId: 'i1', fieldVariableName: 'width' },
+          height: { moduleInstanceId: 'i1', fieldVariableName: 'height' },
+          quantity: { moduleInstanceId: 'i1', fieldVariableName: 'quantity' },
+        },
+      },
+      // Linked to the framing output, and to a field of an instance that doesn't exist.
+      {
+        id: 'i3',
+        moduleId: 'trim',
+        fieldLinks: {
+          length: { moduleInstanceId: 'i1', fieldVariableName: 'out.lumber_count' },
+          quantity: { moduleInstanceId: 'gone', fieldVariableName: 'quantity' },
+        },
+      },
+      { id: 'i4', moduleId: 'deleted-module' },
+    ],
+    createdAt: '',
+    updatedAt: '',
+  };
+  const modules = [framing, sheeting, trim];
+  const { calculator: wallCalc, warnings } = calculatorFromTemplate(template, modules, { createId });
+  const values: CalculatorValues = { width: 4, height: 2.5, material: 'lumber_48x98', sheets: 'mdf_6mm' };
+  const result = evaluateCalculator(wallCalc, values, library);
+
+  const framingCost = calculateModuleInstance({ moduleDef: framing, fieldValues: { width: 4, height: 2.5, stud_spacing: 0.6, material: 'lumber_48x98', quantity: 1 }, materials, functions, roundCost: false });
+  const sheetCost = calculateModuleInstance({ moduleDef: sheeting, fieldValues: { width: 4, height: 2.5, sheets: 'mdf_6mm', quantity: 1 }, materials, functions, roundCost: false }).cost;
+  const trimCost = calculateModuleInstance({ moduleDef: trim, fieldValues: { length: framingCost.computedValues['out.lumber_count'], quantity: 3 }, materials, functions, roundCost: false }).cost;
+
+  assertCheck(
+    'turns a template into one calculator with a part per module and linked fields collapsed into one input',
+    wallCalc.parts.map((part) => part.name).join(',') === 'Framing,Sheet Installation,Trim' &&
+      wallCalc.inputs.map((input) => input.key).join(',') === 'width,height,stud_spacing,material,quantity,sheets,trim_quantity' &&
+      wallCalc.inputs.find((input) => input.key === 'trim_quantity')?.label === 'Quantity (Trim)' &&
+      wallCalc.steps.map((step) => step.key).join(',') === 'lumber_count,framing_cost,sheet_installation_cost,trim_cost' &&
+      wallCalc.sourceTemplateId === 'wall' &&
+      wallCalc.category === 'Walls',
+    JSON.stringify({ inputs: wallCalc.inputs.map((input) => input.key), steps: wallCalc.steps.map((step) => step.key) })
+  );
+  const trimStep = wallCalc.steps.find((step) => step.key === 'trim_cost')!;
+  const sheetStep = wallCalc.steps.find((step) => step.key === 'sheet_installation_cost')!;
+  assertCheck(
+    "rewrites each part's formulas to the shared names, and a link to an output reads that output's step",
+    trimStep.source.type === 'expression' &&
+      trimStep.source.expression === 'lumber_count * trim_quantity * 10' &&
+      sheetStep.source.type === 'expression' &&
+      sheetStep.source.expression === 'sheets_height(height, sheets) * sheets_width(width, sheets) * quantity * sheets.price',
+    JSON.stringify(wallCalc.steps.map((step) => step.source))
+  );
+  assertCheck(
+    'gives the same total as the modules calculated one by one with their links',
+    close(result.parts[wallCalc.parts[0].id].cost, framingCost.cost) &&
+      close(result.parts[wallCalc.parts[1].id].cost, sheetCost) &&
+      close(result.parts[wallCalc.parts[2].id].cost, trimCost) &&
+      close(result.total, framingCost.cost + sheetCost + trimCost),
+    JSON.stringify({ total: result.total, parts: result.parts })
+  );
+  assertCheck(
+    'warns about missing modules and broken links, and lays out a section per part plus the breakdown',
+    warnings.some((warning) => warning.includes('Module 4')) &&
+      warnings.some((warning) => warning.includes('"quantity"')) &&
+      wallCalc.layout.map((section) => section.title).join(',') === 'Framing,Sheet Installation,Trim,Total' &&
+      wallCalc.layout[1].items.length === 1 &&
+      wallCalc.layout[3].items[0].type === 'breakdown',
+    JSON.stringify({ warnings, layout: wallCalc.layout.map((section) => section.items.length) })
+  );
+  const live = calculatorsFromTemplates([template], modules);
+  assertCheck(
+    'converts templates on the fly with stable ids',
+    live[0].id === 'template-wall' && JSON.stringify(calculatorsFromTemplates([template], modules)) === JSON.stringify(live)
   );
 }

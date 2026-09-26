@@ -1,36 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
+import { AlertBanner } from '@/components/shared/AlertBanner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { EntityCard } from '@/components/shared/EntityCard';
-import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { useTemplatesStore } from '@/lib/stores/templates-store';
 import { useModulesStore } from '@/lib/stores/modules-store';
-import { notify } from '@/lib/stores/notifications-store';
-import { FileText, Plus, Copy, Trash2 } from 'lucide-react';
+import { FileText, Trash2 } from 'lucide-react';
 import type { ModuleTemplate } from '@/lib/types';
-import { TemplateEditorView } from './TemplateEditorView';
 
 export default function TemplatesPage() {
   const templates = useTemplatesStore((state) => state.templates);
   const deleteTemplate = useTemplatesStore((state) => state.deleteTemplate);
-  const addTemplate = useTemplatesStore((state) => state.addTemplate);
-  const getTemplate = useTemplatesStore((state) => state.getTemplate);
   const modules = useModulesStore((state) => state.modules);
-
-  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
-
-  // View toggle - single-page pattern (list ↔ editor)
-  if (editingTemplateId) {
-    return (
-      <TemplateEditorView
-        templateId={editingTemplateId}
-        onClose={() => setEditingTemplateId(null)}
-      />
-    );
-  }
+  const router = useRouter();
 
   // Helper function to get module names from template
   // In chain order, repeats included: a template can use the same module more than once.
@@ -39,69 +24,32 @@ export default function TemplatesPage() {
       (instance) => modules.find((m) => m.id === instance.moduleId)?.name || 'Missing module'
     );
 
-  // Smart duplication with unique naming
-  const handleDuplicate = (templateId: string) => {
-    const template = getTemplate(templateId);
-    if (!template) return;
-
-    const uniqueName = generateUniqueTemplateName(template.name);
-    const { id, createdAt, updatedAt, ...templateData } = template;
-    addTemplate({
-      ...templateData,
-      name: uniqueName,
-    });
-
-    notify({ message: `Created "${uniqueName}"`, variant: 'success' });
-  };
-
-  const generateUniqueTemplateName = (baseName: string): string => {
-    const existingNames = templates.map((t) => t.name.toLowerCase());
-
-    if (!existingNames.includes(baseName.toLowerCase())) {
-      return baseName;
-    }
-
-    let candidate = `${baseName} (Copy)`;
-    if (!existingNames.includes(candidate.toLowerCase())) {
-      return candidate;
-    }
-
-    let counter = 2;
-    do {
-      candidate = `${baseName} (Copy ${counter})`;
-      counter++;
-    } while (existingNames.includes(candidate.toLowerCase()));
-
-    return candidate;
-  };
-
   return (
     <Layout>
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-ink">Templates</h1>
           <p className="text-xs text-ink-muted">
-            {templates.length} {templates.length === 1 ? 'template' : 'templates'} · reusable chains of linked modules, filled in per quote
+            {templates.length} {templates.length === 1 ? 'template' : 'templates'} · read-only, replaced by calculators
           </p>
         </div>
-        <Button onClick={() => setEditingTemplateId('new')} className="shrink-0">
-          <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
-          New template
-        </Button>
+      </div>
+
+      <div className="mb-4">
+        <AlertBanner
+          variant="info"
+          title="Templates are now calculators"
+          messages="Each template is on the Calculators page, with its linked fields as single inputs and a part per module. Open one there, and use Edit to make it a calculator of your own. Templates can't be changed here any more; quotes can still start from them until quotes move to calculators."
+          isVisible
+        />
       </div>
 
       {templates.length === 0 ? (
         <EmptyState
           icon={FileText}
           title="No templates yet"
-          description="A template is a chain of modules and the links between them, reused with new inputs on each quote. Build one here, or save a Quote Builder workspace as a template."
+          description="Build calculators on the Calculators page instead."
           iconSize="small"
-          actions={
-            <Button onClick={() => setEditingTemplateId('new')}>
-              <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
-              New template
-            </Button>
-          }
         />
       ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -110,8 +58,7 @@ export default function TemplatesPage() {
               key={template.id}
               template={template}
               moduleNames={getModuleNames(template)}
-              onEdit={() => setEditingTemplateId(template.id)}
-              onDuplicate={() => handleDuplicate(template.id)}
+              onOpen={() => router.push(`/calculator?id=${encodeURIComponent(`template-${template.id}`)}`)}
               onDelete={() => deleteTemplate(template.id)}
             />
           ))}
@@ -124,12 +71,12 @@ export default function TemplatesPage() {
 interface TemplateCardProps {
   template: ModuleTemplate;
   moduleNames: string[];
-  onEdit: () => void;
-  onDuplicate: () => void;
+  onOpen: () => void;
   onDelete: () => void;
 }
 
-function TemplateCard({ template, moduleNames, onEdit, onDuplicate, onDelete }: TemplateCardProps) {
+// A template, read-only: opening it shows it as a calculator.
+function TemplateCard({ template, moduleNames, onOpen, onDelete }: TemplateCardProps) {
   const visibleModules = moduleNames.slice(0, 8);
   const remainingCount = moduleNames.length - visibleModules.length;
   const linkCount = template.moduleInstances.reduce(
@@ -142,14 +89,8 @@ function TemplateCard({ template, moduleNames, onEdit, onDuplicate, onDelete }: 
       title={template.name}
       description={template.description}
       categories={template.categories}
-      onClick={onEdit}
+      onClick={onOpen}
       actions={[
-        {
-          icon: Copy,
-          actionType: 'duplicate',
-          onAction: onDuplicate,
-          ariaLabel: `Duplicate ${template.name}`,
-        },
         {
           icon: Trash2,
           actionType: 'delete',
@@ -157,7 +98,7 @@ function TemplateCard({ template, moduleNames, onEdit, onDuplicate, onDelete }: 
           ariaLabel: `Delete ${template.name}`,
           confirmation: {
             title: `Delete "${template.name}"?`,
-            message: 'Quotes already started from it are not affected.',
+            message: 'Quotes already started from it are not affected. Its calculator goes too, unless you saved it as one of your own.',
           },
         },
       ]}

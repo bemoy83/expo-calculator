@@ -7,7 +7,7 @@ import { Pencil, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
-import { isModuleView } from '@/hooks/use-calculators';
+import { convertedFrom } from '@/hooks/use-calculators';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type { Calculator, CalculatorLibrary, CalculatorValues, LayoutSection } from '@/lib/calculator/types';
@@ -83,9 +83,9 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
           </p>
           <div className="flex items-center gap-2 min-w-0">
             <h1 className="text-2xl font-bold tracking-tight text-ink truncate">{calculator.name}</h1>
-            {isModuleView(calculator) && (
+            {convertedFrom(calculator) && (
               <Chip size="sm" variant="muted">
-                From module
+                From {convertedFrom(calculator)}
               </Chip>
             )}
           </div>

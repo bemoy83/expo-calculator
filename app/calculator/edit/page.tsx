@@ -7,15 +7,15 @@ import { Layout } from '@/components/Layout';
 import { CalculatorBuilder } from '@/components/calculator-builder/CalculatorBuilder';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/Button';
-import { isModuleView, useCalculatorLibrary, useCalculators } from '@/hooks/use-calculators';
+import { convertedFrom, useCalculatorLibrary, useCalculators } from '@/hooks/use-calculators';
 import { copyCalculator, createEmptyCalculator } from '@/lib/calculator/editing';
 import type { Calculator } from '@/lib/calculator/types';
 import { generateId } from '@/lib/utils';
 
 type StartingPoint = { calculator: Calculator; isSaved: boolean } | null;
 
-// What the builder starts from: a new calculator (no id), a saved one, or a module shown as a
-// calculator, which is copied so saving it makes a calculator of its own. Worked out once per
+// What the builder starts from: a new calculator (no id), a saved one, or a module or template
+// shown as a calculator, which is copied so saving it makes a calculator of its own. Worked out once per
 // id; saving a new calculator changes the URL to its own id, which keeps the same draft.
 function useStartingPoint(id: string | null, ready: boolean): StartingPoint | undefined {
   const calculators = useCalculators();
@@ -30,7 +30,7 @@ function useStartingPoint(id: string | null, ready: boolean): StartingPoint | un
       ? { calculator: createEmptyCalculator(generateId, now), isSaved: false }
       : !found
         ? null
-        : isModuleView(found)
+        : convertedFrom(found)
           ? { calculator: copyCalculator(found, generateId, now), isSaved: false }
           : { calculator: found, isSaved: true };
     setOpened({ forId: id, start });

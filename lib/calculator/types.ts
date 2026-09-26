@@ -18,6 +18,8 @@ export interface Calculator {
   quoteCostStepId?: string;
   /** The module this calculator was converted from, if any. */
   sourceModuleId?: string;
+  /** The template this calculator was converted from, if any. */
+  sourceTemplateId?: string;
   createdAt: string;
   updatedAt: string;
 }

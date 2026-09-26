@@ -1,6 +1,6 @@
 # Calculator Builder — Design
 
-Status: agreed direction 2026-09-25; steps 1–7 done on `calculator-builder`. This is the working source
+Status: agreed direction 2026-09-25; steps 1–8 done on `calculator-builder`. This is the working source
 of truth for the move from "modules + templates + quote builder" to purpose-built
 calculators, in the same way `RESKIN_GAP_ANALYSIS.md` was for the reskin.
 
@@ -552,6 +552,32 @@ Each step is committed separately, like the reskin.
   adding a per-pallet price (then cancelled), and a picker marking both sheets "missing
   weight" for a step reading `sheets.weight`. The v1 migration ran on the real catalog and
   left every stored price the same.
+
+**Step 8 — Templates as calculators; Modules and Templates read-only**:
+- `calculatorFromTemplate` (`lib/calculator/from-template.ts`): a part per module instance
+  (duplicates numbered), each converted like a module. Fields linked to another field become
+  that one input (following chains); fields linked to another module's output read that
+  output's step. Inputs keep their names unless two parts clash, then the part name goes in
+  front (`trim_quantity`, labelled "Quantity (Trim)"); cost steps are `<part>_cost`. Broken
+  links become inputs of their own and missing modules are left out, both with warnings.
+  Template values aren't used (templates start from defaults). Layout: a section per part
+  (its inputs and output rows), then a "Total" breakdown.
+- Templates show on the Calculators page like modules, converted on the fly ("From
+  template"); Edit copies one into a calculator of your own (`sourceTemplateId`), which then
+  replaces it in the list. `convertedFrom` / `sourceViewId` in `hooks/use-calculators.ts`
+  replace `isModuleView`.
+- **Read-only**: the Modules and Templates pages lose New, Edit and Duplicate; a card opens
+  its calculator, a notice explains where they went, and Delete stays. The module and
+  template editors are no longer reachable (removed in step 10). Quotes still use modules
+  and templates until step 9.
+- Checked: regression checks with links to fields, to an output, broken links and a
+  missing module, with the total equal to the modules calculated one by one; and the real
+  "Partition wall template" rebuilt from its links converts to 11 inputs and gives 1167.32 +
+  1250.24 + 299 = 2716.56, as in the Template quote.
+- Checked in the browser with the test dataset reloaded: the template shows as a calculator
+  (11 inputs, 3 parts) and gives $1167.32 + $1250.24 + $299.00 = $2716.56; Edit opens a
+  copy with the three parts and no errors, and Close returns without storing anything; the
+  Templates and Modules cards open their calculators; no console errors.
 
 ## Open questions
 

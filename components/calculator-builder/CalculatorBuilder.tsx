@@ -39,6 +39,7 @@ import {
   updatePart,
   updateStep,
 } from '@/lib/calculator/editing';
+import { sourceViewId } from '@/hooks/use-calculators';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type {
@@ -252,7 +253,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
 
   const close = () => {
     if (isSaved) router.push(`/calculator?id=${encodeURIComponent(calculator.id)}`);
-    else if (calculator.sourceModuleId) router.push(`/calculator?id=${encodeURIComponent(`module-${calculator.sourceModuleId}`)}`);
+    else if (sourceViewId(calculator)) router.push(`/calculator?id=${encodeURIComponent(sourceViewId(calculator)!)}`);
     else router.push('/');
   };
 
@@ -283,9 +284,11 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
     discard: { title: 'Discard changes?', message: 'Your changes to this calculator have not been saved.', label: 'Discard' },
     'delete-calculator': {
       title: `Delete “${calculator.name}”?`,
-      message: calculator.sourceModuleId
-        ? 'The calculator is deleted; the module it came from shows as a calculator again.'
-        : 'The calculator is deleted for good.',
+      message: calculator.sourceTemplateId
+        ? 'The calculator is deleted; the template it came from shows as a calculator again.'
+        : calculator.sourceModuleId
+          ? 'The calculator is deleted; the module it came from shows as a calculator again.'
+          : 'The calculator is deleted for good.',
       label: 'Delete',
     },
     'delete-part': {

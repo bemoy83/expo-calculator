@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { isModuleView } from '@/hooks/use-calculators';
+import { convertedFrom } from '@/hooks/use-calculators';
 import type { Calculator } from '@/lib/calculator/types';
 
 function pluralize(count: number, singular: string) {
@@ -97,9 +97,9 @@ function CalculatorCard({ calculator }: { calculator: Calculator }) {
       <Card className="h-full p-4 hover:bg-surface-hover transition-colors">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-[15px] font-semibold text-ink">{calculator.name}</h3>
-          {isModuleView(calculator) && (
+          {convertedFrom(calculator) && (
             <Chip size="sm" variant="muted">
-              From module
+              From {convertedFrom(calculator)}
             </Chip>
           )}
         </div>
