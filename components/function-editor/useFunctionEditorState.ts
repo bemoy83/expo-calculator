@@ -19,6 +19,7 @@ import {
 import type { Calculator } from '@/lib/calculator/types';
 import type { Labor, SharedFunction } from '@/lib/types';
 import { labelToVariableName } from '@/lib/utils';
+import { countParameterUses } from '@/lib/functions/function-usage';
 
 interface UseFunctionEditorStateOptions {
   functionId: string;
@@ -90,6 +91,7 @@ export function useFunctionEditorState({
     setParameters,
   } = useParameterManager({
     initialParameters: existingFunction?.parameters ?? [],
+    isNameInUse: (name) => countParameterUses(formData.formula, name) > 0,
   });
 
   const validateFormulaInput = useCallback(
@@ -190,6 +192,20 @@ export function useFunctionEditorState({
     }, 0);
   }, []);
 
+  // Calls pass values by position, so the order is part of the function.
+  const moveParameter = useCallback(
+    (index: number, direction: -1 | 1) => {
+      setParameters((prev) => {
+        const target = index + direction;
+        if (target < 0 || target >= prev.length) return prev;
+        const next = [...prev];
+        [next[index], next[target]] = [next[target], next[index]];
+        return next;
+      });
+    },
+    [setParameters]
+  );
+
   const handleSave = useCallback(() => {
     const { errors: nextErrors, validParameters } = validateFunctionEditorForm({
       formData,
@@ -248,6 +264,7 @@ export function useFunctionEditorState({
     toggleParameterExpanded,
     insertParameterAtCursor,
     insertOperatorAtCursor,
+    moveParameter,
     handleSave,
     isValid,
   };

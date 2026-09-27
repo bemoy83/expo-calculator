@@ -56,7 +56,9 @@ remain only as types for that conversion.
   loaded pack's date
 - `/calculator?id=…` — staff view of a calculator; `/calculator/edit[?id=…]` — the builder
 - `/quotes/board` — quotes list; `/quotes` — the open quote
-- `/functions`, `/materials`, `/labor` — the library pages
+- `/functions` — functions by category, with the chosen one (`?id=`) in a quick view to try;
+  `/functions/edit[?id=…]` — the function editor (Save/Discard go back to the list)
+- `/materials`, `/labor` — the catalog pages
 
 Calculators are addressed by query string because they live in the browser and the static
 export can't have a page per calculator.
@@ -91,7 +93,11 @@ export can't have a page per calculator.
 - `calculator-builder/` — `CalculatorBuilder` (Parts | Layout), `PartSteps` and
   `PartLivePane`, step rows and editors (function call or formula), input dialog, layout
   canvas and inspector, condition editor
-- `function-editor/`, `materials/`, `labor/`
+- `function-editor/` — `FunctionsBrowse` (list and quick view), `ParameterRail` (parameters
+  edited in place, in call order), `FunctionFormulaCard` (formula box, autocomplete, and
+  `formula/FormulaPalette`), `FunctionTestPanel` (`useFunctionTryIt`, shared with the quick view);
+  the editor page is `app/functions/FunctionEditorView.tsx`
+- `materials/`, `labor/`
 - `TopBar.tsx` (the top tabs from lg), `AppSidebar.tsx` (the navigation drawer below lg,
   and the Settings menu: appearance, currency, use-only mode, export/import), `Layout.tsx`
   (shell, import and pack export dialogs, use-only page gate; pages draw their own header
@@ -100,9 +106,25 @@ export can't have a page per calculator.
   Segmented, Field, SearchInput, RailRow, LedgerTable, DashedAdd, Eyebrow, Card), `live/`
   (LiveLabel, ResultRow, CommitBlock: the one inverted total per screen), and `shared/`
   (PageHeader, ModalDialog, ConfirmDialog, NotificationHost, EmptyState, SortableList, …)
-- Styling: the Ledger tokens in `app/globals.css` and `tailwind.config.ts`;
-  `design_handoff_ledger_redesign/` is the design reference (mockups, token source,
-  reference components)
+- Styling: see "Design system" below
+
+### Design system ("Ledger")
+- Tokens are CSS variables in `app/globals.css` (light, `.dark`, and optional
+  `data-accent` chalk/lime), exposed to Tailwind under the same names in
+  `tailwind.config.ts`: warm-paper neutrals (canvas → panel → surface, sunken wells),
+  ink / ink-muted / ink-faint, one accent, status colours, and the formula colours
+  (`token-input`, `-result`, `-function`, `-property`).
+- Rules: the accent is a fill (page-primary button, focus halo, active sub-tab, total
+  pill), never body text; one inverted block (`live/CommitBlock`) per screen, for the
+  money total and the action that commits it; every number, unit and formula name is
+  mono (`font-numeric`, ligatures off); no shadows, hierarchy from surface steps and
+  hairlines; 150 ms colour transitions only.
+- Screens are panes: a full-bleed `PageHeader`, then rail → editor → live pane (`bg-panel`),
+  exactly the window's height from lg with each pane scrolling on its own; below lg they
+  stack. Browse pages (Calculators, Functions) keep the choice in `?id=` with a quick view.
+- The designer's handoff (mockups, token source, reference components, specs) is kept
+  locally in `design_handoff_*/` and is not in git; ask for the latest one. Decisions that
+  came from it are recorded here and in CALCULATOR_DESIGN.md.
 
 ### Hooks (`hooks/`)
 - `use-calculators.ts` — saved calculators and the library (materials, labor, functions)

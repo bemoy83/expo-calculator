@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { generateParameterName } from '@/lib/utils/function-parameters';
+import { useState, useCallback, useRef } from 'react';
+import { nameAfterLabelChange } from '@/lib/utils/function-parameters';
 import type { FunctionParamKind } from '@/lib/types';
 
 export interface FunctionParameter {
@@ -14,6 +14,8 @@ export interface FunctionParameter {
 interface UseParameterManagerProps {
   initialParameters?: FunctionParameter[];
   onParameterChange?: () => void; // Called when parameters change to trigger validation
+  /** Whether the formula reads a name; a name in use doesn't follow its label. */
+  isNameInUse?: (name: string) => boolean;
 }
 
 interface UseParameterManagerReturn {
@@ -31,7 +33,11 @@ export function useParameterManager({
     { name: '', label: '', unitCategory: undefined, unitSymbol: undefined, required: true },
   ],
   onParameterChange,
+  isNameInUse,
 }: UseParameterManagerProps = {}): UseParameterManagerReturn {
+  // Read when a label changes, so it sees the formula as it is then.
+  const isNameInUseRef = useRef(isNameInUse);
+  isNameInUseRef.current = isNameInUse;
   const [parameters, setParametersInternal] = useState<FunctionParameter[]>(initialParameters);
   const [expandedParameters, setExpandedParameters] = useState<Set<string>>(new Set());
 
@@ -76,29 +82,18 @@ export function useParameterManager({
 
   const updateParameter = useCallback(
     (index: number, updates: Partial<FunctionParameter>) => {
-      // If label is being updated, auto-generate name if name is empty or matches the old label-based name
+      // A new label renames the parameter while its name was made from the label (or is
+      // empty) and the formula doesn't use it yet.
       if (updates.label !== undefined) {
-        const currentParam = parameters[index];
-        const oldName = currentParam.name.trim();
-        const oldLabel = currentParam.label.trim();
-
-        // Generate name from old label to check if current name was auto-generated
-        const oldGeneratedName = oldLabel ? generateParameterName(oldLabel, parameters, index) : '';
-
-        // Auto-generate name if:
-        // 1. Name is empty, OR
-        // 2. Name matches the old auto-generated name (meaning it was auto-generated before)
-        if (!oldName || oldName === oldGeneratedName) {
-          const newName = updates.label.trim()
-            ? generateParameterName(updates.label.trim(), parameters, index)
-            : '';
-          setParameters((prev) =>
-            prev.map((p, i) => (i === index ? { ...p, ...updates, name: newName } : p))
-          );
-          onParameterChange?.();
-          return;
-        }
-        // Otherwise, user has manually edited the name, so keep it unchanged
+        const name = nameAfterLabelChange({
+          parameters,
+          index,
+          label: updates.label,
+          inUse: !!isNameInUseRef.current?.(parameters[index].name.trim()),
+        });
+        setParameters((prev) => prev.map((p, i) => (i === index ? { ...p, ...updates, name } : p)));
+        onParameterChange?.();
+        return;
       }
 
       setParameters((prev) => prev.map((p, i) => (i === index ? { ...p, ...updates } : p)));

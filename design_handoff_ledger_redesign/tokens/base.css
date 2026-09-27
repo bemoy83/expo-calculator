@@ -1,8 +1,0 @@
-body {
-  margin: 0;
-  background: rgb(var(--canvas));
-  color: rgb(var(--ink));
-  font-family: var(--font-ui);
-}
-a { color: rgb(var(--ink)); text-decoration-color: rgb(var(--border-strong)); }
-a:hover { text-decoration-color: rgb(var(--accent)); }

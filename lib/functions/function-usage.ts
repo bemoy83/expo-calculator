@@ -1,6 +1,6 @@
 import type { Calculator } from '../calculator/types';
 import type { SharedFunction } from '../types';
-import { NAME_CHAR } from '../formula/identifiers';
+import { NAME_CHAR, isValidName, matchStandalone } from '../formula/identifiers';
 
 export interface FunctionUsage {
   functions: Array<{ id: string; name: string }>;
@@ -48,4 +48,31 @@ export function describeFunctionUsage(usage: FunctionUsage): string {
 
 export function formatFunctionSignature(func: Pick<SharedFunction, 'name' | 'parameters'>): string {
   return `${func.name || 'name'}(${func.parameters.map((param) => param.name).join(', ')})`;
+}
+
+/**
+ * How many times the formula reads a parameter: the name on its own (`bredde`) or with a
+ * property (`material.width`), not as another name's property (`board.bredde`).
+ */
+export function countParameterUses(formula: string, name: string): number {
+  if (!formula || !isValidName(name)) return 0;
+  return matchStandalone(formula, name).filter((match) => formula[match.index - 1] !== '.').length;
+}
+
+/** A copy's call name: `stendere` → `stendere_2`, or the next number not taken. */
+export function freeCallName(name: string, functions: Pick<SharedFunction, 'name'>[]): string {
+  const base = name.replace(/_\d+$/, '');
+  const taken = new Set(functions.map((func) => func.name));
+  let n = 2;
+  while (taken.has(`${base}_${n}`)) n += 1;
+  return `${base}_${n}`;
+}
+
+/** What Duplicate adds: the function under "… copy" and a free call name. */
+export function copyOfFunction(
+  func: SharedFunction,
+  functions: Pick<SharedFunction, 'name'>[]
+): Omit<SharedFunction, 'id' | 'createdAt' | 'updatedAt'> {
+  const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = func;
+  return { ...rest, displayName: `${func.displayName || func.name} copy`, name: freeCallName(func.name, functions) };
 }

@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Calculator as CalculatorIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Eyebrow } from '@/components/ui/Eyebrow';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { CategoryRail, ALL_CATEGORIES } from '@/components/shared/CategoryRail';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import type { Calculator, CalculatorLibrary } from '@/lib/calculator/types';
@@ -21,8 +21,6 @@ function pluralize(count: number, singular: string) {
   return `${count} ${count === 1 ? singular : `${singular}s`}`;
 }
 
-const ALL = '';
-
 const runHref = (calculator: Calculator) => `/calculator?id=${encodeURIComponent(calculator.id)}`;
 
 // Calculators home (mockup 6b): categories, the list, and the chosen calculator in a quick view.
@@ -36,7 +34,7 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
   const useOnly = useUseOnlyMode();
   const loadedPack = useDeviceStore((state) => state.loadedPack);
   const lastPackExport = useDeviceStore((state) => state.lastPackExport);
-  const [category, setCategory] = useState(ALL);
+  const [category, setCategory] = useState(ALL_CATEGORIES);
   const [search, setSearch] = useState('');
 
   // Which pack this device has, so an out-of-date one is easy to spot; on the device packs
@@ -51,7 +49,7 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
   const listed = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return groups
-      .filter((group) => category === ALL || group.category === category)
+      .filter((group) => category === ALL_CATEGORIES || group.category === category)
       .flatMap((group) => group.items)
       .filter(
         (calculator) =>
@@ -128,7 +126,7 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
   }
 
   const categoryOptions = [
-    { value: ALL, label: 'All', count: calculators.length },
+    { value: ALL_CATEGORIES, label: 'All', count: calculators.length },
     ...groups.map((group) => ({ value: group.category, label: group.category, count: group.items.length })),
   ];
 
@@ -136,31 +134,7 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
     <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
       {header}
       <div className="grid grid-cols-1 md:grid-cols-[var(--category-w)_minmax(0,1fr)] lg:grid-cols-[var(--category-w)_minmax(0,1fr)_var(--quickview-w)] lg:flex-1 lg:min-h-0">
-        <nav
-          aria-label="Categories"
-          className="flex md:flex-col gap-0.5 px-3 py-3 md:py-4 overflow-x-auto md:overflow-y-auto border-b md:border-b-0 md:border-r border-border text-sm"
-        >
-          <Eyebrow className="hidden md:block px-2.5 pb-2">Category</Eyebrow>
-          {categoryOptions.map((option) => {
-            const on = option.value === category;
-            return (
-              <button
-                key={option.label}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setCategory(option.value)}
-                className={cn(
-                  'flex shrink-0 justify-between gap-3 px-2.5 py-[9px] rounded-md text-left transition-colors duration-150',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                  on ? 'bg-surface text-ink font-semibold' : 'text-ink-muted hover:text-ink'
-                )}
-              >
-                <span className="truncate">{option.label}</span>
-                <span className={cn('font-numeric text-xs', on ? 'text-ink-faint' : '')}>{option.count}</span>
-              </button>
-            );
-          })}
-        </nav>
+        <CategoryRail options={categoryOptions} value={category} onChange={setCategory} />
 
         <ul aria-label="Calculators" className="flex flex-col gap-1 px-3 py-4 min-w-0 lg:overflow-y-auto">
           {listed.map((calculator) => {

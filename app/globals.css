@@ -218,6 +218,8 @@
   .font-numeric {
     font-family: var(--font-numeric), ui-monospace, SFMono-Regular, Menlo, monospace;
     font-variant-numeric: tabular-nums;
+    /* Show formulas as typed: no ligatures turning != into ≠ or >= into ≥. */
+    font-variant-ligatures: none;
   }
 
   .text-balance {

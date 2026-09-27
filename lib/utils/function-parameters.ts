@@ -95,3 +95,24 @@ export function validateParameterName(
   return { valid: true };
 }
 
+
+/**
+ * A parameter's name after its label changes: while the name is still the one made from the
+ * label (or empty) it follows the label, unless the formula already uses it, since renaming it
+ * then would break the formula. Otherwise the name stays.
+ */
+export function nameAfterLabelChange(input: {
+  parameters: FunctionParameter[];
+  index: number;
+  label: string;
+  /** Whether the formula reads this name */
+  inUse: boolean;
+}): string {
+  const current = input.parameters[input.index];
+  const oldName = current.name.trim();
+  if (oldName && input.inUse) return current.name;
+  const oldLabel = current.label.trim();
+  const generatedFromOldLabel = oldLabel ? generateParameterName(oldLabel, input.parameters, input.index) : '';
+  if (oldName && oldName !== generatedFromOldLabel) return current.name;
+  return input.label.trim() ? generateParameterName(input.label.trim(), input.parameters, input.index) : '';
+}

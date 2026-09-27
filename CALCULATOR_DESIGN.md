@@ -822,7 +822,7 @@ parameter list, "Try it") use the same colours.
 ## Quote workspace
 
 Status: design agreed 2026-09-26; W1–W3 built on `quote-workspace`. The Ledger redesign
-(2026-09-27, `design_handoff_ledger_redesign/`, mockup 1a) keeps these decisions but draws
+(2026-09-27, mockup 1a of the designer's handoff) keeps these decisions but draws
 the cards differently: the lines are a list on the left (number, name, summary, cost), the
 chosen line's calculator is edited in the middle with its results and line total, and the
 receipt (markup, VAT, the total, Export quote) is on the right. "Cards" below are those
@@ -953,3 +953,36 @@ quotes store, `QuoteLineCard.tsx`, `QuoteView.tsx`):
 - Phone width checked: cards, an open card with its actions, and the sheet fit at 375 px
   with no sideways scroll.
 - README and ONBOARDING describe the quote workspace.
+
+## Functions editor
+
+Status: built 2026-09-27 from the designer's Functions handoff (browse 3a, editor 2a), with
+the changes below decided with the user.
+
+Why: the first Ledger version stacked name, parameters, formula and helpers in one column;
+with 5–6 parameters the formula fell below the fold and the operators were out of reach.
+
+- **Two levels, like Calculators.** `/functions` browses: categories, the list (name, call
+  signature, "N in · used N×" or "not used"), and a quick view with the formula, Try it
+  (only the parameters the formula uses), Used by, and Returns with Edit function.
+  `/functions/edit?id=` edits. Double-click or "+ New function" goes straight to the
+  editor; Save, Discard and the breadcrumb return to the list with the row selected.
+  Leaving by the breadcrumb with unsaved edits asks first.
+- **Editor:** parameters and Details in the rail; the formula and its palette in the
+  middle, always on screen; the test run, Used by and Save on the right. The function's
+  name is the page title; its call name follows it while creating and can be changed
+  under Details.
+- **Parameters** are rows in call order, edited in place (the handoff's 2a; the popover
+  2b was dropped). The top line toggles the row; ✎ renames (Enter or leaving saves, Esc
+  cancels; a note says when the formula uses the name). Then Label, Expects (Automatic,
+  Number, Material, Labor, Yes/no) with Unit for numbers, what Automatic works out to,
+  "Used N×", ↑ ↓ to reorder, and Remove. A parameter's name follows its label only while
+  it was made from the label and the formula doesn't use it (`nameAfterLabelChange`).
+  "+ New" opens the new row with Label focused.
+- **Palette:** the layout comes from the handoff, the contents don't: exactly the items the
+  old "Operators & functions" guide had (parameters, `+ - * / ()`, round, round with
+  decimals, ceil, floor, sqrt, and `== != > < >= <=`). Nothing the formula engine can't
+  run (the handoff's `if()`, `=`, `%`), and no min/max/abs yet.
+- **Not built:** the "All functions ▾" switcher (little value for its cost; maybe later as
+  "jump to a function named in the formula") and the "Your functions" palette column.
+

@@ -1,4 +1,11 @@
-import { describeFunctionUsage, findFunctionUsage, formatFunctionSignature } from '../functions/function-usage';
+import {
+  copyOfFunction,
+  countParameterUses,
+  describeFunctionUsage,
+  findFunctionUsage,
+  formatFunctionSignature,
+  freeCallName,
+} from '../functions/function-usage';
 import { evaluateFunctionSample, getFunctionParamKinds } from '../functions/function-sample';
 import type { Calculator } from '../calculator/types';
 import type { Labor, Material, SharedFunction } from '../types';
@@ -94,4 +101,27 @@ assertCheck(
   'tries functions with labor parameters, asking to choose one when missing',
   laborSample.display === '2.5' && (laborMissing.error ?? '').startsWith('Choose a value for Crew'),
   JSON.stringify({ laborSample, laborMissing })
+);
+
+// "Used 2× in formula" / "not used" in the functions editor.
+const usesFormula = 'ceil(bredde / (cc / 100)) + 1 + bredde * material.width + board.cc + bredde2';
+assertCheck(
+  'counts a parameter’s uses: alone or with a property, not as another name’s property or part of a name',
+  countParameterUses(usesFormula, 'bredde') === 2 &&
+    countParameterUses(usesFormula, 'cc') === 1 &&
+    countParameterUses(usesFormula, 'material') === 1 &&
+    countParameterUses(usesFormula, 'hoyde') === 0 &&
+    countParameterUses('høyde * 2 + høyde', 'høyde') === 2
+);
+
+// Duplicate: "… copy" with the next free call name.
+const original = fn('stendere', 'bredde / cc', [{ name: 'bredde', label: 'Bredde' }], { displayName: 'Stendere i vegg' });
+const copy = copyOfFunction(original, [original, { name: 'stendere_2' }]);
+assertCheck(
+  'copies a function as “… copy” under the next free call name',
+  copy.displayName === 'Stendere i vegg copy' &&
+    copy.name === 'stendere_3' &&
+    copy.formula === original.formula &&
+    !('id' in copy) &&
+    freeCallName('stendere_3', [{ name: 'stendere_2' }, { name: 'stendere_3' }]) === 'stendere_4'
 );

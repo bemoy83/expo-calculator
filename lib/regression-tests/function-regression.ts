@@ -1,3 +1,4 @@
+import { nameAfterLabelChange } from '../utils/function-parameters';
 import {
   addSuggestedParameter,
   buildFunctionSaveData,
@@ -209,3 +210,16 @@ assertCheck(
   kindSaveData.parameters.map((param) => param.kind).join(',') === 'number,material,boolean,' &&
     !('kind' in kindSaveData.parameters[3])
 );
+
+// Editing a parameter's label renames it only while the formula doesn't use the name.
+{
+  const params = [{ name: 'cc', label: 'CC' }, { name: 'bredde', label: 'Width' }];
+  const renamed = nameAfterLabelChange({ parameters: params, index: 0, label: 'Spacing', inUse: false });
+  const kept = nameAfterLabelChange({ parameters: params, index: 0, label: 'CCx', inUse: true });
+  const custom = nameAfterLabelChange({ parameters: params, index: 1, label: 'Wall width', inUse: false });
+  const empty = nameAfterLabelChange({ parameters: [{ name: '', label: '' }], index: 0, label: 'Height', inUse: false });
+  assertCheck(
+    'a new label renames an unused parameter, keeps a name the formula uses or one typed by hand',
+    renamed === 'spacing' && kept === 'cc' && custom === 'bredde' && empty === 'height'
+  );
+}
