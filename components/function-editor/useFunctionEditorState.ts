@@ -31,7 +31,6 @@ interface UseFunctionEditorStateOptions {
   calculators: Calculator[];
   addFunction: (func: Omit<SharedFunction, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateFunction: (id: string, func: Partial<SharedFunction>) => void;
-  onClose: () => void;
 }
 
 export function useFunctionEditorState({
@@ -42,7 +41,6 @@ export function useFunctionEditorState({
   calculators,
   addFunction,
   updateFunction,
-  onClose,
 }: UseFunctionEditorStateOptions) {
   const isNew = functionId === 'new';
   const formulaTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -217,7 +215,8 @@ export function useFunctionEditorState({
     [setParameters]
   );
 
-  const handleSave = useCallback(() => {
+  // Returns whether it saved (the form had no errors).
+  const handleSave = useCallback((): boolean => {
     const { errors: nextErrors, validParameters } = validateFunctionEditorForm({
       formData,
       parameters,
@@ -227,7 +226,7 @@ export function useFunctionEditorState({
     });
 
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) return false;
 
     const functionData = buildFunctionSaveData({ formData, validParameters });
     if (isNew) {
@@ -235,8 +234,7 @@ export function useFunctionEditorState({
     } else {
       updateFunction(functionId, functionData);
     }
-
-    onClose();
+    return true;
   }, [
     addFunction,
     formData,
@@ -244,7 +242,6 @@ export function useFunctionEditorState({
     functionId,
     functions,
     isNew,
-    onClose,
     parameters,
     updateFunction,
   ]);

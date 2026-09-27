@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Download, Package, Settings, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useGuardLink } from '@/components/shared/NavigationGuard';
 import { CurrencySelector } from '@/components/shared/CurrencySelector';
 import { FIELD_LABEL } from '@/components/ui/field-styles';
 import { exportAllData, downloadDataAsJSON } from '@/lib/utils/data-export';
@@ -37,9 +38,11 @@ interface AppSidebarProps {
 
 // The placeholder mark (no logo exists): an 18px accent square and the name.
 export function AppBrand() {
+  const guardLink = useGuardLink();
   return (
     <Link
       href="/"
+      onClick={(event) => guardLink('/', event)}
       className="flex items-center gap-2.5 min-w-0 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
     >
       <span className="w-[18px] h-[18px] rounded-xs bg-accent shrink-0" aria-hidden="true" />
@@ -103,6 +106,11 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onExportPack }: 
           ? 'translate-x-0 visible [transition:transform_200ms_ease-out]'
           : '-translate-x-full invisible [transition:transform_200ms_ease-out,visibility_0s_linear_200ms]'
       )}
+      // A link an editor stopped (to ask about unsaved edits) doesn't change the page, which is
+      // what normally closes the drawer; close it here so Keep editing goes back to the editor.
+      onClick={(event) => {
+        if (event.defaultPrevented && (event.target as Element).closest('a')) onClose();
+      }}
     >
       <div className="flex items-center justify-between gap-2 px-[18px] pt-4 pb-[18px]">
         <AppBrand />
@@ -150,6 +158,7 @@ function NavList({
   showCounts: boolean;
   itemHeight: string;
 }) {
+  const guardLink = useGuardLink();
   return (
     <ul className="space-y-0.5">
       {items.map((item) => {
@@ -158,6 +167,7 @@ function NavList({
           <li key={item.href}>
             <Link
               href={item.href}
+              onClick={(event) => guardLink(item.href, event)}
               aria-current={active ? 'page' : undefined}
               className={cn(
                 'flex items-center justify-between gap-2 px-2.5 rounded-md text-[13px] transition-colors',

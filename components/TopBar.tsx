@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useGuardLink } from '@/components/shared/NavigationGuard';
 
 export interface TopBarTab {
   id: string;
@@ -25,6 +26,8 @@ interface TopBarProps {
 
 // 52px app bar (Ledger shell/TopBar.jsx): brand mark, the top-level tabs, a right-hand slot.
 export function TopBar({ tabs, active, onSelect, brand = 'Cost Estimator', brandHref, right, className }: TopBarProps) {
+  // An editor with unsaved edits asks before a tab leaves it.
+  const guardLink = useGuardLink();
   const brandMark = (
     <>
       <span aria-hidden="true" className="w-[18px] h-[18px] rounded-xs bg-accent" />
@@ -42,6 +45,7 @@ export function TopBar({ tabs, active, onSelect, brand = 'Cost Estimator', brand
       {brandHref ? (
         <Link
           href={brandHref}
+          onClick={(event) => guardLink(brandHref, event)}
           className={cn(brandClasses, 'rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-action')}
         >
           {brandMark}
@@ -58,7 +62,11 @@ export function TopBar({ tabs, active, onSelect, brand = 'Cost Estimator', brand
             on ? 'bg-surface text-ink font-semibold' : 'text-ink-muted hover:text-ink'
           );
           return tab.href ? (
-            <Link key={tab.id} href={tab.href} aria-current={on ? 'page' : undefined} className={classes}>
+            <Link
+              key={tab.id}
+              href={tab.href}
+              onClick={(event) => guardLink(tab.href!, event)}
+              aria-current={on ? 'page' : undefined} className={classes}>
               {tab.label}
             </Link>
           ) : (

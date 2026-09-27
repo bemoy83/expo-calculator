@@ -13,6 +13,10 @@ import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { useLeaveEditor } from '@/components/shared/NavigationGuard';
+import { HeaderDivider, OverflowMenu } from '@/components/shared/OverflowMenu';
+import { SaveChangesDialog } from '@/components/shared/SaveChangesDialog';
+import { useSaveShortcut } from '@/hooks/use-save-shortcut';
 import {
   addInput,
   addPart,
@@ -82,8 +86,6 @@ function inputDetail(input: CalculatorInput): string {
 }
 
 type Pending =
-  /** Throw away the edits and leave: to `href`, else back where the builder came from. */
-  | { kind: 'discard'; href?: string }
   | { kind: 'delete-calculator' }
   | { kind: 'delete-part'; partId: string }
   | { kind: 'delete-input'; input: CalculatorInput };
@@ -275,34 +277,32 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
     onDeselect: () => setSelection(null),
   };
 
-  const save = () => {
+  // Saves and stays; a new calculator's address becomes its own. Returns whether it saved.
+  const save = ({ stay = true } = {}) => {
     if (!calculator.name.trim()) {
       setNameError('Give the calculator a name.');
       document.getElementById('calculator-name')?.focus();
-      return;
+      return false;
     }
     const saved = saveCalculator({ ...calculator, name: calculator.name.trim() });
     setCalculator(saved);
     setDirty(false);
     if (!isSaved) {
       setIsSaved(true);
-      router.replace(`/calculator/edit?id=${encodeURIComponent(saved.id)}`);
+      if (stay) router.replace(`/calculator/edit?id=${encodeURIComponent(saved.id)}`);
     }
     notify({ variant: 'success', message: `Saved “${saved.name}”.` });
+    return true;
   };
+  useSaveShortcut(save);
 
-  const close = () => {
-    if (isSaved) router.push(`/calculator?id=${encodeURIComponent(calculator.id)}`);
-    else router.push('/');
-  };
+  // Close goes back where the builder came from: the calculator, or the list for a new one.
+  const closeHref = isSaved ? `/calculator?id=${encodeURIComponent(calculator.id)}` : '/';
+  const { leavingTo, setLeavingTo, leave } = useLeaveEditor(dirty);
 
   const confirmPending = () => {
     if (!pending) return;
     switch (pending.kind) {
-      case 'discard':
-        if (pending.href) router.push(pending.href);
-        else close();
-        break;
       case 'delete-calculator':
         deleteCalculator(calculator.id);
         notify({ variant: 'success', message: `Deleted “${calculator.name}”.` });
@@ -321,7 +321,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
 
   const pendingPart = pending?.kind === 'delete-part' ? calculator.parts.find((part) => part.id === pending.partId) : undefined;
   const pendingText: Record<Pending['kind'], { title: string; message?: string; label: string }> = {
-    discard: { title: 'Discard changes?', message: 'Your changes to this calculator have not been saved.', label: 'Discard' },
     'delete-calculator': {
       title: `Delete “${calculator.name}”?`,
       message: 'The calculator is deleted for good. Quote lines sent from it keep their price but can no longer be edited.',
@@ -371,11 +370,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
               : []),
           ]}
           meta={`Editing${dirty ? ' · Unsaved' : ''}`}
-          onNavigate={(href, event) => {
-            if (!dirty) return;
-            event.preventDefault();
-            setPending({ kind: 'discard', href });
-          }}
         />
       }
       editing
@@ -420,11 +414,14 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
             value={view}
             onChange={setView}
           />
-          <span aria-hidden="true" className="hidden sm:block w-px h-6 mx-1.5 bg-border" />
-          <Button variant="secondary" onClick={() => (dirty ? setPending({ kind: 'discard' }) : close())}>
-            {dirty ? 'Cancel' : 'Close'}
+          <HeaderDivider />
+          {isSaved && (
+            <OverflowMenu items={[{ label: 'Delete calculator', danger: true, onSelect: () => setPending({ kind: 'delete-calculator' }) }]} />
+          )}
+          <Button variant="secondary" onClick={() => leave(closeHref)}>
+            Close
           </Button>
-          <Button variant="accent" onClick={save}>
+          <Button variant="accent" onClick={() => save()}>
             Save
           </Button>
         </>
@@ -605,14 +602,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
             />
           </div>
         </details>
-
-        {isSaved && (
-          <div className="mt-auto pt-8">
-            <Button variant="danger" size="sm" className="-ml-3" onClick={() => setPending({ kind: 'delete-calculator' })}>
-              Delete calculator
-            </Button>
-          </div>
-        )}
       </div>
 
       <div className="flex flex-col gap-4 px-6 py-5 bg-panel border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto">
@@ -776,6 +765,22 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
         destructive
         onConfirm={confirmPending}
         onCancel={() => setPending(null)}
+      />
+
+      <SaveChangesDialog
+        isOpen={leavingTo !== null}
+        name={calculator.name.trim() || 'this calculator'}
+        onSave={() => {
+          const href = leavingTo;
+          setLeavingTo(null);
+          if (save({ stay: false }) && href) router.push(href);
+        }}
+        onDiscard={() => {
+          const href = leavingTo;
+          setLeavingTo(null);
+          if (href) router.push(href);
+        }}
+        onCancel={() => setLeavingTo(null)}
       />
     </div>
   );

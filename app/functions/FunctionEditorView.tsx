@@ -11,6 +11,11 @@ import { FormulaText } from '@/components/formula/FormulaText';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { useLeaveEditor } from '@/components/shared/NavigationGuard';
+import { OverflowMenu } from '@/components/shared/OverflowMenu';
+import { SaveChangesDialog } from '@/components/shared/SaveChangesDialog';
+import { useSaveShortcut } from '@/hooks/use-save-shortcut';
+import { notify } from '@/lib/stores/notifications-store';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { copyOfFunction, describeFunctionUsage, findFunctionUsage, formatFunctionSignature } from '@/lib/functions/function-usage';
@@ -24,8 +29,9 @@ import { functionFormulaNames, unknownValueNames } from '@/lib/calculator/formul
 const listHref = (id?: string) => browseHref('/functions', { id });
 
 // The function editor, one level below the functions list (mockup 2a): parameters and details in
-// the rail, the formula and its palette in the middle, and a live test run with Save on the right.
-// Save, Discard and the breadcrumb go back to the list with the function still selected.
+// the rail, the formula and its palette in the middle, and a live test run on the right. The
+// header has ⋯ (Duplicate, Delete) · Close · Save; Save stays here, and Close and the breadcrumb
+// go back to the list with the function still selected, asking first about unsaved edits.
 export function FunctionEditorView({ functionId }: { functionId: string }) {
   const router = useRouter();
   const functions = useFunctionsStore((state) => state.functions);
@@ -39,10 +45,11 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
   const calculators = useCalculatorsStore((state) => state.calculators);
   const library = useCalculatorLibrary();
   const isNew = functionId === 'new';
-  const [existingFunction] = useState(() => (isNew ? null : getFunction(functionId) ?? null));
-  const [confirmingRename, setConfirmingRename] = useState(false);
+  // As last saved; a save refreshes it, so renaming again compares with the new name.
+  const [existingFunction, setExistingFunction] = useState(() => (isNew ? null : getFunction(functionId) ?? null));
+  // A save waiting on "Rename anyway", and where to go after it (when leaving).
+  const [confirmingRename, setConfirmingRename] = useState<{ then?: string } | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [pendingLeave, setPendingLeave] = useState<string | null>(null);
   const [editingDetails, setEditingDetails] = useState(isNew);
   // A new function starts with one empty parameter, open to fill in.
   const [openIndex, setOpenIndex] = useState<number | null>(isNew ? 0 : null);
@@ -66,13 +73,11 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
       return created;
     },
     updateFunction,
-    // Called after a successful save.
-    onClose: () => router.push(listHref(savedId.current ?? functionId)),
   });
 
-  // Unsaved edits: the form differs from how it opened.
+  // Unsaved edits: the form differs from how it opened or was last saved.
   const current = JSON.stringify({ formData: editor.formData, parameters: editor.parameters });
-  const [opened] = useState(current);
+  const [opened, setOpened] = useState(current);
   const dirty = current !== opened;
 
   // Who calls this function under its saved name. Renaming or deleting it breaks them.
@@ -101,14 +106,29 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
   // This function's own name, which isn't in the library until it's saved.
   const signatureNames = { ...formulaNames, functions: new Set([...formulaNames.functions, newName]) };
   const backHref = listHref(existingFunction?.id);
+  const { leavingTo, setLeavingTo, leave } = useLeaveEditor(dirty);
 
-  const save = () => {
+  // Saves and stays, or goes to `then` (leaving with Save). A new function's first save opens
+  // it at its own address (the page is keyed by id, so the editor starts again from the saved one).
+  const commitSave = (then?: string) => {
+    if (!editor.handleSave()) return;
+    const id = savedId.current ?? functionId;
+    notify({ variant: 'success', message: `Saved “${editor.formData.displayName.trim() || newName}”.` });
+    if (then) router.push(isNew && then === backHref ? listHref(id) : then);
+    else if (isNew) router.replace(`/functions/edit?id=${encodeURIComponent(id)}`);
+    else {
+      setExistingFunction(getFunction(id) ?? null);
+      setOpened(current);
+    }
+  };
+  const save = (then?: string) => {
     if (isRenamingUsedFunction) {
-      setConfirmingRename(true);
+      setConfirmingRename({ then });
       return;
     }
-    editor.handleSave();
+    commitSave(then);
   };
+  useSaveShortcut(save);
 
   const duplicate = () => {
     if (!existingFunction) return;
@@ -134,11 +154,6 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
                 : []),
             ]}
             meta={`Editing${dirty ? ' · Unsaved' : ''}`}
-            onNavigate={(href, event) => {
-              if (!dirty) return;
-              event.preventDefault();
-              setPendingLeave(href);
-            }}
           />
         }
         editing
@@ -164,16 +179,27 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
         }
         description={editor.errors.displayName && <span className="text-danger">{editor.errors.displayName}</span>}
         actions={
-          existingFunction && (
-            <Button
-              variant="ghost"
-              onClick={duplicate}
-              disabled={dirty}
-              title={dirty ? 'Save or discard your changes first' : undefined}
-            >
-              Duplicate
+          <>
+            {existingFunction && (
+              <OverflowMenu
+                items={[
+                  {
+                    label: 'Duplicate',
+                    onSelect: duplicate,
+                    disabled: dirty,
+                    title: dirty ? 'Save or discard your changes first' : undefined,
+                  },
+                  { label: 'Delete function', danger: true, onSelect: () => setConfirmingDelete(true) },
+                ]}
+              />
+            )}
+            <Button variant="secondary" onClick={() => leave(backHref)}>
+              Close
             </Button>
-          )
+            <Button variant="accent" onClick={() => save()}>
+              Save
+            </Button>
+          </>
         }
       />
 
@@ -292,13 +318,6 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               setIsAutocompleteOpen={editor.autocomplete.setIsAutocompleteOpen}
             />
           </div>
-          {existingFunction && (
-            <div className="mt-auto pt-6">
-              <Button variant="danger" size="sm" className="-ml-3" onClick={() => setConfirmingDelete(true)}>
-                Delete function
-              </Button>
-            </div>
-          )}
         </div>
 
         <div className="flex flex-col px-6 py-5 bg-panel border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto">
@@ -327,31 +346,21 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               </ul>
             )}
           </section>
-
-          <div className="mt-auto pt-5 flex flex-col gap-1.5">
-            {(dirty || isNew) && (
-              <Button variant="ghost" onClick={() => router.push(backHref)} className="self-center">
-                {isNew ? 'Cancel' : 'Discard changes'}
-              </Button>
-            )}
-            <Button variant="primary" block onClick={save} className="h-[42px] text-sm">
-              {isNew ? 'Create function' : 'Save function'}
-            </Button>
-          </div>
         </div>
       </div>
 
       <ConfirmDialog
-        isOpen={confirmingRename}
+        isOpen={confirmingRename !== null}
         title="Rename a function that's in use?"
         message={`This function is called as ${existingFunction?.name ?? ''}(…) by ${usedBy}. After renaming it to ${newName}, those formulas stop calculating until you update them to the new name.`}
         confirmLabel="Rename anyway"
         destructive
         onConfirm={() => {
-          setConfirmingRename(false);
-          editor.handleSave();
+          const then = confirmingRename?.then;
+          setConfirmingRename(null);
+          commitSave(then);
         }}
-        onCancel={() => setConfirmingRename(false)}
+        onCancel={() => setConfirmingRename(null)}
       />
 
       <ConfirmDialog
@@ -372,18 +381,20 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
         onCancel={() => setConfirmingDelete(false)}
       />
 
-      <ConfirmDialog
-        isOpen={pendingLeave !== null}
-        title="Discard your changes?"
-        message="Your changes to this function aren't saved. Leaving now throws them away."
-        confirmLabel="Discard changes"
-        destructive
-        onConfirm={() => {
-          const href = pendingLeave;
-          setPendingLeave(null);
+      <SaveChangesDialog
+        isOpen={leavingTo !== null}
+        name={editor.formData.displayName.trim() || newName || 'this function'}
+        onSave={() => {
+          const href = leavingTo ?? undefined;
+          setLeavingTo(null);
+          save(href);
+        }}
+        onDiscard={() => {
+          const href = leavingTo;
+          setLeavingTo(null);
           if (href) router.push(href);
         }}
-        onCancel={() => setPendingLeave(null)}
+        onCancel={() => setLeavingTo(null)}
       />
     </div>
   );

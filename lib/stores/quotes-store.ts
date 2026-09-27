@@ -39,7 +39,6 @@ interface QuotesStore {
   recalculateQuote: () => void;
   setTaxRate: (rate: number) => void;
   setMarkupPercent: (percent: number) => void;
-  saveQuote: () => void;
   deleteQuote: (id: string) => void;
 }
 
@@ -197,23 +196,6 @@ export const useQuotesStore = create<QuotesStore>()(
       setMarkupPercent: (percent) => {
         const clampedPercent = Math.max(0, percent || 0);
         get().updateCurrentQuote({ markupPercent: roundMoney(clampedPercent) });
-      },
-
-      saveQuote: () => {
-        const current = get().currentQuote;
-        if (!current) return;
-
-        set((state) => {
-          const existingIndex = state.quotes.findIndex((q) => q.id === current.id);
-          const updatedQuotes =
-            existingIndex >= 0
-              ? state.quotes.map((q, i) => (i === existingIndex ? current : q))
-              : [...state.quotes, current];
-
-          return {
-            quotes: updatedQuotes,
-          };
-        });
       },
 
       deleteQuote: (id) => {

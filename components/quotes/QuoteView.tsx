@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { DashedAdd } from '@/components/ui/DashedAdd';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { RailRow } from '@/components/ui/RailRow';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { HeaderDivider, OverflowMenu } from '@/components/shared/OverflowMenu';
 import { AddCalculatorDialog } from '@/components/quotes/AddCalculatorDialog';
 import { QuoteLineEditor } from '@/components/quotes/QuoteLineEditor';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
@@ -25,8 +27,10 @@ import type { Quote, QuoteLineItem } from '@/lib/types';
 type RateForm = { taxRate: number; markupPercent: number };
 
 // A quote as a workspace (mockup 1a): the lines in a rail, the chosen line's calculator filled
-// in and changed in place, and the receipt with markup, VAT, the total, and export.
-export function QuoteView({ quote }: { quote: Quote }) {
+// in and changed in place, and the receipt with markup, VAT, the total, and export. Every change
+// is kept as it's made, so the header has no Save: + Add calculator │ ⋯ (Export JSON, Delete) · Close.
+export function QuoteView({ quote, onDelete }: { quote: Quote; onDelete: () => void }) {
+  const router = useRouter();
   const calculators = useCalculators();
   const library = useCalculatorLibrary();
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
@@ -34,12 +38,12 @@ export function QuoteView({ quote }: { quote: Quote }) {
   const setTaxRate = useQuotesStore((state) => state.setTaxRate);
   const setMarkupPercent = useQuotesStore((state) => state.setMarkupPercent);
   const removeLineItem = useQuotesStore((state) => state.removeLineItem);
-  const saveQuote = useQuotesStore((state) => state.saveQuote);
   const updateLineItem = useQuotesStore((state) => state.updateLineItem);
   const insertLineItem = useQuotesStore((state) => state.insertLineItem);
   const duplicateLineItem = useQuotesStore((state) => state.duplicateLineItem);
   const moveLineItem = useQuotesStore((state) => state.moveLineItem);
   const [adding, setAdding] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   // An export waiting on "Export anyway" because some lines aren't finished.
   const [pendingExport, setPendingExport] = useState<'print' | 'json' | null>(null);
   const unfinished = unfinishedLines(quote);
@@ -117,7 +121,7 @@ export function QuoteView({ quote }: { quote: Quote }) {
   const meta = [
     `${itemCount} ${itemCount === 1 ? 'line' : 'lines'}`,
     unfinished.length > 0 ? `${unfinished.length} not finished` : null,
-    `edited ${formatEditedAt(quote.updatedAt)}`,
+    `Saved automatically · edited ${formatEditedAt(quote.updatedAt)}`,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -140,20 +144,18 @@ export function QuoteView({ quote }: { quote: Quote }) {
         }
         actions={
           <>
-            <Button variant="secondary" onClick={() => requestExport('json')}>
-              Export JSON
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                saveQuote();
-                notify({ variant: 'success', message: `Saved “${quote.name}”.` });
-              }}
-            >
-              Save quote
-            </Button>
             <Button variant="accent" onClick={() => setAdding(true)}>
               + Add calculator
+            </Button>
+            <HeaderDivider />
+            <OverflowMenu
+              items={[
+                { label: 'Export JSON', onSelect: () => requestExport('json') },
+                { label: 'Delete quote', danger: true, onSelect: () => setConfirmingDelete(true) },
+              ]}
+            />
+            <Button variant="secondary" onClick={() => router.push('/quotes/board')}>
+              Close
             </Button>
           </>
         }
@@ -246,6 +248,18 @@ export function QuoteView({ quote }: { quote: Quote }) {
           setPendingExport(null);
         }}
         onCancel={() => setPendingExport(null)}
+      />
+      <ConfirmDialog
+        isOpen={confirmingDelete}
+        title="Delete quote?"
+        message={`“${quote.name || 'Untitled quote'}” will be permanently deleted.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          setConfirmingDelete(false);
+          onDelete();
+        }}
+        onCancel={() => setConfirmingDelete(false)}
       />
       <AddCalculatorDialog isOpen={adding} onClose={() => setAdding(false)} calculators={calculators} onPick={addCalculator} />
     </div>

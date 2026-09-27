@@ -125,9 +125,25 @@ export can't have a page per calculator.
   filter in `?category=`, with a quick view.
 - Pages below the top level (a calculator, the builder, a quote, the function editor) show
   a `shared/Breadcrumb` in the header eyebrow: parent links (`browseHref` brings the list
-  back with the category and the item selected), then the state after " · ". Editors pass
-  `onNavigate` to ask before discarding unsaved edits. Top-level pages have no crumbs; the
-  top bar says where you are.
+  back with the category and the item selected), then the state after " · ". Top-level
+  pages have no crumbs; the top bar says where you are.
+- Editor header contract (builder, function editor, quote). Left: breadcrumb with state,
+  the editable title, status dot. Right, always in this order: the editor's own tools, if
+  any (builder: Preview, Parts/Layout), then a thin divider (`HeaderDivider`); a ⋯ menu
+  (`shared/OverflowMenu`) for occasional actions — Duplicate, Export JSON, and Delete last
+  (red, confirmed); Close (secondary), back to where you came from, the same place as the
+  last breadcrumb link; Save (accent, the page's one accent button), which saves and
+  stays, also on ⌘S / Ctrl+S (`useSaveShortcut`). A new item's first Save moves the
+  address to its id (`router.replace`) and stays. The quote saves every change as it's
+  made, so it has no Save: its eyebrow says "Saved automatically", "+ Add calculator"
+  keeps the accent, and Close goes to the board.
+- Unsaved edits: Close, breadcrumb links and the app's own navigation (top bar tabs and
+  brand, the navigation drawer) ask one question, "Save changes to {name}?" with Save,
+  Discard and Keep editing (`shared/SaveChangesDialog`). Save that fails (e.g. a missing
+  name) stays with the error shown. The app links go through `shared/NavigationGuard`:
+  Layout provides it, the links call `useGuardLink`, and an editor calls
+  `useLeaveEditor(dirty)`, which registers a guard while dirty and gives `leave(href)`
+  and the `leavingTo` for its dialog. Browser back and closing the tab aren't guarded.
 - The designer's handoff (mockups, token source, reference components, specs) is kept
   locally in `design_handoff_*/` and is not in git; ask for the latest one. Decisions that
   came from it are recorded here and in CALCULATOR_DESIGN.md.

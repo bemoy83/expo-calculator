@@ -11,6 +11,7 @@ import { AppBrand, AppSidebar, SettingsMenu } from '@/components/AppSidebar';
 import { TopBar, type TopBarTab } from '@/components/TopBar';
 import { ModalDialog } from '@/components/shared/ModalDialog';
 import { NotificationHost } from '@/components/shared/NotificationHost';
+import { NavigationGuardProvider } from '@/components/shared/NavigationGuard';
 import { Menu } from 'lucide-react';
 
 interface LayoutProps {
@@ -77,85 +78,88 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Use-only mode hides the Catalog.
   const tabs = useOnly ? MAIN_TABS.filter((tab) => tab.id !== 'catalog') : MAIN_TABS;
 
+  // The guard lets an open editor ask about unsaved edits before the top bar or drawer leaves it.
   return (
-    <div className="min-h-screen bg-canvas text-ink">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-action-solid focus:text-on-accent focus:rounded-md focus:ring-2 focus:ring-action focus:ring-offset-2"
-      >
-        Skip to main content
-      </a>
+    <NavigationGuardProvider>
+      <div className="min-h-screen bg-canvas text-ink">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-action-solid focus:text-on-accent focus:rounded-md focus:ring-2 focus:ring-action focus:ring-offset-2"
+        >
+          Skip to main content
+        </a>
 
-      <header className="sticky top-0 z-30 bg-canvas">
-        <TopBar
-          className="hidden lg:flex"
-          tabs={tabs}
-          active={mainTabFor(pathname)}
-          brandHref="/"
-          right={<SettingsMenu placement="down" onImportData={openImportData} onExportPack={openPackExport} />}
-        />
-        {/* Below lg the tabs collapse into the Menu drawer. */}
-        <div className="lg:hidden h-app-header flex items-center gap-3 px-4 border-b border-border">
-          <button
-            ref={navTriggerRef}
-            type="button"
-            onClick={() => setIsNavOpen(true)}
-            aria-label="Open navigation"
-            aria-expanded={isNavOpen}
-            aria-controls="app-sidebar"
-            className="p-2 -ml-2 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <AppBrand />
-        </div>
-      </header>
-
-      {isNavOpen && (
-        <div
-          className="fixed inset-0 z-[45] bg-black/50 backdrop-blur-sm lg:hidden"
-          aria-hidden="true"
-          onClick={closeNav}
-        />
-      )}
-
-      <AppSidebar
-        id="app-sidebar"
-        isOpen={isNavOpen}
-        onClose={closeNav}
-        onImportData={openImportData}
-        onExportPack={openPackExport}
-      />
-
-      <ModalDialog
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        title="Import data"
-        maxWidth="wide"
-      >
-        <DataImporter onClose={() => setShowImportModal(false)} />
-      </ModalDialog>
-
-      <ModalDialog
-        isOpen={showPackExport}
-        onClose={() => setShowPackExport(false)}
-        title="Export calculator pack"
-        maxWidth="wide"
-      >
-        <PackExporter onClose={() => setShowPackExport(false)} />
-      </ModalDialog>
-
-      <main id="main-content">
-        {hidden ? (
-          <div className="px-4 sm:px-6 py-6">
-            <HiddenInUseOnlyMode />
+        <header className="sticky top-0 z-30 bg-canvas">
+          <TopBar
+            className="hidden lg:flex"
+            tabs={tabs}
+            active={mainTabFor(pathname)}
+            brandHref="/"
+            right={<SettingsMenu placement="down" onImportData={openImportData} onExportPack={openPackExport} />}
+          />
+          {/* Below lg the tabs collapse into the Menu drawer. */}
+          <div className="lg:hidden h-app-header flex items-center gap-3 px-4 border-b border-border">
+            <button
+              ref={navTriggerRef}
+              type="button"
+              onClick={() => setIsNavOpen(true)}
+              aria-label="Open navigation"
+              aria-expanded={isNavOpen}
+              aria-controls="app-sidebar"
+              className="p-2 -ml-2 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <AppBrand />
           </div>
-        ) : (
-          children
+        </header>
+
+        {isNavOpen && (
+          <div
+            className="fixed inset-0 z-[45] bg-black/50 backdrop-blur-sm lg:hidden"
+            aria-hidden="true"
+            onClick={closeNav}
+          />
         )}
-      </main>
-      <NotificationHost />
-    </div>
+
+        <AppSidebar
+          id="app-sidebar"
+          isOpen={isNavOpen}
+          onClose={closeNav}
+          onImportData={openImportData}
+          onExportPack={openPackExport}
+        />
+
+        <ModalDialog
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          title="Import data"
+          maxWidth="wide"
+        >
+          <DataImporter onClose={() => setShowImportModal(false)} />
+        </ModalDialog>
+
+        <ModalDialog
+          isOpen={showPackExport}
+          onClose={() => setShowPackExport(false)}
+          title="Export calculator pack"
+          maxWidth="wide"
+        >
+          <PackExporter onClose={() => setShowPackExport(false)} />
+        </ModalDialog>
+
+        <main id="main-content">
+          {hidden ? (
+            <div className="px-4 sm:px-6 py-6">
+              <HiddenInUseOnlyMode />
+            </div>
+          ) : (
+            children
+          )}
+        </main>
+        <NotificationHost />
+      </div>
+    </NavigationGuardProvider>
   );
 };
 

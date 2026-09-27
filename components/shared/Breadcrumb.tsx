@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useGuardLink } from '@/components/shared/NavigationGuard';
 
 export interface Crumb {
   label: string;
@@ -19,17 +20,16 @@ export function browseHref(path: string, params: { id?: string; category?: strin
 
 // The page's place in the app, in the page header's eyebrow: PARENT / PARENT · state. Parents
 // are links back (to the list with the item still selected); the page itself is the title, so
-// it isn't repeated. `onNavigate` can stop a link, e.g. to ask about unsaved edits first.
+// it isn't repeated. An editor with unsaved edits asks first (see NavigationGuard).
 export function Breadcrumb({
   items,
   meta,
-  onNavigate,
 }: {
   items: Crumb[];
   /** After the crumbs: "Editing · Unsaved", "3 lines · edited 2 h ago" */
   meta?: React.ReactNode;
-  onNavigate?: (href: string, event: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
+  const guardLink = useGuardLink();
   return (
     <nav aria-label="Breadcrumb">
       <ol className="inline">
@@ -38,7 +38,7 @@ export function Breadcrumb({
             {index > 0 && <span aria-hidden="true"> / </span>}
             <Link
               href={item.href}
-              onClick={(event) => onNavigate?.(item.href, event)}
+              onClick={(event) => guardLink(item.href, event)}
               className="rounded hover:text-ink focus:outline-none focus-visible:text-ink focus-visible:underline"
             >
               {item.label}

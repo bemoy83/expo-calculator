@@ -454,7 +454,8 @@ Each step is committed separately, like the reskin.
   to staff" adds a result row before the results section's breakdown, and a new part joins
   a breakdown listing all parts.
 - **Save** needs only a name; steps with errors can be saved (the header counts them). A new
-  calculator's URL switches to its id on save. Close/Cancel asks before discarding changes.
+  calculator's URL switches to its id on save. With unsaved edits, Close asks "Save changes
+  to …?" (Save / Discard / Keep editing); Delete is under ⋯ in the header.
 - Checked in the browser on an empty origin: building a calculator from nothing (step →
   "Create input" → dialog → live values → cost → rename carried into the formula → save →
   staff view → delete); and on real data, opening the partition wall in the builder and
@@ -966,12 +967,19 @@ with 5–6 parameters the formula fell below the fold and the operators were out
   signature, "N in · used N×" or "not used"), and a quick view with the formula, Try it
   (only the parameters the formula uses), Used by, and Returns with Edit function.
   `/functions/edit?id=` edits. Double-click or "+ New function" goes straight to the
-  editor; Save, Discard and the breadcrumb return to the list with the row selected.
-  Leaving by the breadcrumb with unsaved edits asks first.
+  editor; Close and the breadcrumb return to the list with the row selected.
+- **Header** (the editor header shared with the builder and quote, see ONBOARDING "Design
+  system"): ⋯ (Duplicate, disabled while there are unsaved edits, and Delete function;
+  both only once saved) · Close · Save. Save (or ⌘S) saves and stays; a new function's
+  first Save opens it at `/functions/edit?id=<new id>`. Renaming a function other
+  formulas call still asks first. Close, the breadcrumb and the top bar ask "Save changes
+  to …?" (Save / Discard / Keep editing) when there are unsaved edits. Before, Save and
+  Discard sat at the foot of the right pane and Save went back to the list; Delete was at
+  the foot of the formula pane.
 - **Editor:** parameters and Details in the rail; the formula and its palette in the
-  middle, always on screen; the test run, Used by and Save on the right. The function's
-  name is the page title; its call name follows it while creating and can be changed
-  under Details.
+  middle, always on screen; the test run and Used by on the right. The function's name is
+  the page title; its call name follows it while creating and can be changed under
+  Details.
 - **Parameters** are rows in call order, edited in place (the handoff's 2a; the popover
   2b was dropped). The top line toggles the row; ✎ renames (Enter or leaving saves, Esc
   cancels; a note says when the formula uses the name). Then Label, Expects (Automatic,
