@@ -61,17 +61,17 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-describedby={errorId}
           className={fieldClasses(
             !!error,
-            cn('px-2.5 py-2 resize-none', autoGrow && 'overflow-hidden', className)
+            cn('px-3 py-2.5 resize-none', autoGrow && 'overflow-hidden', className)
           )}
           {...props}
         />
       ) : (
-        <div className="relative rounded-md bg-surface">
+        <div className="relative rounded-md bg-sunken">
           {/* Same box, font, padding and wrapping as the textarea, so the text lines up. */}
           <div
             aria-hidden="true"
             className={cn(
-              'absolute inset-0 overflow-hidden rounded-md border border-transparent px-2.5 py-2 text-sm text-ink',
+              'absolute inset-0 overflow-hidden rounded-md border border-transparent px-3 py-2.5 text-sm text-ink',
               'whitespace-pre-wrap break-words pointer-events-none',
               className
             )}
@@ -90,8 +90,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             className={fieldClasses(
               !!error,
               cn(
-                'relative block px-2.5 py-2 resize-none bg-transparent text-transparent caret-ink',
-                'selection:bg-action/30',
+                'relative block px-3 py-2.5 resize-none bg-transparent text-transparent caret-accent',
+                'selection:bg-accent/30',
                 autoGrow && 'overflow-hidden',
                 className
               )

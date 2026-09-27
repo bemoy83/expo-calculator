@@ -1,10 +1,14 @@
 import React, { useId, useState } from 'react';
 import { cn, normalizeNumberText, shownNumberText } from '@/lib/utils';
-import { FIELD_ERROR, FIELD_LABEL, fieldClasses } from './field-styles';
+import { FIELD_ERROR, FIELD_HEIGHT, FIELD_LABEL, fieldClasses, type FieldSize } from './field-styles';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
   error?: string;
+  /** compact 38 · md 42 (default) · large 46 */
+  size?: FieldSize;
+  /** Mono tabular text; defaults to on for number boxes, off for names and descriptions */
+  numeric?: boolean;
 }
 
 /**
@@ -22,8 +26,9 @@ export function normalizeNumberInput(element: HTMLInputElement) {
 
 // A number box is a text box with the decimal keypad: type="number" drops "2,5" in browsers
 // set to English and on iPads with a Norwegian keypad, so the comma is turned into a point here.
-export const Input: React.FC<InputProps> = ({ label, error, id, className, required, type, value, onChange, onBlur, ...props }) => {
+export const Input: React.FC<InputProps> = ({ label, error, id, className, required, type, value, onChange, onBlur, size = 'md', numeric, ...props }) => {
   const isNumber = type === 'number';
+  const mono = numeric ?? isNumber;
   const [typed, setTyped] = useState<string | null>(null);
   const generatedId = useId();
   const inputId = id || generatedId;
@@ -46,7 +51,7 @@ export const Input: React.FC<InputProps> = ({ label, error, id, className, requi
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={errorId}
         // Numbers are always set in tabular mono.
-        className={fieldClasses(!!error, cn('h-[38px] px-2.5', isNumber && 'font-numeric', className))}
+        className={fieldClasses(!!error, cn(FIELD_HEIGHT[size], 'px-3', mono && 'font-numeric', className))}
         {...props}
         value={isNumber ? shownNumberText(typed, value) : value}
         onChange={(event) => {

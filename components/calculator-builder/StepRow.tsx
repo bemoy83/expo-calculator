@@ -118,7 +118,7 @@ export function StepRow({
       (() => {
         const { text, unit } = formatStepValue(step, result.displayValue, formatMoney);
         return (
-          <span className="font-numeric text-sm text-ink tabular-nums">
+          <span className={cn('font-numeric text-sm text-ink tabular-nums', isCost && 'font-semibold')}>
             {text}
             {unit && <span className="ml-1 text-[0.8em] text-ink-faint">{unit}</span>}
           </span>
@@ -129,7 +129,16 @@ export function StepRow({
     );
 
   return (
-    <li className={cn('rounded-md border', isError ? 'border-danger-border' : 'border-border', expanded && 'bg-sunken/40')}>
+    <li
+      className={cn(
+        'rounded-row border transition-[border-color,box-shadow] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
+        expanded
+          ? cn('bg-surface shadow-focus', isError ? 'border-danger' : 'border-accent')
+          : isError
+            ? 'border-danger-border'
+            : 'border-border'
+      )}
+    >
       <div className="flex items-start gap-2 px-2.5 py-2">
         <button
           type="button"
@@ -147,7 +156,7 @@ export function StepRow({
             <span className="flex items-center gap-2">
               <span className="text-sm font-medium text-ink truncate">{step.label || 'Unnamed step'}</span>
               {isCost && (
-                <span className="shrink-0 rounded-full bg-committed-bg px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-committed">
+                <span className="shrink-0 rounded-full bg-accent-soft px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-[.06em] text-ink">
                   Cost
                 </span>
               )}

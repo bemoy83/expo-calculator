@@ -28,13 +28,16 @@ export function FormulaText({
   expression,
   names,
   className,
+  block = false,
 }: {
   expression: string;
   names: FormulaNames;
   className?: string;
+  /** A block of its own that keeps the formula's line breaks */
+  block?: boolean;
 }) {
   return (
-    <code className={cn('font-numeric', className)}>
+    <code className={cn('font-numeric', block && 'block whitespace-pre-wrap', className)}>
       {classifyFormula(expression, names).map((segment, index) =>
         segment.kind === 'plain' ? (
           <span key={index}>{segment.text}</span>

@@ -23,7 +23,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         required={required}
         aria-required={required}
         className={cn(
-          'h-4 w-4 rounded-sm border-border-strong accent-action-solid cursor-pointer',
+          'h-4 w-4 rounded-sm border-border-strong accent-accent cursor-pointer',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
           'disabled:cursor-not-allowed disabled:opacity-50',
           className
