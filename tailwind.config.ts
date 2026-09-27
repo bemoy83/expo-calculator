@@ -15,9 +15,19 @@ const config: Config = {
           strong: "rgb(var(--border-strong) / <alpha-value>)",
         },
         
-        /* Design tokens (Ink palette, app/globals.css). Derived ones are full colors, so they
+        /* Design tokens (Ledger palette, app/globals.css). Derived ones are full colors, so they
            take no /opacity modifier. */
         canvas: "rgb(var(--canvas) / <alpha-value>)",
+        panel: "rgb(var(--panel) / <alpha-value>)",
+        accent: {
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          ink: "rgb(var(--accent-ink) / <alpha-value>)",
+          soft: "var(--accent-soft)",
+        },
+        inverse: {
+          DEFAULT: "rgb(var(--inverse) / <alpha-value>)",
+          ink: "rgb(var(--on-inverse) / <alpha-value>)",
+        },
         surface: {
           DEFAULT: "rgb(var(--surface) / <alpha-value>)",
           hover: "var(--surface-hover)",
@@ -76,7 +86,7 @@ const config: Config = {
         DEFAULT: "rgb(var(--border) / <alpha-value>)",
       },
       fontFamily: {
-        // Archivo and IBM Plex Mono, loaded in app/layout.tsx. Body text is Archivo
+        // Schibsted Grotesk and JetBrains Mono, loaded in app/layout.tsx. Body text is Schibsted Grotesk
         // (globals.css); numbers should use the .font-numeric utility (mono + tabular-nums).
         ui: ["var(--font-ui)", "system-ui", "sans-serif"],
         mono: ["var(--font-numeric)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
@@ -84,10 +94,17 @@ const config: Config = {
       boxShadow: {
         card: 'var(--shadow-card)',
         panel: 'var(--shadow-panel)',
+        focus: 'var(--focus-ring)',
       },
       spacing: {
         sidebar: 'var(--app-sidebar-w)',
         'app-header': 'var(--app-header-h)',
+      },
+      width: {
+        rail: 'var(--rail-w)',
+        panel: 'var(--panel-w)',
+        quickview: 'var(--quickview-w)',
+        category: 'var(--category-w)',
       },
       inset: {
         'sticky-offset': 'calc(var(--app-header-h) + 1.5rem)',
@@ -97,8 +114,10 @@ const config: Config = {
         'xs': '4px',
         'sm': 'var(--radius-sm)', // 6px
         'md': '8px',
+        'row': 'var(--radius-row)', // 10px: list rows, cards, CTA buttons
         'lg': '12px',
         'xl': '16px',
+        'inverse': 'var(--radius-inverse)', // 14px: inverted commit block
         '2xl': 'var(--radius-2xl)', // 20px
         'full': '9999px',
       },

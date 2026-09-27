@@ -101,7 +101,7 @@ function CanvasItem({
         <GripVertical className="h-4 w-4" aria-hidden="true" />
       </button>
       {item.type === 'input' && context.inputsById.get(item.inputId)?.visibleWhen && (
-        <p className="mb-1 text-[11px] text-action">
+        <p className="mb-1 text-[11px] text-ink-muted">
           Shown only when {describeCondition(context.inputsById.get(item.inputId)!.visibleWhen!, context.calculator, context.library)}
         </p>
       )}
@@ -160,7 +160,7 @@ function CanvasSection({
         </button>
       )}
       {!preview && section.visibleWhen && (
-        <p className="-mt-1 mb-2 text-[11px] text-action">
+        <p className="-mt-1 mb-2 text-[11px] text-ink-muted">
           Shown only when {describeCondition(section.visibleWhen, context.calculator, context.library)}
           {!isShown(section.visibleWhen, context) && ' (hidden now)'}
         </p>

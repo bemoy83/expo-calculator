@@ -53,7 +53,7 @@ export const Chip: React.FC<ChipProps> = ({
     error: 'bg-danger text-on-accent',
 
     // tonal emphasis
-    primaryTonal: 'bg-action-bg text-action',
+    primaryTonal: 'bg-action-bg text-ink',
     errorTonal: 'bg-danger-bg text-danger',
     success: 'bg-committed-bg text-committed',
 

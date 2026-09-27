@@ -29,7 +29,7 @@ export function LaborRow({
       onOpen={() => onOpen(laborItem)}
       cells={[
         {
-          content: <code className="text-xs font-numeric font-medium text-action break-all">{laborItem.variableName}</code>,
+          content: <code className="text-xs font-numeric font-medium text-token-input break-all">{laborItem.variableName}</code>,
           hideOnMobile: true,
         },
         {

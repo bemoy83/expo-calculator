@@ -133,7 +133,7 @@ function HiddenInUseOnlyMode() {
       </p>
       <Link
         href="/"
-        className="mt-3 inline-block text-sm font-medium text-action hover:underline focus:outline-none focus-visible:underline"
+        className="mt-3 inline-block text-sm font-medium text-ink underline decoration-border-strong hover:decoration-accent focus:outline-none focus-visible:decoration-accent"
       >
         Go to Calculators
       </Link>

@@ -51,7 +51,7 @@ export function NotificationToastCard({
         <button
           type="button"
           onClick={action.onClick}
-          className="shrink-0 -my-0.5 px-1.5 py-0.5 rounded text-sm font-semibold text-action hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+          className="shrink-0 -my-0.5 px-1.5 py-0.5 rounded text-sm font-semibold text-ink underline decoration-border-strong hover:decoration-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           {action.label}
         </button>

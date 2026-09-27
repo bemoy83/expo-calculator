@@ -35,7 +35,7 @@ export function MaterialRow({
       onOpen={() => onOpen(material)}
       cells={[
         {
-          content: <code className="text-xs font-numeric font-medium text-action break-all">{material.variableName}</code>,
+          content: <code className="text-xs font-numeric font-medium text-token-input break-all">{material.variableName}</code>,
           hideOnMobile: true,
         },
         {
