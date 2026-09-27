@@ -106,6 +106,13 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   const router = useRouter();
   // Layout items get ids up front so a selection survives moving them.
   const [calculator, setCalculator] = useState(() => ensureLayoutIds(initial, generateId));
+  // Name/category/description are edited here, separately from `calculator`, so typing in them
+  // doesn't change `calculator`'s identity — which would otherwise re-run evaluation and
+  // re-render the whole parts/layout tree on every keystroke for fields that don't affect either.
+  // They're merged into `calculator` only when actually saved (see `save` below).
+  const [nameDraft, setNameDraft] = useState(initial.name);
+  const [categoryDraft, setCategoryDraft] = useState(initial.category ?? '');
+  const [descriptionDraft, setDescriptionDraft] = useState(initial.description ?? '');
   const [view, setView] = useState<'parts' | 'layout'>('parts');
   const [preview, setPreview] = useState(false);
   const [selection, setSelection] = useState<LayoutSelection>(null);
@@ -281,14 +288,25 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   };
 
   // Saves and stays; a new calculator's address becomes its own. Returns whether it saved.
+  // Reads name/category/description straight from their drafts, not from `calculator` — so this
+  // is correct even if a field's onBlur hasn't fired yet (e.g. saving via ⌘S while still typing).
   const save = ({ stay = true } = {}) => {
-    if (!calculator.name.trim()) {
+    const trimmedName = nameDraft.trim();
+    if (!trimmedName) {
       setNameError('Give the calculator a name.');
       document.getElementById('calculator-name')?.focus();
       return false;
     }
-    const saved = saveCalculator({ ...calculator, name: calculator.name.trim() });
+    const saved = saveCalculator({
+      ...calculator,
+      name: trimmedName,
+      category: categoryDraft.trim() || undefined,
+      description: descriptionDraft.trim() || undefined,
+    });
     setCalculator(saved);
+    setNameDraft(saved.name);
+    setCategoryDraft(saved.category ?? '');
+    setDescriptionDraft(saved.description ?? '');
     setDirty(false);
     if (!isSaved) {
       setIsSaved(true);
@@ -309,7 +327,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
     switch (pending.kind) {
       case 'delete-calculator':
         deleteCalculator(calculator.id);
-        notify({ variant: 'success', message: `Deleted “${calculator.name}”.` });
+        notify({ variant: 'success', message: `Deleted “${nameDraft}”.` });
         router.push('/');
         break;
       case 'delete-part':
@@ -326,7 +344,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   const pendingPart = pending?.kind === 'delete-part' ? calculator.parts.find((part) => part.id === pending.partId) : undefined;
   const pendingText: Record<Pending['kind'], { title: string; message?: string; label: string }> = {
     'delete-calculator': {
-      title: `Delete “${calculator.name}”?`,
+      title: `Delete “${nameDraft}”?`,
       message: 'The calculator is deleted for good. Quote lines sent from it keep their price but can no longer be edited.',
       label: 'Delete',
     },
@@ -359,7 +377,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   const unplaced = unplacedInputs(calculator);
   const unshownSteps = calculator.steps.filter((step) => !isStepShown(calculator, step.id));
 
-  const category = calculator.category?.trim();
+  const category = categoryDraft.trim();
   const header = (
     <PageHeader
       eyebrow={
@@ -370,7 +388,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
               ? [{ label: category, href: browseHref('/', { category, id: isSaved ? calculator.id : undefined }) }]
               : []),
             ...(isSaved
-              ? [{ label: calculator.name.trim() || 'Calculator', href: `/calculator?id=${encodeURIComponent(calculator.id)}` }]
+              ? [{ label: nameDraft.trim() || 'Calculator', href: `/calculator?id=${encodeURIComponent(calculator.id)}` }]
               : []),
           ]}
           meta={`Editing${dirty ? ' · Unsaved' : ''}`}
@@ -380,15 +398,15 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
       title={
         <input
           id="calculator-name"
-          value={calculator.name}
+          value={nameDraft}
           placeholder="New calculator"
           aria-label="Calculator name"
           aria-invalid={nameError ? 'true' : undefined}
-          size={Math.max(calculator.name.length, 14)}
+          size={Math.max(nameDraft.length, 14)}
           onChange={(event) => {
             setNameError(undefined);
-            const name = event.target.value;
-            edit((current) => ({ ...current, name }));
+            setNameDraft(event.target.value);
+            setDirty(true);
           }}
           className="w-full min-w-0 bg-transparent placeholder:text-ink-faint focus:outline-none"
         />
@@ -588,20 +606,20 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
           <div className="mt-3 grid grid-cols-1 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] gap-3">
             <Input
               label="Category"
-              value={calculator.category ?? ''}
+              value={categoryDraft}
               placeholder="e.g. Walls"
               onChange={(event) => {
-                const category = event.target.value;
-                edit((current) => ({ ...current, category: category || undefined }));
+                setCategoryDraft(event.target.value);
+                setDirty(true);
               }}
             />
             <Textarea
               label="Description (optional)"
               rows={2}
-              value={calculator.description ?? ''}
+              value={descriptionDraft}
               onChange={(event) => {
-                const description = event.target.value;
-                edit((current) => ({ ...current, description: description || undefined }));
+                setDescriptionDraft(event.target.value);
+                setDirty(true);
               }}
             />
           </div>
@@ -773,7 +791,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
 
       <SaveChangesDialog
         isOpen={leavingTo !== null}
-        name={calculator.name.trim() || 'this calculator'}
+        name={nameDraft.trim() || 'this calculator'}
         onSave={() => {
           const href = leavingTo;
           setLeavingTo(null);

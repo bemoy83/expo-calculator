@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import {
   DndContext,
   KeyboardSensor,
@@ -191,7 +192,10 @@ function CanvasSection({
 
 // The page staff see, drawn live, with each item selectable and draggable within and between
 // sections. In preview it is exactly the staff view.
-export function LayoutCanvas({
+// Memoized on the data props only: `onSelect`/`onMove`/`onAddSection` are fresh closures every
+// CalculatorBuilder render, but behaviorally stable whenever `context`/`selection`/`preview`
+// haven't changed — so it's safe to bail without comparing them.
+export const LayoutCanvas = memo(function LayoutCanvas({
   context,
   selection,
   preview,
@@ -259,4 +263,14 @@ export function LayoutCanvas({
       </div>
     </DndContext>
   );
-}
+},
+(prev, next) =>
+  prev.context.calculator === next.context.calculator &&
+  prev.context.values === next.context.values &&
+  prev.context.result === next.context.result &&
+  prev.context.library === next.context.library &&
+  prev.context.formatMoney === next.context.formatMoney &&
+  prev.context.required === next.context.required &&
+  prev.selection === next.selection &&
+  prev.preview === next.preview
+);

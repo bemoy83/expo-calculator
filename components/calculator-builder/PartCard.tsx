@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { ArrowDown, ArrowUp, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DashedAdd } from '@/components/ui/DashedAdd';
@@ -105,7 +106,11 @@ interface PartStepsProps extends PartViewProps {
 
 // The chosen part's steps (mockup 4b, centre pane): its name, its steps as rows that open to
 // edit, values it takes from other parts, and "+ Add step".
-export function PartSteps({
+// Memoized: the handler props below are fresh closures every render of CalculatorBuilder, but
+// they're behaviorally stable whenever the compared data props haven't changed (they all close
+// over the same `edit`/state setters), so it's safe to bail without comparing them — this is
+// what stops e.g. typing the calculator's name from re-rendering the whole steps list.
+export const PartSteps = memo(function PartSteps({
   calculator,
   part,
   result,
@@ -229,11 +234,22 @@ export function PartSteps({
       )}
     </section>
   );
-}
+},
+(prev, next) =>
+  prev.calculator === next.calculator &&
+  prev.part === next.part &&
+  prev.result === next.result &&
+  prev.library === next.library &&
+  prev.formatMoney === next.formatMoney &&
+  prev.isFirst === next.isFirst &&
+  prev.isLast === next.isLast &&
+  prev.expandedStepId === next.expandedStepId
+);
 
 // The chosen part as staff see it (mockup 4b, live pane): the inputs its steps read, with test
 // values shared across the calculator, then its results; the open step is highlighted.
-export function PartLivePane({
+// Memoized with the same reasoning as PartSteps above.
+export const PartLivePane = memo(function PartLivePane({
   calculator,
   part,
   result,
@@ -304,4 +320,14 @@ export function PartLivePane({
       )}
     </div>
   );
-}
+},
+(prev, next) =>
+  prev.calculator === next.calculator &&
+  prev.part === next.part &&
+  prev.result === next.result &&
+  prev.values === next.values &&
+  prev.library === next.library &&
+  prev.formatMoney === next.formatMoney &&
+  prev.required === next.required &&
+  prev.expandedStepId === next.expandedStepId
+);

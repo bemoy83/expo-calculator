@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Minus, Pencil, Plus, Type, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow } from '@/components/ui/Eyebrow';
@@ -433,7 +433,10 @@ function ItemPanel({
 }
 
 // Edits what's selected on the canvas; with nothing selected, lists the inputs not on the page.
-export function LayoutInspector({
+// Memoized: `actions` is a fresh object every CalculatorBuilder render, but its methods are
+// behaviorally stable whenever the compared props haven't changed (they close over `edit`,
+// `setSelection` etc., always the current React state setters) — safe to bail without comparing it.
+export const LayoutInspector = memo(function LayoutInspector({
   calculator,
   selectedSection,
   selectedItem,
@@ -467,4 +470,12 @@ export function LayoutInspector({
       )}
     </div>
   );
-}
+},
+(prev, next) =>
+  prev.calculator === next.calculator &&
+  prev.selectedSection === next.selectedSection &&
+  prev.selectedItem?.item === next.selectedItem?.item &&
+  prev.selectedItem?.position.sectionId === next.selectedItem?.position.sectionId &&
+  prev.selectedItem?.position.index === next.selectedItem?.position.index &&
+  prev.library === next.library
+);
