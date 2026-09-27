@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Calculator as CalculatorIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { browseHref } from '@/components/shared/Breadcrumb';
 import { CategoryRail, ALL_CATEGORIES } from '@/components/shared/CategoryRail';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -29,12 +30,14 @@ const runHref = (calculator: Calculator) => `/calculator?id=${encodeURIComponent
 export function CalculatorsListView({ calculators, library }: { calculators: Calculator[]; library: CalculatorLibrary }) {
   const router = useRouter();
   const pathname = usePathname();
-  const selectedId = useSearchParams().get('id');
+  const searchParams = useSearchParams();
+  const selectedId = searchParams.get('id');
+  // The category filter is in the URL too, so a breadcrumb can link to it and it survives a reload.
+  const category = searchParams.get('category') ?? ALL_CATEGORIES;
   const newCalculator = () => router.push('/calculator/edit');
   const useOnly = useUseOnlyMode();
   const loadedPack = useDeviceStore((state) => state.loadedPack);
   const lastPackExport = useDeviceStore((state) => state.lastPackExport);
-  const [category, setCategory] = useState(ALL_CATEGORIES);
   const [search, setSearch] = useState('');
 
   // Which pack this device has, so an out-of-date one is easy to spot; on the device packs
@@ -58,11 +61,13 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
           (calculator.description ?? '').toLowerCase().includes(needle)
       );
   }, [groups, category, search]);
-  // The chosen calculator, else the first one listed.
-  const selected = calculators.find((calculator) => calculator.id === selectedId) ?? listed[0];
+  // The chosen calculator when it's listed, else the first one listed.
+  const selected = listed.find((calculator) => calculator.id === selectedId) ?? listed[0];
 
   const select = (calculator: Calculator) =>
-    router.replace(`${pathname}?id=${encodeURIComponent(calculator.id)}`, { scroll: false });
+    router.replace(browseHref(pathname, { category, id: calculator.id }), { scroll: false });
+  const setCategory = (next: string) =>
+    router.replace(browseHref(pathname, { category: next, id: selectedId ?? undefined }), { scroll: false });
 
   const header = (
     <PageHeader

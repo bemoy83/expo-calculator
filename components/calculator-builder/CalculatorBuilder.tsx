@@ -11,6 +11,7 @@ import { RailRow } from '@/components/ui/RailRow';
 import { Segmented } from '@/components/ui/Segmented';
 import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import {
   addInput,
@@ -81,7 +82,8 @@ function inputDetail(input: CalculatorInput): string {
 }
 
 type Pending =
-  | { kind: 'discard' }
+  /** Throw away the edits and leave: to `href`, else back where the builder came from. */
+  | { kind: 'discard'; href?: string }
   | { kind: 'delete-calculator' }
   | { kind: 'delete-part'; partId: string }
   | { kind: 'delete-input'; input: CalculatorInput };
@@ -298,7 +300,8 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
     if (!pending) return;
     switch (pending.kind) {
       case 'discard':
-        close();
+        if (pending.href) router.push(pending.href);
+        else close();
         break;
       case 'delete-calculator':
         deleteCalculator(calculator.id);
@@ -353,9 +356,28 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
   const unplaced = unplacedInputs(calculator);
   const unshownSteps = calculator.steps.filter((step) => !isStepShown(calculator, step.id));
 
+  const category = calculator.category?.trim();
   const header = (
     <PageHeader
-      eyebrow={`Calculators${calculator.category ? ` / ${calculator.category}` : ''} · Editing${dirty ? ' · Unsaved' : ''}`}
+      eyebrow={
+        <Breadcrumb
+          items={[
+            { label: 'Calculators', href: browseHref('/', { id: isSaved ? calculator.id : undefined }) },
+            ...(category
+              ? [{ label: category, href: browseHref('/', { category, id: isSaved ? calculator.id : undefined }) }]
+              : []),
+            ...(isSaved
+              ? [{ label: calculator.name.trim() || 'Calculator', href: `/calculator?id=${encodeURIComponent(calculator.id)}` }]
+              : []),
+          ]}
+          meta={`Editing${dirty ? ' · Unsaved' : ''}`}
+          onNavigate={(href, event) => {
+            if (!dirty) return;
+            event.preventDefault();
+            setPending({ kind: 'discard', href });
+          }}
+        />
+      }
       editing
       title={
         <input

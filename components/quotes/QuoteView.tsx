@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { DashedAdd } from '@/components/ui/DashedAdd';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { RailRow } from '@/components/ui/RailRow';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { AddCalculatorDialog } from '@/components/quotes/AddCalculatorDialog';
 import { QuoteLineEditor } from '@/components/quotes/QuoteLineEditor';
@@ -113,8 +114,7 @@ export function QuoteView({ quote }: { quote: Quote }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   });
 
-  const eyebrow = [
-    'Quote',
+  const meta = [
     `${itemCount} ${itemCount === 1 ? 'line' : 'lines'}`,
     unfinished.length > 0 ? `${unfinished.length} not finished` : null,
     `edited ${formatEditedAt(quote.updatedAt)}`,
@@ -125,7 +125,7 @@ export function QuoteView({ quote }: { quote: Quote }) {
   return (
     <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
       <PageHeader
-        eyebrow={eyebrow}
+        eyebrow={<Breadcrumb items={[{ label: 'Quotes', href: '/quotes/board' }]} meta={meta} />}
         editing
         title={
           <input

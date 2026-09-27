@@ -121,7 +121,13 @@ export can't have a page per calculator.
   hairlines; 150 ms colour transitions only.
 - Screens are panes: a full-bleed `PageHeader`, then rail → editor → live pane (`bg-panel`),
   exactly the window's height from lg with each pane scrolling on its own; below lg they
-  stack. Browse pages (Calculators, Functions) keep the choice in `?id=` with a quick view.
+  stack. Browse pages (Calculators, Functions) keep the choice in `?id=` and the category
+  filter in `?category=`, with a quick view.
+- Pages below the top level (a calculator, the builder, a quote, the function editor) show
+  a `shared/Breadcrumb` in the header eyebrow: parent links (`browseHref` brings the list
+  back with the category and the item selected), then the state after " · ". Editors pass
+  `onNavigate` to ask before discarding unsaved edits. Top-level pages have no crumbs; the
+  top bar says where you are.
 - The designer's handoff (mockups, token source, reference components, specs) is kept
   locally in `design_handoff_*/` and is not in git; ask for the latest one. Decisions that
   came from it are recorded here and in CALCULATOR_DESIGN.md.

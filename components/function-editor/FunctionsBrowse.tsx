@@ -7,6 +7,7 @@ import { FunctionSquare } from 'lucide-react';
 import { CommitBlock } from '@/components/live/CommitBlock';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { FormulaWell } from '@/components/formula/FormulaWell';
+import { browseHref } from '@/components/shared/Breadcrumb';
 import { CategoryRail, ALL_CATEGORIES } from '@/components/shared/CategoryRail';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -43,12 +44,14 @@ function Signature({ func }: { func: SharedFunction }) {
 export function FunctionsBrowse() {
   const router = useRouter();
   const pathname = usePathname();
-  const selectedId = useSearchParams().get('id');
+  const searchParams = useSearchParams();
+  const selectedId = searchParams.get('id');
+  // The category filter is in the URL too, so a breadcrumb can link to it and it survives a reload.
+  const category = searchParams.get('category') ?? ALL_CATEGORIES;
   const functions = useFunctionsStore((state) => state.functions);
   const addFunction = useFunctionsStore((state) => state.addFunction);
   const calculators = useCalculatorsStore((state) => state.calculators);
   const tabs = useCatalogTabItems();
-  const [category, setCategory] = useState(ALL_CATEGORIES);
   const [search, setSearch] = useState('');
 
   const usageCount = useMemo(
@@ -79,9 +82,12 @@ export function FunctionsBrowse() {
           [func.displayName, func.name, func.description ?? ''].some((text) => text.toLowerCase().includes(needle))
       );
   }, [functions, category, search]);
-  const selected = functions.find((func) => func.id === selectedId) ?? listed[0];
+  // The chosen function when it's listed, else the first one listed.
+  const selected = listed.find((func) => func.id === selectedId) ?? listed[0];
 
-  const select = (id: string) => router.replace(`${pathname}?id=${encodeURIComponent(id)}`, { scroll: false });
+  const select = (id: string) => router.replace(browseHref(pathname, { category, id }), { scroll: false });
+  const setCategory = (next: string) =>
+    router.replace(browseHref(pathname, { category: next, id: selectedId ?? undefined }), { scroll: false });
   const duplicate = (func: SharedFunction) => select(addFunction(copyOfFunction(func, functions)).id);
 
   const header = (

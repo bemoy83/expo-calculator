@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FunctionDetailsCard } from '@/components/function-editor/FunctionDetailsCard';
 import { FunctionFormulaCard } from '@/components/function-editor/FunctionFormulaCard';
@@ -10,6 +9,7 @@ import { ParameterRail } from '@/components/function-editor/ParameterRail';
 import { useFunctionEditorState } from '@/components/function-editor/useFunctionEditorState';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow } from '@/components/ui/Eyebrow';
@@ -21,7 +21,7 @@ import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames } from '@/lib/calculator/formula-tokens';
 
-const listHref = (id?: string) => (id ? `/functions?id=${encodeURIComponent(id)}` : '/functions');
+const listHref = (id?: string) => browseHref('/functions', { id });
 
 // The function editor, one level below the functions list (mockup 2a): parameters and details in
 // the rail, the formula and its palette in the middle, and a live test run with Save on the right.
@@ -104,13 +104,6 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
     editor.handleSave();
   };
 
-  // Leaving by the breadcrumb asks first when there are unsaved edits.
-  const leave = (href: string) => (event: React.MouseEvent) => {
-    if (!dirty) return;
-    event.preventDefault();
-    setPendingLeave(href);
-  };
-
   const duplicate = () => {
     if (!existingFunction) return;
     const copy = addFunction(copyOfFunction(existingFunction, functions));
@@ -119,22 +112,28 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
 
   const formula = editor.formData.formula.trim();
   const category = editor.formData.category.trim();
+  // The category it's filed under in the list (as saved), for the breadcrumb.
+  const savedCategory = existingFunction?.category?.trim();
 
   return (
     <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
       <PageHeader
         eyebrow={
-          <>
-            <Link href="/materials" onClick={leave('/materials')} className="hover:text-ink focus:outline-none focus-visible:underline">
-              Catalog
-            </Link>
-            {' / '}
-            <Link href={backHref} onClick={leave(backHref)} className="hover:text-ink focus:outline-none focus-visible:underline">
-              Functions
-            </Link>
-            {category && ` / ${category}`}
-            {` · Editing${dirty ? ' · Unsaved' : ''}`}
-          </>
+          <Breadcrumb
+            items={[
+              { label: 'Catalog', href: '/materials' },
+              { label: 'Functions', href: backHref },
+              ...(savedCategory
+                ? [{ label: savedCategory, href: browseHref('/functions', { category: savedCategory, id: existingFunction?.id }) }]
+                : []),
+            ]}
+            meta={`Editing${dirty ? ' · Unsaved' : ''}`}
+            onNavigate={(href, event) => {
+              if (!dirty) return;
+              event.preventDefault();
+              setPendingLeave(href);
+            }}
+          />
         }
         editing
         title={

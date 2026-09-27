@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import type { Calculator, CalculatorLibrary } from '@/lib/calculator/types';
 import { useUseOnlyMode } from '@/hooks/use-device';
@@ -22,17 +23,18 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
   const useOnly = useUseOnlyMode();
   const [sending, setSending] = useState(false);
   const run = useCalculatorRun(calculator, library, 'large');
+  const category = calculator.category?.trim();
 
   return (
     <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
       <PageHeader
         eyebrow={
-          <>
-            <Link href="/" className="hover:text-ink focus:outline-none focus-visible:underline">
-              Calculators
-            </Link>
-            {calculator.category && ` / ${calculator.category}`}
-          </>
+          <Breadcrumb
+            items={[
+              { label: 'Calculators', href: browseHref('/', { id: calculator.id }) },
+              ...(category ? [{ label: category, href: browseHref('/', { category, id: calculator.id }) }] : []),
+            ]}
+          />
         }
         title={calculator.name}
         description={calculator.description}
