@@ -142,6 +142,8 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
             onChange={(event) => editor.handleFormDataChange({ displayName: event.target.value })}
             placeholder="New function"
             aria-label="Function name"
+            // A new function starts with its name, which also makes its call name.
+            autoFocus={isNew}
             aria-invalid={editor.errors.displayName ? 'true' : undefined}
             size={Math.max(editor.formData.displayName.length, 14)}
             className="w-full min-w-0 bg-transparent placeholder:text-ink-faint focus:outline-none"
