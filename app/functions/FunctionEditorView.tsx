@@ -19,7 +19,7 @@ import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
-import { functionFormulaNames } from '@/lib/calculator/formula-tokens';
+import { functionFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
 
 const listHref = (id?: string) => browseHref('/functions', { id });
 
@@ -46,6 +46,12 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
   const [editingDetails, setEditingDetails] = useState(isNew);
   // A new function starts with one empty parameter, open to fill in.
   const [openIndex, setOpenIndex] = useState<number | null>(isNew ? 0 : null);
+  // A parameter just added opens with its Label focused.
+  const [focusLabelOf, setFocusLabelOf] = useState<number | null>(null);
+  const openNewParameter = (index: number) => {
+    setOpenIndex(index);
+    setFocusLabelOf(index);
+  };
   const savedId = useRef<string | null>(null);
 
   const editor = useFunctionEditorState({
@@ -189,8 +195,10 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
             }}
             onAdd={() => {
               editor.addParameter();
-              setOpenIndex(editor.parameters.length);
+              openNewParameter(editor.parameters.length);
             }}
+            focusLabelOf={focusLabelOf}
+            onLabelFocused={() => setFocusLabelOf(null)}
             errors={editor.parameterErrors}
             suggestions={editor.parameterSuggestions}
             existingNames={editor.existingParameterNames}
@@ -259,6 +267,11 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
             <FunctionFormulaCard
               formula={editor.formData.formula}
               formulaNames={formulaNames}
+              unknownNames={unknownValueNames(editor.formData.formula, formulaNames)}
+              onCreateParameter={(name) => {
+                editor.addParameterNamed(name);
+                openNewParameter(editor.parameters.length);
+              }}
               onFormulaChange={(next) => editor.handleFormDataChange({ formula: next })}
               formulaTextareaRef={editor.formulaTextareaRef}
               formulaValidation={editor.formulaValidation}

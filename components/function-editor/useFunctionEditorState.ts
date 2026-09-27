@@ -20,6 +20,7 @@ import type { Calculator } from '@/lib/calculator/types';
 import type { Labor, SharedFunction } from '@/lib/types';
 import { labelToVariableName } from '@/lib/utils';
 import { countParameterUses } from '@/lib/functions/function-usage';
+import { labelFromName } from '@/lib/utils/function-parameters';
 
 interface UseFunctionEditorStateOptions {
   functionId: string;
@@ -192,6 +193,16 @@ export function useFunctionEditorState({
     }, 0);
   }, []);
 
+  // "+ Create parameter" for a name the formula uses but no parameter has yet.
+  const addParameterNamed = useCallback(
+    (name: string) => {
+      setParameters((prev) =>
+        prev.some((param) => param.name === name) ? prev : [...prev, { name, label: labelFromName(name), required: true }]
+      );
+    },
+    [setParameters]
+  );
+
   // Calls pass values by position, so the order is part of the function.
   const moveParameter = useCallback(
     (index: number, direction: -1 | 1) => {
@@ -265,6 +276,7 @@ export function useFunctionEditorState({
     insertParameterAtCursor,
     insertOperatorAtCursor,
     moveParameter,
+    addParameterNamed,
     handleSave,
     isValid,
   };

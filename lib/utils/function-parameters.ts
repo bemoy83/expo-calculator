@@ -116,3 +116,9 @@ export function nameAfterLabelChange(input: {
   if (oldName && oldName !== generatedFromOldLabel) return current.name;
   return input.label.trim() ? generateParameterName(input.label.trim(), input.parameters, input.index) : '';
 }
+
+/** A label for a parameter made from its name: `stud_spacing` → "Stud spacing". */
+export function labelFromName(name: string): string {
+  const words = name.replace(/_+/g, ' ').trim();
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : '';
+}

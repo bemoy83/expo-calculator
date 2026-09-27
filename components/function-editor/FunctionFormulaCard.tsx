@@ -1,5 +1,7 @@
 'use client';
 
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { FormulaPalette } from '@/components/formula/FormulaPalette';
 import { cn } from '@/lib/utils';
@@ -22,6 +24,9 @@ interface ParameterInfo {
 }
 
 interface FunctionFormulaCardProps {
+  /** Names the formula uses that aren't parameters yet, each offered as "+ Create parameter" */
+  unknownNames?: string[];
+  onCreateParameter?: (name: string) => void;
   /** Names the formula can use, to colour it as it's typed. */
   formulaNames?: FormulaNames;
   formula: string;
@@ -46,6 +51,8 @@ interface FunctionFormulaCardProps {
 }
 
 export function FunctionFormulaCard({
+  unknownNames = [],
+  onCreateParameter,
   formulaNames,
   formula,
   onFormulaChange,
@@ -194,6 +201,18 @@ export function FunctionFormulaCard({
           )}
         </div>
         {formulaValidation.error && <p className="text-xs text-danger">{formulaValidation.error}</p>}
+        {onCreateParameter && unknownNames.length > 0 && (
+          <div className="flex flex-wrap gap-1 -ml-2">
+            {unknownNames.slice(0, 6).map((name) => (
+              <Button key={name} variant="ghost" size="sm" onClick={() => onCreateParameter(name)} className="px-2">
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>
+                  Create parameter “<span className="font-numeric">{name}</span>”
+                </span>
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
       <FormulaPalette
         parameters={visibleParameters.map((param) => param.name)}

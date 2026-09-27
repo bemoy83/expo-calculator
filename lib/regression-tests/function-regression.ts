@@ -1,4 +1,5 @@
-import { nameAfterLabelChange } from '../utils/function-parameters';
+import { labelFromName, nameAfterLabelChange } from '../utils/function-parameters';
+import { unknownValueNames } from '../calculator/formula-tokens';
 import {
   addSuggestedParameter,
   buildFunctionSaveData,
@@ -221,5 +222,18 @@ assertCheck(
   assertCheck(
     'a new label renames an unused parameter, keeps a name the formula uses or one typed by hand',
     renamed === 'spacing' && kept === 'cc' && custom === 'bredde' && empty === 'height'
+  );
+}
+
+// "+ Create parameter" in the function editor: the names nothing matches, once each, in order.
+{
+  const names = { inputs: new Set(['bredde']), results: new Set<string>(), functions: new Set(['stender']), catalog: new Set(['kvirke']) };
+  const unknown = unknownValueNames('ceil(bredde / cc) + cc * board.width + kvirke.price + rond(2) + pi + stender(1)', names);
+  assertCheck(
+    'lists unknown names that could be parameters: once each, board for board.width, not calls or constants',
+    unknown.join(',') === 'cc,board' &&
+      labelFromName('stud_spacing') === 'Stud spacing' &&
+      labelFromName('bredde') === 'Bredde' &&
+      labelFromName('høyde') === 'Høyde'
   );
 }

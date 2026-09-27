@@ -979,6 +979,12 @@ with 5–6 parameters the formula fell below the fold and the operators were out
   "Used N×", ↑ ↓ to reorder, and Remove. A parameter's name follows its label only while
   it was made from the label and the formula doesn't use it (`nameAfterLabelChange`).
   "+ New" opens the new row with Label focused.
+- **Create parameter:** each name the formula uses that isn't a parameter yet (and isn't a
+  material or labor item) gets "+ Create parameter “name”" under the formula, like the
+  builder's "Create input". It adds the parameter with a label made from the name
+  (`stud_spacing` → "Stud spacing") and opens it with Label focused; a name read as
+  `board.width` is worked out as a material. Misspelled calls aren't offered
+  (`unknownValueNames`).
 - **Palette:** the layout comes from the handoff, the contents don't: exactly the items the
   old "Operators & functions" guide had (parameters, `+ - * / ()`, round, round with
   decimals, ceil, floor, sqrt, and `== != > < >= <=`). Nothing the formula engine can't

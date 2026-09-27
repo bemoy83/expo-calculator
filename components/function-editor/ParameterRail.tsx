@@ -44,6 +44,9 @@ interface ParameterRailProps {
   /** Lower-cased names already used, so a suggestion shows as added */
   existingNames: Set<string>;
   onReuse: (suggestion: FunctionParameter) => void;
+  /** A parameter just added opens with its Label field focused, ready to type. */
+  focusLabelOf: number | null;
+  onLabelFocused: () => void;
 }
 
 // The function's parameters as flat rows in the editor's rail (mockup 2a): the name in teal,
@@ -62,10 +65,10 @@ export function ParameterRail({
   suggestions,
   existingNames,
   onReuse,
+  focusLabelOf,
+  onLabelFocused,
 }: ParameterRailProps) {
   const [reuseOpen, setReuseOpen] = useState(false);
-  // A parameter just added opens with its Label field focused, ready to type.
-  const [focusLabelOf, setFocusLabelOf] = useState<number | null>(null);
   // Renaming is a deliberate step: ✎ turns the name into an input; Enter or leaving saves, Esc cancels.
   const [renaming, setRenaming] = useState<number | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -99,7 +102,6 @@ export function ParameterRail({
           type="button"
           onClick={() => {
             setRenaming(null);
-            setFocusLabelOf(parameters.length);
             onAdd();
           }}
           aria-label="Add parameter"
@@ -216,7 +218,7 @@ export function ParameterRail({
                 label="Label"
                 size="compact"
                 autoFocus={focusLabelOf === index}
-                onFocus={() => setFocusLabelOf(null)}
+                onFocus={onLabelFocused}
                 value={parameter.label}
                 placeholder="e.g. Width"
                 error={error.label}

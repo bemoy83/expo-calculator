@@ -53,6 +53,23 @@ export function classifyFormula(expression: string, names: FormulaNames): Formul
   return segments;
 }
 
+/**
+ * Names the formula uses as values that nothing matches, in order and once each: what could
+ * become parameters (or inputs). `board` counts for `board.width`; unknown calls don't.
+ */
+export function unknownValueNames(expression: string, names: FormulaNames): string[] {
+  const found: string[] = [];
+  for (const token of scanExpression(expression)) {
+    if (token.isCall || found.includes(token.base)) continue;
+    const known =
+      names.inputs.has(token.base) ||
+      names.catalog.has(token.base) ||
+      (token.property === undefined && (names.results.has(token.base) || CONSTANTS.has(token.base)));
+    if (!known) found.push(token.base);
+  }
+  return found;
+}
+
 function catalogNames(library: Pick<CalculatorLibrary, 'materials' | 'labor'>): Set<string> {
   return new Set([...library.materials, ...library.labor].map((item) => item.variableName));
 }
