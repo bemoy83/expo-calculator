@@ -9,7 +9,7 @@ import { ParameterRail } from '@/components/function-editor/ParameterRail';
 import { useFunctionEditorState } from '@/components/function-editor/useFunctionEditorState';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
+import { Breadcrumb, browseHref, withSelected } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useLeaveEditor } from '@/components/shared/NavigationGuard';
 import { OverflowMenu } from '@/components/shared/OverflowMenu';
@@ -114,7 +114,8 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
     if (!editor.handleSave()) return;
     const id = savedId.current ?? functionId;
     notify({ variant: 'success', message: `Saved “${editor.formData.displayName.trim() || newName}”.` });
-    if (then) router.push(isNew && then === backHref ? listHref(id) : then);
+    // Back in the list, a function saved for the first time is the one selected.
+    if (then) router.push(isNew ? withSelected(then, '/functions', id) : then);
     else if (isNew) router.replace(`/functions/edit?id=${encodeURIComponent(id)}`);
     else {
       setExistingFunction(getFunction(id) ?? null);

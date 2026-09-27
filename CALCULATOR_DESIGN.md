@@ -454,7 +454,9 @@ Each step is committed separately, like the reskin.
   to staff" adds a result row before the results section's breakdown, and a new part joins
   a breakdown listing all parts.
 - **Save** needs only a name; steps with errors can be saved (the header counts them). A new
-  calculator's URL switches to its id on save. With unsaved edits, Close asks "Save changes
+  calculator's URL switches to its id on save. Close goes back to where the builder was
+  opened from: the calculators list (`?from=list`) or the calculator. With unsaved edits,
+  Close asks "Save changes
   to …?" (Save / Discard / Keep editing); Delete is under ⋯ in the header.
 - Checked in the browser on an empty origin: building a calculator from nothing (step →
   "Create input" → dialog → live values → cost → rename carried into the formula → save →

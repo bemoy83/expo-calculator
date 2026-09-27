@@ -122,7 +122,8 @@ export can't have a page per calculator.
 - Screens are panes: a full-bleed `PageHeader`, then rail → editor → live pane (`bg-panel`),
   exactly the window's height from lg with each pane scrolling on its own; below lg they
   stack. Browse pages (Calculators, Functions) keep the choice in `?id=` and the category
-  filter in `?category=`, with a quick view.
+  filter in `?category=`, with a quick view. From lg a click picks a row for the quick
+  view and a double-click opens its editor (in use-only mode, a calculator opens to use).
 - Pages below the top level (a calculator, the builder, a quote, the function editor) show
   a `shared/Breadcrumb` in the header eyebrow: parent links (`browseHref` brings the list
   back with the category and the item selected), then the state after " · ". Top-level
@@ -131,8 +132,11 @@ export can't have a page per calculator.
   the editable title, status dot. Right, always in this order: the editor's own tools, if
   any (builder: Preview, Parts/Layout), then a thin divider (`HeaderDivider`); a ⋯ menu
   (`shared/OverflowMenu`) for occasional actions — Duplicate, Export JSON, and Delete last
-  (red, confirmed); Close (secondary), back to where you came from, the same place as the
-  last breadcrumb link; Save (accent, the page's one accent button), which saves and
+  (red, confirmed); Close (secondary), back to where the editor is opened from: the
+  function editor to the functions list with the function selected, a quote to the board;
+  the builder, which opens from two places, to the calculators list (category kept, the
+  calculator selected) when the list opened it (`?from=list&category=`, `builderHref`), else
+  to the calculator; Save (accent, the page's one accent button), which saves and
   stays, also on ⌘S / Ctrl+S (`useSaveShortcut`). A new item's first Save moves the
   address to its id (`router.replace`) and stays. The quote saves every change as it's
   made, so it has no Save: its eyebrow says "Saved automatically", "+ Add calculator"

@@ -37,7 +37,10 @@ function useStartingPoint(id: string | null, ready: boolean): StartingPoint | un
 }
 
 function CalculatorEditContent() {
-  const id = useSearchParams().get('id');
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
+  // Opened from the calculators list (see builderHref): Close goes back to it.
+  const fromList = searchParams.get('from') === 'list' ? { category: searchParams.get('category') ?? '' } : undefined;
   const router = useRouter();
   const library = useCalculatorLibrary();
   const [mounted, setMounted] = useState(false);
@@ -60,7 +63,13 @@ function CalculatorEditContent() {
   }
   // Keyed by the calculator it opened with, so saving a new one (which updates the URL) keeps
   // the builder as it is.
-  return <CalculatorBuilder key={start.calculator.id} initial={start.calculator} isSaved={start.isSaved} library={library} />;
+  return <CalculatorBuilder
+      key={start.calculator.id}
+      initial={start.calculator}
+      isSaved={start.isSaved}
+      library={library}
+      fromList={fromList}
+    />;
 }
 
 export default function CalculatorEditPage() {

@@ -11,7 +11,7 @@ import { RailRow } from '@/components/ui/RailRow';
 import { Segmented } from '@/components/ui/Segmented';
 import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
+import { Breadcrumb, browseHref, withSelected } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useLeaveEditor } from '@/components/shared/NavigationGuard';
 import { HeaderDivider, OverflowMenu } from '@/components/shared/OverflowMenu';
@@ -68,6 +68,7 @@ import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { notify } from '@/lib/stores/notifications-store';
 import { generateId } from '@/lib/utils';
+import { builderCloseHref, builderHref, type FromList } from './builder-href';
 import { InputEditorDialog } from './InputEditorDialog';
 import { LayoutCanvas, type LayoutSelection } from './LayoutCanvas';
 import { LayoutInspector, type LayoutInspectorActions } from './LayoutInspector';
@@ -95,11 +96,13 @@ interface CalculatorBuilderProps {
   /** Already saved: offers Delete, and Close returns to it. */
   isSaved: boolean;
   library: CalculatorLibrary;
+  /** Opened from the calculators list (`?from=list`): Close goes back there. */
+  fromList?: FromList;
 }
 
 // The builder's parts view: each part as its own card to build and test, inputs defined
 // once for the whole calculator, and test values shared with the staff view.
-export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }: CalculatorBuilderProps) {
+export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, fromList }: CalculatorBuilderProps) {
   const router = useRouter();
   // Layout items get ids up front so a selection survives moving them.
   const [calculator, setCalculator] = useState(() => ensureLayoutIds(initial, generateId));
@@ -289,15 +292,16 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
     setDirty(false);
     if (!isSaved) {
       setIsSaved(true);
-      if (stay) router.replace(`/calculator/edit?id=${encodeURIComponent(saved.id)}`);
+      if (stay) router.replace(builderHref(saved.id, fromList));
     }
     notify({ variant: 'success', message: `Saved “${saved.name}”.` });
     return true;
   };
   useSaveShortcut(save);
 
-  // Close goes back where the builder came from: the calculator, or the list for a new one.
-  const closeHref = isSaved ? `/calculator?id=${encodeURIComponent(calculator.id)}` : '/';
+  // Close goes back where the builder was opened from: the list (with this calculator
+  // selected), else the calculator, or the list for a new one.
+  const closeHref = builderCloseHref(calculator.id, isSaved, fromList);
   const { leavingTo, setLeavingTo, leave } = useLeaveEditor(dirty);
 
   const confirmPending = () => {
@@ -773,7 +777,8 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
         onSave={() => {
           const href = leavingTo;
           setLeavingTo(null);
-          if (save({ stay: false }) && href) router.push(href);
+          // Back in the list, a calculator saved for the first time is the one selected.
+          if (save({ stay: false }) && href) router.push(withSelected(href, '/', calculator.id));
         }}
         onDiscard={() => {
           const href = leavingTo;

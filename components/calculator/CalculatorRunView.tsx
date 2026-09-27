@@ -13,8 +13,8 @@ import { CalculatorForm } from './CalculatorForm';
 import { CalculatorLivePane } from './CalculatorLivePane';
 import { SendToQuoteDialog } from './SendToQuoteDialog';
 import { useCalculatorRun } from './useCalculatorRun';
+import { builderHref } from '@/components/calculator-builder/builder-href';
 
-const editHref = (calculator: Calculator) => `/calculator/edit?id=${encodeURIComponent(calculator.id)}`;
 
 // A calculator as staff use it, full size (mockup 4a): its sections with 46px inputs, and a
 // live pane with the results, part costs and the total to send to a quote.
@@ -44,7 +44,7 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
               Reset
             </Button>
             {!useOnly && (
-              <Button variant="secondary" onClick={() => router.push(editHref(calculator))}>
+              <Button variant="secondary" onClick={() => router.push(builderHref(calculator.id))}>
                 Edit
               </Button>
             )}
@@ -75,7 +75,16 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
 
 // The quick view beside the calculator list (mockup 6b): the run view at phone width, with the
 // form scrolling above a pinned footer of live results and the total.
-export function CalculatorQuickView({ calculator, library }: { calculator: Calculator; library: CalculatorLibrary }) {
+export function CalculatorQuickView({
+  calculator,
+  library,
+  listCategory,
+}: {
+  calculator: Calculator;
+  library: CalculatorLibrary;
+  /** The list's category filter, for the builder's Close to come back to. */
+  listCategory: string;
+}) {
   const router = useRouter();
   const useOnly = useUseOnlyMode();
   const [sending, setSending] = useState(false);
@@ -95,7 +104,11 @@ export function CalculatorQuickView({ calculator, library }: { calculator: Calcu
               Reset
             </Button>
             {!useOnly && (
-              <Button variant="secondary" size="sm" onClick={() => router.push(editHref(calculator))}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push(builderHref(calculator.id, { category: listCategory }))}
+              >
                 Edit
               </Button>
             )}

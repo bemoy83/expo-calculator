@@ -18,6 +18,15 @@ export function browseHref(path: string, params: { id?: string; category?: strin
   return text ? `${path}?${text}` : path;
 }
 
+/** `href` with `id` selected, when it's the browse page at `listPath` (e.g. going back to a list). */
+export function withSelected(href: string, listPath: string, id: string): string {
+  const [path, query] = href.split('?');
+  if (path !== listPath) return href;
+  const params = new URLSearchParams(query);
+  params.set('id', id);
+  return `${path}?${params.toString()}`;
+}
+
 // The page's place in the app, in the page header's eyebrow: PARENT / PARENT · state. Parents
 // are links back (to the list with the item still selected); the page itself is the title, so
 // it isn't repeated. An editor with unsaved edits asks first (see NavigationGuard).

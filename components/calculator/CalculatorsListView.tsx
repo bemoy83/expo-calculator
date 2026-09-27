@@ -17,6 +17,7 @@ import { useDeviceStore } from '@/lib/stores/device-store';
 import { useUseOnlyMode } from '@/hooks/use-device';
 import { cn } from '@/lib/utils';
 import { CalculatorQuickView } from './CalculatorRunView';
+import { builderHref } from '@/components/calculator-builder/builder-href';
 
 function pluralize(count: number, singular: string) {
   return `${count} ${count === 1 ? singular : `${singular}s`}`;
@@ -34,7 +35,8 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
   const selectedId = searchParams.get('id');
   // The category filter is in the URL too, so a breadcrumb can link to it and it survives a reload.
   const category = searchParams.get('category') ?? ALL_CATEGORIES;
-  const newCalculator = () => router.push('/calculator/edit');
+  // The builder opened from here comes back here on Close.
+  const newCalculator = () => router.push(builderHref(undefined, { category }));
   const useOnly = useUseOnlyMode();
   const loadedPack = useDeviceStore((state) => state.loadedPack);
   const lastPackExport = useDeviceStore((state) => state.lastPackExport);
@@ -151,13 +153,15 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
                   href={runHref(calculator)}
                   aria-current={on ? 'true' : undefined}
                   onClick={(event) => {
-                    // From lg the row picks the calculator for the quick view instead.
+                    // From lg the row picks the calculator for the quick view instead; a double-click
+                    // edits it (or opens it, in use-only mode, where there's no builder).
                     if (event.metaKey || event.ctrlKey || event.shiftKey) return;
                     if (window.matchMedia('(min-width: 1024px)').matches) {
                       event.preventDefault();
                       select(calculator);
                     }
                   }}
+                  onDoubleClick={() => router.push(useOnly ? runHref(calculator) : builderHref(calculator.id, { category }))}
                   className={cn(
                     'flex gap-3 px-3 py-3.5 rounded-row border transition-colors duration-150',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
@@ -185,7 +189,7 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
         </ul>
 
         <aside aria-label="Quick view" className="hidden lg:block min-h-0 bg-panel border-l border-border">
-          {selected && <CalculatorQuickView key={selected.id} calculator={selected} library={library} />}
+          {selected && <CalculatorQuickView key={selected.id} calculator={selected} library={library} listCategory={category} />}
         </aside>
       </div>
     </div>
