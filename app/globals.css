@@ -11,19 +11,6 @@
   display: none;
 }
 
-/* App shell chrome: mobile top bar below lg, fixed left sidebar at lg and up */
-:root {
-  --app-header-h: 3.5rem;
-  --app-sidebar-w: 0px;
-}
-
-@media (min-width: 1024px) {
-  :root {
-    --app-header-h: 0px;
-    --app-sidebar-w: 196px;
-  }
-}
-
 /* Row actions inside a `.group`: always visible on touch, revealed by hover or keyboard focus elsewhere */
 @media (hover: hover) {
   .row-action {
@@ -153,8 +140,9 @@
 
 /* Shell, panes, radii, controls, elevation, motion (tokens/spacing.css) */
 :root {
-  /* Shell: --app-header-h / --app-sidebar-w stay in the media-query pair above until the top bar
-     replaces the sidebar (Phase 3), which sets them to 52px / 0px at every width. */
+  /* Shell — top tabs replace the sidebar at every width */
+  --app-header-h: 52px;
+  --app-sidebar-w: 0px;
   --page-pad-x: 24px;          /* top bar, page header, full-width bodies */
   --page-header-pad: 22px 24px 18px;
   --pane-pad: 20px 24px;       /* right live/editor panel */

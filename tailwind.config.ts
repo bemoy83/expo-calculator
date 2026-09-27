@@ -97,7 +97,6 @@ const config: Config = {
         focus: 'var(--focus-ring)',
       },
       spacing: {
-        sidebar: 'var(--app-sidebar-w)',
         'app-header': 'var(--app-header-h)',
       },
       width: {

@@ -16,13 +16,22 @@ interface TopBarProps {
   active: string;
   onSelect?: (id: string) => void;
   brand?: string;
+  /** Makes the brand a link, e.g. home */
+  brandHref?: string;
   /** Settings, avatar */
   right?: React.ReactNode;
   className?: string;
 }
 
 // 52px app bar (Ledger shell/TopBar.jsx): brand mark, the top-level tabs, a right-hand slot.
-export function TopBar({ tabs, active, onSelect, brand = 'Cost Estimator', right, className }: TopBarProps) {
+export function TopBar({ tabs, active, onSelect, brand = 'Cost Estimator', brandHref, right, className }: TopBarProps) {
+  const brandMark = (
+    <>
+      <span aria-hidden="true" className="w-[18px] h-[18px] rounded-xs bg-accent" />
+      {brand}
+    </>
+  );
+  const brandClasses = 'flex items-center gap-2.5 text-[15px] font-bold tracking-[-.01em]';
   return (
     <div
       className={cn(
@@ -30,10 +39,16 @@ export function TopBar({ tabs, active, onSelect, brand = 'Cost Estimator', right
         className
       )}
     >
-      <div className="flex items-center gap-2.5 text-[15px] font-bold tracking-[-.01em]">
-        <span aria-hidden="true" className="w-[18px] h-[18px] rounded-xs bg-accent" />
-        {brand}
-      </div>
+      {brandHref ? (
+        <Link
+          href={brandHref}
+          className={cn(brandClasses, 'rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-action')}
+        >
+          {brandMark}
+        </Link>
+      ) : (
+        <div className={brandClasses}>{brandMark}</div>
+      )}
       <nav aria-label="Main" className="flex gap-1 text-sm">
         {tabs.map((tab) => {
           const on = tab.id === active;

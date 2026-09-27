@@ -5,7 +5,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Download, FileText, Package, Settings, Upload, X } from 'lucide-react';
+import { Download, Package, Settings, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CurrencySelector } from '@/components/shared/CurrencySelector';
 import { FIELD_LABEL } from '@/components/ui/field-styles';
@@ -35,23 +35,20 @@ interface AppSidebarProps {
   onExportPack: () => void;
 }
 
+// The placeholder mark (no logo exists): an 18px accent square and the name.
 export function AppBrand() {
   return (
     <Link
       href="/"
       className="flex items-center gap-2.5 min-w-0 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
     >
-      <span
-        className="flex items-center justify-center w-[26px] h-[26px] rounded-md bg-ink shrink-0"
-        aria-hidden="true"
-      >
-        <FileText className="h-3.5 w-3.5 text-canvas" />
-      </span>
-      <span className="text-sm font-bold tracking-tight text-ink truncate">Cost Estimator</span>
+      <span className="w-[18px] h-[18px] rounded-xs bg-accent shrink-0" aria-hidden="true" />
+      <span className="text-[15px] font-bold tracking-[-.01em] text-ink truncate">Cost Estimator</span>
     </Link>
   );
 }
 
+// The navigation drawer below lg, where the top bar's tabs collapse to (Layout's Menu button).
 export function AppSidebar({ id, isOpen, onClose, onImportData, onExportPack }: AppSidebarProps) {
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -85,9 +82,9 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onExportPack }: 
   ];
 
   const catalogItems: NavItem[] = [
-    { name: 'Functions', href: '/functions', count: functionsCount },
     { name: 'Materials', href: '/materials', count: materialsCount },
     { name: 'Labor', href: '/labor', count: laborCount },
+    { name: 'Functions', href: '/functions', count: functionsCount },
   ];
 
   const matchesRoute = (href: string) =>
@@ -99,13 +96,12 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onExportPack }: 
     <div
       id={id}
       className={cn(
-        'fixed inset-y-0 left-0 z-50 lg:z-[45] w-64 lg:w-sidebar flex flex-col',
-        'bg-sunken-2 border-r border-border',
+        'lg:hidden fixed inset-y-0 left-0 z-50 w-64 flex flex-col',
+        'bg-panel border-r border-border',
         // Visible immediately on open (so focus can move in), hidden only after the slide-out on close.
         isOpen
           ? 'translate-x-0 visible [transition:transform_200ms_ease-out]'
-          : '-translate-x-full invisible [transition:transform_200ms_ease-out,visibility_0s_linear_200ms]',
-        'lg:translate-x-0 lg:visible'
+          : '-translate-x-full invisible [transition:transform_200ms_ease-out,visibility_0s_linear_200ms]'
       )}
     >
       <div className="flex items-center justify-between gap-2 px-[18px] pt-4 pb-[18px]">
@@ -117,7 +113,7 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onExportPack }: 
           aria-label="Close navigation"
           // transition-colors, not transition-smooth (`all`): transitioning the inherited
           // visibility would leave this hidden, and unfocusable, at the moment the drawer opens.
-          className="lg:hidden p-2 -mr-2 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
+          className="p-2 -mr-2 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
@@ -265,7 +261,17 @@ function UseOnlySwitch() {
   );
 }
 
-function SettingsMenu({ onImportData, onExportPack }: { onImportData: () => void; onExportPack: () => void }) {
+// Settings: in the drawer's foot it opens upward; in the top bar (placement="down") it's a quiet
+// text button whose menu opens below, aligned right.
+export function SettingsMenu({
+  onImportData,
+  onExportPack,
+  placement = 'up',
+}: {
+  onImportData: () => void;
+  onExportPack: () => void;
+  placement?: 'up' | 'down';
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -300,7 +306,12 @@ function SettingsMenu({ onImportData, onExportPack }: { onImportData: () => void
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-controls="app-settings-menu"
-        className="w-full flex items-center gap-2 h-[34px] px-2.5 rounded-md text-[13px] font-medium text-ink-body hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
+        className={cn(
+          'flex items-center gap-2 rounded-md text-[13px] focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors',
+          placement === 'down'
+            ? cn('h-8 px-2 text-ink-muted hover:text-ink', isOpen && 'text-ink')
+            : 'w-full h-[34px] px-2.5 font-medium text-ink-body hover:text-ink hover:bg-surface-hover'
+        )}
       >
         <Settings className="h-4 w-4" aria-hidden="true" />
         Settings
@@ -309,6 +320,7 @@ function SettingsMenu({ onImportData, onExportPack }: { onImportData: () => void
       {isOpen && (
         <SettingsMenuPanel
           id="app-settings-menu"
+          placement={placement}
           onClose={() => setIsOpen(false)}
           onImportData={onImportData}
           onExportPack={onExportPack}
@@ -320,11 +332,13 @@ function SettingsMenu({ onImportData, onExportPack }: { onImportData: () => void
 
 function SettingsMenuPanel({
   id,
+  placement,
   onClose,
   onImportData,
   onExportPack,
 }: {
   id: string;
+  placement: 'up' | 'down';
   onClose: () => void;
   onImportData: () => void;
   onExportPack: () => void;
@@ -341,7 +355,10 @@ function SettingsMenuPanel({
   return (
     <div
       id={id}
-      className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border-strong rounded-[10px] shadow-panel z-50 overflow-hidden"
+      className={cn(
+        'absolute w-64 bg-surface border border-border-strong rounded-row shadow-panel z-50 overflow-hidden text-left',
+        placement === 'down' ? 'top-full right-0 mt-2' : 'bottom-full left-0 mb-2'
+      )}
     >
       <div className="p-2 max-h-[70vh] overflow-y-auto">
         <div className="px-2.5 pt-2 pb-2 space-y-3">

@@ -7,16 +7,38 @@ import { DataImporter } from '@/components/DataImporter';
 import { PackExporter } from '@/components/PackExporter';
 import { Card } from '@/components/ui/Card';
 import { isBuilderRoute, useUseOnlyMode } from '@/hooks/use-device';
-import { AppBrand, AppSidebar } from '@/components/AppSidebar';
+import { AppBrand, AppSidebar, SettingsMenu } from '@/components/AppSidebar';
+import { TopBar, type TopBarTab } from '@/components/TopBar';
 import { ModalDialog } from '@/components/shared/ModalDialog';
 import { NotificationHost } from '@/components/shared/NotificationHost';
 import { Menu } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
+  /**
+   * The page draws its own full-bleed header band and panes. Pages not yet rebuilt for the Ledger
+   * redesign leave it off and sit in the old centred, padded container.
+   */
+  fullBleed?: boolean;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+const MAIN_TABS: TopBarTab[] = [
+  { id: 'calculators', label: 'Calculators', href: '/' },
+  { id: 'quotes', label: 'Quotes', href: '/quotes/board' },
+  { id: 'catalog', label: 'Catalog', href: '/materials' },
+];
+
+/** The top tab a route belongs to: a calculator open at /calculator is under Calculators, an open quote under Quotes. */
+export function mainTabFor(pathname: string): string {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  const under = (route: string) => path === route || path.startsWith(`${route}/`);
+  if (['/materials', '/labor', '/functions'].some(under)) return 'catalog';
+  if (under('/quotes')) return 'quotes';
+  if (path === '/' || under('/calculator')) return 'calculators';
+  return '';
+}
+
+export const Layout: React.FC<LayoutProps> = ({ children, fullBleed = false }) => {
   const pathname = usePathname();
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -51,6 +73,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     setShowImportModal(true);
   };
 
+  const openPackExport = () => {
+    setIsNavOpen(false);
+    setShowPackExport(true);
+  };
+
+  // Use-only mode hides the Catalog.
+  const tabs = useOnly ? MAIN_TABS.filter((tab) => tab.id !== 'catalog') : MAIN_TABS;
+
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <a
@@ -60,19 +90,29 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         Skip to main content
       </a>
 
-      <header className="lg:hidden sticky top-0 z-30 h-app-header flex items-center gap-3 px-4 bg-sunken-2 border-b border-border">
-        <button
-          ref={navTriggerRef}
-          type="button"
-          onClick={() => setIsNavOpen(true)}
-          aria-label="Open navigation"
-          aria-expanded={isNavOpen}
-          aria-controls="app-sidebar"
-          className="p-2 -ml-2 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <AppBrand />
+      <header className="sticky top-0 z-30 bg-canvas">
+        <TopBar
+          className="hidden lg:flex"
+          tabs={tabs}
+          active={mainTabFor(pathname)}
+          brandHref="/"
+          right={<SettingsMenu placement="down" onImportData={openImportData} onExportPack={openPackExport} />}
+        />
+        {/* Below lg the tabs collapse into the Menu drawer. */}
+        <div className="lg:hidden h-app-header flex items-center gap-3 px-4 border-b border-border">
+          <button
+            ref={navTriggerRef}
+            type="button"
+            onClick={() => setIsNavOpen(true)}
+            aria-label="Open navigation"
+            aria-expanded={isNavOpen}
+            aria-controls="app-sidebar"
+            className="p-2 -ml-2 rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <AppBrand />
+        </div>
       </header>
 
       {isNavOpen && (
@@ -88,10 +128,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         isOpen={isNavOpen}
         onClose={closeNav}
         onImportData={openImportData}
-        onExportPack={() => {
-          setIsNavOpen(false);
-          setShowPackExport(true);
-        }}
+        onExportPack={openPackExport}
       />
 
       <ModalDialog
@@ -112,11 +149,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <PackExporter onClose={() => setShowPackExport(false)} />
       </ModalDialog>
 
-      <div className="pl-sidebar">
-        <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {hidden ? <HiddenInUseOnlyMode /> : children}
-        </main>
-      </div>
+      <main id="main-content" className={fullBleed ? undefined : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}>
+        {hidden ? (
+          <div className={fullBleed ? 'p-6' : undefined}>
+            <HiddenInUseOnlyMode />
+          </div>
+        ) : (
+          children
+        )}
+      </main>
       <NotificationHost />
     </div>
   );
