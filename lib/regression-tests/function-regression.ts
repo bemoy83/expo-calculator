@@ -193,3 +193,19 @@ assertCheck(
     saveData.formula === 'width * height' &&
     saveData.category === 'Geometry'
 );
+
+// A parameter's chosen kind ("Expects") is saved; one left on Automatic stays unset.
+const kindSaveData = buildFunctionSaveData({
+  formData: { displayName: 'Sheets', name: 'sheets', description: '', formula: 'area / board.width', category: '' },
+  validParameters: [
+    { name: 'area', label: 'Area', kind: 'number' },
+    { name: 'board', label: 'Board', kind: 'material' },
+    { name: 'painted', label: 'Painted', kind: 'boolean' },
+    { name: 'waste', label: 'Waste' },
+  ],
+});
+assertCheck(
+  'saves each parameter’s chosen kind and leaves Automatic unset',
+  kindSaveData.parameters.map((param) => param.kind).join(',') === 'number,material,boolean,' &&
+    !('kind' in kindSaveData.parameters[3])
+);

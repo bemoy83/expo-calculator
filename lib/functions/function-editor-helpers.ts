@@ -309,6 +309,8 @@ export function buildFunctionSaveData(input: {
       unitCategory: param.unitCategory,
       unitSymbol: param.unitSymbol,
       required: param.required !== false,
+      // What the parameter expects, when chosen ("Expects"); left out it's inferred from the formula.
+      ...(param.kind ? { kind: param.kind } : {}),
     })),
     category: input.formData.category.trim() || undefined,
   };
