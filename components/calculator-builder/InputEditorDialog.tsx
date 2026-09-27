@@ -315,8 +315,17 @@ export function InputEditorDialog({
 
         {draft.kind === 'choice' && (
           <div>
-            <span className={FIELD_LABEL}>Values {draft.unitSymbol && `(in ${displayUnit(draft.unitSymbol)})`}</span>
+            <span className={FIELD_LABEL}>Choices</span>
             <div className="space-y-2">
+              {/* What each field is: they often hold the same number ("60" shown, 60 used), which
+                  looked like duplicates once the placeholders were gone. */}
+              {draft.options.length > 0 && (
+                <div aria-hidden="true" className="flex items-end gap-2 -mb-1 text-xs text-ink-faint">
+                  <span className="flex-1">Staff see</span>
+                  <span className="flex-1">Value in formulas{draft.unitSymbol && ` (${displayUnit(draft.unitSymbol)})`}</span>
+                  <span className="w-8 shrink-0" />
+                </div>
+              )}
               {draft.options.map((option, index) => (
                 <div key={option.id} className="flex items-center gap-2">
                   <Input
@@ -357,7 +366,7 @@ export function InputEditorDialog({
                   />
                   <button
                     type="button"
-                    aria-label={`Remove value ${option.label || index + 1}`}
+                    aria-label={`Remove choice ${option.label || index + 1}`}
                     onClick={() => set({ options: draft.options.filter((candidate) => candidate.id !== option.id) })}
                     className="p-2 rounded-md text-ink-muted hover:text-danger hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                   >
@@ -372,7 +381,7 @@ export function InputEditorDialog({
                 onClick={() => set({ options: [...draft.options, { id: generateId(), label: '', value: '' }] })}
               >
                 <Plus className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                Add value
+                Add choice
               </Button>
               {showErrors && optionProblem && <p className="text-xs text-danger">{optionProblem}</p>}
             </div>
