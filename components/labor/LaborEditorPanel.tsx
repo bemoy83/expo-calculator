@@ -200,8 +200,19 @@ export function LaborEditorPanel({
   return (
     <CatalogEditorPanel
       title={isCreating ? 'New labor' : 'Edit labor'}
-      subtitle={isCreating ? undefined : `used in ${usageCount} ${usageCount === 1 ? 'calculator' : 'calculators'}`}
-      submitLabel={isCreating ? 'Create' : 'Save'}
+      heading={formData.name.trim() || (isCreating ? 'New labor' : 'Labor')}
+      note={
+        isCreating ? undefined : (
+          <>
+            Used by{' '}
+            <span className="font-semibold text-ink">
+              {usageCount} {usageCount === 1 ? 'calculator' : 'calculators'}
+            </span>
+            . Rate changes apply to open quotes next time they recalculate.
+          </>
+        )
+      }
+      submitLabel={isCreating ? 'Add labor' : 'Save labor'}
       onSubmit={handleSubmit}
       onClose={onClose}
       onDelete={laborItem && onDelete ? () => onDelete(laborItem.id) : undefined}
@@ -232,7 +243,7 @@ export function LaborEditorPanel({
           onChange={(event) => setFormData({ ...formData, variableName: event.target.value })}
           error={errors.variableName}
           required
-          className="font-numeric"
+          className="font-numeric text-token-input"
         />
       </div>
 

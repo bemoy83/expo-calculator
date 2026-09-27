@@ -11,6 +11,22 @@
   display: none;
 }
 
+/* LedgerRow's hoverCell (⋯ → Delete): shown only on hover, focus or selection where the device can
+   hover; touch screens always show it. */
+.ledger-idle {
+  display: none;
+}
+
+@media (hover: hover) {
+  .ledger-row:not(:hover):not(:focus-within):not([data-selected]) .ledger-idle {
+    display: inline;
+  }
+
+  .ledger-row:not(:hover):not(:focus-within):not([data-selected]) .ledger-hover {
+    display: none;
+  }
+}
+
 /* Row actions inside a `.group`: always visible on touch, revealed by hover or keyboard focus elsewhere */
 @media (hover: hover) {
   .row-action {

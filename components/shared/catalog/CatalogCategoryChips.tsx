@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+import { FilterChip } from '@/components/ui/Chip';
 
 interface CatalogCategoryChipsProps {
   categories: string[];
@@ -11,6 +11,8 @@ interface CatalogCategoryChipsProps {
   onSelect: (category: string) => void;
 }
 
+// Category filters (mockup 3c): All plus each category with its count. Choosing the active
+// category again goes back to All.
 export function CatalogCategoryChips({
   categories,
   counts,
@@ -30,24 +32,14 @@ export function CatalogCategoryChips({
       {options.map((option) => {
         const active = option.value === selected;
         return (
-          <button
+          <FilterChip
             key={option.value}
-            type="button"
-            aria-pressed={active}
+            selected={active}
+            count={option.count}
             onClick={() => onSelect(active && option.value !== 'all' ? 'all' : option.value)}
-            className={cn(
-              'inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-medium border transition-colors',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-              active
-                ? 'bg-action-solid text-on-accent border-transparent'
-                : 'bg-surface text-ink-body border-border-strong hover:bg-surface-hover'
-            )}
           >
             {option.label}
-            <span className={cn('font-numeric', active ? 'text-on-accent/70' : 'text-ink-faint')}>
-              {option.count}
-            </span>
-          </button>
+          </FilterChip>
         );
       })}
     </div>

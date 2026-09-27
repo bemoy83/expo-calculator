@@ -38,12 +38,13 @@ JSON files.
 | Functions | `functions-store` | Typed, unit-aware parameters with a kind (number, material, labor, yes/no); can call other functions |
 | Catalogs | `materials-store`, `labor-store`, `categories-store` | Materials have a default price (Price / Per) plus price properties (`price_per_m2`, …) and other properties; labor has a rate |
 | Calculators | `calculators-store` | `lib/calculator/types.ts`: inputs, parts, steps, layout, optional quote cost step |
-| Quotes | `quotes-store` | Line items hold `calculatorId`, the calculator's values, and the kept cost (`unfinished` when it can't calculate); the quote page shows them as editable cards. Never exported or imported |
+| Quotes | `quotes-store` | Line items hold `calculatorId`, the calculator's values, and the kept cost (`unfinished` when it can't calculate); the quote page lists them and edits the open one. Never exported or imported |
 | Device settings | `device-store` | Use-only mode, the calculator pack loaded, the last pack exported; per browser, never exported |
 
 Retired: modules, templates, field linking and the module quote workspace (removed in step
 10). The quote page became a workspace of calculator cards again afterwards (W1–W2 in
-CALCULATOR_DESIGN.md, "Quote workspace").
+CALCULATOR_DESIGN.md, "Quote workspace"); the Ledger redesign turned the cards into a
+lines list with one line open in an editor.
 On first load their stored data becomes calculators (`lib/calculator/legacy.ts`), and old
 export files with modules/templates still import. `CalculationModule` and `ModuleTemplate`
 remain only as types for that conversion.
@@ -51,7 +52,8 @@ remain only as types for that conversion.
 ## Architecture
 
 ### Pages (`app/`)
-- `/` — Calculators, grouped by category; shows the loaded pack's date
+- `/` — Calculators by category, with the chosen one (`?id=`) in a quick view; shows the
+  loaded pack's date
 - `/calculator?id=…` — staff view of a calculator; `/calculator/edit[?id=…]` — the builder
 - `/quotes/board` — quotes list; `/quotes` — the open quote
 - `/functions`, `/materials`, `/labor` — the library pages
@@ -75,25 +77,32 @@ export can't have a page per calculator.
 - `lib/formula/` — parser, validator, unit validation, math runtime (mathjs)
 - `lib/functions/`, `lib/catalog/` (price conversion), `lib/quotes/` (line items and
   rebuilding them, board, export/print, `workspace.ts`: adding, duplicating, moving and
-  removing cards)
+  removing lines)
 - `lib/utils/data-export.ts`, `data-import.ts` — export format 2.0.0 (`kind: 'pack'` marks
   a calculator pack); import validates, converts old files, merges or replaces
 
 ### Components (`components/`)
-- `calculator/` — staff view (`CalculatorRunView`, `CalculatorForm` shared with quote
-  cards, layout renderer, inputs by widget, results, `SendToQuoteDialog`) and the
-  Calculators list
-- `quotes/` — `QuoteView` (cards and the quote sheet), `QuoteLineCard`,
-  `AddCalculatorDialog`, `QuoteSummaryCard`
-- `calculator-builder/` — `CalculatorBuilder` (Parts | Layout tabs), part cards, step
-  editors (function call or formula), input dialog, layout canvas and inspector, condition
-  editor
+- `calculator/` — staff view (`CalculatorRunView` full size and `CalculatorQuickView`,
+  `useCalculatorRun`, `CalculatorForm` shared with the quote line editor,
+  `CalculatorLivePane` with results and Send to quote, layout renderer, inputs by widget,
+  results, `SendToQuoteDialog`) and the Calculators list
+- `quotes/` — `QuoteView` (lines, line editor, receipt), `QuoteLineEditor`,
+  `AddCalculatorDialog`, `QuoteSummaryCard` (the receipt)
+- `calculator-builder/` — `CalculatorBuilder` (Parts | Layout), `PartSteps` and
+  `PartLivePane`, step rows and editors (function call or formula), input dialog, layout
+  canvas and inspector, condition editor
 - `function-editor/`, `materials/`, `labor/`
-- `AppSidebar.tsx` (navigation and the Settings menu: appearance, currency, use-only mode,
-  export/import), `Layout.tsx` (shell, import and pack export dialogs, use-only page gate),
-  `DataImporter.tsx`, `PackExporter.tsx`
-- `ui/` primitives (Button, Card, Chip, Input, Select, Checkbox, Textarea) and `shared/`
-  (ModalDialog, ConfirmDialog, NotificationHost, EmptyState, SortableList, …)
+- `TopBar.tsx` (the top tabs from lg), `AppSidebar.tsx` (the navigation drawer below lg,
+  and the Settings menu: appearance, currency, use-only mode, export/import), `Layout.tsx`
+  (shell, import and pack export dialogs, use-only page gate; pages draw their own header
+  band and panes), `DataImporter.tsx`, `PackExporter.tsx`
+- `ui/` primitives (Button, Chip/FilterChip, Input, Select, Checkbox, Textarea, Toggle,
+  Segmented, Field, SearchInput, RailRow, LedgerTable, DashedAdd, Eyebrow, Card), `live/`
+  (LiveLabel, ResultRow, CommitBlock: the one inverted total per screen), and `shared/`
+  (PageHeader, ModalDialog, ConfirmDialog, NotificationHost, EmptyState, SortableList, …)
+- Styling: the Ledger tokens in `app/globals.css` and `tailwind.config.ts`;
+  `design_handoff_ledger_redesign/` is the design reference (mockups, token source,
+  reference components)
 
 ### Hooks (`hooks/`)
 - `use-calculators.ts` — saved calculators and the library (materials, labor, functions)

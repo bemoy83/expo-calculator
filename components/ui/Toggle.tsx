@@ -12,16 +12,28 @@ interface ToggleProps {
   disabled?: boolean;
   id?: string;
   className?: string;
+  'aria-describedby'?: string;
 }
 
 // A yes/no input as a switch (Ledger controls/Toggle.jsx). The knob slides; on = accent track.
-export function Toggle({ checked = false, onChange, label, meta, framed = true, disabled, id, className }: ToggleProps) {
+export function Toggle({
+  checked = false,
+  onChange,
+  label,
+  meta,
+  framed = true,
+  disabled,
+  id,
+  className,
+  'aria-describedby': describedBy,
+}: ToggleProps) {
   return (
     <button
       id={id}
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-describedby={describedBy}
       disabled={disabled}
       onClick={() => onChange?.(!checked)}
       className={cn(

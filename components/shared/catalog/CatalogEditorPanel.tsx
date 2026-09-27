@@ -3,12 +3,16 @@
 import React, { useState } from 'react';
 import { Edit2, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 
 interface CatalogEditorPanelProps {
+  /** Eyebrow, e.g. "Edit material" */
   title: string;
-  /** e.g. "used in 4 calculators"; omitted while creating. */
-  subtitle?: string;
+  /** The item's name, shown large under the eyebrow */
+  heading: string;
+  /** Above the buttons, e.g. "Used by 3 calculators. Price changes apply…"; omitted while creating. */
+  note?: React.ReactNode;
   submitLabel: string;
   onSubmit: (event: React.FormEvent) => void;
   onClose: () => void;
@@ -22,7 +26,8 @@ interface CatalogEditorPanelProps {
 // and a Delete / Cancel / Save footer.
 export function CatalogEditorPanel({
   title,
-  subtitle,
+  heading,
+  note,
   submitLabel,
   onSubmit,
   onClose,
@@ -33,47 +38,43 @@ export function CatalogEditorPanel({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   return (
-    <aside
-      aria-label={title}
-      className="flex flex-col rounded-lg border border-border-strong bg-surface shadow-panel lg:max-h-[calc(100vh-var(--app-header-h)-3rem)]"
-    >
-      <form onSubmit={onSubmit} className="flex flex-col min-h-0" noValidate>
-        <div className="flex items-start gap-3 px-4 py-3 border-b border-border">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-ink">{title}</h2>
-            {subtitle && <p className="text-xs text-ink-muted">{subtitle}</p>}
+    <aside aria-label={title} className="h-full flex flex-col">
+      <form onSubmit={onSubmit} className="h-full flex flex-col min-h-0 px-6 py-5 gap-4" noValidate>
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <Eyebrow as="h2">{title}</Eyebrow>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close editor"
+              className="p-1 -mr-1 rounded text-ink-faint hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close editor"
-            className="p-1 -mr-1 rounded text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
+          <p className="mt-4 pb-1.5 border-b border-border-strong text-[22px] font-bold tracking-[-.02em] text-ink break-words">
+            {heading}
+          </p>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">{children}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 space-y-4">{children}</div>
 
-        <div className="flex items-center gap-2 px-4 py-3 border-t border-border">
-          {onDelete && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setConfirmingDelete(true)}
-              className="text-danger hover:text-danger"
-            >
-              Delete
+        <div className="flex flex-col gap-3">
+          {note && <p className="text-[13px] leading-[1.45] text-ink-muted">{note}</p>}
+          <div className="flex gap-2">
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="px-3.5 py-3 rounded-row border border-border-strong text-sm font-semibold text-danger transition-colors hover:bg-danger-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              >
+                Delete
+              </button>
+            )}
+            <Button type="submit" variant="primary" block className="flex-1 h-auto py-3 text-sm">
+              {submitLabel}
             </Button>
-          )}
-          <div className="flex-1" />
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm">
-            {submitLabel}
-          </Button>
+          </div>
         </div>
       </form>
 
@@ -110,14 +111,15 @@ export function FormulaReference({ variableName, value }: { variableName: string
 
 export function PanelSectionHeading({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-2 pt-1">
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">{children}</h3>
+    <div className="flex items-center justify-between gap-2 pt-3.5 border-t border-border">
+      <Eyebrow as="h3">{children}</Eyebrow>
       {aside}
     </div>
   );
 }
 
-// A saved property: its name, its formula reference, and its value, with edit and remove.
+// A saved property as a result line (mockup 3c): its formula reference, a dotted leader and its
+// value, with edit and remove. The property's name is in the tooltip and the buttons' labels.
 export function CatalogPropertyRow({
   name,
   reference,
@@ -132,18 +134,18 @@ export function CatalogPropertyRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="group flex items-center gap-3 py-2 border-b border-border last:border-b-0">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-ink truncate">{name}</p>
-        <code className="block text-xs font-numeric text-token-input truncate">{reference}</code>
-      </div>
-      <span className="text-sm font-numeric text-ink-body shrink-0">{value}</span>
-      <div className="flex shrink-0">
+    <div className="group flex items-baseline gap-2.5 py-1 text-sm">
+      <code title={name} className="min-w-0 truncate font-numeric text-token-input">
+        {reference}
+      </code>
+      <span aria-hidden="true" className="flex-1 min-w-4 border-b border-dotted border-border-strong" />
+      <span className="font-numeric text-ink shrink-0">{value}</span>
+      <div className="flex shrink-0 self-center">
         <button
           type="button"
           onClick={onEdit}
           aria-label={`Edit property ${name}`}
-          className="p-1.5 rounded text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+          className="row-action p-1 rounded text-ink-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           <Edit2 className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
@@ -151,7 +153,7 @@ export function CatalogPropertyRow({
           type="button"
           onClick={onRemove}
           aria-label={`Remove property ${name}`}
-          className="p-1.5 rounded text-ink-muted hover:text-danger hover:bg-danger-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+          className="row-action p-1 rounded text-ink-muted hover:text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
         </button>

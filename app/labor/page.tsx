@@ -73,12 +73,14 @@ export default function LaborPage() {
 
   return (
     <CatalogPageShell
+      tab="labor"
+      editorPlaceholder="Choose a labor item to edit it, or add one with + New labor."
       title="Labor"
       addLabel="New labor"
       searchPlaceholder="Search name, variable…"
-      firstItemLabel="Add Your First Labor Item"
-      emptyTitle="No Labor Items Yet"
-      emptyFilteredTitle="No Labor Items Found"
+      firstItemLabel="Add your first labor item"
+      emptyTitle="No labor items yet"
+      emptyFilteredTitle="No labor items found"
       emptyDescription="Add your first labor item to start building your catalog."
       emptyFilteredDescription="Try adjusting your search or filter criteria."
       emptyIcon={Users}

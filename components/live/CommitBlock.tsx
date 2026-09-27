@@ -73,7 +73,13 @@ export function CommitBlock({
 
   if (layout === 'row') {
     return (
-      <div className={cn(base, 'flex items-center gap-6 px-[22px] py-[18px] rounded-inverse', className)}>
+      <div
+        className={cn(
+          base,
+          'flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:gap-6 px-[22px] py-[18px] rounded-inverse',
+          className
+        )}
+      >
         <div className="flex-1 min-w-0">
           {eyebrow && <div className="font-numeric text-xs tracking-[.06em] uppercase opacity-60">{eyebrow}</div>}
           {title && <div className="mt-2 text-xl font-bold tracking-[-.015em]">{title}</div>}

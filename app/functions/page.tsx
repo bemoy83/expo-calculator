@@ -1,149 +1,165 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FunctionSquare } from 'lucide-react';
 import { Layout } from '@/components/Layout';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { EntityCard } from '@/components/shared/EntityCard';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { CatalogTabs, useCatalogTabItems } from '@/components/shared/catalog/CatalogTabs';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
-import { describeFunctionUsage, findFunctionUsage, formatFunctionSignature } from '@/lib/functions/function-usage';
+import { RailRow } from '@/components/ui/RailRow';
+import { findFunctionUsage, formatFunctionSignature } from '@/lib/functions/function-usage';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
-import { SharedFunction } from '@/lib/types';
-import { Plus, FunctionSquare, Trash2 } from 'lucide-react';
 import { FunctionEditorView } from './FunctionEditorView';
-import { FormulaLegend, FormulaText } from '@/components/formula/FormulaText';
-import { useCalculatorLibrary } from '@/hooks/use-calculators';
-import { functionFormulaNames } from '@/lib/calculator/formula-tokens';
 
+// Catalog · Functions (mockup 3d): a rail of functions, the chosen one's editor, and a live test run.
 export default function FunctionsPage() {
   const functions = useFunctionsStore((state) => state.functions);
-  const library = useCalculatorLibrary();
-  const deleteFunction = useFunctionsStore((state) => state.deleteFunction);
   const calculators = useCalculatorsStore((state) => state.calculators);
-  const [editingFunctionId, setEditingFunctionId] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
+  const tabs = useCatalogTabItems();
+  // The stores load from localStorage, so show them only after mount (prerender = first render).
+  const [mounted, setMounted] = useState(false);
+  // A saved function's id, 'new' while creating one, or null for nothing chosen.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Bumped after a save, so the editor reopens from what was saved.
+  const [editorVersion, setEditorVersion] = useState(0);
+  const [dirty, setDirty] = useState(false);
+  const [pendingSelection, setPendingSelection] = useState<string | null | undefined>(undefined);
 
-  const handleCloseEditor = () => {
-    setEditingFunctionId(null);
-    setShowCreate(false);
+  useEffect(() => setMounted(true), []);
+
+  // Start on the first function; move off one that was deleted.
+  useEffect(() => {
+    if (!mounted) return;
+    if (selectedId === null || (selectedId !== 'new' && !functions.some((func) => func.id === selectedId))) {
+      setSelectedId(functions[0]?.id ?? null);
+    }
+  }, [mounted, functions, selectedId]);
+
+  const select = (id: string | null) => {
+    if (id === selectedId) return;
+    if (dirty) {
+      setPendingSelection(id);
+      return;
+    }
+    setDirty(false);
+    setSelectedId(id);
   };
 
-  if (showCreate || editingFunctionId) {
-    return (
-      <FunctionEditorView
-        functionId={showCreate ? 'new' : editingFunctionId!}
-        onClose={handleCloseEditor}
-      />
-    );
-  }
+  const usageCounts = useMemo(
+    () =>
+      new Map(
+        functions.map((func) => {
+          const usage = findFunctionUsage(func.name, functions, func.id, calculators);
+          return [func.id, usage.calculators.length + usage.functions.length];
+        })
+      ),
+    [functions, calculators]
+  );
+
+  const handleSaved = useCallback((id: string) => {
+    setDirty(false);
+    setSelectedId(id);
+    setEditorVersion((version) => version + 1);
+  }, []);
+
+  const handleDiscard = () => {
+    setDirty(false);
+    if (selectedId === 'new') setSelectedId(functions[0]?.id ?? null);
+    else setEditorVersion((version) => version + 1);
+  };
+
+  const pendingName = (() => {
+    if (selectedId === 'new') return 'the new function';
+    const func = functions.find((item) => item.id === selectedId);
+    return func ? `“${func.displayName || func.name}”` : 'this function';
+  })();
 
   return (
     <Layout>
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Functions</h1>
-          <p className="text-xs text-ink-muted">
-            {functions.length} {functions.length === 1 ? 'function' : 'functions'} · reusable calculations to call from calculators
-          </p>
-        </div>
-        <Button onClick={() => setShowCreate(true)} className="shrink-0">
-          <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
-          New function
-        </Button>
-      </div>
-
-      {functions.length === 0 ? (
-        <EmptyState
-          icon={FunctionSquare}
-          title="No functions yet"
-          description="Create reusable functions to use across your calculators and formulas."
-          iconSize="small"
+      <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
+        <PageHeader
+          eyebrow="Catalog · Reusable calculations"
+          title="Catalog"
           actions={
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
-              New function
+            <Button variant="accent" onClick={() => select('new')}>
+              + New function
             </Button>
           }
-        />
-      ) : (
-        <>
-        <FormulaLegend inputLabel="parameter" className="mb-3" />
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {functions.map((func) => {
-            const title = func.displayName || func.name;
-            const usage = findFunctionUsage(func.name, functions, func.id, calculators);
-            const usageCount = usage.functions.length + usage.calculators.length;
-            return (
-              <EntityCard
-                key={func.id}
-                title={title}
-                category={func.category}
-                description={func.description}
-                onClick={() => setEditingFunctionId(func.id)}
-                actions={[
-                  {
-                    icon: Trash2,
-                    actionType: 'delete',
-                    onAction: () => deleteFunction(func.id),
-                    ariaLabel: `Delete function: ${title}`,
-                    confirmation: {
-                      title: `Delete "${title}"?`,
-                      message:
-                        usageCount > 0
-                          ? `It's used by ${describeFunctionUsage(usage)}. Deleting it will stop those formulas from calculating.`
-                          : 'It isn’t used by any calculator or function.',
-                    },
-                  },
-                ]}
-                sections={[
-                  {
-                    label: 'Call as',
-                    content: (
-                      <div>
-                        <FormulaText
-                          expression={formatFunctionSignature(func)}
-                          names={functionFormulaNames(func, library)}
-                          className="block text-[13px] font-medium text-ink-muted break-all"
-                        />
-                        <p className={`mt-1 text-xs ${usageCount > 0 ? 'text-ink-muted' : 'text-ink-faint'}`}>
-                          {usageCount > 0 ? `Used by ${describeFunctionUsage(usage)}` : 'Not used yet'}
-                        </p>
-                      </div>
-                    ),
-                    spacing: 'small',
-                  },
-                  {
-                    label: 'Parameters',
-                    content: (
-                      <div className="flex flex-wrap gap-1.5">
-                        {func.parameters.map((param) => (
-                          <Chip key={param.name} size="sm" variant="flat" className="text-token-input">
-                            {param.label}
-                            {param.unitSymbol && <span className="ml-1 font-numeric opacity-70">{param.unitSymbol}</span>}
-                          </Chip>
-                        ))}
-                      </div>
-                    ),
-                    spacing: 'small',
-                  },
-                  {
-                    label: 'Formula',
-                    content: (
-                      <code className="block px-2.5 py-2 rounded-md bg-sunken text-xs leading-relaxed font-numeric text-ink-body whitespace-pre-wrap break-words">
-                        <FormulaText expression={func.formula} names={functionFormulaNames(func, library)} />
-                        {func.returnUnitSymbol && <span className="text-ink-faint"> → {func.returnUnitSymbol}</span>}
-                      </code>
-                    ),
-                    spacing: 'small',
-                  },
-                ]}
+        >
+          <CatalogTabs items={tabs} active="functions" />
+        </PageHeader>
+
+        {mounted && functions.length === 0 && selectedId !== 'new' ? (
+          <div className="px-4 sm:px-6 py-10">
+            <EmptyState
+              icon={FunctionSquare}
+              title="No functions yet"
+              description="Create reusable functions to use across your calculators and formulas."
+              iconSize="small"
+              actions={
+                <Button variant="accent" onClick={() => select('new')}>
+                  + New function
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)_340px] lg:flex-1 lg:min-h-0">
+            <nav
+              aria-label="Functions"
+              className="flex flex-col gap-1 px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto"
+            >
+              {selectedId === 'new' && <RailRow title="New function" subtitle="Not saved yet" selected />}
+              {mounted &&
+                functions.map((func) => (
+                  <RailRow
+                    key={func.id}
+                    title={func.displayName || func.name}
+                    subtitle={<span className="font-numeric">{formatFunctionSignature(func)}</span>}
+                    value={<span className="text-xs text-ink-faint">{usageCounts.get(func.id) ?? 0}</span>}
+                    selected={func.id === selectedId}
+                    onClick={() => select(func.id)}
+                  />
+                ))}
+            </nav>
+
+            {mounted && selectedId && (
+              <FunctionEditorView
+                key={`${selectedId}:${editorVersion}`}
+                functionId={selectedId}
+                onSaved={handleSaved}
+                onDiscard={handleDiscard}
+                onDeleted={() => {
+                  setDirty(false);
+                  setSelectedId(null);
+                }}
+                onDuplicated={(id) => {
+                  setDirty(false);
+                  setSelectedId(id);
+                }}
+                onDirtyChange={setDirty}
               />
-            );
-          })}
-        </div>
-        </>
-      )}
+            )}
+          </div>
+        )}
+      </div>
+
+      <ConfirmDialog
+        isOpen={pendingSelection !== undefined}
+        title="Discard your changes?"
+        message={`Your changes to ${pendingName} aren't saved. Switching now throws them away.`}
+        confirmLabel="Discard changes"
+        destructive
+        onConfirm={() => {
+          setDirty(false);
+          setSelectedId(pendingSelection ?? null);
+          setPendingSelection(undefined);
+        }}
+        onCancel={() => setPendingSelection(undefined)}
+      />
     </Layout>
   );
 }

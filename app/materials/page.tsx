@@ -76,12 +76,14 @@ export default function MaterialsPage() {
 
   return (
     <CatalogPageShell
+      tab="materials"
+      editorPlaceholder="Choose a material to edit it, or add one with + New material."
       title="Materials"
       addLabel="New material"
       searchPlaceholder="Search name, SKU, variable…"
-      firstItemLabel="Add Your First Material"
-      emptyTitle="No Materials Yet"
-      emptyFilteredTitle="No Materials Found"
+      firstItemLabel="Add your first material"
+      emptyTitle="No materials yet"
+      emptyFilteredTitle="No materials found"
       emptyDescription="Add your first material to start building your catalog."
       emptyFilteredDescription="Try adjusting your search or filter criteria."
       emptyIcon={Package}

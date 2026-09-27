@@ -12,8 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import { GripVertical } from 'lucide-react';
 import {
   CalculatorLayoutItem,
   SectionHeading,
@@ -80,8 +79,8 @@ function CanvasItem({
       className={cn(
         itemSpan(item),
         'relative group rounded-md p-1.5 -m-1.5 outline-offset-0 transition-[outline-color]',
-        selected ? 'outline outline-2 outline-action' : 'outline outline-1 outline-transparent hover:outline-border-strong',
-        isDragging && 'z-10 opacity-80 bg-surface shadow-panel'
+        selected ? 'outline outline-2 outline-accent' : 'outline outline-1 outline-transparent hover:outline-border-strong',
+        isDragging && 'z-10 opacity-80 bg-surface'
       )}
       // Selecting on any interaction, so typing a test value also selects the input.
       onMouseDownCapture={onSelect}
@@ -138,11 +137,11 @@ function CanvasSection({
   const sectionSelected = selection?.type === 'section' && selection.sectionId === section.id;
 
   return (
-    <Card
+    <section
       className={cn(
-        'p-4 sm:p-5',
-        !preview && sectionSelected && 'outline outline-2 outline-action',
-        !preview && isOver && 'outline outline-2 outline-dashed outline-action/60'
+        'px-[18px] py-4 rounded-lg bg-canvas border border-border-strong',
+        !preview && sectionSelected && 'outline outline-2 outline-accent',
+        !preview && isOver && 'outline outline-2 outline-dashed outline-accent/60'
       )}
     >
       {!preview && (
@@ -151,9 +150,9 @@ function CanvasSection({
           onClick={() => onSelect({ type: 'section', sectionId: section.id })}
           aria-pressed={sectionSelected}
           className={cn(
-            '-mt-1 mb-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.12em]',
+            '-mt-1 mb-2 inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-numeric text-[11px] uppercase tracking-[.06em]',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-            sectionSelected ? 'bg-action-solid text-on-accent' : 'bg-sunken text-ink-muted hover:text-ink'
+            sectionSelected ? 'bg-accent text-accent-ink font-semibold' : 'bg-sunken text-ink-faint hover:text-ink'
           )}
         >
           Section{section.title ? ` · ${section.title}` : ''}
@@ -167,7 +166,7 @@ function CanvasSection({
       )}
       <SectionHeading section={section} />
       <SortableContext items={keys} strategy={rectSortingStrategy}>
-        <div ref={setNodeRef} className={cn('grid grid-cols-1 sm:grid-cols-6 gap-x-4 gap-y-3', !preview && 'min-h-[48px]')}>
+        <div ref={setNodeRef} className={cn('grid grid-cols-1 sm:grid-cols-6 gap-3', !preview && 'min-h-[48px]')}>
           {section.items.map((item, index) => (
             <CanvasItem
               key={keys[index]}
@@ -186,7 +185,7 @@ function CanvasSection({
           )}
         </div>
       </SortableContext>
-    </Card>
+    </section>
   );
 }
 
@@ -213,8 +212,8 @@ export function LayoutCanvas({
   );
   const { calculator } = context;
   const visible = calculator.layout.filter((section) => !preview || isShown(section.visibleWhen, context));
-  const main = visible.filter((section) => !isResultSection(section));
-  const side = visible.filter(isResultSection);
+  // One column, as on a phone: input sections, then the sections holding only results.
+  const ordered = [...visible.filter((section) => !isResultSection(section)), ...visible.filter(isResultSection)];
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
@@ -246,21 +245,17 @@ export function LayoutCanvas({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
-      <div className={cn('grid gap-5', side.length > 0 && '2xl:grid-cols-[minmax(0,1fr)_320px] items-start')}>
-        <div className="space-y-5 min-w-0 pl-5 -ml-5">
-          {main.map(renderSection)}
-          {!preview && (
-            <button
-              type="button"
-              onClick={onAddSection}
-              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong py-3 text-sm text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Add section
-            </button>
-          )}
-        </div>
-        {side.length > 0 && <div className="space-y-5 pl-5 -ml-5 2xl:sticky 2xl:top-8">{side.map(renderSection)}</div>}
+      <div className="flex flex-col gap-3.5 pl-5 -ml-5">
+        {ordered.map(renderSection)}
+        {!preview && (
+          <button
+            type="button"
+            onClick={onAddSection}
+            className="w-full p-3 rounded-lg border border-dashed border-border-strong text-center text-[13px] text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
+          >
+            + Add section
+          </button>
+        )}
       </div>
     </DndContext>
   );

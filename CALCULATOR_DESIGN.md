@@ -821,7 +821,12 @@ parameter list, "Try it") use the same colours.
 
 ## Quote workspace
 
-Status: design agreed 2026-09-26; W1–W3 built on `quote-workspace`.
+Status: design agreed 2026-09-26; W1–W3 built on `quote-workspace`. The Ledger redesign
+(2026-09-27, `design_handoff_ledger_redesign/`, mockup 1a) keeps these decisions but draws
+the cards differently: the lines are a list on the left (number, name, summary, cost), the
+chosen line's calculator is edited in the middle with its results and line total, and the
+receipt (markup, VAT, the total, Export quote) is on the right. "Cards" below are those
+lines; closing a card no longer applies, and ⌘D duplicates the open line.
 
 The original quote builder's workflow was the intuitive one: load modules into the quote,
 fill them in, duplicate for each wall, mix in other modules, and see the total. Calculators

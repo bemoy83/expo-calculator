@@ -21,12 +21,13 @@ export function PageHeader({ eyebrow, title, description, status, editing = fals
   return (
     <div
       className={cn(
-        'flex items-end gap-4 px-6 pt-[22px] border-b border-border text-ink',
+        'flex flex-wrap items-end gap-x-4 gap-y-3 px-4 sm:px-6 pt-[22px] border-b border-border text-ink',
         children ? 'pb-0' : 'pb-[18px]',
         className
       )}
     >
-      <div className="flex-1 min-w-0">
+      {/* Wide enough for the title; on a phone the actions wrap underneath. */}
+      <div className="flex-1 min-w-[min(100%,16rem)]">
         {eyebrow && <div className="font-numeric text-xs uppercase tracking-[.04em] text-ink-faint">{eyebrow}</div>}
         <div className="flex flex-wrap items-baseline gap-3.5 mt-1">
           <h1
@@ -55,7 +56,7 @@ export function PageHeader({ eyebrow, title, description, status, editing = fals
         {description && <div className="mt-1 text-sm text-ink-muted">{description}</div>}
         {children && <div className="mt-3.5">{children}</div>}
       </div>
-      {actions && <div className={cn('flex items-center gap-2', children && 'pb-3.5')}>{actions}</div>}
+      {actions && <div className={cn('flex flex-wrap items-center gap-2', children && 'pb-3.5')}>{actions}</div>}
     </div>
   );
 }

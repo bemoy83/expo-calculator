@@ -1,15 +1,15 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { ArrowDown, ArrowUp, Minus, Pencil, Plus, Trash2, Type, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Minus, Pencil, Plus, Type, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Eyebrow } from '@/components/ui/Eyebrow';
+import { Segmented } from '@/components/ui/Segmented';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { FIELD_LABEL } from '@/components/ui/field-styles';
-import { SectionBar } from '@/components/shared/SectionBar';
 import { isStepShown, unplacedInputs, widgetsFor, type LayoutPosition } from '@/lib/calculator/editing';
 import type {
   Calculator,
@@ -21,7 +21,6 @@ import type {
   LayoutItemWidth,
   LayoutSection,
 } from '@/lib/calculator/types';
-import { cn } from '@/lib/utils';
 import { ConditionEditor } from './ConditionEditor';
 
 const WIDGET_LABEL: Record<InputWidget, string> = {
@@ -65,26 +64,49 @@ export interface LayoutInspectorActions {
   onDeselect: () => void;
 }
 
-function Panel({ title, onClose, children }: { title: string; onClose?: () => void; children: ReactNode }) {
+// The inspector (mockup 4c): what's selected as an eyebrow ("INPUT · IN VEGGEN"), its name
+// large with its formula name under it, then its settings.
+function Panel({
+  kind,
+  title,
+  detail,
+  onClose,
+  children,
+}: {
+  kind: string;
+  title: string;
+  detail?: ReactNode;
+  onClose?: () => void;
+  children: ReactNode;
+}) {
   return (
-    <Card className="p-4 space-y-4">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-ink truncate">{title}</h2>
+        <Eyebrow>{kind}</Eyebrow>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
             aria-label="Deselect"
-            className="p-1 rounded text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+            className="p-1 -mr-1 rounded text-ink-faint hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
       </div>
+      <div>
+        <h2 className="text-[22px] font-bold tracking-[-.02em] text-ink break-words">{title}</h2>
+        {detail && <div className="mt-0.5 font-numeric text-[13px]">{detail}</div>}
+      </div>
       {children}
-    </Card>
+    </div>
   );
 }
+
+const sectionName = (calculator: Calculator, sectionId: string) => {
+  const index = calculator.layout.findIndex((section) => section.id === sectionId);
+  return calculator.layout[index]?.title || `Section ${index + 1}`;
+};
 
 function PlacementControls({
   calculator,
@@ -134,8 +156,7 @@ function PlacementControls({
         >
           <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
-        <Button variant="ghost" size="sm" className="ml-auto text-danger" onClick={() => actions.onRemoveItem(position)}>
-          <Trash2 className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+        <Button variant="danger" size="sm" className="ml-auto" onClick={() => actions.onRemoveItem(position)}>
           {removeLabel}
         </Button>
       </div>
@@ -159,7 +180,7 @@ function SectionPanel({
   const hiddenSteps = calculator.steps.filter((step) => !isStepShown(calculator, step.id));
 
   return (
-    <Panel title={section.title || `Section ${index + 1}`} onClose={actions.onDeselect}>
+    <Panel kind="Section" title={section.title || `Section ${index + 1}`} onClose={actions.onDeselect}>
       <Input
         label="Title (optional)"
         value={section.title ?? ''}
@@ -239,8 +260,7 @@ function SectionPanel({
         >
           <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
-        <Button variant="ghost" size="sm" className="ml-auto text-danger" onClick={() => actions.onRemoveSection(section.id)}>
-          <Trash2 className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+        <Button variant="danger" size="sm" className="ml-auto" onClick={() => actions.onRemoveSection(section.id)}>
           Delete section
         </Button>
       </div>
@@ -270,31 +290,32 @@ function ItemPanel({
     const input = calculator.inputs.find((candidate) => candidate.id === item.inputId);
     const widgets = input ? widgetsFor(input.value.kind) : [];
     return (
-      <Panel title={input?.label ?? 'Deleted input'} onClose={actions.onDeselect}>
+      <Panel
+        kind={`Input · in ${sectionName(calculator, position.sectionId)}`}
+        title={input?.label ?? 'Deleted input'}
+        detail={
+          input && (
+            <span className="text-token-input">
+              {input.key}
+              {'unitSymbol' in input.value && input.value.unitSymbol ? ` · ${input.value.unitSymbol}` : ''}
+            </span>
+          )
+        }
+        onClose={actions.onDeselect}
+      >
         {input && (
           <>
             <div>
-              <span className={FIELD_LABEL}>Width</span>
-              <div role="radiogroup" aria-label="Width" className="flex gap-1 p-1 rounded-md bg-sunken">
-                {WIDTHS.map((width) => {
-                  const active = (item.width ?? 'half') === width.value;
-                  return (
-                    <button
-                      key={width.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => update({ ...item, width: width.value })}
-                      className={cn(
-                        'flex-1 h-7 rounded text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                        active ? 'bg-surface text-ink shadow-card' : 'text-ink-muted hover:text-ink'
-                      )}
-                    >
-                      {width.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <span id="layout-width-label" className={FIELD_LABEL}>
+                Width
+              </span>
+              <Segmented
+                aria-labelledby="layout-width-label"
+                block
+                options={WIDTHS}
+                value={item.width ?? 'half'}
+                onChange={(width) => update({ ...item, width })}
+              />
             </div>
             {widgets.length > 1 && (
               <Select
@@ -334,7 +355,12 @@ function ItemPanel({
   if (item.type === 'result') {
     const step = calculator.steps.find((candidate) => candidate.id === item.stepId);
     return (
-      <Panel title={step ? `Result · ${step.label || step.key}` : 'Deleted result'} onClose={actions.onDeselect}>
+      <Panel
+        kind={`Result · in ${sectionName(calculator, position.sectionId)}`}
+        title={step ? step.label || step.key : 'Deleted result'}
+        detail={step && <span className="text-token-result">{step.key}</span>}
+        onClose={actions.onDeselect}
+      >
         <Select
           label="Shows"
           value={item.stepId}
@@ -357,7 +383,7 @@ function ItemPanel({
 
   if (item.type === 'breakdown') {
     return (
-      <Panel title="Breakdown" onClose={actions.onDeselect}>
+      <Panel kind={`Breakdown · in ${sectionName(calculator, position.sectionId)}`} title={item.title || 'Breakdown'} onClose={actions.onDeselect}>
         <Input label="Title (optional)" value={item.title ?? ''} onChange={(event) => update({ ...item, title: event.target.value || undefined })} />
         <div>
           <span className={FIELD_LABEL}>Parts listed (their costs, then the total)</span>
@@ -386,7 +412,7 @@ function ItemPanel({
 
   if (item.type === 'text') {
     return (
-      <Panel title="Text" onClose={actions.onDeselect}>
+      <Panel kind={`Text · in ${sectionName(calculator, position.sectionId)}`} title="Text" onClose={actions.onDeselect}>
         <Textarea
           label="Text"
           rows={4}
@@ -400,7 +426,7 @@ function ItemPanel({
   }
 
   return (
-    <Panel title="Divider" onClose={actions.onDeselect}>
+    <Panel kind={`Divider · in ${sectionName(calculator, position.sectionId)}`} title="Divider" onClose={actions.onDeselect}>
       <PlacementControls calculator={calculator} position={position} actions={actions} removeLabel="Remove" />
     </Panel>
   );
@@ -428,33 +454,17 @@ export function LayoutInspector({
   }
 
   const unplaced = unplacedInputs(calculator);
-  const firstSection = calculator.layout[0];
   return (
-    <Card className="p-4 space-y-3">
-      <p className="text-sm text-ink-body">Select an item or a section on the page to change it, or drag items by their handle to move them.</p>
-      <SectionBar id="unplaced-inputs" title="Not on the page" count={unplaced.length} />
-      {unplaced.length === 0 ? (
-        <p className="text-xs text-ink-muted">Every input is on the page.</p>
-      ) : (
-        <ul className="space-y-1.5">
-          {unplaced.map((input) => (
-            <li key={input.id} className="flex items-center justify-between gap-2">
-              <span className="text-sm text-ink truncate">{input.label}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  firstSection ? actions.onInsertItem(firstSection.id, { type: 'input', inputId: input.id }) : actions.onAddSection()
-                }
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-                Place
-              </Button>
-            </li>
-          ))}
-        </ul>
+    <div className="flex flex-col gap-3">
+      <Eyebrow>Inspector</Eyebrow>
+      <p className="text-sm text-ink-body">
+        Select an item or a section on the form to change it, or drag items by their handle to move them.
+      </p>
+      {unplaced.length > 0 && (
+        <p className="text-xs text-ink-muted">
+          Staff can&apos;t fill in inputs that aren&apos;t on the form; their defaults are used. Place them from “Not placed”.
+        </p>
       )}
-      <p className="text-xs text-ink-muted">Staff can&apos;t fill in inputs that aren&apos;t on the page; their defaults are used.</p>
-    </Card>
+    </div>
   );
 }

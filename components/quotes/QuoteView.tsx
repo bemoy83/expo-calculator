@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronsDownUp, Download, Plus, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { DashedAdd } from '@/components/ui/DashedAdd';
+import { Eyebrow } from '@/components/ui/Eyebrow';
+import { RailRow } from '@/components/ui/RailRow';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { AddCalculatorDialog } from '@/components/quotes/AddCalculatorDialog';
-import { QuoteLineCard } from '@/components/quotes/QuoteLineCard';
+import { QuoteLineEditor } from '@/components/quotes/QuoteLineEditor';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
 import { useCalculatorLibrary, useCalculators } from '@/hooks/use-calculators';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
@@ -20,8 +23,8 @@ import type { Quote, QuoteLineItem } from '@/lib/types';
 
 type RateForm = { taxRate: number; markupPercent: number };
 
-// A quote as a workspace: its lines are calculator cards, filled in and changed in place,
-// beside the quote sheet with markup, VAT, the total, and export.
+// A quote as a workspace (mockup 1a): the lines in a rail, the chosen line's calculator filled
+// in and changed in place, and the receipt with markup, VAT, the total, and export.
 export function QuoteView({ quote }: { quote: Quote }) {
   const calculators = useCalculators();
   const library = useCalculatorLibrary();
@@ -42,19 +45,15 @@ export function QuoteView({ quote }: { quote: Quote }) {
   const runExport = (kind: 'print' | 'json') =>
     kind === 'print' ? printQuote(quote, formatCurrency) : downloadQuoteJson(quote);
   const requestExport = (kind: 'print' | 'json') => (unfinished.length > 0 ? setPendingExport(kind) : runExport(kind));
-  const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
-  const toggle = (id: string) =>
-    setOpenIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  // New and duplicated cards open, and come into view.
+  // The line open in the editor; the first line when none is chosen (or the chosen one went).
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  const selected = quote.lineItems.find((item) => item.id === chosenId) ?? quote.lineItems[0];
+  const selectedIndex = selected ? quote.lineItems.indexOf(selected) : -1;
+  // New and duplicated lines open in the editor, and their rail row comes into view.
   const openAndShow = (id: string) => {
-    setOpenIds((current) => new Set(current).add(id));
+    setChosenId(id);
     requestAnimationFrame(() =>
-      document.getElementById(`quote-line-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      document.getElementById(`quote-line-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     );
   };
 
@@ -71,10 +70,19 @@ export function QuoteView({ quote }: { quote: Quote }) {
   const remove = (id: string) => {
     const removed = removeLineItem(id);
     if (!removed) return;
+    // The editor moves to the line that took its place, else the one before.
+    const remaining = quote.lineItems.filter((item) => item.id !== id);
+    setChosenId(remaining[Math.min(removed.index, remaining.length - 1)]?.id ?? null);
     notify({
       message: `Removed “${lineTitle(removed.line)}”.`,
       autoHideDuration: 8000,
-      action: { label: 'Undo', onClick: () => insertLineItem(removed.line, removed.index) },
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          insertLineItem(removed.line, removed.index);
+          setChosenId(removed.line.id);
+        },
+      },
     });
   };
 
@@ -90,106 +98,140 @@ export function QuoteView({ quote }: { quote: Quote }) {
 
   const calculatorOf = (item: QuoteLineItem) =>
     item.calculatorId ? calculators.find((calculator) => calculator.id === item.calculatorId) : undefined;
+  const selectedCalculator = selected ? calculatorOf(selected) : undefined;
+
+  // ⌘D / Ctrl+D duplicates the open line (instead of bookmarking the page).
+  useEffect(() => {
+    if (!selected || !selectedCalculator) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'd') {
+        event.preventDefault();
+        duplicate(selected.id);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
+
+  const eyebrow = [
+    'Quote',
+    `${itemCount} ${itemCount === 1 ? 'line' : 'lines'}`,
+    unfinished.length > 0 ? `${unfinished.length} not finished` : null,
+    `edited ${formatEditedAt(quote.updatedAt)}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
-    <>
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1 min-w-0">
+    <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
+      <PageHeader
+        eyebrow={eyebrow}
+        editing
+        title={
           <input
             type="text"
             value={quote.name}
             onChange={(event) => updateCurrentQuote({ name: event.target.value })}
             aria-label="Quote name"
             placeholder="Untitled quote"
-            className="w-full max-w-xl -mx-1.5 px-1.5 rounded-md bg-transparent border border-transparent text-2xl font-bold tracking-tight text-ink placeholder:text-ink-subtle hover:border-border focus:outline-none focus:border-action focus:ring-[3px] focus:ring-action/20"
+            className="w-full min-w-0 bg-transparent text-inherit placeholder:text-ink-faint focus:outline-none"
+            size={Math.max(quote.name.length, 12)}
           />
-          <p className="text-xs text-ink-muted">
-            {itemCount} {itemCount === 1 ? 'line item' : 'line items'} ·{' '}
-            {/* The total is in the quote sheet too, but on a phone that's below every card. */}
-            <span className="font-numeric font-medium text-ink">{formatCurrency(quote.total)}</span>
-            {unfinished.length > 0 && <span className="text-draft"> ({unfinished.length} not finished)</span>} ·{' '}
-            <span className="font-numeric">edited {formatEditedAt(quote.updatedAt)}</span>
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => requestExport('json')}>
-            <Download className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-            Export JSON
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              saveQuote();
-              notify({ variant: 'success', message: `Saved “${quote.name}”.` });
-            }}
-          >
-            <Save className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-            Save quote
-          </Button>
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-            Add calculator
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
-        <div className="space-y-3 min-w-0">
-          {openIds.size > 0 && (
-            <div className="flex justify-end -mb-1">
-              <Button variant="ghost" size="sm" onClick={() => setOpenIds(new Set())}>
-                <ChevronsDownUp className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                Close all
-              </Button>
-            </div>
-          )}
-          {quote.lineItems.map((item, index) => {
-            const calculator = calculatorOf(item);
-            return (
-              <QuoteLineCard
-                key={item.id}
-                line={item}
-                calculator={calculator}
-                library={library}
-                open={openIds.has(item.id)}
-                onToggle={() => toggle(item.id)}
-                onChange={updateLineItem}
-                onRemove={() => remove(item.id)}
-                onDuplicate={calculator ? () => duplicate(item.id) : undefined}
-                onMove={(direction) => moveLineItem(item.id, direction)}
-                isFirst={index === 0}
-                isLast={index === itemCount - 1}
-              />
-            );
-          })}
-          {itemCount === 0 ? (
-            <div className="rounded-[10px] border border-dashed border-border-strong px-4 py-10 text-center">
-              <p className="text-sm text-ink-muted">No lines yet. Add a calculator, fill it in, and duplicate it for each wall, room or part.</p>
-              <Button size="sm" className="mt-3" onClick={() => setAdding(true)}>
-                <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-                Add calculator
-              </Button>
-            </div>
-          ) : (
-            <Button variant="secondary" size="sm" onClick={() => setAdding(true)}>
-              <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-              Add calculator
+        }
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => requestExport('json')}>
+              Export JSON
             </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                saveQuote();
+                notify({ variant: 'success', message: `Saved “${quote.name}”.` });
+              }}
+            >
+              Save quote
+            </Button>
+            <Button variant="accent" onClick={() => setAdding(true)}>
+              + Add calculator
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_360px] lg:flex-1 lg:min-h-0">
+        <nav
+          aria-label="Lines"
+          className="flex flex-col gap-1 px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto"
+        >
+          <div className="flex justify-between px-2.5 pb-2">
+            <Eyebrow>Lines</Eyebrow>
+            <span className="font-numeric text-xs text-ink-faint">{itemCount}</span>
+          </div>
+          {quote.lineItems.map((item, index) => (
+            <div key={item.id} id={`quote-line-${item.id}`}>
+              <RailRow
+                index={index + 1}
+                title={lineTitle(item)}
+                subtitle={item.unfinished ?? (item.primarySummary || item.secondarySummary || item.fieldSummary)}
+                value={item.unfinished ? 'Not finished' : formatCurrency(item.cost)}
+                status={item.unfinished ? 'draft' : undefined}
+                selected={item.id === selected?.id}
+                onClick={() => setChosenId(item.id)}
+              />
+            </div>
+          ))}
+          <DashedAdd onClick={() => setAdding(true)} className="mt-2">
+            + Add from calculator
+          </DashedAdd>
+          {itemCount > 0 && (
+            <p className="mt-auto pt-4 px-2.5 text-xs leading-[1.5] text-ink-faint">
+              Duplicate a line for each wall, room or part. <kbd className="font-numeric">⌘D</kbd>
+            </p>
+          )}
+        </nav>
+
+        <div className="min-w-0 px-4 sm:px-8 py-6 lg:overflow-y-auto">
+          {selected ? (
+            <QuoteLineEditor
+              key={selected.id}
+              line={selected}
+              calculator={selectedCalculator}
+              library={library}
+              onChange={updateLineItem}
+              onRemove={() => remove(selected.id)}
+              onDuplicate={selectedCalculator ? () => duplicate(selected.id) : undefined}
+              onMove={(direction) => moveLineItem(selected.id, direction)}
+              isFirst={selectedIndex === 0}
+              isLast={selectedIndex === itemCount - 1}
+            />
+          ) : (
+            <div className="rounded-row border border-dashed border-border-strong px-4 py-10 text-center">
+              <p className="text-sm text-ink-muted">
+                No lines yet. Add a calculator, fill it in, and duplicate it for each wall, room or part.
+              </p>
+              <Button variant="accent" className="mt-3" onClick={() => setAdding(true)}>
+                + Add calculator
+              </Button>
+            </div>
           )}
         </div>
-        <QuoteSummaryCard
-          quote={quote}
-          formData={rates}
-          onFormDataChange={(updates) => {
-            setRates((current) => ({ ...current, ...updates }));
-            if (updates.taxRate !== undefined) setTaxRate(updates.taxRate / 100);
-            if (updates.markupPercent !== undefined) setMarkupPercent(updates.markupPercent);
-          }}
-          removeLineItem={remove}
-          emptyMessage="No lines yet."
-          onExport={() => requestExport('print')}
-        />
+
+        <div className="px-6 py-5 bg-panel border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto">
+          <QuoteSummaryCard
+            quote={quote}
+            formData={rates}
+            onFormDataChange={(updates) => {
+              setRates((current) => ({ ...current, ...updates }));
+              if (updates.taxRate !== undefined) setTaxRate(updates.taxRate / 100);
+              if (updates.markupPercent !== undefined) setMarkupPercent(updates.markupPercent);
+            }}
+            selectedId={selected?.id}
+            onSelect={setChosenId}
+            emptyMessage="No lines yet."
+            onExport={() => requestExport('print')}
+          />
+        </div>
       </div>
       <ConfirmDialog
         isOpen={pendingExport !== null}
@@ -206,6 +248,6 @@ export function QuoteView({ quote }: { quote: Quote }) {
         onCancel={() => setPendingExport(null)}
       />
       <AddCalculatorDialog isOpen={adding} onClose={() => setAdding(false)} calculators={calculators} onPick={addCalculator} />
-    </>
+    </div>
   );
 }

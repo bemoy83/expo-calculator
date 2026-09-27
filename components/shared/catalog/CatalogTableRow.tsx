@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext } from 'react';
+import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
@@ -18,26 +18,16 @@ export interface CatalogCell {
   hideOnMobile?: boolean;
 }
 
-// Which breakpoint shows every column. With the editor panel open the table has less room,
-// so it keeps the narrow name-and-price layout up to 2xl. (Literal class strings for Tailwind.)
-const LAYOUTS = {
-  full: {
-    grid: 'md:[grid-template-columns:var(--catalog-cols)]',
-    header: 'hidden md:grid',
-    wideOnly: 'hidden md:block',
-    narrowOnly: 'md:hidden',
-  },
-  compact: {
-    grid: '2xl:[grid-template-columns:var(--catalog-cols)]',
-    header: 'hidden 2xl:grid',
-    wideOnly: 'hidden 2xl:block',
-    narrowOnly: '2xl:hidden',
-  },
+// Which widths show every column: md up, except lg–xl where the editor pane beside the table
+// leaves room only for name and price. (Literal class strings for Tailwind.)
+const LAYOUT = {
+  grid: 'md:[grid-template-columns:var(--catalog-cols)] lg:max-xl:[grid-template-columns:20px_minmax(0,1fr)_auto]',
+  header: 'hidden md:grid lg:max-xl:hidden',
+  wideOnly: 'hidden md:block lg:max-xl:hidden',
+  narrowOnly: 'md:hidden lg:max-xl:inline',
 } as const;
 
-const CatalogLayoutContext = createContext<keyof typeof LAYOUTS>('full');
-export const CatalogLayoutProvider = CatalogLayoutContext.Provider;
-export const useCatalogLayout = () => LAYOUTS[useContext(CatalogLayoutContext)];
+export const useCatalogLayout = () => LAYOUT;
 
 interface CatalogTableRowProps {
   id: string;
@@ -81,14 +71,14 @@ export function CatalogTableRow({
       className={cn(
         'group relative grid grid-cols-[20px_minmax(0,1fr)_auto]',
         layout.grid,
-        'items-start gap-3 px-3.5 py-2.5 border-b border-border last:border-b-0 transition-colors',
+        'items-center gap-3.5 p-3 border transition-colors duration-150',
         isSelected
-          ? 'bg-action-bg/60 shadow-[inset_2px_0_0_rgb(var(--action))]'
-          : 'bg-surface hover:bg-surface-hover',
-        isDragging && 'shadow-lg opacity-90'
+          ? 'mt-1 bg-surface border-border-strong rounded-row'
+          : 'border-transparent border-b-border hover:bg-surface hover:rounded-md',
+        isDragging && 'bg-surface rounded-row opacity-90'
       )}
     >
-      <span role="cell" className="relative z-10 pt-0.5">
+      <span role="cell" className="relative z-10 flex">
         {!disableDrag && (
           <button
             type="button"
@@ -106,13 +96,11 @@ export function CatalogTableRow({
           type="button"
           onClick={onOpen}
           aria-label={`Edit ${name}`}
-          className="block max-w-full text-left text-sm font-semibold text-ink truncate focus:outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-action"
+          className="block max-w-full text-left text-sm font-semibold text-ink truncate focus:outline-none after:absolute after:inset-0 after:rounded-row focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-action"
         >
           {name}
         </button>
-        {subtitle && (
-          <span className="block text-xs font-numeric text-ink-faint truncate">{subtitle}</span>
-        )}
+        {subtitle && <span className="block mt-0.5 text-xs text-ink-muted truncate">{subtitle}</span>}
       </span>
       {cells.map((cell, index) => (
         <span
@@ -151,7 +139,7 @@ export function CatalogPropertiesCell({
   const listed = properties.slice(0, MAX_LISTED_PROPERTIES);
   const hidden = properties.length - listed.length;
   return (
-    <span className="block text-xs leading-relaxed font-numeric text-ink-body">
+    <span className="block text-xs leading-relaxed font-numeric text-ink-muted">
       {listed.map((prop) => (
         <span key={prop.id} className="block truncate">
           {prop.name} {prop.display}

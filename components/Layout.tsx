@@ -14,12 +14,8 @@ import { NotificationHost } from '@/components/shared/NotificationHost';
 import { Menu } from 'lucide-react';
 
 interface LayoutProps {
+  /** The page, which draws its own full-bleed header band and panes. */
   children: React.ReactNode;
-  /**
-   * The page draws its own full-bleed header band and panes. Pages not yet rebuilt for the Ledger
-   * redesign leave it off and sit in the old centred, padded container.
-   */
-  fullBleed?: boolean;
 }
 
 const MAIN_TABS: TopBarTab[] = [
@@ -38,7 +34,7 @@ export function mainTabFor(pathname: string): string {
   return '';
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, fullBleed = false }) => {
+export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -149,9 +145,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, fullBleed = false }) =
         <PackExporter onClose={() => setShowPackExport(false)} />
       </ModalDialog>
 
-      <main id="main-content" className={fullBleed ? undefined : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}>
+      <main id="main-content">
         {hidden ? (
-          <div className={fullBleed ? 'p-6' : undefined}>
+          <div className="px-4 sm:px-6 py-6">
             <HiddenInUseOnlyMode />
           </div>
         ) : (

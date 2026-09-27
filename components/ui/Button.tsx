@@ -18,8 +18,8 @@ const variants = {
   accent: 'bg-accent text-accent-ink border-transparent hover:opacity-90',
   primary: 'bg-action-solid text-on-accent border-transparent hover:opacity-85',
   secondary: 'bg-transparent text-ink border-border-strong hover:bg-surface-hover',
-  ghost: 'bg-transparent text-ink-muted border-transparent hover:text-ink',
-  danger: 'bg-transparent text-danger border-transparent hover:bg-danger-bg',
+  ghost: 'bg-transparent text-ink-muted border-transparent hover:text-ink disabled:bg-transparent',
+  danger: 'bg-transparent text-danger border-transparent hover:bg-danger-bg disabled:bg-transparent',
   inverse: 'bg-inverse-ink text-inverse border-transparent hover:opacity-90',
 };
 

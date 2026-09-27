@@ -24,13 +24,15 @@ function CalculatorPageContent() {
   const calculator = calculators.find((candidate) => candidate.id === id);
   if (!calculator) {
     return (
-      <EmptyState
-        icon={CalculatorIcon}
-        title="Calculator not found"
-        description="It may have been deleted, or the link is incomplete."
-        iconSize="small"
-        actions={<Button onClick={() => router.push('/')}>All calculators</Button>}
-      />
+      <div className="px-4 sm:px-6 py-10">
+        <EmptyState
+          icon={CalculatorIcon}
+          title="Calculator not found"
+          description="It may have been deleted, or the link is incomplete."
+          iconSize="small"
+          actions={<Button onClick={() => router.push('/')}>All calculators</Button>}
+        />
+      </div>
     );
   }
   return <CalculatorRunView key={calculator.id} calculator={calculator} library={library} />;

@@ -47,13 +47,15 @@ function CalculatorEditContent() {
   if (!mounted || start === undefined) return null;
   if (!start) {
     return (
-      <EmptyState
-        icon={CalculatorIcon}
-        title="Calculator not found"
-        description="It may have been deleted, or the link is incomplete."
-        iconSize="small"
-        actions={<Button onClick={() => router.push('/')}>All calculators</Button>}
-      />
+      <div className="px-4 sm:px-6 py-10">
+        <EmptyState
+          icon={CalculatorIcon}
+          title="Calculator not found"
+          description="It may have been deleted, or the link is incomplete."
+          iconSize="small"
+          actions={<Button onClick={() => router.push('/')}>All calculators</Button>}
+        />
+      </div>
     );
   }
   // Keyed by the calculator it opened with, so saving a new one (which updates the URL) keeps

@@ -4,11 +4,11 @@ import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { evaluateFunctionSample, getFunctionParamKinds } from '@/lib/functions/function-sample';
-import { formatFunctionSignature } from '@/lib/functions/function-usage';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
 import type { SharedFunction } from '@/lib/types';
-import { FormulaText } from '@/components/formula/FormulaText';
+import { Field } from '@/components/ui/Field';
+import { LiveLabel } from '@/components/live/LiveLabel';
 
 interface FunctionTestPanelProps {
   /** The function as currently edited (unsaved values included). */
@@ -16,7 +16,7 @@ interface FunctionTestPanelProps {
   functions: SharedFunction[];
 }
 
-// Try the function with sample values, the way a calculator step calls it. Session only.
+// Try the function with sample values, the way a calculator step calls it. Session only, not saved.
 export function FunctionTestPanel({ draft, functions }: FunctionTestPanelProps) {
   const materials = useMaterialsStore((state) => state.materials);
   const labor = useLaborStore((state) => state.labor);
@@ -37,42 +37,29 @@ export function FunctionTestPanel({ draft, functions }: FunctionTestPanelProps) 
     [draft, values, materials, labor, availableFunctions]
   );
 
+  const unit = draft.returnUnitSymbol;
+
+  // The top of the live pane (mockup 3d): sample values in, the returned value large.
   return (
-    <section
-      aria-labelledby="function-test-heading"
-      className="rounded-[10px] bg-surface border border-border-strong shadow-card overflow-hidden"
-    >
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-        <h2 id="function-test-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-          Try it
-        </h2>
-        <span className="text-[11px] text-ink-faint">not saved</span>
-      </div>
-      <div className="px-4 py-3.5 space-y-3.5">
-        <FormulaText
-          expression={formatFunctionSignature(draft)}
-          names={{
-            inputs: new Set(parameters.map((param) => param.name)),
-            results: new Set(),
-            functions: new Set([draft.name, ...functions.map((fn) => fn.name)]),
-            catalog: new Set(),
-          }}
-          className="block text-xs text-ink-muted break-all"
-        />
-        {parameters.length === 0 ? (
-          <p className="text-xs text-ink-muted">Add parameters to try this function with sample values.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-x-3 gap-y-3">
-            {parameters.map((param) => {
-              const label = param.label || param.name;
-              const set = (value: string) => setValues((prev) => ({ ...prev, [param.name]: value }));
-              const kind = kinds[param.name];
-              if (kind === 'material' || kind === 'labor') {
-                const items: Array<{ variableName: string; name: string }> = kind === 'material' ? materials : labor;
-                return (
+    <section aria-labelledby="function-test-heading" className="flex flex-col gap-4">
+      <h2 id="function-test-heading">
+        <LiveLabel context="Test run" />
+      </h2>
+      {parameters.length === 0 ? (
+        <p className="text-[13px] text-ink-muted">Add parameters to try this function with sample values.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {parameters.map((param) => {
+            const label = param.label || param.name;
+            const set = (value: string) => setValues((prev) => ({ ...prev, [param.name]: value }));
+            const kind = kinds[param.name];
+            if (kind === 'material' || kind === 'labor') {
+              const items: Array<{ variableName: string; name: string }> = kind === 'material' ? materials : labor;
+              return (
+                <div key={param.name} className="col-span-2">
                   <Select
-                    key={param.name}
                     label={label}
+                    size="compact"
                     value={values[param.name] ?? ''}
                     onChange={(event) => set(event.target.value)}
                     options={[
@@ -80,46 +67,55 @@ export function FunctionTestPanel({ draft, functions }: FunctionTestPanelProps) 
                       ...items.map((item) => ({ value: item.variableName, label: item.name })),
                     ]}
                   />
-                );
-              }
-              if (kind === 'boolean') {
-                return (
-                  <Select
-                    key={param.name}
-                    label={label}
-                    value={values[param.name] ?? 'false'}
-                    onChange={(event) => set(event.target.value)}
-                    options={[
-                      { value: 'false', label: 'No' },
-                      { value: 'true', label: 'Yes' },
-                    ]}
-                  />
-                );
-              }
+                </div>
+              );
+            }
+            if (kind === 'boolean') {
               return (
-                <Input
+                <Select
                   key={param.name}
-                  label={`${label}${param.unitSymbol ? ` (${param.unitSymbol})` : ''}`}
+                  label={label}
+                  size="compact"
+                  value={values[param.name] ?? 'false'}
+                  onChange={(event) => set(event.target.value)}
+                  options={[
+                    { value: 'false', label: 'No' },
+                    { value: 'true', label: 'Yes' },
+                  ]}
+                />
+              );
+            }
+            return (
+              <Field key={param.name} label={label} unit={param.unitSymbol}>
+                <Input
                   type="number"
+                  size="compact"
                   value={values[param.name] ?? ''}
                   onChange={(event) => set(event.target.value)}
                 />
-              );
-            })}
-          </div>
-        )}
-        <div className="border-t border-border pt-3" role="status" aria-live="polite">
-          {result.display !== undefined ? (
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-sm font-semibold text-ink">Result</span>
-              <span className="text-[22px] leading-tight font-semibold font-numeric text-ink">{result.display}</span>
-            </div>
-          ) : (
-            <p className={`text-xs ${/^(Enter|Choose) a value/.test(result.error ?? '') ? 'text-ink-muted' : 'text-danger'}`}>
-              {result.error}
-            </p>
-          )}
+              </Field>
+            );
+          })}
         </div>
+      )}
+      <div className="border-t border-border-strong pt-3.5" role="status" aria-live="polite">
+        <div className="text-[13px] text-ink-muted">Returns</div>
+        {result.display !== undefined ? (
+          <div className="font-numeric text-[40px] font-semibold tracking-[-.04em] leading-[1.1] text-accent break-all">
+            {unit && result.display.endsWith(` ${unit}`) ? (
+              <>
+                {result.display.slice(0, -unit.length - 1)}{' '}
+                <span className="text-xl text-ink-faint">{unit}</span>
+              </>
+            ) : (
+              result.display
+            )}
+          </div>
+        ) : (
+          <p className={`mt-1 text-xs ${/^(Enter|Choose) a value/.test(result.error ?? '') ? 'text-ink-muted' : 'text-danger'}`}>
+            {result.error}
+          </p>
+        )}
       </div>
     </section>
   );

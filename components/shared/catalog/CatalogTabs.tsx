@@ -3,6 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useFunctionsStore } from '@/lib/stores/functions-store';
+import { useLaborStore } from '@/lib/stores/labor-store';
+import { useMaterialsStore } from '@/lib/stores/materials-store';
 
 export interface CatalogTab {
   id: string;
@@ -59,4 +62,18 @@ export function CatalogTabs({
       })}
     </nav>
   );
+}
+
+/** Materials · Labor · Functions with their counts (after mount: the stores load from localStorage). */
+export function useCatalogTabItems(): CatalogTab[] {
+  const [mounted, setMounted] = React.useState(false);
+  const materials = useMaterialsStore((state) => state.materials.length);
+  const labor = useLaborStore((state) => state.labor.length);
+  const functions = useFunctionsStore((state) => state.functions.length);
+  React.useEffect(() => setMounted(true), []);
+  return [
+    { id: 'materials', label: 'Materials', href: '/materials', count: mounted ? materials : undefined },
+    { id: 'labor', label: 'Labor', href: '/labor', count: mounted ? labor : undefined },
+    { id: 'functions', label: 'Functions', href: '/functions', count: mounted ? functions : undefined },
+  ];
 }

@@ -1,16 +1,21 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { LucideIcon, Plus, Search } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/Button';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { SortableList } from '@/components/shared/SortableList';
 import { cn } from '@/lib/utils';
 import { CatalogItemBase } from './useCatalogListState';
 import { CatalogCategoryChips } from './CatalogCategoryChips';
-import { CatalogLayoutProvider, useCatalogLayout, type CatalogColumn } from './CatalogTableRow';
+import { CatalogTabs, useCatalogTabItems } from './CatalogTabs';
+import { useCatalogLayout, type CatalogColumn } from './CatalogTableRow';
 
 interface CatalogPageShellProps<T extends CatalogItemBase> {
+  /** The Catalog sub-tab this page is */
+  tab: 'materials' | 'labor';
   title: string;
   addLabel: string;
   searchPlaceholder: string;
@@ -38,9 +43,12 @@ interface CatalogPageShellProps<T extends CatalogItemBase> {
   gridTemplate: string;
   renderRow: (item: T, disableDrag: boolean) => React.ReactNode;
   editor?: React.ReactNode;
+  /** Shown in the editor pane while no row is open, e.g. "Choose a material to edit it…" */
+  editorPlaceholder: string;
 }
 
 export function CatalogPageShell<T extends CatalogItemBase>({
+  tab,
   title,
   addLabel,
   searchPlaceholder,
@@ -66,9 +74,11 @@ export function CatalogPageShell<T extends CatalogItemBase>({
   gridTemplate,
   renderRow,
   editor,
+  editorPlaceholder,
 }: CatalogPageShellProps<T>) {
   const isEmptyCatalog = totalItems === 0;
   const editorRef = useRef<HTMLDivElement>(null);
+  const tabs = useCatalogTabItems();
 
   // Below lg the panel stacks under the table, so bring it into view when it opens.
   useEffect(() => {
@@ -79,96 +89,90 @@ export function CatalogPageShell<T extends CatalogItemBase>({
 
   return (
     <Layout>
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>
-          <p className="text-xs text-ink-muted">
-            {totalItems} {totalItems === 1 ? 'item' : 'items'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:w-64 sm:flex-none">
-            <Search
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint pointer-events-none"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(event) => onSearchQueryChange(event.target.value)}
-              placeholder={searchPlaceholder}
-              aria-label={searchPlaceholder.replace(/…$/, '')}
-              className="w-full h-9 pl-8 pr-3 rounded-md bg-surface border border-border-strong text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-action"
-            />
-          </div>
-          <Button onClick={onAdd} size="sm" className="shrink-0 h-9">
-            <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
-            {addLabel}
-          </Button>
-        </div>
-      </div>
+      {/* From lg the page is exactly the window's height and each pane scrolls on its own. */}
+      <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
+        <PageHeader
+          eyebrow="Catalog · Prices used by every calculator"
+          title="Catalog"
+          actions={
+            <>
+              <SearchInput
+                value={searchQuery}
+                onChange={onSearchQueryChange}
+                placeholder={searchPlaceholder}
+                className="flex-1 min-w-[10rem] sm:w-[240px] sm:flex-none"
+              />
+              <Button variant="accent" onClick={onAdd} className="shrink-0">
+                + {addLabel}
+              </Button>
+            </>
+          }
+        >
+          <CatalogTabs items={tabs} active={tab} />
+        </PageHeader>
 
-      <div
-        className={cn(
-          'grid grid-cols-1 gap-5 pb-24 items-start',
-          isEditorOpen && 'lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]'
-        )}
-      >
-        <div className="min-w-0 space-y-3">
-          <CatalogCategoryChips
-            categories={categories}
-            counts={categoryCounts}
-            total={totalItems}
-            selected={categoryFilter}
-            onSelect={onCategoryFilterChange}
-          />
+        {/* Table, then the editor pane: beside it from lg (always there), under it below lg (when open). */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] lg:flex-1 lg:min-h-0">
+          <div className="min-w-0 flex flex-col gap-3.5 px-4 sm:px-6 py-4 pb-24 lg:overflow-y-auto">
+            <CatalogCategoryChips
+              categories={categories}
+              counts={categoryCounts}
+              total={totalItems}
+              selected={categoryFilter}
+              onSelect={onCategoryFilterChange}
+            />
 
-          {items.length === 0 ? (
-            <div className="rounded-lg border border-border-strong bg-surface text-center px-6 py-16">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-sunken mb-4">
-                <EmptyIcon className="h-7 w-7 text-ink-muted" aria-hidden="true" />
+            {items.length === 0 ? (
+              <div className="text-center px-6 py-16">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-sunken mb-4">
+                  <EmptyIcon className="h-7 w-7 text-ink-muted" aria-hidden="true" />
+                </div>
+                <h2 className="text-base font-semibold text-ink mb-1">
+                  {isEmptyCatalog ? emptyTitle : emptyFilteredTitle}
+                </h2>
+                <p className="text-sm text-ink-muted max-w-md mx-auto mb-5">
+                  {isEmptyCatalog ? emptyDescription : emptyFilteredDescription}
+                </p>
+                {isEmptyCatalog && (
+                  <Button variant="accent" onClick={onAdd}>
+                    + {firstItemLabel}
+                  </Button>
+                )}
               </div>
-              <h2 className="text-base font-semibold text-ink mb-1">
-                {isEmptyCatalog ? emptyTitle : emptyFilteredTitle}
-              </h2>
-              <p className="text-sm text-ink-muted max-w-md mx-auto mb-5">
-                {isEmptyCatalog ? emptyDescription : emptyFilteredDescription}
-              </p>
-              {isEmptyCatalog && (
-                <Button onClick={onAdd} size="sm">
-                  <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
-                  {firstItemLabel}
-                </Button>
-              )}
-            </div>
-          ) : (
-            <CatalogLayoutProvider value={isEditorOpen ? 'compact' : 'full'}>
+            ) : (
               <CatalogTable title={title} columns={columns} gridTemplate={gridTemplate}>
                 {canReorder ? (
-                  <SortableList
-                    items={items}
-                    onReorder={onReorder}
-                    renderItem={(item) => renderRow(item, false)}
-                  />
+                  <SortableList items={items} onReorder={onReorder} renderItem={(item) => renderRow(item, false)} />
                 ) : (
                   items.map((item) => renderRow(item, true))
                 )}
               </CatalogTable>
-            </CatalogLayoutProvider>
-          )}
-        </div>
-
-        {isEditorOpen && (
-          <div ref={editorRef} className="lg:sticky lg:top-sticky-offset scroll-mt-20">
-            {editor}
+            )}
           </div>
-        )}
+
+          <div
+            ref={editorRef}
+            className={cn(
+              'scroll-mt-20 bg-panel border-t lg:border-t-0 lg:border-l border-border',
+              'lg:min-h-0 lg:overflow-hidden',
+              !isEditorOpen && 'hidden lg:block'
+            )}
+          >
+            {isEditorOpen ? (
+              editor
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center gap-2 px-8 text-center">
+                <p className="text-sm text-ink-muted">{editorPlaceholder}</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </Layout>
   );
 }
 
-const HEADER_CELL = 'text-[10.5px] font-semibold uppercase tracking-[0.12em] text-ink-faint';
+const HEADER_CELL = 'font-numeric text-xs uppercase tracking-[.06em] text-ink-faint';
 
 function CatalogTable({
   title,
@@ -186,13 +190,9 @@ function CatalogTable({
     <div
       role="table"
       aria-label={title}
-      className="rounded-lg border border-border-strong bg-surface overflow-hidden"
       style={{ '--catalog-cols': `20px ${gridTemplate}` } as React.CSSProperties}
     >
-      <div
-        role="row"
-        className={cn(layout.header, layout.grid, 'gap-3 px-3.5 py-2.5 bg-sunken-2 border-b border-border')}
-      >
+      <div role="row" className={cn(layout.header, layout.grid, 'gap-3.5 px-3 pb-2.5 border-b border-border')}>
         <span role="columnheader" aria-hidden="true" />
         <span role="columnheader" className={HEADER_CELL}>Name</span>
         {columns.map((column) => (

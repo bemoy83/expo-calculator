@@ -240,8 +240,19 @@ export function MaterialEditorPanel({
   return (
     <CatalogEditorPanel
       title={isCreating ? 'New material' : 'Edit material'}
-      subtitle={isCreating ? undefined : `used in ${usageCount} ${usageCount === 1 ? 'calculator' : 'calculators'}`}
-      submitLabel={isCreating ? 'Create' : 'Save'}
+      heading={formData.name.trim() || (isCreating ? 'New material' : 'Material')}
+      note={
+        isCreating ? undefined : (
+          <>
+            Used by{' '}
+            <span className="font-semibold text-ink">
+              {usageCount} {usageCount === 1 ? 'calculator' : 'calculators'}
+            </span>
+            . Price changes apply to open quotes next time they recalculate.
+          </>
+        )
+      }
+      submitLabel={isCreating ? 'Add material' : 'Save material'}
       onSubmit={handleSubmit}
       onClose={onClose}
       onDelete={material && onDelete ? () => onDelete(material.id) : undefined}
@@ -272,7 +283,7 @@ export function MaterialEditorPanel({
           onChange={(event) => setFormData({ ...formData, variableName: event.target.value })}
           error={errors.variableName}
           required
-          className="font-numeric"
+          className="font-numeric text-token-input"
         />
       </div>
 

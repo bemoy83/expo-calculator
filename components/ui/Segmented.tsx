@@ -11,6 +11,8 @@ interface SegmentedProps<T extends string> {
   size?: 'compact' | 'md' | 'large';
   mono?: boolean;
   'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
   className?: string;
 }
 
@@ -32,6 +34,8 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={rest['aria-label']}
+      aria-labelledby={rest['aria-labelledby']}
+      aria-describedby={rest['aria-describedby']}
       className={cn(
         block ? 'flex' : 'inline-flex',
         HEIGHT[size],

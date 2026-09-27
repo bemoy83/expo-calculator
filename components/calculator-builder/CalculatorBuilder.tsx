@@ -2,14 +2,16 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { DashedAdd } from '@/components/ui/DashedAdd';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Input } from '@/components/ui/Input';
+import { RailRow } from '@/components/ui/RailRow';
+import { Segmented } from '@/components/ui/Segmented';
 import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { EditorPageHeader } from '@/components/shared/EditorPageHeader';
-import { SectionBar } from '@/components/shared/SectionBar';
+import { PageHeader } from '@/components/shared/PageHeader';
 import {
   addInput,
   addPart,
@@ -40,9 +42,10 @@ import {
   updateInput,
   updatePart,
   updateStep,
+  unplacedInputs,
 } from '@/lib/calculator/editing';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
-import { stepDisplayLabel } from '@/lib/calculator/format';
+import { describeStepProblem, displayUnit, stepDisplayLabel } from '@/lib/calculator/format';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type {
   Calculator,
@@ -63,10 +66,19 @@ import { generateId } from '@/lib/utils';
 import { InputEditorDialog } from './InputEditorDialog';
 import { LayoutCanvas, type LayoutSelection } from './LayoutCanvas';
 import { LayoutInspector, type LayoutInspectorActions } from './LayoutInspector';
-import { BuilderInputField, PartCard } from './PartCard';
+import { PartLivePane, PartSteps } from './PartCard';
 import { FormulaLegend } from '@/components/formula/FormulaText';
 
 const EMPTY_VALUES: CalculatorValues = {};
+
+/** What an input is, in the inputs list: its unit, or its kind. */
+function inputDetail(input: CalculatorInput): string {
+  const spec = input.value;
+  if ('unitSymbol' in spec && spec.unitSymbol) return displayUnit(spec.unitSymbol) ?? spec.unitSymbol;
+  if (spec.kind === 'material' || spec.kind === 'labor') return spec.category || spec.kind;
+  if (spec.kind === 'boolean') return 'yes/no';
+  return spec.kind;
+}
 
 type Pending =
   | { kind: 'discard' }
@@ -94,6 +106,8 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
   const [isSaved, setIsSaved] = useState(initiallySaved);
   const [nameError, setNameError] = useState<string>();
   const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
+  // The part open in the centre; the first part when none is chosen (or it was deleted).
+  const [chosenPartId, setChosenPartId] = useState<string | null>(null);
   const [inputDialog, setInputDialog] = useState<{
     input?: CalculatorInput;
     suggestedKey?: string;
@@ -118,7 +132,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
   const showsNothing = calculator.steps.length > 0 && !showsStaffResults(calculator);
   const unnamedShown = calculator.steps.filter((step) => !step.label.trim() && isStepShown(calculator, step.id));
   const usedInputs = new Set(Object.values(result.parts).flatMap((part) => part.inputKeys));
-  const unusedInputs = calculator.inputs.filter((input) => !usedInputs.has(input.key));
 
   const edit = (change: (current: Calculator) => Calculator) => {
     setCalculator((current) => change(current));
@@ -160,6 +173,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
   const addNewPart = () => {
     const part = { id: generateId(), name: `Part ${calculator.parts.length + 1}` };
     edit((current) => addPart(current, part));
+    setChosenPartId(part.id);
   };
 
   const saveInput = (input: CalculatorInput) => {
@@ -322,64 +336,84 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
     },
   };
 
-  return (
-    <>
-      <EditorPageHeader
-        section="Calculators"
-        name={calculator.name}
-        placeholderName="New calculator"
-        status={{
-          valid: errorCount === 0,
-          validLabel: 'No errors',
-          invalidLabel: errorCount === 1 ? '1 step has an error' : `${errorCount} steps have errors`,
-        }}
-        submitLabel="Save"
-        cancelLabel={dirty ? 'Cancel' : 'Close'}
-        onCancel={() => (dirty ? setPending({ kind: 'discard' }) : close())}
-        onSubmit={save}
-      />
+  const part = calculator.parts.find((candidate) => candidate.id === chosenPartId) ?? calculator.parts[0];
+  const partIndex = part ? calculator.parts.indexOf(part) : -1;
+  // Parts whose steps can't work out, for the live pane's error card.
+  const partErrors = calculator.parts.flatMap((candidate) => {
+    const failing = calculator.steps.find((step) => step.partId === candidate.id && result.steps[step.id]?.status === 'error');
+    return failing ? [{ part: candidate, problem: describeStepProblem(result.steps[failing.id], calculator) }] : [];
+  });
+  const partStatus = (partId: string) =>
+    calculator.steps.some((step) => step.partId === partId && result.steps[step.id]?.status === 'error') ? ('error' as const) : undefined;
 
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <div role="tablist" aria-label="Builder view" className="flex gap-1 p-1 rounded-md bg-sunken">
-          {(
-            [
-              ['parts', 'Parts'],
-              ['layout', 'Layout'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={view === value}
-              onClick={() => setView(value)}
-              className={cn(
-                'h-8 px-4 rounded text-[13px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                view === value ? 'bg-surface text-ink shadow-card' : 'text-ink-muted hover:text-ink'
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="flex-1 min-w-[200px] space-y-1">
-          <p className="text-xs text-ink-muted">
-            {view === 'parts'
-              ? 'The math: parts, their steps, and the inputs they use. A step can use any input and any other step’s result.'
-              : 'What staff see: arrange inputs and results into sections.'}
-          </p>
-          {view === 'parts' && <FormulaLegend />}
-        </div>
-        {view === 'layout' && (
-          <Button variant="secondary" size="sm" onClick={() => setPreview((current) => !current)} aria-pressed={preview}>
-            {preview ? <EyeOff className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" /> : <Eye className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />}
-            {preview ? 'Back to editing' : 'Preview'}
+  // Where palette items go: the selected section, the selected item's section, else the first.
+  const targetSectionId = selectedSection?.id ?? selectedPosition?.sectionId ?? calculator.layout[0]?.id;
+  const placeInTarget = (item: LayoutItem) =>
+    targetSectionId ? layoutActions.onInsertItem(targetSectionId, item) : addLayoutSection();
+  const unplaced = unplacedInputs(calculator);
+  const unshownSteps = calculator.steps.filter((step) => !isStepShown(calculator, step.id));
+
+  const header = (
+    <PageHeader
+      eyebrow={`Calculators${calculator.category ? ` / ${calculator.category}` : ''} · Editing${dirty ? ' · Unsaved' : ''}`}
+      editing
+      title={
+        <input
+          id="calculator-name"
+          value={calculator.name}
+          placeholder="New calculator"
+          aria-label="Calculator name"
+          aria-invalid={nameError ? 'true' : undefined}
+          size={Math.max(calculator.name.length, 14)}
+          onChange={(event) => {
+            setNameError(undefined);
+            const name = event.target.value;
+            edit((current) => ({ ...current, name }));
+          }}
+          className="w-full min-w-0 bg-transparent placeholder:text-ink-faint focus:outline-none"
+        />
+      }
+      status={
+        calculator.steps.length > 0
+          ? {
+              tone: errorCount === 0 ? 'ok' : 'error',
+              label: errorCount === 0 ? 'No errors' : errorCount === 1 ? '1 step has an error' : `${errorCount} steps have errors`,
+            }
+          : undefined
+      }
+      description={nameError && <span className="text-danger">{nameError}</span>}
+      actions={
+        <>
+          {view === 'layout' && (
+            <Button variant="ghost" onClick={() => setPreview((current) => !current)} aria-pressed={preview}>
+              {preview ? 'Back to editing' : 'Preview'}
+            </Button>
+          )}
+          <Segmented
+            aria-label="Builder view"
+            options={[
+              { value: 'parts', label: 'Parts' },
+              { value: 'layout', label: 'Layout' },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+          <span aria-hidden="true" className="hidden sm:block w-px h-6 mx-1.5 bg-border" />
+          <Button variant="secondary" onClick={() => (dirty ? setPending({ kind: 'discard' }) : close())}>
+            {dirty ? 'Cancel' : 'Close'}
           </Button>
-        )}
-      </div>
+          <Button variant="accent" onClick={save}>
+            Save
+          </Button>
+        </>
+      }
+    />
+  );
 
+  const warnings = (
+    <>
       {showsNothing && (
-        <div role="status" className="mb-5 flex items-start gap-2.5 p-3 bg-draft-bg border border-draft-border rounded-lg">
+        <div role="status" className="mb-4 flex items-start gap-2.5 p-3 bg-draft-bg border border-draft-border rounded-row">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-draft" aria-hidden="true" />
           <p className="text-sm text-ink-body">
             <span className="font-medium text-ink">Staff won&apos;t see any results.</span> Tick &ldquo;Show to staff&rdquo; on a
@@ -388,7 +422,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
         </div>
       )}
       {!showsNothing && unnamedShown.length > 0 && (
-        <div role="status" className="mb-5 flex items-start gap-2.5 p-3 bg-draft-bg border border-draft-border rounded-lg">
+        <div role="status" className="mb-4 flex items-start gap-2.5 p-3 bg-draft-bg border border-draft-border rounded-row">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-draft" aria-hidden="true" />
           <p className="text-sm text-ink-body">
             <span className="font-medium text-ink">
@@ -399,9 +433,275 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
           </p>
         </div>
       )}
+    </>
+  );
 
-      {view === 'layout' ? (
-        <div className={cn('grid gap-5 items-start', !preview && 'lg:grid-cols-[minmax(0,1fr)_300px]')}>
+  const partsView = (
+    <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:flex-1 lg:min-h-0">
+      <nav aria-label="Parts and inputs" className="flex flex-col gap-1 px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
+        <div className="flex justify-between px-2.5 pb-2">
+          <Eyebrow>Parts</Eyebrow>
+          <span className="font-numeric text-xs text-ink-faint">{calculator.parts.length}</span>
+        </div>
+        {calculator.parts.map((candidate, index) => {
+          const cost = result.parts[candidate.id]?.cost;
+          return (
+            <RailRow
+              key={candidate.id}
+              index={index + 1}
+              title={candidate.name || 'Unnamed part'}
+              value={cost !== undefined ? formatMoney(cost) : partStatus(candidate.id) ? undefined : '—'}
+              status={partStatus(candidate.id)}
+              selected={candidate.id === part?.id}
+              onClick={() => setChosenPartId(candidate.id)}
+            />
+          );
+        })}
+        <DashedAdd onClick={addNewPart} className="mt-1 p-2.5">
+          + Add part
+        </DashedAdd>
+
+        <div className="flex justify-between items-baseline px-2.5 pt-[22px] pb-2">
+          <Eyebrow>Inputs</Eyebrow>
+          <button
+            type="button"
+            onClick={() => setInputDialog({})}
+            className="font-numeric text-xs tracking-[.06em] text-ink hover:text-ink-muted rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+          >
+            + New
+          </button>
+        </div>
+        {calculator.inputs.length === 0 && (
+          <p className="px-2.5 text-xs text-ink-muted">No inputs yet. A formula naming one that doesn&apos;t exist offers to create it.</p>
+        )}
+        {calculator.inputs.map((input) => {
+          const used = usedInputs.has(input.key);
+          return (
+            <button
+              key={input.id}
+              type="button"
+              onClick={() => setInputDialog({ input })}
+              title={`${input.label}${used ? '' : ' · not used by any step yet'}`}
+              aria-label={`Edit input ${input.label}${used ? '' : ', not used yet'}`}
+              className={cn(
+                'flex justify-between gap-2 px-2.5 py-[7px] rounded-md text-[13px] text-left transition-colors hover:bg-surface-hover',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
+                !used && 'bg-sunken'
+              )}
+            >
+              <span className={cn('font-numeric truncate', used ? 'text-token-input' : 'text-ink-muted')}>{input.key}</span>
+              <span className={cn('shrink-0 text-xs', used ? 'font-numeric text-ink-faint' : 'text-ink-faint')}>
+                {used ? inputDetail(input) : 'not used'}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="min-w-0 flex flex-col px-4 sm:px-7 py-5 lg:overflow-y-auto">
+        {warnings}
+        {part ? (
+          <PartSteps
+            key={part.id}
+            calculator={calculator}
+            part={part}
+            result={result}
+            values={values}
+            library={library}
+            formatMoney={formatMoney}
+            required={required}
+            isFirst={partIndex === 0}
+            isLast={partIndex === calculator.parts.length - 1}
+            expandedStepId={expandedStepId}
+            isStepShown={(stepId) => isStepShown(calculator, stepId)}
+            onToggleStep={(stepId) => setExpandedStepId((current) => (current === stepId ? null : stepId))}
+            onRename={(name) => edit((current) => updatePart(current, { ...part, name }))}
+            onMove={(direction) => edit((current) => movePart(current, part.id, direction))}
+            onRemove={() =>
+              calculator.steps.some((step) => step.partId === part.id)
+                ? setPending({ kind: 'delete-part', partId: part.id })
+                : edit((current) => removePart(current, part.id))
+            }
+            onAddStep={() => addStepTo(part.id)}
+            onStepChange={changeStep}
+            onSetCost={(stepId) => edit((current) => setPartCost(current, part.id, stepId))}
+            onSetShown={(stepId, shown) => edit((current) => setStepShown(current, stepId, shown, generateId))}
+            onMoveStep={(stepId, direction) => edit((current) => reorderStep(current, stepId, direction))}
+            onMoveStepToPart={(stepId, partId) => edit((current) => moveStepToPart(current, stepId, partId))}
+            onRemoveStep={(step) => {
+              edit((current) => removeStep(current, step.id));
+              if (expandedStepId === step.id) setExpandedStepId(null);
+            }}
+            onCreateInput={(key) => setInputDialog({ suggestedKey: key })}
+            onCreateInputFor={(stepId, paramName, kind) => {
+              const step = calculator.steps.find((candidate) => candidate.id === stepId);
+              const fn =
+                step?.source.type === 'call'
+                  ? library.functions.find((candidate) => candidate.name === (step.source as { functionName: string }).functionName)
+                  : undefined;
+              const param = fn?.parameters.find((candidate) => candidate.name === paramName);
+              const label = param?.label || paramName;
+              setInputDialog({
+                suggestedKey: suggestKey(calculator, label, undefined, 'value'),
+                suggestedKind: kind,
+                suggestedLabel: label,
+                suggestedUnitSymbol: param?.unitSymbol,
+                bindTo: { stepId, paramName },
+              });
+            }}
+          />
+        ) : (
+          <div className="rounded-row border border-dashed border-border-strong px-4 py-10 text-center">
+            <p className="text-sm text-ink-muted">Add a part to start. Build and test one part at a time.</p>
+            <Button variant="accent" className="mt-3" onClick={addNewPart}>
+              + Add part
+            </Button>
+          </div>
+        )}
+        <FormulaLegend className="mt-5" />
+
+        <details className="mt-6 group">
+          <summary className="cursor-pointer text-xs text-ink-muted hover:text-ink">Calculator details</summary>
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] gap-3">
+            <Input
+              label="Category"
+              value={calculator.category ?? ''}
+              placeholder="e.g. Walls"
+              onChange={(event) => {
+                const category = event.target.value;
+                edit((current) => ({ ...current, category: category || undefined }));
+              }}
+            />
+            <Textarea
+              label="Description (optional)"
+              rows={2}
+              value={calculator.description ?? ''}
+              onChange={(event) => {
+                const description = event.target.value;
+                edit((current) => ({ ...current, description: description || undefined }));
+              }}
+            />
+          </div>
+        </details>
+
+        {isSaved && (
+          <div className="mt-auto pt-8">
+            <Button variant="danger" size="sm" className="-ml-3" onClick={() => setPending({ kind: 'delete-calculator' })}>
+              Delete calculator
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-4 px-6 py-5 bg-panel border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto">
+        {part && (
+          <PartLivePane
+            calculator={calculator}
+            part={part}
+            result={result}
+            values={values}
+            library={library}
+            formatMoney={formatMoney}
+            required={required}
+            expandedStepId={expandedStepId}
+            isStepShown={(stepId) => isStepShown(calculator, stepId)}
+            onValueChange={onValueChange}
+            onEditInput={(input) => setInputDialog({ input })}
+          />
+        )}
+        <div className="mt-auto flex flex-col gap-4">
+          {partErrors.map(({ part: failing, problem }) => (
+            <p key={failing.id} role="status" className="px-3.5 py-3 rounded-row border border-danger text-[13px] leading-[1.45] text-ink">
+              <b className="text-danger">{failing.name || 'A part'}</b> doesn&apos;t add up yet: {problem}. The total leaves it out.
+            </p>
+          ))}
+          <div className="border-t border-border-strong pt-3.5">
+            <div className="text-[13px] text-ink-muted">Calculator total</div>
+            <div className="font-numeric text-[38px] font-semibold tracking-[-.04em] leading-[1.1] text-accent break-all">
+              {result.total !== undefined ? formatMoney(result.total) : '—'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const paletteRow =
+    'w-full flex justify-between gap-2 px-2.5 py-[9px] rounded-md border border-dashed border-border-strong text-[13px] text-left text-ink transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+  const addRow =
+    'w-full px-2.5 py-[9px] rounded-md text-[13px] text-left text-ink-muted transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+
+  const layoutView = (
+    <div
+      className={cn(
+        'grid grid-cols-1 lg:flex-1 lg:min-h-0',
+        !preview && 'lg:grid-cols-[240px_minmax(0,1fr)_320px]'
+      )}
+    >
+      {!preview && (
+        <nav aria-label="Add to the form" className="flex flex-col gap-1 px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
+          <Eyebrow className="px-2.5 pb-2">Not placed</Eyebrow>
+          {unplaced.length === 0 && unshownSteps.length === 0 && (
+            <p className="px-2.5 text-xs text-ink-muted">Every input and result is on the form.</p>
+          )}
+          {unplaced.map((input) => (
+            <button
+              key={input.id}
+              type="button"
+              className={paletteRow}
+              onClick={() => placeInTarget({ type: 'input', inputId: input.id })}
+              aria-label={`Place input ${input.label} on the form`}
+            >
+              <span className="truncate">{input.label}</span>
+              <span className="font-numeric text-token-input truncate">{input.key}</span>
+            </button>
+          ))}
+          {unshownSteps.map((step) => (
+            <button
+              key={step.id}
+              type="button"
+              className={paletteRow}
+              onClick={() => placeInTarget({ type: 'result', stepId: step.id, style: 'row' })}
+              aria-label={`Place result ${step.label || step.key} on the form`}
+            >
+              <span className="truncate">{step.label || step.key}</span>
+              <span className="font-numeric text-token-result truncate">{step.key}</span>
+            </button>
+          ))}
+
+          <Eyebrow className="px-2.5 pt-[22px] pb-2">Add</Eyebrow>
+          <button type="button" className={addRow} onClick={() => addLayoutSection(targetSectionId)}>
+            + Section
+          </button>
+          <button type="button" className={addRow} onClick={() => placeInTarget({ type: 'text', text: '' })}>
+            + Text
+          </button>
+          <button type="button" className={addRow} onClick={() => placeInTarget({ type: 'divider' })}>
+            + Divider
+          </button>
+          <button
+            type="button"
+            className={addRow}
+            onClick={() => placeInTarget({ type: 'breakdown', partIds: calculator.parts.map((candidate) => candidate.id) })}
+          >
+            + Breakdown
+          </button>
+          <button
+            type="button"
+            className={addRow}
+            onClick={() => (targetSectionId ? layoutActions.onNewInput(targetSectionId) : addLayoutSection())}
+          >
+            + New input
+          </button>
+          <p className="mt-auto pt-4 px-2.5 text-xs leading-[1.5] text-ink-faint">
+            Select a section, then click to add to it. Drag items on the form by their handle to move them.
+          </p>
+        </nav>
+      )}
+
+      <div className="min-w-0 bg-sunken px-4 sm:px-8 py-6 lg:overflow-y-auto">
+        <div className={cn('mx-auto', preview ? 'max-w-[760px]' : 'max-w-[560px]')}>
+          {warnings}
           <LayoutCanvas
             context={layoutContext}
             selection={selection}
@@ -410,176 +710,27 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
             onMove={layoutActions.onMoveItem}
             onAddSection={() => addLayoutSection()}
           />
-          {!preview && (
-            <div className="lg:sticky lg:top-8">
-              <LayoutInspector
-                calculator={calculator}
-                selectedSection={selectedSection}
-                selectedItem={selectedItem}
-                library={library}
-                actions={layoutActions}
-              />
-            </div>
-          )}
         </div>
-      ) : (
-        <div className="space-y-5">
-          <Card className="p-4 sm:p-5">
-            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,220px)] gap-3">
-              <Input
-                id="calculator-name"
-                label="Name"
-                value={calculator.name}
-                error={nameError}
-                placeholder="e.g. Partition wall"
-                onChange={(event) => {
-                  setNameError(undefined);
-                  const name = event.target.value;
-                  edit((current) => ({ ...current, name }));
-                }}
-              />
-              <Input
-                label="Category"
-                value={calculator.category ?? ''}
-                placeholder="e.g. Walls"
-                onChange={(event) => {
-                  const category = event.target.value;
-                  edit((current) => ({ ...current, category: category || undefined }));
-                }}
-              />
-            </div>
-            <div className="mt-3">
-              <Textarea
-                label="Description (optional)"
-                rows={2}
-                value={calculator.description ?? ''}
-                onChange={(event) => {
-                  const description = event.target.value;
-                  edit((current) => ({ ...current, description: description || undefined }));
-                }}
-              />
-            </div>
-          </Card>
+      </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-ink">Parts</h2>
-              <p className="text-xs text-ink-muted">
-                Build and test one part at a time. Inputs belong to the whole calculator, so a value typed in one part is used by all of them.
-              </p>
-            </div>
-            <p className="shrink-0 text-right">
-              <span className="block text-xs text-ink-muted">Total</span>
-              <span className="font-numeric text-lg font-semibold text-ink tabular-nums">
-                {result.total !== undefined ? formatMoney(result.total) : '—'}
-              </span>
-            </p>
-          </div>
-
-          {calculator.parts.map((part, index) => (
-            <PartCard
-              key={part.id}
-              calculator={calculator}
-              part={part}
-              result={result}
-              values={values}
-              library={library}
-              formatMoney={formatMoney}
-              required={required}
-              isFirst={index === 0}
-              isLast={index === calculator.parts.length - 1}
-              expandedStepId={expandedStepId}
-              isStepShown={(stepId) => isStepShown(calculator, stepId)}
-              onToggleStep={(stepId) => setExpandedStepId((current) => (current === stepId ? null : stepId))}
-              onRename={(name) => edit((current) => updatePart(current, { ...part, name }))}
-              onMove={(direction) => edit((current) => movePart(current, part.id, direction))}
-              onRemove={() =>
-                calculator.steps.some((step) => step.partId === part.id)
-                  ? setPending({ kind: 'delete-part', partId: part.id })
-                  : edit((current) => removePart(current, part.id))
-              }
-              onAddStep={() => addStepTo(part.id)}
-              onStepChange={changeStep}
-              onSetCost={(stepId) => edit((current) => setPartCost(current, part.id, stepId))}
-              onSetShown={(stepId, shown) => edit((current) => setStepShown(current, stepId, shown, generateId))}
-              onMoveStep={(stepId, direction) => edit((current) => reorderStep(current, stepId, direction))}
-              onMoveStepToPart={(stepId, partId) => edit((current) => moveStepToPart(current, stepId, partId))}
-              onRemoveStep={(step) => {
-                edit((current) => removeStep(current, step.id));
-                if (expandedStepId === step.id) setExpandedStepId(null);
-              }}
-              onValueChange={onValueChange}
-              onEditInput={(input) => setInputDialog({ input })}
-              onCreateInput={(key) => setInputDialog({ suggestedKey: key })}
-              onCreateInputFor={(stepId, paramName, kind) => {
-                const step = calculator.steps.find((candidate) => candidate.id === stepId);
-                const fn =
-                  step?.source.type === 'call'
-                    ? library.functions.find((candidate) => candidate.name === (step.source as { functionName: string }).functionName)
-                    : undefined;
-                const param = fn?.parameters.find((candidate) => candidate.name === paramName);
-                const label = param?.label || paramName;
-                setInputDialog({
-                  suggestedKey: suggestKey(calculator, label, undefined, 'value'),
-                  suggestedKind: kind,
-                  suggestedLabel: label,
-                  suggestedUnitSymbol: param?.unitSymbol,
-                  bindTo: { stepId, paramName },
-                });
-              }}
-            />
-          ))}
-
-          <Button variant="secondary" onClick={addNewPart}>
-            <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
-            Add part
-          </Button>
-
-          <Card className="p-4 sm:p-5">
-            <SectionBar
-              id="unused-inputs"
-              title="Inputs not used yet"
-              count={unusedInputs.length}
-              action={
-                <Button variant="ghost" size="sm" onClick={() => setInputDialog({})}>
-                  <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-                  New input
-                </Button>
-              }
-            />
-            {unusedInputs.length === 0 ? (
-              <p className="mt-2 text-xs text-ink-muted">
-                {calculator.inputs.length > 0 ? 'Every input is used by a step. ' : ''}
-                New inputs show here until a step uses them. Staff see inputs in the order they were added.
-              </p>
-            ) : (
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {unusedInputs.map((input) => (
-                  <BuilderInputField
-                    key={input.id}
-                    input={input}
-                    values={values}
-                    result={result}
-                    library={library}
-                    formatMoney={formatMoney}
-                    onValueChange={onValueChange}
-                    onEdit={(target) => setInputDialog({ input: target })}
-                  />
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {isSaved && (
-            <div className="pt-2">
-              <Button variant="ghost" size="sm" className="text-danger" onClick={() => setPending({ kind: 'delete-calculator' })}>
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                Delete calculator
-              </Button>
-            </div>
-          )}
+      {!preview && (
+        <div className="px-6 py-5 bg-panel border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto">
+          <LayoutInspector
+            calculator={calculator}
+            selectedSection={selectedSection}
+            selectedItem={selectedItem}
+            library={library}
+            actions={layoutActions}
+          />
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
+      {header}
+      {view === 'layout' ? layoutView : partsView}
 
       <InputEditorDialog
         isOpen={inputDialog !== null}
@@ -604,6 +755,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library }:
         onConfirm={confirmPending}
         onCancel={() => setPending(null)}
       />
-    </>
+    </div>
   );
 }

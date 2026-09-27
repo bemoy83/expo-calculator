@@ -7,9 +7,11 @@ export function Eyebrow({
   tone = 'faint',
   tracking = 'section',
   as: Tag = 'div',
+  id,
   className,
   children,
 }: {
+  id?: string;
   /** faint (default) · live (green, bold) · ink */
   tone?: 'faint' | 'live' | 'ink';
   /** section = +0.06em (pane labels) · meta = +0.04em (page eyebrow) */
@@ -20,6 +22,7 @@ export function Eyebrow({
 }) {
   return (
     <Tag
+      id={id}
       className={cn(
         'font-numeric text-xs uppercase',
         tracking === 'meta' ? 'tracking-[.04em]' : 'tracking-[.06em]',

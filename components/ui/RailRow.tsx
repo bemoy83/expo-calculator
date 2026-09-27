@@ -9,8 +9,8 @@ interface RailRowProps {
   /** Right-aligned mono value: line cost, count */
   value?: React.ReactNode;
   selected?: boolean;
-  /** error shows a red dot (and — when there's no value) */
-  status?: 'error';
+  /** error: a red dot · draft: an amber dot (unfinished); with no value, — */
+  status?: 'error' | 'draft';
   onClick?: () => void;
   className?: string;
 }
@@ -19,6 +19,7 @@ interface RailRowProps {
 // index badge on accent.
 export function RailRow({ index, title, subtitle, value, selected = false, status, onClick, className }: RailRowProps) {
   const isError = status === 'error';
+  const isDraft = status === 'draft';
   return (
     <button
       type="button"
@@ -46,14 +47,16 @@ export function RailRow({ index, title, subtitle, value, selected = false, statu
         <span className="block text-sm font-semibold">{title}</span>
         {subtitle && <span className="block mt-0.5 text-xs text-ink-muted">{subtitle}</span>}
       </span>
-      {(value != null || isError) && (
+      {(value != null || status) && (
         <span
           className={cn(
-            'flex-none flex items-center gap-1.5 font-numeric text-[13px]',
-            isError ? 'text-danger' : selected ? 'text-ink' : 'text-ink-muted'
+            'flex-none flex items-center gap-1.5 font-numeric text-[13px] whitespace-nowrap',
+            isError ? 'text-danger' : isDraft ? 'text-draft' : selected ? 'text-ink' : 'text-ink-muted'
           )}
         >
-          {isError && <span aria-hidden="true" className="w-1.5 h-1.5 rounded-full bg-danger" />}
+          {status && (
+            <span aria-hidden="true" className={cn('w-1.5 h-1.5 rounded-full', isError ? 'bg-danger' : 'bg-draft')} />
+          )}
           {value ?? '—'}
         </span>
       )}

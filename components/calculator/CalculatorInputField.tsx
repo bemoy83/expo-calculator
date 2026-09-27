@@ -4,7 +4,9 @@ import { useId, useMemo, useState } from 'react';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { FIELD_LABEL } from '@/components/ui/field-styles';
+import { Segmented } from '@/components/ui/Segmented';
+import { Toggle } from '@/components/ui/Toggle';
+import { FIELD_LABEL, type FieldSize } from '@/components/ui/field-styles';
 import {
   createCatalogIndex,
   getSortedLaborForCategory,
@@ -30,7 +32,14 @@ interface CalculatorInputFieldProps {
   onChange: (value: CalculatorValue | undefined) => void;
   /** For material/labor inputs: properties the calculator reads from what's picked. */
   requiredProperties?: string[];
+  /** compact 38 (quick view) · md 42 (quote line) · large 46 (full-size run view) */
+  size?: FieldSize;
 }
+
+/** Heights for controls that aren't text boxes, matched to the text boxes beside them. */
+const CONTROL_HEIGHT: Record<FieldSize, string> = { compact: 'h-[38px]', md: 'h-[42px]', large: 'h-[46px]' };
+const CONTROL_MIN_HEIGHT: Record<FieldSize, string> = { compact: 'min-h-[38px]', md: 'min-h-[42px]', large: 'min-h-[46px]' };
+const STEPPER_BUTTON: Record<FieldSize, string> = { compact: 'h-[38px] w-10', md: 'h-[42px] w-11', large: 'h-[46px] w-12' };
 
 // One calculator input as staff see it: the widget for its kind, its unit, help text, and a
 // note when a result is waiting for it. Numbers are shown in the input's unit and stored in
@@ -44,6 +53,7 @@ export function CalculatorInputField({
   formatMoney,
   onChange,
   requiredProperties,
+  size = 'md',
 }: CalculatorInputFieldProps) {
   const id = useId();
   const helpId = `${id}-help`;
@@ -62,7 +72,7 @@ export function CalculatorInputField({
     const checked = resolvedValue === true;
     return (
       <div>
-        <div className="flex items-center min-h-[38px]">
+        <div className={cn('flex items-center', input.widget === 'checkbox' && CONTROL_HEIGHT[size])}>
           {input.widget === 'checkbox' ? (
             <Checkbox
               id={id}
@@ -72,31 +82,7 @@ export function CalculatorInputField({
               onChange={(event) => onChange(event.target.checked)}
             />
           ) : (
-            <button
-              id={id}
-              type="button"
-              role="switch"
-              aria-checked={checked}
-              aria-describedby={describedBy}
-              onClick={() => onChange(!checked)}
-              className="group inline-flex items-center gap-2.5 text-sm text-ink rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
-                  checked ? 'bg-action-solid' : 'bg-border-strong'
-                )}
-              >
-                <span
-                  className={cn(
-                    'absolute top-0.5 h-4 w-4 rounded-full bg-surface shadow-card transition-transform',
-                    checked ? 'translate-x-[18px]' : 'translate-x-0.5'
-                  )}
-                />
-              </span>
-              {input.label}
-            </button>
+            <Toggle id={id} checked={checked} onChange={onChange} label={input.label} aria-describedby={describedBy} />
           )}
         </div>
         {footer}
@@ -124,6 +110,7 @@ export function CalculatorInputField({
         needed,
         describedBy,
         onChange,
+        size,
       };
       control =
         input.widget === 'slider' ? (
@@ -148,42 +135,28 @@ export function CalculatorInputField({
                   name={id}
                   checked={option.id === selected}
                   onChange={() => onChange(option.id)}
-                  className="h-4 w-4 accent-action-solid cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                  className="h-4 w-4 accent-accent cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 />
                 {optionLabel(option.label)}
               </label>
             ))}
           </div>
         ) : input.widget === 'segmented' ? (
-          <div
-            role="radiogroup"
+          <Segmented
             aria-labelledby={`${id}-label`}
             aria-describedby={describedBy}
-            className="flex flex-wrap gap-1 p-1 rounded-md bg-sunken"
-          >
-            {spec.options.map((option) => {
-              const active = option.id === selected;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => onChange(option.id)}
-                  className={cn(
-                    'flex-1 h-8 px-3 rounded text-[13px] font-medium transition-colors',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                    active ? 'bg-surface text-ink shadow-card' : 'text-ink-muted hover:text-ink'
-                  )}
-                >
-                  {optionLabel(option.label)}
-                </button>
-              );
-            })}
-          </div>
+            block
+            size={size === 'large' ? 'large' : 'md'}
+            mono={spec.options.every((option) => /^[\d.,\s]+$/.test(option.label))}
+            className={cn('h-auto flex-wrap', CONTROL_MIN_HEIGHT[size])}
+            value={selected}
+            onChange={(value) => onChange(value)}
+            options={spec.options.map((option) => ({ value: option.id, label: optionLabel(option.label) }))}
+          />
         ) : (
           <Select
             id={id}
+            size={size}
             value={selected}
             aria-describedby={describedBy}
             onChange={(event) => onChange(event.target.value || undefined)}
@@ -210,6 +183,7 @@ export function CalculatorInputField({
           formatMoney={formatMoney}
           onChange={onChange}
           requiredProperties={requiredProperties}
+          size={size}
         />
       );
       break;
@@ -217,6 +191,7 @@ export function CalculatorInputField({
       control = (
         <Input
           id={id}
+          size={size}
           value={typeof rawValue === 'string' ? rawValue : spec.default ?? ''}
           aria-describedby={describedBy}
           onChange={(event) => onChange(event.target.value)}
@@ -251,8 +226,10 @@ function NumberControl({
   needed,
   describedBy,
   onChange,
+  size = 'md',
 }: {
   id: string;
+  size?: FieldSize;
   unitSymbol?: string;
   value: number | undefined;
   min?: number;
@@ -272,6 +249,7 @@ function NumberControl({
   return (
     <Input
       id={id}
+      size={size}
       type="number"
       inputMode="decimal"
       value={typing ?? shown}
@@ -309,8 +287,10 @@ function PickerControl({
   formatMoney,
   onChange,
   requiredProperties,
+  size,
 }: {
   id: string;
+  size: FieldSize;
   kind: 'material' | 'labor';
   category?: string;
   value: string;
@@ -339,6 +319,7 @@ function PickerControl({
     <>
       <Select
         id={id}
+        size={size}
         value={value}
         aria-describedby={describedBy}
         onChange={(event) => onChange(event.target.value || undefined)}
@@ -367,7 +348,7 @@ function clamp(value: number, min?: number, max?: number) {
 
 // − value + : steps by the input's step (or 1 in its unit), staying within min and max.
 function StepperControl({ label, ...props }: NumberControlProps & { label: string }) {
-  const { unitSymbol, value, min, max, step, onChange } = props;
+  const { unitSymbol, value, min, max, step, onChange, size = 'md' } = props;
   const toBase = (display: number) => (unitSymbol ? normalizeToBase(display, unitSymbol) : display);
   const toShown = (base: number) => (unitSymbol ? convertFromBase(base, unitSymbol) : base);
   const stepShown = step !== undefined ? toShown(step) : 1;
@@ -376,8 +357,10 @@ function StepperControl({ label, ...props }: NumberControlProps & { label: strin
     const next = Number((current + direction * stepShown).toPrecision(12));
     onChange(clamp(toBase(next), min, max));
   };
-  const buttonClass =
-    'h-[38px] w-10 shrink-0 rounded-md border border-border-strong bg-surface text-ink text-lg leading-none hover:bg-surface-hover disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+  const buttonClass = cn(
+    STEPPER_BUTTON[size],
+    'shrink-0 rounded-md border border-border-strong bg-transparent text-ink text-lg leading-none hover:bg-surface-hover disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-action'
+  );
   return (
     <div className="flex items-center gap-1.5">
       <button
@@ -405,14 +388,14 @@ function StepperControl({ label, ...props }: NumberControlProps & { label: strin
 
 // A range slider with the value beside it. Without min/max it spans 0–100 in the input's unit.
 function SliderControl({ unit, ...props }: NumberControlProps & { unit?: string }) {
-  const { id, unitSymbol, value, min, max, step, describedBy, onChange } = props;
+  const { id, unitSymbol, value, min, max, step, describedBy, onChange, size = 'md' } = props;
   const toShown = (base: number) => (unitSymbol ? convertFromBase(base, unitSymbol) : base);
   const toBase = (display: number) => (unitSymbol ? normalizeToBase(display, unitSymbol) : display);
   const low = min !== undefined ? toShown(min) : 0;
   const high = max !== undefined ? toShown(max) : 100;
   const shown = value === undefined ? undefined : toShown(value);
   return (
-    <div className="flex items-center gap-3 min-h-[38px]">
+    <div className={cn('flex items-center gap-3', CONTROL_HEIGHT[size])}>
       <input
         id={id}
         type="range"
@@ -422,9 +405,9 @@ function SliderControl({ unit, ...props }: NumberControlProps & { unit?: string 
         value={shown ?? low}
         aria-describedby={describedBy}
         onChange={(event) => onChange(toBase(Number(event.target.value)))}
-        className="flex-1 accent-action-solid cursor-pointer"
+        className="flex-1 accent-accent cursor-pointer"
       />
-      <span className="w-20 text-right font-numeric text-sm text-ink tabular-nums">
+      <span className="w-20 text-right font-numeric text-[15px] text-ink tabular-nums">
         {shown === undefined ? '—' : formatDisplayNumber(shown)}
         {unit && <span className="ml-1 text-ink-faint text-[0.85em]">{unit}</span>}
       </span>

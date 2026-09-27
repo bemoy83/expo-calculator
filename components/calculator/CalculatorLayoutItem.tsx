@@ -12,6 +12,8 @@ import type {
   LayoutItem,
   LayoutSection,
 } from '@/lib/calculator/types';
+import { Eyebrow } from '@/components/ui/Eyebrow';
+import type { FieldSize } from '@/components/ui/field-styles';
 import { CalculatorInputField } from './CalculatorInputField';
 import { CalculatorResultItem } from './CalculatorResultItem';
 
@@ -45,6 +47,8 @@ export interface LayoutRenderContext {
   onValueChange: (key: string, value: CalculatorValue | undefined) => void;
   /** Properties read from each material/labor input (see requiredProperties). */
   required: Map<string, string[]>;
+  /** Input height where this layout is drawn (default md) */
+  fieldSize?: FieldSize;
 }
 
 export function isShown(condition: Condition | undefined, context: LayoutRenderContext): boolean {
@@ -70,6 +74,7 @@ export function CalculatorLayoutItem({ item, context }: { item: LayoutItem; cont
           formatMoney={context.formatMoney}
           onChange={(value) => context.onValueChange(input.key, value)}
           requiredProperties={context.required.get(input.key)}
+          size={context.fieldSize}
         />
       );
     }
@@ -90,12 +95,13 @@ export function CalculatorLayoutItem({ item, context }: { item: LayoutItem; cont
   }
 }
 
+// A section's title as a mono eyebrow (VEGGEN, MATERIALE), with its description under it.
 export function SectionHeading({ section }: { section: LayoutSection }) {
   if (!section.title && !section.description) return null;
   return (
     <div className="mb-3">
-      {section.title && <h2 className="text-sm font-semibold text-ink">{section.title}</h2>}
-      {section.description && <p className="mt-0.5 text-xs text-ink-muted">{section.description}</p>}
+      {section.title && <Eyebrow as="h2">{section.title}</Eyebrow>}
+      {section.description && <p className="mt-1 text-xs text-ink-muted">{section.description}</p>}
     </div>
   );
 }

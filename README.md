@@ -15,7 +15,7 @@ database or account. Data moves between devices as exported files.
 | **Functions** | Reusable math with named, unit-aware parameters, e.g. `stud_count(width, spacing)`. Functions can call other functions. | Functions page |
 | **Catalogs** | Materials (with a default price and extra prices such as per m² or per pallet, plus properties like width) and labor (with a rate). | Materials and Labor pages |
 | **Calculators** | Inputs, the steps that calculate from them, grouped into **parts**, and a layout of what staff see. | Calculators page → New calculator / Edit |
-| **Quotes** | A workspace of calculator cards (one per wall, floor, …), with markup, VAT, the total, JSON export and print. | Quotes page |
+| **Quotes** | A workspace of calculator lines (one per wall, floor, …): the lines, the open line's calculator, and a receipt with markup, VAT, the total, JSON export and print. | Quotes page |
 
 ### Calculators and parts
 
@@ -32,31 +32,36 @@ database or account. Data moves between devices as exported files.
   Inputs can be number boxes, steppers, sliders, switches, dropdowns, buttons or pickers,
   and sections, inputs and steps can be shown or calculated only when a condition holds.
 
-The builder has two tabs: **Parts** (the math, with live test values) and **Layout**
-(what staff see, with a Preview).
+The builder has two views: **Parts** (one part at a time: its steps in the middle, and its
+inputs and results as staff see them, with live test values, on the right) and **Layout**
+(what isn't on the form yet, the form itself, and an inspector for what's selected; with a
+Preview).
+
+The Calculators page lists calculators by category, with the chosen one in a quick view to
+fill in and send to a quote; ⤢ opens it full size.
 
 ### Quotes
 
-A quote is a workspace: each line is a **calculator card**, filled in and changed in place,
-and the total updates as you type.
+A quote is a workspace: each line is a **calculator**, chosen in the Lines list and filled
+in and changed in the middle, and the receipt beside it updates as you type.
 
-- **Add calculator** picks a calculator (by category, with search) and adds it as a card.
-- **Duplicate** copies a card with its values as "Wood wall 2", "Wood wall 3", … so only
-  what differs (the width) is changed. Cards can be renamed ("Gable end"), moved, closed to
-  one line, and removed (with Undo).
-- A card that can't calculate yet says what it needs ("Fill in Height") and counts 0; the
-  total says how many lines aren't finished, and print/export ask before going ahead.
-- A card keeps the cost it had when last edited. If prices or the calculator change later,
+- **Add calculator** picks a calculator (by category, with search) and adds it as a line.
+- **Duplicate** (or ⌘D) copies a line with its values as "Wood wall 2", "Wood wall 3", … so
+  only what differs (the width) is changed. Lines can be renamed ("Gable end"), moved, and
+  removed (with Undo).
+- A line that can't calculate yet says what it needs ("Fill in Height") and counts 0; the
+  receipt says how many lines aren't finished, and print/export ask before going ahead.
+- A line keeps the cost it had when last edited. If prices or the calculator change later,
   it shows what it would cost now with **Update**, so a quote already given out doesn't
   change by being opened.
-- On a calculator's own page, **Send to quote** adds it to a quote as a card.
+- On a calculator's page or quick view, **Send to quote** adds it to a quote as a line.
 
 Quotes stay on the device they were made on; they are never part of an export or changed
 by an import.
 
 ## Sharing calculators with staff devices
 
-Settings (bottom of the sidebar) → **Data**:
+Settings (top right; in the menu on a phone) → **Data**:
 
 - **Export calculator pack…** — choose which calculators go to staff (anything still being
   built or tested can be left out; the ones in the last pack start ticked). The pack holds
@@ -119,8 +124,8 @@ components/
   calculator/              Staff view: layout renderer, inputs, results, Send to quote
   calculator-builder/      Parts view, layout canvas and inspector, step and input editors
   function-editor/ materials/ labor/ quotes/
-  DataImporter.tsx, PackExporter.tsx, AppSidebar.tsx, Layout.tsx
-  ui/ shared/              Primitives and shared pieces
+  DataImporter.tsx, PackExporter.tsx, TopBar.tsx, AppSidebar.tsx, Layout.tsx
+  ui/ live/ shared/        Primitives, live-pane pieces, and shared pieces
 lib/
   calculator/              Engine (evaluate, dependencies, conditions, call-function),
                            pure editing helpers, packs, and module/template conversion

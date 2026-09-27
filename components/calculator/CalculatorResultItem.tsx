@@ -36,12 +36,16 @@ function StepValue({
   return (
     <span
       className={cn(
-        'font-numeric text-ink tabular-nums',
-        size === 'headline' ? 'text-3xl font-semibold tracking-tight' : size === 'card' ? 'text-xl font-semibold' : 'text-sm'
+        'font-numeric text-ink tabular-nums whitespace-nowrap',
+        size === 'headline'
+          ? 'text-[32px] font-semibold tracking-[-.03em]'
+          : size === 'card'
+            ? 'text-[22px] font-semibold tracking-[-.02em]'
+            : 'text-[15px]'
       )}
     >
       {text}
-      {unit && <span className="ml-1 text-ink-faint font-normal text-[0.8em]">{unit}</span>}
+      {unit && <span className="text-ink-faint font-normal text-[0.8em]"> {unit}</span>}
     </span>
   );
 }
@@ -66,17 +70,18 @@ export function CalculatorResultItem({
     if (parts.length === 0) return null;
     return (
       <div>
-        {item.title && <p className="mb-2 text-xs font-medium text-ink-muted">{item.title}</p>}
-        <dl className="divide-y divide-border">
+        {item.title && <p className="mb-2 text-xs text-ink-muted">{item.title}</p>}
+        <dl className="flex flex-col gap-3">
           {parts.map((part) => {
             const cost = result.parts[part.id]?.cost;
             const costStep = calculator.steps.find((step) => step.id === part.costStepId);
             return (
-              <div key={part.id} className="flex items-baseline justify-between gap-3 py-2">
-                <dt className="text-sm text-ink-body">{part.name}</dt>
+              <div key={part.id} className="flex items-baseline gap-2.5 text-[15px]">
+                <dt className="min-w-0 text-ink">{part.name}</dt>
+                <span aria-hidden="true" className="flex-1 border-b border-dotted border-border-strong" />
                 <dd className="text-right">
                   {cost !== undefined ? (
-                    <span className="font-numeric text-sm text-ink tabular-nums">{formatMoney(cost)}</span>
+                    <span className="font-numeric text-ink tabular-nums whitespace-nowrap">{formatMoney(cost)}</span>
                   ) : (
                     costStep && (
                       <StepValue step={costStep} calculator={calculator} result={result} formatMoney={formatMoney} size="row" />
@@ -86,9 +91,10 @@ export function CalculatorResultItem({
               </div>
             );
           })}
-          <div className="flex items-baseline justify-between gap-3 pt-2.5">
-            <dt className="text-sm font-semibold text-ink">Total</dt>
-            <dd className="font-numeric text-base font-semibold text-ink tabular-nums">
+          <div className="flex items-baseline gap-2.5 pt-1">
+            <dt className="text-[15px] font-semibold text-ink">Total</dt>
+            <span className="flex-1" />
+            <dd className="font-numeric text-lg font-semibold text-ink tabular-nums">
               {result.total !== undefined ? formatMoney(result.total) : '—'}
             </dd>
           </div>
@@ -103,7 +109,7 @@ export function CalculatorResultItem({
   if (item.style === 'headline') {
     return (
       <div className="pt-1">
-        <p className="text-xs font-medium text-ink-muted">{stepDisplayLabel(step)}</p>
+        <p className="text-[13px] text-ink-muted">{stepDisplayLabel(step)}</p>
         <div className="mt-1" aria-live="polite">
           <StepValue step={step} calculator={calculator} result={result} formatMoney={formatMoney} size="headline" />
         </div>
@@ -113,8 +119,8 @@ export function CalculatorResultItem({
 
   if (item.style === 'card') {
     return (
-      <div className="rounded-md border border-border bg-sunken px-3 py-2.5">
-        <p className="text-xs font-medium text-ink-muted">{stepDisplayLabel(step)}</p>
+      <div className="rounded-row border border-border bg-surface px-3.5 py-3">
+        <p className="text-xs text-ink-muted">{stepDisplayLabel(step)}</p>
         <div className="mt-0.5">
           <StepValue step={step} calculator={calculator} result={result} formatMoney={formatMoney} size="card" />
         </div>
@@ -122,9 +128,11 @@ export function CalculatorResultItem({
     );
   }
 
+  // A result line (mockup 4a): label, dotted leader, value.
   return (
-    <div className="flex items-baseline justify-between gap-3 py-1.5">
-      <span className="text-sm text-ink-body">{stepDisplayLabel(step)}</span>
+    <div className="flex items-baseline gap-2.5 py-1 text-[15px]">
+      <span className="min-w-0 text-ink">{stepDisplayLabel(step)}</span>
+      <span aria-hidden="true" className="flex-1 min-w-4 border-b border-dotted border-border-strong" />
       <span className="text-right">
         <StepValue step={step} calculator={calculator} result={result} formatMoney={formatMoney} size="row" />
       </span>

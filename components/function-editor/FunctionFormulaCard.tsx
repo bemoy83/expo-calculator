@@ -1,6 +1,6 @@
 'use client';
 
-import { Card } from '@/components/ui/Card';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Textarea } from '@/components/ui/Textarea';
 import { FormulaVariableToken } from '@/components/formula/FormulaVariableToken';
 import { FormulaOperatorGuide } from '@/components/formula/FormulaOperatorGuide';
@@ -87,39 +87,18 @@ export function FunctionFormulaCard({
   ).length;
 
   return (
-    <Card title="Formula" density="dense">
+    <section aria-labelledby="formula-heading" className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <Eyebrow as="h3" id="formula-heading">
+          Formula
+        </Eyebrow>
+        {formula && formulaValidation.valid && <span className="text-xs text-committed">Formula is valid</span>}
+      </div>
       <div className="space-y-4">
-        {visibleParameters.length > 0 ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Parameters</h4>
-              <span className="text-[11px] font-numeric text-ink-faint">
-                {usedParametersCount}/{visibleParameters.length} used
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {visibleParameters.map((param) => (
-                <FormulaVariableToken
-                  key={param.key}
-                  label={param.name}
-                  value={param.name}
-                  isUsed={isParameterInFormula(param.name)}
-                  onInsert={onInsertParameter}
-                  size="sm"
-                  layout="stretch"
-                />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="text-xs text-ink-muted">
-            Add parameters to make them available as variables here.
-          </p>
-        )}
         <div className="relative">
           <Textarea
             ref={formulaTextareaRef}
-            label="Formula"
+            aria-labelledby="formula-heading"
             value={formula}
             highlight={formulaNames ? <FormulaText expression={formula} names={formulaNames} /> : undefined}
             onChange={(e) => {
@@ -183,12 +162,12 @@ export function FunctionFormulaCard({
             rows={4}
             placeholder=""
             error={formulaError}
-            className="font-numeric text-[13px] leading-relaxed"
+            className="font-numeric text-[15px] leading-[1.6] px-4 py-3.5"
           />
           {/* Autocomplete Dropdown */}
           {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
             <div
-              className="fixed z-50 bg-surface border border-border-strong rounded-lg shadow-panel max-h-64 overflow-y-auto py-1"
+              className="fixed z-50 bg-surface border border-border-strong rounded-row shadow-panel max-h-64 overflow-y-auto py-1"
               style={{
                 top: `${autocompletePosition.top}px`,
                 left: `${clampSuggestionLeft(autocompletePosition.left)}px`,
@@ -210,7 +189,7 @@ export function FunctionFormulaCard({
                     onMouseEnter={() => setSelectedSuggestionIndex(index)}
                     className={cn(
                       'w-full px-3 py-2 text-left flex items-center gap-2 transition-colors',
-                      isSelected ? 'bg-action-bg text-ink' : 'text-ink-body hover:bg-surface-hover'
+                      isSelected ? 'bg-accent-soft text-ink' : 'text-ink-body hover:bg-surface-hover'
                     )}
                   >
                     <code className={cn('text-xs font-numeric flex-1', TOKEN_TEXT[suggestionToken(suggestion.type).kind])}>
@@ -232,7 +211,34 @@ export function FunctionFormulaCard({
           )}
         </div>
         {formulaValidation.error && <p className="text-xs text-danger">{formulaValidation.error}</p>}
-        {formulaValidation.valid && formula && <p className="text-xs font-medium text-committed">Formula is valid</p>}
+        {visibleParameters.length > 0 ? (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs text-ink-muted">Insert a parameter</h4>
+              <span className="text-[11px] font-numeric text-ink-faint">
+                {usedParametersCount}/{visibleParameters.length} used
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {visibleParameters.map((param) => (
+                <FormulaVariableToken
+                  key={param.key}
+                  label={param.name}
+                  value={param.name}
+                  isUsed={isParameterInFormula(param.name)}
+                  onInsert={onInsertParameter}
+                  size="sm"
+                  layout="stretch"
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-ink-muted">
+            Add parameters to make them available as variables here.
+          </p>
+        )}
+
         <p className="text-xs text-ink-muted">
           Use parameter names, functions, and constants in your formula. Example: if you have parameters &quot;width&quot; and &quot;height&quot;,
           your formula could be &quot;width * height&quot; or &quot;area(width, height)&quot;.
@@ -240,6 +246,6 @@ export function FunctionFormulaCard({
         <FormulaLegend inputLabel="parameter" />
         <FormulaOperatorGuide onInsertOperator={onInsertOperator} />
       </div>
-    </Card>
+    </section>
   );
 }
