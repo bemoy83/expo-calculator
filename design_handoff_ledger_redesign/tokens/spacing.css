@@ -1,0 +1,40 @@
+:root {
+  /* Shell — top tabs replace the sidebar at every width */
+  --app-header-h: 52px;
+  --app-sidebar-w: 0px;
+  --page-pad-x: 24px;          /* top bar, page header, full-width bodies */
+  --page-header-pad: 22px 24px 18px;
+  --pane-pad: 20px 24px;       /* right live/editor panel */
+  --editor-pad: 24px 32px;     /* centre editor pane */
+  --rail-pad: 16px 12px;       /* left list rail */
+
+  /* Pane widths */
+  --rail-w: 260px;             /* 240–280: lines, parts, functions, calculator list */
+  --category-w: 200px;
+  --panel-w: 360px;            /* live receipt / staff view (340–400) */
+  --quickview-w: 420px;        /* 6b calculator quick view = mobile width */
+
+  /* Radii */
+  --radius-xs: 4px;            /* swatch / logo mark */
+  --radius-sm: 6px;            /* segmented inner, small chips */
+  --radius-md: 8px;            /* inputs, header buttons */
+  --radius-row: 10px;          /* list rows, cards, CTA buttons */
+  --radius-lg: 12px;           /* containers, resume strip */
+  --radius-inverse: 14px;      /* inverted commit block */
+  --radius-2xl: 20px;
+  --radius-pill: 9999px;
+
+  /* Controls */
+  --control-h: 42px;           /* inputs (38 compact · 46 staff run view) */
+  --button-h: 36px;            /* header buttons: 9px 14px padding */
+  --cta-pad: 13px;             /* full-width commit button */
+
+  /* Elevation — flat. Hierarchy comes from surface steps + hairlines, not shadow. */
+  --shadow-card: none;
+  --shadow-panel: none;
+  --focus-ring: 0 0 0 3px var(--accent-soft);
+
+  /* Motion */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 150ms;
+}

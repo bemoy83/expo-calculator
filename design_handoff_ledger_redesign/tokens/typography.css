@@ -1,0 +1,28 @@
+/* Two families: a grotesk for words, a mono for every number, unit, variable and eyebrow. */
+:root {
+  --font-ui: 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-numeric: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Scale (px values lifted from the mockups) */
+  --text-display: 30px;   /* page title · 700 · -0.025em */
+  --text-title: 22px;     /* pane / editor title · 700 · -0.02em */
+  --text-heading: 16px;   /* card / resume title (15–20) · 600–700 */
+  --text-body: 14px;      /* rows, list names, buttons in panels */
+  --text-small: 13px;     /* buttons in headers, descriptions, meta */
+  --text-label: 12px;     /* field labels (ink-muted), mono eyebrows (ink-faint) */
+  --text-micro: 11px;     /* COST badge, pinned-footer note */
+
+  --num-hero: 44px;       /* receipt total · mono 600 · -0.04em */
+  --num-large: 32px;      /* resume/card total · mono 600 · -0.03em */
+  --num-medium: 26px;     /* line total, compact pinned total */
+  --num-input: 15px;      /* values inside inputs (14–16) */
+
+  --tracking-display: -0.025em;
+  --tracking-title: -0.02em;
+  --tracking-num: -0.04em;
+  --tracking-eyebrow: 0.06em; /* mono uppercase section labels: LINES, RESULTS, PARTS */
+  --tracking-meta: 0.04em;    /* mono uppercase page eyebrow: QUOTE Q-0142 · EDITED… */
+
+  --leading-tight: 1.1;
+  --leading-body: 1.45;
+}

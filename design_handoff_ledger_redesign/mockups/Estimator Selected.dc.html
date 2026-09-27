@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#e9e7e2;font-family:system-ui,sans-serif}
+a{color:inherit}a:hover{opacity:.8}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+.art{--sans:'Schibsted Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;--bg:#0f0f0e;--panel:#171715;--raise:#1f1f1c;--sunk:#0a0a09;--line:#262623;--line2:#3a3935;--ink:#f3f2ee;--mut:#a6a49d;--fnt:#7b7a73;--paper:#1b1b19;--tin:oklch(0.8 0.11 175);--tres:oklch(0.8 0.1 295);--bad:oklch(0.72 0.16 25);--ok:oklch(0.78 0.14 150);--acc:oklch(0.76 0.16 55);--acc-ink:#140c05;--acc-soft:color-mix(in oklch,var(--acc) 15%,transparent);font-family:var(--sans);color:var(--ink);background:var(--bg)}
+.art[data-accent=chalk]{--acc:oklch(0.76 0.13 240)}
+.art[data-accent=lime]{--acc:oklch(0.86 0.17 120)}
+.art[data-theme=light]{--bg:#f2f0eb;--panel:#faf9f6;--raise:#ffffff;--sunk:#e7e4dd;--line:#dcd8cf;--line2:#c4bfb4;--ink:#171613;--mut:#5b5953;--fnt:#77746c;--paper:#ffffff;--tin:oklch(0.5 0.1 175);--tres:oklch(0.5 0.13 295);--bad:oklch(0.55 0.18 25);--ok:oklch(0.52 0.12 150);--acc:oklch(0.68 0.18 50)}
+.art[data-theme=light][data-accent=chalk]{--acc:oklch(0.66 0.14 240)}
+.art[data-theme=light][data-accent=lime]{--acc:oklch(0.8 0.18 122)}
+</style>
+</helmet>
+
+<section class="dv-turn" id="c">
+<div class="dv-thd"><a class="dv-tid" href="#c">C</a><span class="dv-tname">Calculators · home (quick view), full size, editor</span></div>
+<div class="dv-opts">
+
+<!-- 6b -->
+<div class="dv-opt" id="6b"><div class="dv-olabel"><a class="dv-oid" href="#6b">6b</a><a href="#5b">5b</a> with <a href="#4a">4a</a>'s narrow layout in the sidebar · form scrolls, live result + total pinned · ⤢ opens <a href="#4a">4a</a> full size</div>
+<div class="dv-card"><div class="art" data-theme="{{ theme }}" data-accent="{{ accent }}" style="width:1280px;height:820px;display:flex;flex-direction:column">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:28px;padding:0 24px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em"><span style="width:18px;height:18px;background:var(--acc);border-radius:4px"></span>Cost Estimator</div>
+    <div style="display:flex;gap:4px;font-size:14px"><span style="padding:7px 12px;border-radius:7px;background:var(--raise);font-weight:600">Calculators</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Quotes</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Catalog</span></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--mut)"><span>Settings</span><span style="width:28px;height:28px;border-radius:50%;background:var(--sunk);border:1px solid var(--line2)"></span></div>
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:16px;padding:22px 24px 18px;border-bottom:1px solid var(--line)">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.04em">6 CALCULATORS · LAST PACK EXPORTED 12 SEP 2026</div>
+      <div style="font-size:30px;font-weight:700;letter-spacing:-.025em;margin-top:4px">Calculators</div>
+    </div>
+    <div style="display:flex;gap:8px;font-size:13px;font-weight:600">
+      <span style="width:220px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);color:var(--fnt);font-weight:400">Search calculators…</span>
+      <span style="padding:9px 14px;border-radius:8px;background:var(--acc);color:var(--acc-ink)">+ New calculator</span>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:200px minmax(0,1fr) 420px">
+    <div style="border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:2px;font-size:14px">
+      <div style="padding:0 10px 8px;font-size:12px;color:var(--fnt);font-family:var(--mono);letter-spacing:.06em">CATEGORY</div>
+      <div style="display:flex;justify-content:space-between;padding:9px 10px;border-radius:8px;color:var(--mut)"><span>All</span><span style="font-family:var(--mono);font-size:12px">6</span></div>
+      <div style="display:flex;justify-content:space-between;padding:9px 10px;border-radius:8px;background:var(--raise);font-weight:600"><span>Vegger</span><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">3</span></div>
+      <div style="display:flex;justify-content:space-between;padding:9px 10px;border-radius:8px;color:var(--mut)"><span>Gulv</span><span style="font-family:var(--mono);font-size:12px">2</span></div>
+      <div style="display:flex;justify-content:space-between;padding:9px 10px;border-radius:8px;color:var(--mut)"><span>Tak</span><span style="font-family:var(--mono);font-size:12px">1</span></div>
+    </div>
+    <div style="padding:16px 12px;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;gap:12px;padding:14px 12px;border-radius:10px;background:var(--raise);border:1px solid var(--line2)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:15px">Bindingsverk</div><div style="font-size:13px;color:var(--mut);margin-top:3px">Stendere og svill for en vegg, med svinn.</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--fnt);white-space:nowrap">5 in · 2 parts</span></div>
+      <div style="display:flex;gap:12px;padding:14px 12px;border-radius:10px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:15px">Gipsvegg</div><div style="font-size:13px;color:var(--mut);margin-top:3px">Plater, skruer og sparkel per veggflate.</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--fnt);white-space:nowrap">4 in · 3 parts</span></div>
+      <div style="display:flex;gap:12px;padding:14px 12px;border-radius:10px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:15px">Panelvegg</div><div style="font-size:13px;color:var(--mut);margin-top:3px">Stående panel med lekter og montering.</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--fnt);white-space:nowrap">6 in · 2 parts</span></div>
+    </div>
+    <div style="border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0">
+      <div style="flex:1;min-height:0;overflow:hidden;padding:18px 22px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="flex:1;min-width:0"><div style="font-size:22px;font-weight:700;letter-spacing:-.02em">Bindingsverk</div><div style="font-size:13px;color:var(--mut);margin-top:2px">Stendere og svill for en vegg, med svinn.</div></div>
+          <div style="display:flex;gap:4px;font-size:13px;font-weight:600"><span style="padding:7px 8px;color:var(--mut)">Reset</span><span style="padding:7px 12px;border:1px solid var(--line2);border-radius:8px">Edit</span><span title="Open full size" style="width:32px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line2);border-radius:8px;font-size:15px">⤢</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">VEGGEN</div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px">
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;color:var(--mut)">Bredde <span style="font-family:var(--mono);color:var(--fnt)">m</span></span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">4</div></div>
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;color:var(--mut)">Høyde <span style="font-family:var(--mono);color:var(--fnt)">m</span></span><div style="height:40px;border:1px solid var(--acc);box-shadow:0 0 0 3px var(--acc-soft);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">2.5<span style="width:1px;height:18px;background:var(--acc);margin-left:2px"></span></div></div>
+            <div style="grid-column:span 2;display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;color:var(--mut)">Senteravstand <span style="font-family:var(--mono);color:var(--fnt)">cm</span></span><div style="height:40px;display:flex;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);padding:3px;gap:3px;font-family:var(--mono);font-size:14px"><span style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--mut)">40</span><span style="flex:1;display:flex;align-items:center;justify-content:center;border-radius:6px;background:var(--raise);border:1px solid var(--line2);font-weight:600">60</span></div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">MATERIALE</div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:10px 12px">
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;color:var(--mut)">Material</span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:14px"><span>K.VIRKE 48x98</span><span style="color:var(--fnt)">▾</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;color:var(--mut)">Svinn <span style="font-family:var(--mono);color:var(--fnt)">%</span></span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">10</div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">ISOLASJON</div>
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;font-size:14px"><span style="width:36px;height:20px;border-radius:99px;background:var(--acc);position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--acc-ink)"></span></span>Isoler veggen<span style="margin-left:auto;font-size:12px;color:var(--mut)">Glava 70 mm</span></div>
+        </div>
+        <div style="height:40px;margin:0 -22px -18px;background:linear-gradient(transparent,var(--panel))"></div>
+      </div>
+      <div style="flex:none;padding:12px 22px 0;border-top:1px solid var(--line2);background:var(--raise);display:flex;flex-direction:column;gap:7px;font-size:13px">
+        <div style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.06em"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span><span style="color:var(--ok);font-weight:600">LIVE</span><span style="color:var(--fnt)">· RESULT</span><span style="margin-left:auto;color:var(--fnt)">▾</span></div>
+        <div style="display:flex;align-items:baseline;gap:10px"><span>Stendere</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono)">8 <span style="color:var(--fnt)">stk</span></span></div>
+        <div style="display:flex;align-items:baseline;gap:10px"><span>Bindingsverk antall</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono)">30.8 <span style="color:var(--fnt)">m</span></span></div>
+        <div style="display:flex;align-items:baseline;gap:10px"><span>Isolasjon</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono)">10 <span style="color:var(--fnt)">m²</span></span></div>
+      </div>
+      <div style="flex:none;padding:10px 14px 14px;background:var(--raise)">
+        <div style="display:flex;align-items:center;gap:14px;padding:12px 14px 12px 16px;border-radius:12px;background:var(--ink);color:var(--bg)">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;opacity:.7">Total excl. VAT</span><span style="align-self:flex-start;font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.035em;line-height:1.15;padding:1px 10px;border-radius:8px;background:var(--acc);color:var(--acc-ink)">$1 812.32</span></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px"><span style="padding:11px 16px;border-radius:10px;background:var(--bg);color:var(--ink);font-weight:600;font-size:14px">Send to quote</span><span style="font-size:11px;opacity:.6">→ Stand B12 — Norway Expo</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+<!-- 4a -->
+<div class="dv-opt" id="4a"><div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Full size of <a href="#6b">6b</a> (⤢) · /calculator · </div>
+<div class="dv-card"><div class="art" data-theme="{{ theme }}" data-accent="{{ accent }}" style="width:1280px;height:820px;display:flex;flex-direction:column">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:28px;padding:0 24px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em"><span style="width:18px;height:18px;background:var(--acc);border-radius:4px"></span>Cost Estimator</div>
+    <div style="display:flex;gap:4px;font-size:14px"><span style="padding:7px 12px;border-radius:7px;background:var(--raise);font-weight:600">Calculators</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Quotes</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Catalog</span></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--mut)"><span>Settings</span><span style="width:28px;height:28px;border-radius:50%;background:var(--sunk);border:1px solid var(--line2)"></span></div>
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:16px;padding:22px 24px 18px;border-bottom:1px solid var(--line)">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.04em">CALCULATORS / VEGGER</div>
+      <div style="font-size:30px;font-weight:700;letter-spacing:-.025em;margin-top:4px">Bindingsverk</div>
+      <div style="font-size:14px;color:var(--mut);margin-top:4px">Stendere og svill for en vegg, med svinn.</div>
+    </div>
+    <div style="display:flex;gap:8px;font-size:13px;font-weight:600">
+      <span style="padding:9px 14px;color:var(--mut)">Reset</span>
+      <span style="padding:9px 14px;border:1px solid var(--line2);border-radius:8px">Edit</span>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 400px">
+    <div style="padding:26px 32px;display:flex;flex-direction:column;gap:26px;overflow:hidden;max-width:760px">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">VEGGEN</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 18px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Bredde <span style="font-family:var(--mono);color:var(--fnt)">m</span></span><div style="height:46px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:16px">4</div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Høyde <span style="font-family:var(--mono);color:var(--fnt)">m</span></span><div style="height:46px;border:1px solid var(--acc);box-shadow:0 0 0 3px var(--acc-soft);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:16px">2.5<span style="width:1px;height:18px;background:var(--acc);margin-left:2px"></span></div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Senteravstand <span style="font-family:var(--mono);color:var(--fnt)">cm</span></span><div style="height:46px;display:flex;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);padding:3px;gap:3px;font-family:var(--mono);font-size:14px"><span style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--mut)">40</span><span style="flex:1;display:flex;align-items:center;justify-content:center;border-radius:6px;background:var(--raise);border:1px solid var(--line2);font-weight:600">60</span></div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">MATERIALE</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 18px">
+          <div style="grid-column:span 2;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Material</span><div style="height:46px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:15px"><span>K.VIRKE 48x98 <span style="font-family:var(--mono);color:var(--mut)">· 37.90/m</span></span><span style="color:var(--fnt)">▾</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Svinn <span style="font-family:var(--mono);color:var(--fnt)">%</span></span><div style="height:46px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:16px">10</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">ISOLASJON</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line2);border-radius:10px;font-size:15px"><span style="width:38px;height:22px;border-radius:99px;background:var(--acc);position:relative;flex:none"><span style="position:absolute;right:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--acc-ink)"></span></span>Isoler veggen<span style="margin-left:auto;font-size:13px;color:var(--mut)">Glava 70 mm</span></div>
+      </div>
+    </div>
+    <div style="border-left:1px solid var(--line);background:var(--panel);padding:20px 24px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.06em"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span><span style="color:var(--ok);font-weight:600">LIVE</span><span style="color:var(--fnt)">· RESULT</span></div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px;font-size:15px">
+        <div style="display:flex;align-items:baseline;gap:10px"><span>Stendere</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono)">8 <span style="color:var(--fnt)">stk</span></span></div>
+        <div style="display:flex;align-items:baseline;gap:10px"><span>Bindingsverk antall</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono)">30.8 <span style="color:var(--fnt)">m</span></span></div>
+        <div style="display:flex;align-items:baseline;gap:10px"><span>Isolasjon</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono)">10 <span style="color:var(--fnt)">m²</span></span></div>
+      </div>
+      <div style="margin:18px 0;border-top:1px dashed var(--line2)"></div>
+      <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;color:var(--mut)">
+        <div style="display:flex;justify-content:space-between"><span>Bindingsverk</span><span style="font-family:var(--mono);color:var(--ink)">1 167.32</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Isolasjon</span><span style="font-family:var(--mono);color:var(--ink)">645.00</span></div>
+      </div>
+      <div style="margin-top:auto;padding:18px;border-radius:14px;background:var(--ink);color:var(--bg);display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:13px;opacity:.7">Total excl. VAT</span>
+        <span style="align-self:flex-start;font-family:var(--mono);font-size:40px;font-weight:600;letter-spacing:-.04em;line-height:1.15;padding:2px 12px;border-radius:10px;background:var(--acc);color:var(--acc-ink)">$1 812.32</span>
+        <div style="margin-top:4px;padding:12px;border-radius:10px;background:var(--bg);color:var(--ink);text-align:center;font-weight:600;font-size:14px">Send to quote</div>
+        <div style="font-size:12px;opacity:.6;text-align:center">Adds a line to Stand B12 — Norway Expo</div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+<!-- 4b -->
+<div class="dv-opt" id="4b"><div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>/calculator/edit · Parts · parts + inputs → steps → live staff view</div>
+<div class="dv-card"><div class="art" data-theme="{{ theme }}" data-accent="{{ accent }}" style="width:1280px;height:820px;display:flex;flex-direction:column">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:28px;padding:0 24px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em"><span style="width:18px;height:18px;background:var(--acc);border-radius:4px"></span>Cost Estimator</div>
+    <div style="display:flex;gap:4px;font-size:14px"><span style="padding:7px 12px;border-radius:7px;background:var(--raise);font-weight:600">Calculators</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Quotes</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Catalog</span></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--mut)"><span>Settings</span><span style="width:28px;height:28px;border-radius:50%;background:var(--sunk);border:1px solid var(--line2)"></span></div>
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:16px;padding:22px 24px 18px;border-bottom:1px solid var(--line)">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.04em">CALCULATORS / VEGGER · EDITING · UNSAVED</div>
+      <div style="display:flex;align-items:baseline;gap:14px;margin-top:4px"><span style="font-size:30px;font-weight:700;letter-spacing:-.025em;border-bottom:1px solid var(--line2)">Bindingsverk</span><span style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--bad)"><span style="width:7px;height:7px;border-radius:50%;background:var(--bad)"></span>1 step has an error</span></div>
+    </div>
+    <div style="display:flex;gap:8px;font-size:13px;font-weight:600;align-items:center">
+      <span style="display:flex;padding:3px;border-radius:8px;background:var(--sunk)"><span style="padding:6px 14px;border-radius:6px;background:var(--raise)">Parts</span><span style="padding:6px 14px;color:var(--mut)">Layout</span></span>
+      <span style="width:1px;height:24px;background:var(--line);margin:0 6px"></span>
+      <span style="padding:9px 14px;border:1px solid var(--line2);border-radius:8px">Cancel</span>
+      <span style="padding:9px 16px;border-radius:8px;background:var(--acc);color:var(--acc-ink)">Save</span>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:240px minmax(0,1fr) 340px">
+    <div style="border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;justify-content:space-between;padding:0 10px 8px;font-size:12px;color:var(--fnt);font-family:var(--mono);letter-spacing:.06em"><span>PARTS</span><span>2</span></div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px;background:var(--raise);border:1px solid var(--line2)"><span style="font-family:var(--mono);font-size:12px;font-weight:600;background:var(--acc);color:var(--acc-ink);border-radius:5px;padding:2px 5px;height:fit-content">01</span><div style="flex:1;min-width:0;font-weight:600;font-size:14px">Bindingsverk</div><span style="font-family:var(--mono);font-size:13px">1 167.32</span></div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px"><span style="font-family:var(--mono);font-size:12px;color:var(--fnt);padding:2px 5px">02</span><div style="flex:1;min-width:0;font-weight:600;font-size:14px">Isolasjon</div><span style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:13px;color:var(--bad)"><span style="width:6px;height:6px;border-radius:50%;background:var(--bad)"></span>—</span></div>
+      <div style="margin-top:4px;padding:10px;border:1px dashed var(--line2);border-radius:10px;text-align:center;font-size:13px;color:var(--mut)">+ Add part</div>
+      <div style="display:flex;justify-content:space-between;padding:22px 10px 8px;font-size:12px;color:var(--fnt);font-family:var(--mono);letter-spacing:.06em"><span>INPUTS</span><span style="color:var(--ink)">+ New</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 10px;font-size:13px"><span style="font-family:var(--mono);color:var(--tin)">bredde</span><span style="font-family:var(--mono);color:var(--fnt)">m</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 10px;font-size:13px"><span style="font-family:var(--mono);color:var(--tin)">hoyde</span><span style="font-family:var(--mono);color:var(--fnt)">m</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 10px;font-size:13px"><span style="font-family:var(--mono);color:var(--tin)">cc</span><span style="font-family:var(--mono);color:var(--fnt)">cm</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 10px;font-size:13px"><span style="font-family:var(--mono);color:var(--tin)">svinn</span><span style="font-family:var(--mono);color:var(--fnt)">%</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 10px;font-size:13px"><span style="font-family:var(--mono);color:var(--tin)">material</span><span style="font-size:12px;color:var(--fnt)">Treverk</span></div>
+      <div style="display:flex;justify-content:space-between;padding:7px 10px;font-size:13px;border-radius:8px;background:var(--sunk)"><span style="font-family:var(--mono);color:var(--mut)">isoler</span><span style="font-size:12px;color:var(--fnt)">not used</span></div>
+    </div>
+    <div style="padding:20px 28px;display:flex;flex-direction:column;gap:6px;font-size:14px;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 2px 10px"><span style="font-size:20px;font-weight:700;letter-spacing:-.02em">Bindingsverk</span><span style="font-size:12px;color:var(--fnt)"><span style="color:var(--tin)">■</span> input <span style="color:var(--tres);margin-left:8px">■</span> step</span></div>
+      <div style="display:grid;grid-template-columns:24px 150px minmax(0,1fr) 90px;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px"><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">1</span><span style="font-weight:600">Stendere</span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)"><span style="color:var(--tres)">stendere</span>(<span style="color:var(--tin)">bredde</span>, <span style="color:var(--tin)">cc</span>)</span><span style="text-align:right;font-family:var(--mono)">8</span></div>
+      <div style="display:grid;grid-template-columns:24px 150px minmax(0,1fr) 90px;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px"><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">2</span><span style="font-weight:600">Stenderlengde</span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)"><span style="color:var(--tres)">stendere</span> × <span style="color:var(--tin)">hoyde</span></span><span style="text-align:right;font-family:var(--mono)">20 <span style="color:var(--fnt)">m</span></span></div>
+      <div style="display:grid;grid-template-columns:24px 150px minmax(0,1fr) 90px;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px"><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">3</span><span style="font-weight:600">Svill + topp</span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)"><span style="color:var(--tin)">bredde</span> × 2</span><span style="text-align:right;font-family:var(--mono)">8 <span style="color:var(--fnt)">m</span></span></div>
+      <div style="border:1px solid var(--acc);box-shadow:0 0 0 3px var(--acc-soft);border-radius:10px;background:var(--raise);overflow:hidden">
+        <div style="display:grid;grid-template-columns:24px 150px minmax(0,1fr) 90px;gap:12px;align-items:center;padding:12px 14px"><span style="font-family:var(--mono);font-size:12px;color:var(--acc);font-weight:600">4</span><span style="font-weight:600">Bindingsverk antall</span><span style="font-size:12px;color:var(--mut)">Shown to staff</span><span style="text-align:right;font-family:var(--mono)">30.8 <span style="color:var(--fnt)">m</span></span></div>
+        <div style="padding:2px 14px 16px 50px;display:flex;flex-direction:column;gap:12px">
+          <div style="padding:12px 14px;border-radius:8px;background:var(--sunk);border:1px solid var(--line2);font-family:var(--mono);font-size:15px">(<span style="color:var(--tres)">stenderlengde</span> + <span style="color:var(--tres)">svill</span>) × (1 + <span style="color:var(--tin)">svinn</span> / 100)</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:13px">
+            <span style="padding:6px 10px;border-radius:7px;background:var(--sunk);color:var(--mut)">Formula ▾</span><span style="padding:6px 10px;border-radius:7px;background:var(--sunk);color:var(--mut)">Number · m ▾</span>
+            <span style="padding:6px 10px;border-radius:7px;background:var(--acc-soft);color:var(--ink)">✓ Show to staff</span><span style="padding:6px 10px;border-radius:7px;border:1px dashed var(--line2);color:var(--mut)">Part's cost</span><span style="padding:6px 10px;border-radius:7px;border:1px dashed var(--line2);color:var(--mut)">Only when…</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:24px 150px minmax(0,1fr) 90px;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px"><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">5</span><span style="font-weight:600;display:flex;gap:8px;align-items:center">Kost <span style="font-size:11px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:99px;background:var(--acc-soft);color:var(--ink)">COST</span></span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)"><span style="color:var(--tres)">antall</span> × <span style="color:var(--tin)">material</span>.price</span><span style="text-align:right;font-family:var(--mono);font-weight:600">1 167.32</span></div>
+      <div style="padding:11px;border:1px dashed var(--line2);border-radius:10px;text-align:center;font-size:13px;color:var(--mut)">+ Add step</div>
+      <div style="margin-top:auto;padding:8px 2px;font-size:13px;color:var(--bad)">Delete calculator</div>
+    </div>
+    <div style="border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;padding:20px 24px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.06em"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span><span style="color:var(--ok);font-weight:600">LIVE</span><span style="color:var(--fnt)">· AS STAFF SEE IT</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Bredde <span style="font-family:var(--mono);color:var(--fnt)">m</span></span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:14px">4</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Høyde <span style="font-family:var(--mono);color:var(--fnt)">m</span></span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:14px">2.5</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Cc <span style="font-family:var(--mono);color:var(--fnt)">cm</span></span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:14px">60</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Svinn <span style="font-family:var(--mono);color:var(--fnt)">%</span></span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:14px">10</div></div>
+        <div style="grid-column:span 2;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Material</span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:14px"><span>K.VIRKE 48x98</span><span style="color:var(--fnt)">▾</span></div></div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px;font-size:14px">
+        <div style="display:flex;justify-content:space-between;padding:8px 10px;margin:0 -10px;border-radius:8px;background:var(--acc-soft)"><span>Bindingsverk antall</span><span style="font-family:var(--mono)">30.8 m</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Bindingsverk kost</span><span style="font-family:var(--mono)">1 167.32</span></div>
+      </div>
+      <div style="margin-top:auto;padding:12px 14px;border-radius:10px;border:1px solid var(--bad);font-size:13px;line-height:1.45"><b style="color:var(--bad)">Isolasjon</b> doesn't add up yet: <span style="font-family:var(--mono)">tykkelse</span> isn't an input. The total leaves it out.</div>
+      <div style="border-top:1px solid var(--line2);padding-top:14px"><div style="font-size:13px;color:var(--mut)">Calculator total</div><div style="font-family:var(--mono);font-size:38px;font-weight:600;letter-spacing:-.04em;color:var(--acc);line-height:1.1">$1 167.32</div></div>
+    </div>
+  </div>
+</div></div></div>
+
+<!-- 4c -->
+<div class="dv-opt" id="4c"><div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a>/calculator/edit · Layout · palette → staff form canvas → inspector</div>
+<div class="dv-card"><div class="art" data-theme="{{ theme }}" data-accent="{{ accent }}" style="width:1280px;height:820px;display:flex;flex-direction:column">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:28px;padding:0 24px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em"><span style="width:18px;height:18px;background:var(--acc);border-radius:4px"></span>Cost Estimator</div>
+    <div style="display:flex;gap:4px;font-size:14px"><span style="padding:7px 12px;border-radius:7px;background:var(--raise);font-weight:600">Calculators</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Quotes</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Catalog</span></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--mut)"><span>Settings</span><span style="width:28px;height:28px;border-radius:50%;background:var(--sunk);border:1px solid var(--line2)"></span></div>
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:16px;padding:22px 24px 18px;border-bottom:1px solid var(--line)">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.04em">CALCULATORS / VEGGER · EDITING · UNSAVED</div>
+      <div style="display:flex;align-items:baseline;gap:14px;margin-top:4px"><span style="font-size:30px;font-weight:700;letter-spacing:-.025em;border-bottom:1px solid var(--line2)">Bindingsverk</span><span style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ok)"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span>No errors</span></div>
+    </div>
+    <div style="display:flex;gap:8px;font-size:13px;font-weight:600;align-items:center">
+      <span style="padding:9px 12px;color:var(--mut)">Preview</span>
+      <span style="display:flex;padding:3px;border-radius:8px;background:var(--sunk)"><span style="padding:6px 14px;color:var(--mut)">Parts</span><span style="padding:6px 14px;border-radius:6px;background:var(--raise)">Layout</span></span>
+      <span style="width:1px;height:24px;background:var(--line);margin:0 6px"></span>
+      <span style="padding:9px 14px;border:1px solid var(--line2);border-radius:8px">Cancel</span>
+      <span style="padding:9px 16px;border-radius:8px;background:var(--acc);color:var(--acc-ink)">Save</span>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:240px minmax(0,1fr) 320px">
+    <div style="border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:4px">
+      <div style="padding:0 10px 8px;font-size:12px;color:var(--fnt);font-family:var(--mono);letter-spacing:.06em">NOT PLACED</div>
+      <div style="display:flex;justify-content:space-between;padding:9px 10px;border:1px dashed var(--line2);border-radius:8px;font-size:13px"><span>Isoler veggen</span><span style="font-family:var(--mono);color:var(--tin)">isoler</span></div>
+      <div style="display:flex;justify-content:space-between;padding:9px 10px;border:1px dashed var(--line2);border-radius:8px;font-size:13px;margin-top:4px"><span>Isolasjon m²</span><span style="font-family:var(--mono);color:var(--tres)">iso_m2</span></div>
+      <div style="padding:22px 10px 8px;font-size:12px;color:var(--fnt);font-family:var(--mono);letter-spacing:.06em">ADD</div>
+      <div style="padding:9px 10px;font-size:13px;color:var(--mut)">+ Section</div>
+      <div style="padding:9px 10px;font-size:13px;color:var(--mut)">+ Heading</div>
+      <div style="padding:9px 10px;font-size:13px;color:var(--mut)">+ Note</div>
+      <div style="padding:9px 10px;font-size:13px;color:var(--mut)">+ New input</div>
+      <div style="margin-top:auto;padding:10px;font-size:12px;color:var(--fnt);line-height:1.5">Drag onto the form, or select a section and click.</div>
+    </div>
+    <div style="background:var(--sunk);padding:24px 32px;overflow:hidden">
+      <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+        <div style="padding:16px 18px;border-radius:12px;background:var(--bg);border:1px solid var(--line2);display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">VEGGEN</div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <div style="display:flex;flex-direction:column;gap:6px;padding:6px;margin:-6px;border-radius:8px"><span style="font-size:12px;color:var(--mut)">Bredde m</span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk)"></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:6px;margin:-6px;border-radius:8px;outline:2px solid var(--acc);outline-offset:0;background:var(--acc-soft)"><span style="font-size:12px;color:var(--ink);font-weight:600">Høyde m</span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk)"></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:6px;margin:-6px;border-radius:8px"><span style="font-size:12px;color:var(--mut)">Senteravstand cm</span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;padding:3px;gap:3px;font-family:var(--mono);font-size:13px"><span style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--mut)">40</span><span style="flex:1;display:flex;align-items:center;justify-content:center;border-radius:6px;background:var(--raise)">60</span></div></div>
+          </div>
+        </div>
+        <div style="padding:16px 18px;border-radius:12px;background:var(--bg);border:1px solid var(--line2);display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">MATERIALE</div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <div style="grid-column:span 2;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Material</span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk)"></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Svinn %</span><div style="height:38px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk)"></div></div>
+          </div>
+        </div>
+        <div style="padding:16px 18px;border-radius:12px;background:var(--bg);border:1px solid var(--line2);display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">RESULT</div>
+          <div style="display:flex;align-items:baseline;gap:10px;font-size:14px"><span>Stendere</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono);color:var(--tres)">stendere</span></div>
+          <div style="display:flex;align-items:baseline;gap:10px;font-size:14px"><span>Bindingsverk antall</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono);color:var(--tres)">antall</span></div>
+        </div>
+        <div style="padding:12px;border:1px dashed var(--line2);border-radius:12px;text-align:center;font-size:13px;color:var(--mut)">+ Add section</div>
+      </div>
+    </div>
+    <div style="border-left:1px solid var(--line);background:var(--panel);padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--fnt)"><span>INPUT · IN VEGGEN</span><span style="font-size:15px">✕</span></div>
+      <div><div style="font-size:22px;font-weight:700;letter-spacing:-.02em">Høyde</div><div style="font-family:var(--mono);font-size:13px;color:var(--tin);margin-top:2px">hoyde · m</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Shown as</span><div style="display:flex;padding:3px;border-radius:8px;background:var(--sunk);font-size:13px"><span style="flex:1;text-align:center;padding:7px;border-radius:6px;background:var(--raise);font-weight:600">Field</span><span style="flex:1;text-align:center;padding:7px;color:var(--mut)">Stepper</span><span style="flex:1;text-align:center;padding:7px;color:var(--mut)">Buttons</span></div></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Width</span><div style="display:flex;padding:3px;border-radius:8px;background:var(--sunk);font-size:13px"><span style="flex:1;text-align:center;padding:7px;border-radius:6px;background:var(--raise);font-weight:600">⅓</span><span style="flex:1;text-align:center;padding:7px;color:var(--mut)">⅔</span><span style="flex:1;text-align:center;padding:7px;color:var(--mut)">Full</span></div></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Show</span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:14px"><span>Always</span><span style="color:var(--fnt)">▾</span></div></div>
+      <div style="display:flex;gap:4px;font-size:13px;color:var(--mut)"><span style="padding:6px 10px;border:1px solid var(--line2);border-radius:7px">← Move</span><span style="padding:6px 10px;border:1px solid var(--line2);border-radius:7px">Move →</span><span style="padding:6px 10px">Edit input…</span></div>
+      <div style="margin-top:auto;font-size:13px;color:var(--bad)">Remove from form</div>
+    </div>
+  </div>
+</div></div></div>
+
+</div>
+</section>
+
+<section class="dv-turn" id="q">
+<div class="dv-thd"><a class="dv-tid" href="#q">Q</a><span class="dv-tname">Quotes · builder and board</span></div>
+<div class="dv-opts">
+
+<!-- 1a -->
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Three-pane ledger · top-tab shell · line list → editor → live receipt</div>
+<div class="dv-card"><div class="art" data-theme="{{ theme }}" data-accent="{{ accent }}" style="width:1280px;height:820px;display:flex;flex-direction:column">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:28px;padding:0 24px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em"><span style="width:18px;height:18px;background:var(--acc);border-radius:4px"></span>Cost Estimator</div>
+    <div style="display:flex;gap:4px;font-size:14px">
+      <span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Calculators</span>
+      <span style="padding:7px 12px;border-radius:7px;background:var(--raise);font-weight:600">Quotes</span>
+      <span style="width:1px;background:var(--line);margin:4px 8px"></span>
+      <span style="padding:7px 12px;color:var(--mut)">Functions</span><span style="padding:7px 12px;color:var(--mut)">Materials</span><span style="padding:7px 12px;color:var(--mut)">Labor</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--mut)"><span>Settings</span><span style="width:28px;height:28px;border-radius:50%;background:var(--sunk);border:1px solid var(--line2)"></span></div>
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:16px;padding:22px 24px 18px;border-bottom:1px solid var(--line)">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.04em">QUOTE Q-0142 · EDITED 23 MIN AGO</div>
+      <div style="font-size:30px;font-weight:700;letter-spacing:-.025em;margin-top:4px">Stand B12 — Norway Expo</div>
+    </div>
+    <div style="display:flex;gap:8px;font-size:13px;font-weight:600">
+      <span style="padding:9px 14px;border:1px solid var(--line2);border-radius:8px">Export JSON</span>
+      <span style="padding:9px 14px;border:1px solid var(--line2);border-radius:8px">Save quote</span>
+      <span style="padding:9px 14px;border-radius:8px;background:var(--acc);color:var(--acc-ink)">+ Add calculator</span>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:260px minmax(0,1fr) 360px">
+    <div style="border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;justify-content:space-between;padding:0 10px 8px;font-size:12px;color:var(--fnt);font-family:var(--mono);letter-spacing:.06em"><span>LINES</span><span>3</span></div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px;background:var(--raise);border:1px solid var(--line2)">
+        <span style="font-family:var(--mono);font-size:12px;font-weight:600;background:var(--acc);color:var(--acc-ink);border-radius:5px;padding:2px 5px;height:fit-content">01</span>
+        <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Bakvegg</div><div style="font-size:12px;color:var(--mut);margin-top:2px;white-space:nowrap">30.8 m</div></div>
+        <span style="font-family:var(--mono);font-size:13px;white-space:nowrap;flex:none">1 167.32</span>
+      </div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px">
+        <span style="font-family:var(--mono);font-size:12px;color:var(--fnt);padding:2px 5px">02</span>
+        <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Sidevegg 1</div><div style="font-size:12px;color:var(--mut);margin-top:2px;white-space:nowrap">25.85 m</div></div>
+        <span style="font-family:var(--mono);font-size:13px;color:var(--mut);flex:none">979.72</span>
+      </div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px">
+        <span style="font-family:var(--mono);font-size:12px;color:var(--fnt);padding:2px 5px">03</span>
+        <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Sidevegg 2</div><div style="font-size:12px;color:var(--mut);margin-top:2px;white-space:nowrap">25.85 m</div></div>
+        <span style="font-family:var(--mono);font-size:13px;color:var(--mut);flex:none">979.72</span>
+      </div>
+      <div style="margin-top:8px;padding:11px;border:1px dashed var(--line2);border-radius:10px;text-align:center;font-size:13px;color:var(--mut)">+ Add from calculator</div>
+      <div style="margin-top:auto;padding:10px;font-size:12px;color:var(--fnt);line-height:1.5">Duplicate a line for each wall, room or part. <span style="font-family:var(--mono)">⌘D</span></div>
+    </div>
+    <div style="padding:24px 32px;display:flex;flex-direction:column;gap:22px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="flex:1;font-size:22px;font-weight:700;letter-spacing:-.02em;border-bottom:1px solid var(--line2);padding-bottom:6px">Bakvegg</div>
+        <span style="font-size:12px;padding:5px 10px;border-radius:99px;background:var(--sunk);color:var(--mut)">Bindingsverk</span>
+        <div style="display:flex;gap:4px;font-size:13px;color:var(--mut)"><span style="padding:6px 10px">Duplicate</span><span style="padding:6px 8px">↑</span><span style="padding:6px 8px">↓</span><span style="padding:6px 10px;color:var(--bad)">Remove</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 18px">
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Bredde <span style="font-family:var(--mono);color:var(--fnt)">m</span></span><div style="height:42px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">4</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Høyde <span style="font-family:var(--mono);color:var(--fnt)">m</span></span><div style="height:42px;border:1px solid var(--acc);box-shadow:0 0 0 3px var(--acc-soft);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">2.5<span style="width:1px;height:18px;background:var(--acc);margin-left:2px"></span></div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Cc <span style="font-family:var(--mono);color:var(--fnt)">cm</span></span><div style="height:42px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">60</div></div>
+        <div style="grid-column:span 2;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Material</span><div style="height:42px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:14px"><span>K.VIRKE 48x98 <span style="font-family:var(--mono);color:var(--mut)">· 37.90/m</span></span><span style="color:var(--fnt)">▾</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Svinn <span style="font-family:var(--mono);color:var(--fnt)">%</span></span><div style="height:42px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">10</div></div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:18px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">RESULTS</div>
+        <div style="display:flex;align-items:baseline;gap:10px;font-size:15px"><span>Bindingsverk antall</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono)">30.8 <span style="color:var(--fnt)">m</span></span></div>
+        <div style="display:flex;align-items:baseline;gap:10px;font-size:15px"><span>Bindingsverk kost</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono)">1 167.32</span></div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:6px"><span style="font-size:15px;font-weight:600">Line total</span><span style="flex:1"></span><span style="font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em">$1 167.32</span></div>
+      </div>
+    </div>
+    <div style="border-left:1px solid var(--line);background:var(--panel);padding:20px 24px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.06em"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span><span style="color:var(--ok);font-weight:600">LIVE</span><span style="color:var(--fnt)">· IN THE QUOTE</span></div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:14px;font-size:14px">
+        <div style="display:flex;justify-content:space-between;gap:10px"><div><div style="font-weight:600">Bakvegg</div><div style="font-family:var(--mono);font-size:12px;color:var(--fnt);margin-top:3px">30.8 m · 4 × 2.5 m · cc 60</div></div><span style="font-family:var(--mono);flex:none;white-space:nowrap">1 167.32</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px"><div><div style="font-weight:600">Sidevegg 1</div><div style="font-family:var(--mono);font-size:12px;color:var(--fnt);margin-top:3px">25.85 m · 3 × 2.5 m · cc 60</div></div><span style="font-family:var(--mono);flex:none;white-space:nowrap">979.72</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px"><div><div style="font-weight:600">Sidevegg 2</div><div style="font-family:var(--mono);font-size:12px;color:var(--fnt);margin-top:3px">25.85 m · 3 × 2.5 m · cc 60</div></div><span style="font-family:var(--mono);flex:none;white-space:nowrap">979.72</span></div>
+      </div>
+      <div style="margin:18px 0;border-top:1px dashed var(--line2)"></div>
+      <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;color:var(--mut)">
+        <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span style="font-family:var(--mono);color:var(--ink)">3 126.76</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Markup</span><span style="font-family:var(--mono);font-size:13px;padding:4px 8px;border:1px solid var(--line2);border-radius:6px;color:var(--ink)">10 %</span><span style="font-family:var(--mono);color:var(--ink);width:80px;text-align:right">312.68</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">VAT</span><span style="font-family:var(--mono);font-size:13px;padding:4px 8px;border:1px solid var(--line2);border-radius:6px;color:var(--ink)">25 %</span><span style="font-family:var(--mono);color:var(--ink);width:80px;text-align:right">859.86</span></div>
+      </div>
+      <div style="margin-top:auto;padding:18px;border-radius:14px;background:var(--ink);color:var(--bg);display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:13px;opacity:.7">Total incl. VAT</span>
+        <span style="align-self:flex-start;font-family:var(--mono);font-size:40px;font-weight:600;letter-spacing:-.04em;line-height:1.15;padding:2px 12px;border-radius:10px;background:var(--acc);color:var(--acc-ink)">$4 299.30</span>
+        <div style="margin-top:4px;padding:12px;border-radius:10px;background:var(--bg);color:var(--ink);text-align:center;font-weight:600;font-size:14px">Export quote</div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+<!-- 3b -->
+<div class="dv-opt" id="3b"><div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Quotes board · resume strip + ledger list</div>
+<div class="dv-card"><div class="art" data-theme="{{ theme }}" data-accent="{{ accent }}" style="width:1280px;height:820px;display:flex;flex-direction:column">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:28px;padding:0 24px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em"><span style="width:18px;height:18px;background:var(--acc);border-radius:4px"></span>Cost Estimator</div>
+    <div style="display:flex;gap:4px;font-size:14px"><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Calculators</span><span style="padding:7px 12px;border-radius:7px;background:var(--raise);font-weight:600">Quotes</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Catalog</span></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--mut)"><span>Settings</span><span style="width:28px;height:28px;border-radius:50%;background:var(--sunk);border:1px solid var(--line2)"></span></div>
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:16px;padding:22px 24px 18px;border-bottom:1px solid var(--line)">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.04em">7 QUOTES</div>
+      <div style="font-size:30px;font-weight:700;letter-spacing:-.025em;margin-top:4px">Quotes</div>
+    </div>
+    <div style="display:flex;gap:8px;font-size:13px;font-weight:600">
+      <span style="width:220px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);color:var(--fnt);font-weight:400">Search quotes…</span>
+      <span style="padding:9px 14px;border-radius:8px;background:var(--acc);color:var(--acc-ink)">+ New quote</span>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;padding:22px 24px;display:flex;flex-direction:column;gap:22px;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:24px;padding:18px 22px;border-radius:14px;background:var(--ink);color:var(--bg)">
+      <div style="flex:1;min-width:0">
+        <div style="font-family:var(--mono);font-size:12px;letter-spacing:.06em;opacity:.6">PICK UP WHERE YOU LEFT OFF</div>
+        <div style="font-size:20px;font-weight:700;letter-spacing:-.015em;margin-top:8px">Stand B12 — Norway Expo</div>
+        <div style="font-family:var(--mono);font-size:12px;opacity:.6;margin-top:4px">3 lines · Bakvegg, Sidevegg 1, Sidevegg 2 · edited 23 min ago</div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:14px"><span style="font-size:14px;opacity:.7">Total</span><span style="font-family:var(--mono);font-size:32px;font-weight:600;letter-spacing:-.04em;padding:2px 12px;border-radius:10px;background:var(--acc);color:var(--acc-ink)">$4 299.30</span></div>
+      <span style="padding:12px 20px;border-radius:10px;background:var(--bg);color:var(--ink);font-weight:600;font-size:14px">Continue</span>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 160px 160px 40px;gap:16px;padding:0 14px 10px;font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.06em;border-bottom:1px solid var(--line)"><span>QUOTE</span><span style="text-align:right">LINES</span><span>EDITED</span><span style="text-align:right">TOTAL</span><span></span></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 160px 160px 40px;gap:16px;align-items:center;padding:14px;border-bottom:1px solid var(--line)"><span style="font-weight:600;font-size:14px">Stand A04 — Byggmesse Lillestrøm</span><span style="font-family:var(--mono);font-size:13px;text-align:right;color:var(--mut)">8</span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)">Yesterday</span><span style="font-family:var(--mono);font-size:14px;text-align:right">$12 480.00</span><span style="color:var(--fnt);text-align:right">⋯</span></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 160px 160px 40px;gap:16px;align-items:center;padding:14px;border-bottom:1px solid var(--line);background:var(--raise);border-radius:8px"><span style="font-weight:600;font-size:14px">Møterom 2. etg — Kontorbygg</span><span style="font-family:var(--mono);font-size:13px;text-align:right;color:var(--mut)">5</span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)">22 Sep</span><span style="font-family:var(--mono);font-size:14px;text-align:right">$7 915.50</span><span style="color:var(--bad);text-align:right;font-size:13px">Delete</span></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 160px 160px 40px;gap:16px;align-items:center;padding:14px;border-bottom:1px solid var(--line)"><span style="font-weight:600;font-size:14px">Stand C20 — Nor-Fishing</span><span style="font-family:var(--mono);font-size:13px;text-align:right;color:var(--mut)">11</span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)">18 Sep</span><span style="font-family:var(--mono);font-size:14px;text-align:right">$21 306.25</span><span style="color:var(--fnt);text-align:right">⋯</span></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 160px 160px 40px;gap:16px;align-items:center;padding:14px;border-bottom:1px solid var(--line)"><span style="font-weight:600;font-size:14px">Resepsjon — Hotell Bryggen</span><span style="font-family:var(--mono);font-size:13px;text-align:right;color:var(--mut)">4</span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)">11 Sep</span><span style="font-family:var(--mono);font-size:14px;text-align:right">$5 120.00</span><span style="color:var(--fnt);text-align:right">⋯</span></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 160px 160px 40px;gap:16px;align-items:center;padding:14px;border-bottom:1px solid var(--line)"><span style="font-weight:600;font-size:14px">Stand B07 — Norway Expo</span><span style="font-family:var(--mono);font-size:13px;text-align:right;color:var(--mut)">6</span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)">3 Sep</span><span style="font-family:var(--mono);font-size:14px;text-align:right">$9 842.10</span><span style="color:var(--fnt);text-align:right">⋯</span></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 160px 160px 40px;gap:16px;align-items:center;padding:14px;border-bottom:1px solid var(--line)"><span style="font-weight:600;font-size:14px">Untitled quote</span><span style="font-family:var(--mono);font-size:13px;text-align:right;color:var(--mut)">0</span><span style="font-family:var(--mono);font-size:13px;color:var(--mut)">28 Aug</span><span style="font-family:var(--mono);font-size:14px;text-align:right;color:var(--fnt)">—</span><span style="color:var(--fnt);text-align:right">⋯</span></div>
+    </div>
+  </div>
+</div></div></div>
+
+</div>
+</section>
+
+<section class="dv-turn" id="k">
+<div class="dv-thd"><a class="dv-tid" href="#k">K</a><span class="dv-tname">Catalog · Materials/Labor and Functions</span></div>
+<div class="dv-opts">
+
+<!-- 3c -->
+<div class="dv-opt" id="3c"><div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>Catalog · Materials · table + side editor (Labor uses the same shell)</div>
+<div class="dv-card"><div class="art" data-theme="{{ theme }}" data-accent="{{ accent }}" style="width:1280px;height:820px;display:flex;flex-direction:column">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:28px;padding:0 24px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em"><span style="width:18px;height:18px;background:var(--acc);border-radius:4px"></span>Cost Estimator</div>
+    <div style="display:flex;gap:4px;font-size:14px"><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Calculators</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Quotes</span><span style="padding:7px 12px;border-radius:7px;background:var(--raise);font-weight:600">Catalog</span></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--mut)"><span>Settings</span><span style="width:28px;height:28px;border-radius:50%;background:var(--sunk);border:1px solid var(--line2)"></span></div>
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:16px;padding:22px 24px 0;border-bottom:1px solid var(--line)">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.04em">CATALOG · PRICES USED BY EVERY CALCULATOR</div>
+      <div style="font-size:30px;font-weight:700;letter-spacing:-.025em;margin-top:4px">Catalog</div>
+      <div style="display:flex;gap:22px;margin-top:14px;font-size:14px">
+        <span style="padding-bottom:11px;border-bottom:2px solid var(--acc);font-weight:600">Materials <span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">24</span></span>
+        <span style="padding-bottom:11px;color:var(--mut)">Labor <span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">9</span></span>
+        <span style="padding-bottom:11px;color:var(--mut)">Functions <span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">6</span></span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;font-size:13px;font-weight:600;padding-bottom:14px">
+      <span style="width:240px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);color:var(--fnt);font-weight:400">Search name, SKU, variable…</span>
+      <span style="padding:9px 14px;border-radius:8px;background:var(--acc);color:var(--acc-ink)">+ New material</span>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px">
+    <div style="padding:16px 24px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+      <div style="display:flex;gap:6px;font-size:13px">
+        <span style="padding:5px 11px;border-radius:99px;background:var(--ink);color:var(--bg);font-weight:600">All 24</span>
+        <span style="padding:5px 11px;border-radius:99px;background:var(--sunk);color:var(--mut)">Treverk 8</span>
+        <span style="padding:5px 11px;border-radius:99px;background:var(--sunk);color:var(--mut)">Plater 6</span>
+        <span style="padding:5px 11px;border-radius:99px;background:var(--sunk);color:var(--mut)">Isolasjon 4</span>
+        <span style="padding:5px 11px;border-radius:99px;background:var(--sunk);color:var(--mut)">Festemidler 6</span>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 96px 44px;gap:14px;padding:0 12px 10px;font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.06em;border-bottom:1px solid var(--line)"><span>NAME</span><span>VARIABLE</span><span>PROPERTIES</span><span style="text-align:right">PRICE</span><span style="text-align:right">UNIT</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 96px 44px;gap:14px;align-items:center;padding:12px;border-radius:10px;background:var(--raise);border:1px solid var(--line2);margin-top:4px"><div><div style="font-weight:600;font-size:14px">K.VIRKE 48x98</div><div style="font-size:12px;color:var(--mut);margin-top:2px">Treverk · SKU 1002345</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--tin)">k_virke_48x98</span><span style="font-family:var(--mono);font-size:12px;color:var(--mut)">length 4.8 m</span><span style="font-family:var(--mono);font-size:14px;text-align:right">37.90</span><span style="font-family:var(--mono);font-size:12px;text-align:right;color:var(--mut)">m</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 96px 44px;gap:14px;align-items:center;padding:12px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600;font-size:14px">K.VIRKE 36x48</div><div style="font-size:12px;color:var(--mut);margin-top:2px">Treverk · SKU 1002311</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--tin)">k_virke_36x48</span><span style="font-family:var(--mono);font-size:12px;color:var(--mut)">length 4.8 m</span><span style="font-family:var(--mono);font-size:14px;text-align:right">14.50</span><span style="font-family:var(--mono);font-size:12px;text-align:right;color:var(--mut)">m</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 96px 44px;gap:14px;align-items:center;padding:12px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600;font-size:14px">Gipsplate 12.5 mm</div><div style="font-size:12px;color:var(--mut);margin-top:2px">Plater · Gyproc</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--tin)">gips_12</span><span style="font-family:var(--mono);font-size:12px;color:var(--mut)">1.2 × 2.4 m</span><span style="font-family:var(--mono);font-size:14px;text-align:right">89.00</span><span style="font-family:var(--mono);font-size:12px;text-align:right;color:var(--mut)">stk</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 96px 44px;gap:14px;align-items:center;padding:12px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600;font-size:14px">OSB/3 12 mm</div><div style="font-size:12px;color:var(--mut);margin-top:2px">Plater · SKU 2040118</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--tin)">osb_12</span><span style="font-family:var(--mono);font-size:12px;color:var(--mut)">1.2 × 2.4 m</span><span style="font-family:var(--mono);font-size:14px;text-align:right">219.00</span><span style="font-family:var(--mono);font-size:12px;text-align:right;color:var(--mut)">stk</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 96px 44px;gap:14px;align-items:center;padding:12px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600;font-size:14px">Glava 70 mm</div><div style="font-size:12px;color:var(--mut);margin-top:2px">Isolasjon · Glava</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--tin)">glava_70</span><span style="font-family:var(--mono);font-size:12px;color:var(--mut)">coverage 5.4 m²</span><span style="font-family:var(--mono);font-size:14px;text-align:right">64.50</span><span style="font-family:var(--mono);font-size:12px;text-align:right;color:var(--mut)">m²</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 96px 44px;gap:14px;align-items:center;padding:12px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600;font-size:14px">Gipsskrue 3.9x35</div><div style="font-size:12px;color:var(--mut);margin-top:2px">Festemidler · Essve</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--tin)">gipsskrue</span><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">—</span><span style="font-family:var(--mono);font-size:14px;text-align:right">0.32</span><span style="font-family:var(--mono);font-size:12px;text-align:right;color:var(--mut)">stk</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 96px 44px;gap:14px;align-items:center;padding:12px;border-bottom:1px solid var(--line)"><div><div style="font-weight:600;font-size:14px">Sparkel lett 10 L</div><div style="font-size:12px;color:var(--mut);margin-top:2px">Festemidler · Dana Lim</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--tin)">sparkel</span><span style="font-family:var(--mono);font-size:12px;color:var(--mut)">coverage 12 m²</span><span style="font-family:var(--mono);font-size:14px;text-align:right">329.00</span><span style="font-family:var(--mono);font-size:12px;text-align:right;color:var(--mut)">stk</span></div>
+      </div>
+    </div>
+    <div style="border-left:1px solid var(--line);background:var(--panel);padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--fnt)"><span>EDIT MATERIAL</span><span style="font-size:15px">✕</span></div>
+      <div style="font-size:22px;font-weight:700;letter-spacing:-.02em;border-bottom:1px solid var(--line2);padding-bottom:6px">K.VIRKE 48x98</div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px">
+        <div style="grid-column:span 2;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Variable</span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:14px;color:var(--tin)">k_virke_48x98</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Price</span><div style="height:40px;border:1px solid var(--acc);box-shadow:0 0 0 3px var(--acc-soft);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">37.90<span style="width:1px;height:18px;background:var(--acc);margin-left:2px"></span></div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Unit</span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-family:var(--mono);font-size:14px"><span>m</span><span style="color:var(--fnt)">▾</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Category</span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-size:14px">Treverk</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">SKU</span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:14px">1002345</div></div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em"><span>PROPERTIES</span><span style="color:var(--ink)">+ Add</span></div>
+        <div style="display:flex;align-items:baseline;gap:10px;font-size:14px"><span style="font-family:var(--mono);color:var(--tin)">.length</span><span style="flex:1;border-bottom:1px dotted var(--line2)"></span><span style="font-family:var(--mono)">4.8 <span style="color:var(--fnt)">m</span></span></div>
+      </div>
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:13px;color:var(--mut);line-height:1.45">Used by <span style="color:var(--ink);font-weight:600">3 calculators</span>. Price changes apply to open quotes next time they recalculate.</div>
+        <div style="display:flex;gap:8px"><span style="padding:12px 14px;border:1px solid var(--line2);border-radius:10px;font-size:14px;font-weight:600;color:var(--bad)">Delete</span><span style="flex:1;padding:12px;border-radius:10px;background:var(--ink);color:var(--bg);text-align:center;font-weight:600;font-size:14px">Save material</span></div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+<!-- 3d -->
+<div class="dv-opt" id="3d"><div class="dv-olabel"><a class="dv-oid" href="#3d">3d</a>Catalog · Functions · list + detail with a live test run</div>
+<div class="dv-card"><div class="art" data-theme="{{ theme }}" data-accent="{{ accent }}" style="width:1280px;height:820px;display:flex;flex-direction:column">
+  <div style="height:52px;flex:none;display:flex;align-items:center;gap:28px;padding:0 24px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em"><span style="width:18px;height:18px;background:var(--acc);border-radius:4px"></span>Cost Estimator</div>
+    <div style="display:flex;gap:4px;font-size:14px"><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Calculators</span><span style="padding:7px 12px;border-radius:7px;color:var(--mut)">Quotes</span><span style="padding:7px 12px;border-radius:7px;background:var(--raise);font-weight:600">Catalog</span></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--mut)"><span>Settings</span><span style="width:28px;height:28px;border-radius:50%;background:var(--sunk);border:1px solid var(--line2)"></span></div>
+  </div>
+  <div style="display:flex;align-items:flex-end;gap:16px;padding:22px 24px 0;border-bottom:1px solid var(--line)">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:var(--mono);font-size:12px;color:var(--fnt);letter-spacing:.04em">CATALOG · REUSABLE CALCULATIONS</div>
+      <div style="font-size:30px;font-weight:700;letter-spacing:-.025em;margin-top:4px">Catalog</div>
+      <div style="display:flex;gap:22px;margin-top:14px;font-size:14px">
+        <span style="padding-bottom:11px;color:var(--mut)">Materials <span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">24</span></span>
+        <span style="padding-bottom:11px;color:var(--mut)">Labor <span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">9</span></span>
+        <span style="padding-bottom:11px;border-bottom:2px solid var(--acc);font-weight:600">Functions <span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">6</span></span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;font-size:13px;font-weight:600;padding-bottom:14px">
+      <span style="padding:9px 14px;border-radius:8px;background:var(--acc);color:var(--acc-ink)">+ New function</span>
+    </div>
+  </div>
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:320px minmax(0,1fr)">
+    <div style="border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px;background:var(--raise);border:1px solid var(--line2)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Stendere i vegg</div><div style="font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:3px">stendere(bredde, cc)</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">3</span></div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Areal</div><div style="font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:3px">m2(bredde, hoyde)</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">5</span></div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Plater per flate</div><div style="font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:3px">plater(areal, plate)</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">2</span></div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Med svinn</div><div style="font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:3px">svinn(mengde, prosent)</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">6</span></div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Timer for arbeid</div><div style="font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:3px">timer(mengde, arbeid)</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">4</span></div>
+      <div style="display:flex;gap:10px;padding:12px 10px;border-radius:10px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Løpemeter</div><div style="font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:3px">lm(antall, lengde)</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">0</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px">
+      <div style="padding:24px 32px;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="flex:1;font-size:22px;font-weight:700;letter-spacing:-.02em;border-bottom:1px solid var(--line2);padding-bottom:6px">Stendere i vegg</div>
+          <div style="display:flex;gap:4px;font-size:13px;color:var(--mut)"><span style="padding:6px 10px">Duplicate</span><span style="padding:6px 10px;color:var(--bad)">Delete</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">Call as</span><div style="font-family:var(--mono);font-size:16px">stendere(<span style="color:var(--tin)">bredde</span>, <span style="color:var(--tin)">cc</span>) <span style="color:var(--fnt)">→ stk</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em"><span>PARAMETERS</span><span style="color:var(--ink)">+ Add</span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 90px;gap:10px;padding:10px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);font-size:14px"><span style="font-family:var(--mono);color:var(--tin)">bredde</span><span>Bredde</span><span style="font-family:var(--mono);color:var(--mut);text-align:right">m</span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 90px;gap:10px;padding:10px 12px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);font-size:14px"><span style="font-family:var(--mono);color:var(--tin)">cc</span><span>Senteravstand</span><span style="font-family:var(--mono);color:var(--mut);text-align:right">cm</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">FORMULA</div>
+          <div style="padding:14px 16px;border:1px solid var(--acc);box-shadow:0 0 0 3px var(--acc-soft);border-radius:8px;background:var(--sunk);font-family:var(--mono);font-size:15px;line-height:1.6">ceil(<span style="color:var(--tin)">bredde</span> / (<span style="color:var(--tin)">cc</span> / 100)) + 1<span style="display:inline-block;width:1px;height:17px;background:var(--acc);margin-left:2px;vertical-align:middle"></span></div>
+        </div>
+      </div>
+      <div style="border-left:1px solid var(--line);background:var(--panel);padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.06em"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span><span style="color:var(--ok);font-weight:600">LIVE</span><span style="color:var(--fnt)">· TEST RUN</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">bredde <span style="font-family:var(--mono);color:var(--fnt)">m</span></span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">4</div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--mut)">cc <span style="font-family:var(--mono);color:var(--fnt)">cm</span></span><div style="height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:15px">60</div></div>
+        </div>
+        <div style="border-top:1px solid var(--line2);padding-top:14px"><div style="font-size:13px;color:var(--mut)">Returns</div><div style="font-family:var(--mono);font-size:40px;font-weight:600;letter-spacing:-.04em;color:var(--acc);line-height:1.1">8 <span style="font-size:20px;color:var(--fnt)">stk</span></div></div>
+        <div style="margin:4px 0;border-top:1px dashed var(--line2)"></div>
+        <div style="font-size:12px;font-family:var(--mono);color:var(--fnt);letter-spacing:.06em">USED BY</div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:14px">
+          <div style="display:flex;justify-content:space-between"><span style="font-weight:600">Bindingsverk</span><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">2 steps</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-weight:600">Panelvegg</span><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">1 step</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-weight:600">Himling</span><span style="font-family:var(--mono);font-size:12px;color:var(--fnt)">1 step</span></div>
+        </div>
+        <div style="margin-top:auto;padding:13px;border-radius:10px;background:var(--ink);color:var(--bg);text-align:center;font-weight:600;font-size:14px">Save function</div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark'|'light'&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;signal&quot;,&quot;chalk&quot;,&quot;lime&quot;],&quot;default&quot;:&quot;signal&quot;,&quot;tsType&quot;:&quot;'signal'|'chalk'|'lime'&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'dark', accent: this.props.accent ?? 'signal' };
+  }
+}
+</script>
+</body>
+</html>
