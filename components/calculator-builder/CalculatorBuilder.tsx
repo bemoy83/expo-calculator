@@ -733,7 +733,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
       )}
 
       <div className="min-w-0 bg-sunken px-4 sm:px-8 py-6 lg:overflow-y-auto">
-        <div className={cn('mx-auto', preview ? 'max-w-[760px]' : 'max-w-[560px]')}>
+        <div className={cn('mx-auto', preview ? 'max-w-[760px]' : 'max-w-[800px]')}>
           {warnings}
           <LayoutCanvas
             context={layoutContext}
