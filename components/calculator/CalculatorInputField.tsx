@@ -70,19 +70,30 @@ export function CalculatorInputField({
 
   if (spec.kind === 'boolean') {
     const checked = resolvedValue === true;
+    // The input's name is the label, like every other field; the control itself says Yes or No.
     return (
       <div>
+        <label htmlFor={id} className={FIELD_LABEL}>
+          {input.label}
+        </label>
         <div className={cn('flex items-center', input.widget === 'checkbox' && CONTROL_HEIGHT[size])}>
           {input.widget === 'checkbox' ? (
             <Checkbox
               id={id}
-              label={input.label}
+              label={checked ? 'Yes' : 'No'}
               checked={checked}
               aria-describedby={describedBy}
               onChange={(event) => onChange(event.target.checked)}
             />
           ) : (
-            <Toggle id={id} checked={checked} onChange={onChange} label={input.label} aria-describedby={describedBy} />
+            <Toggle
+              id={id}
+              checked={checked}
+              onChange={onChange}
+              label={checked ? 'Yes' : 'No'}
+              aria-describedby={describedBy}
+              className={cn('py-0', CONTROL_HEIGHT[size])}
+            />
           )}
         </div>
         {footer}
@@ -405,7 +416,8 @@ function SliderControl({ unit, ...props }: NumberControlProps & { unit?: string 
         value={shown ?? low}
         aria-describedby={describedBy}
         onChange={(event) => onChange(toBase(Number(event.target.value)))}
-        className="flex-1 accent-accent cursor-pointer"
+        style={{ '--pct': `${high > low ? Math.min(100, Math.max(0, (((shown ?? low) - low) / (high - low)) * 100)) : 0}%` } as React.CSSProperties}
+        className="range-field flex-1 cursor-pointer"
       />
       <span className="w-20 text-right font-numeric text-[15px] text-ink tabular-nums">
         {shown === undefined ? '—' : formatDisplayNumber(shown)}

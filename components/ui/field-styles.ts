@@ -1,17 +1,18 @@
 import { cn } from '@/lib/utils';
 
-// Shared by Input, Select, and Textarea (Ledger controls/Input.jsx): sunken well, strong hairline,
-// 8px radius; focus = accent border + 3px accent-soft halo; error = danger border; disabled =
-// lighter sunken fill with faint text.
+// Shared by Input, Select, and Textarea: borderless filled well, 8px radius. The fill steps up on
+// hover; focus = inset accent ring + 3px accent-soft halo; error = inset danger ring (always on,
+// since there's no border to recolour); disabled = lighter fill with faint text. The border is
+// kept transparent so box sizes and the Textarea highlight overlay line up.
 export function fieldClasses(hasError: boolean, className?: string) {
   return cn(
-    'w-full rounded-md border bg-sunken text-sm text-ink placeholder:text-ink-subtle caret-accent',
-    'transition-[border-color,box-shadow] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
-    'focus:outline-none focus:border-accent focus:shadow-focus',
-    'disabled:bg-sunken-2 disabled:text-ink-faint disabled:cursor-not-allowed',
+    'w-full rounded-md border border-transparent bg-field text-sm text-ink placeholder:text-ink-subtle caret-accent',
+    'transition-[background-color,box-shadow] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
+    'hover:bg-field-hover focus:bg-field-hover focus:outline-none',
+    'disabled:bg-sunken-2 disabled:hover:bg-sunken-2 disabled:text-ink-faint disabled:cursor-not-allowed',
     hasError
-      ? 'border-danger focus:border-danger focus:shadow-[0_0_0_3px_rgb(var(--danger)/0.15)]'
-      : 'border-border-strong',
+      ? '[box-shadow:var(--field-error)] focus:[box-shadow:var(--field-error-focus)]'
+      : 'focus:[box-shadow:var(--field-focus)]',
     className
   );
 }

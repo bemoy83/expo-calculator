@@ -39,6 +39,62 @@
   }
 }
 
+/* Slider (CalculatorInputField): borderless track in the field fill, accent progress, plain thumb.
+   --pct is set inline to the value's position along the track. */
+.range-field {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  background: transparent;
+  --track: rgb(var(--field));
+}
+
+.range-field:hover {
+  --track: rgb(var(--field-hover));
+}
+
+.range-field::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, rgb(var(--accent)) var(--pct, 0%), var(--track) var(--pct, 0%));
+}
+
+.range-field::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, rgb(var(--accent)) var(--pct, 0%), var(--track) var(--pct, 0%));
+}
+
+.range-field::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 20px;
+  width: 20px;
+  margin-top: -6px;
+  border-radius: 9999px;
+  border: 0;
+  background: rgb(var(--accent));
+}
+
+.range-field::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 9999px;
+  border: 0;
+  background: rgb(var(--accent));
+}
+
+.range-field:focus-visible {
+  outline: none;
+}
+
+.range-field:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--focus-ring);
+}
+
+.range-field:focus-visible::-moz-range-thumb {
+  box-shadow: var(--focus-ring);
+}
+
 /* =====================================================
    Design tokens — "Ledger" palette (design_handoff_ledger_redesign/tokens)
    ===================================================== */
@@ -48,6 +104,8 @@
   --panel: 250 249 246;         /* #faf9f6  side panels, live/receipt column */
   --surface: 255 255 255;       /* #ffffff  raised: selected rows, cards, inputs' parent */
   --sunken: 231 228 221;        /* #e7e4dd  input wells, chips, segmented tracks */
+  --field: 231 228 221;         /* input fill (borderless): same step as sunken */
+  --field-hover: 221 217 209;   /* one step stronger on hover */
   --border: 220 216 207;        /* #dcd8cf  hairlines, row dividers */
   --border-strong: 196 191 180; /* #c4bfb4  input borders, selected-row border, dashed adds */
   --ink: 23 22 19;              /* #171613 */
@@ -107,6 +165,8 @@
   --panel: 23 23 21;            /* #171715 */
   --surface: 31 31 28;          /* #1f1f1c */
   --sunken: 10 10 9;            /* #0a0a09 */
+  --field: 45 45 41;            /* lighter than every surface it sits on: a dark well vanishes without a border */
+  --field-hover: 57 57 52;
   --border: 38 38 35;           /* #262623 */
   --border-strong: 58 57 53;    /* #3a3935 */
   --ink: 243 242 238;           /* #f3f2ee */
@@ -190,6 +250,10 @@
   --shadow-card: none;
   --shadow-panel: none;
   --focus-ring: 0 0 0 3px var(--accent-soft);
+  /* Borderless fields: an inset ring stands in for the border */
+  --field-focus: inset 0 0 0 1.5px rgb(var(--accent)), 0 0 0 3px var(--accent-soft);
+  --field-error: inset 0 0 0 1px rgb(var(--danger));
+  --field-error-focus: inset 0 0 0 1.5px rgb(var(--danger)), 0 0 0 3px rgb(var(--danger) / 0.15);
 
   /* Motion */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);

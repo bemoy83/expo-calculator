@@ -147,7 +147,7 @@ function RateRow({
       <label htmlFor={id} className="flex-1">
         {label}
       </label>
-      <div className="flex items-center h-7 w-[72px] pl-2 pr-1.5 rounded-sm border border-border-strong bg-transparent focus-within:border-accent focus-within:shadow-focus transition-[border-color,box-shadow]">
+      <div className="flex items-center h-7 w-[72px] pl-2 pr-1.5 rounded-sm bg-field hover:bg-field-hover focus-within:bg-field-hover focus-within:[box-shadow:var(--field-focus)] transition-[background-color,box-shadow]">
         <input
           id={id}
           type="text"

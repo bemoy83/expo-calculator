@@ -66,7 +66,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
       ) : (
-        <div className="relative rounded-md bg-sunken">
+        <div className="relative rounded-md bg-field hover:bg-field-hover transition-colors duration-150">
           {/* Same box, font, padding and wrapping as the textarea, so the text lines up. */}
           <div
             aria-hidden="true"
@@ -90,7 +90,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             className={fieldClasses(
               !!error,
               cn(
-                'relative block px-3 py-2.5 resize-none bg-transparent text-transparent caret-accent',
+                'relative block px-3 py-2.5 resize-none bg-transparent hover:bg-transparent focus:bg-transparent text-transparent caret-accent',
                 'selection:bg-accent/30',
                 autoGrow && 'overflow-hidden',
                 className

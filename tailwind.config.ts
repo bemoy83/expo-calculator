@@ -32,6 +32,10 @@ const config: Config = {
           DEFAULT: "rgb(var(--surface) / <alpha-value>)",
           hover: "var(--surface-hover)",
         },
+        field: {
+          DEFAULT: "rgb(var(--field) / <alpha-value>)",
+          hover: "rgb(var(--field-hover) / <alpha-value>)",
+        },
         sunken: {
           DEFAULT: "rgb(var(--sunken) / <alpha-value>)",
           2: "var(--sunken-2)",

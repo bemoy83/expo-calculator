@@ -15,8 +15,9 @@ export function FormulaWell({
   return (
     <div
       className={cn(
-        'px-3.5 py-3 rounded-md bg-sunken border font-numeric text-[15px] leading-[1.6] text-ink',
-        focused ? 'border-accent shadow-focus' : 'border-border-strong',
+        'px-3.5 py-3 rounded-md bg-field font-numeric text-[15px] leading-[1.6] text-ink',
+        'transition-[background-color,box-shadow] duration-150',
+        focused && 'bg-field-hover [box-shadow:var(--field-focus)]',
         className
       )}
     >
