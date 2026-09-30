@@ -106,6 +106,7 @@
   --sunken: 231 228 221;        /* #e7e4dd  input wells, chips, segmented tracks */
   --field: 231 228 221;         /* input fill (borderless): same step as sunken */
   --field-hover: 221 217 209;   /* one step stronger on hover */
+  --field-raised: 255 255 255;  /* chosen segment on a field-filled track */
   --border: 220 216 207;        /* #dcd8cf  hairlines, row dividers */
   --border-strong: 196 191 180; /* #c4bfb4  input borders, selected-row border, dashed adds */
   --ink: 23 22 19;              /* #171613 */
@@ -165,8 +166,9 @@
   --panel: 23 23 21;            /* #171715 */
   --surface: 31 31 28;          /* #1f1f1c */
   --sunken: 10 10 9;            /* #0a0a09 */
-  --field: 45 45 41;            /* lighter than every surface it sits on: a dark well vanishes without a border */
-  --field-hover: 57 57 52;
+  --field: 33 33 30;            /* on the page: a step lighter than it. Raised surfaces override below. */
+  --field-hover: 44 44 40;
+  --field-raised: 15 15 14;
   --border: 38 38 35;           /* #262623 */
   --border-strong: 58 57 53;    /* #3a3935 */
   --ink: 243 242 238;           /* #f3f2ee */
@@ -206,6 +208,28 @@
   --ink-body: color-mix(in srgb, rgb(var(--ink)) 60%, rgb(var(--ink-muted)));
   --ink-subtle: color-mix(in srgb, rgb(var(--ink-muted)) 55%, rgb(var(--border-strong)));
   --committed-solid: color-mix(in srgb, rgb(var(--committed)) 55%, black);
+}
+
+/* Dark fields follow the surface they sit on (vars inherit from the nearest ancestor that sets them).
+   On the page they're a step lighter; on raised surfaces they sink toward the page's near-black, and
+   "stronger" on hover means more contrast with the surface, so darker there. */
+.dark .bg-canvas,
+.dark .bg-sunken {
+  --field: 33 33 30;
+  --field-hover: 44 44 40;
+  --field-raised: 15 15 14;
+}
+
+.dark .bg-panel {
+  --field: 14 14 13;
+  --field-hover: 8 8 7;
+  --field-raised: 38 38 34;
+}
+
+.dark .bg-surface {
+  --field: 15 15 14;
+  --field-hover: 8 8 7;
+  --field-raised: 38 38 34;
 }
 
 /* Optional accent swaps (Settings → Accent). Put data-accent on <html>. */

@@ -7,7 +7,7 @@ interface SegmentedProps<T extends string> {
   onChange?: (value: T) => void;
   /** Stretch the segments to fill the width */
   block?: boolean;
-  /** compact 32 · md 36 · large 46 (staff input; the chosen segment gets a border) */
+  /** compact 32 · md 36 · large 46 (staff input) */
   size?: 'compact' | 'md' | 'large';
   mono?: boolean;
   'aria-label'?: string;
@@ -18,7 +18,7 @@ interface SegmentedProps<T extends string> {
 
 const HEIGHT = { compact: 'h-8', md: 'h-9', large: 'h-[46px]' };
 
-// Segmented control on a sunken track (Ledger controls/Segmented.jsx): the Parts/Layout switch,
+// Segmented control on a field-filled track (Ledger controls/Segmented.jsx): the Parts/Layout switch,
 // choice inputs shown as buttons, inspector options.
 export function Segmented<T extends string>({
   options,
@@ -39,7 +39,7 @@ export function Segmented<T extends string>({
       className={cn(
         block ? 'flex' : 'inline-flex',
         HEIGHT[size],
-        'p-[3px] gap-[3px] rounded-md bg-sunken text-[13px]',
+        'p-[3px] gap-[3px] rounded-md bg-field text-[13px]',
         mono ? 'font-numeric' : 'font-ui',
         className
       )}
@@ -58,8 +58,8 @@ export function Segmented<T extends string>({
               'transition-[background-color,color] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
               block ? 'flex-1' : 'flex-none',
-              on ? 'bg-surface text-ink font-semibold' : 'bg-transparent text-ink-muted hover:text-ink',
-              on && size === 'large' ? 'border-border-strong' : 'border-transparent'
+              on ? 'bg-field-raised text-ink font-semibold' : 'bg-transparent text-ink-muted hover:text-ink',
+              'border-transparent'
             )}
           >
             {option.label}

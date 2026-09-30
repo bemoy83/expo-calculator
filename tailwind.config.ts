@@ -35,6 +35,7 @@ const config: Config = {
         field: {
           DEFAULT: "rgb(var(--field) / <alpha-value>)",
           hover: "rgb(var(--field-hover) / <alpha-value>)",
+          raised: "rgb(var(--field-raised) / <alpha-value>)",
         },
         sunken: {
           DEFAULT: "rgb(var(--sunken) / <alpha-value>)",

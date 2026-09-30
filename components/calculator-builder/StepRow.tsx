@@ -217,7 +217,7 @@ export function StepRow({
               <span id={`${id}-mode`} className="text-xs font-medium text-ink-muted">
                 Calculate with
               </span>
-              <div role="radiogroup" aria-labelledby={`${id}-mode`} className="flex gap-0.5 p-0.5 rounded-md bg-sunken">
+              <div role="radiogroup" aria-labelledby={`${id}-mode`} className="flex gap-0.5 p-0.5 rounded-md bg-field">
                 {(
                   [
                     ['call', 'Function'],
@@ -232,7 +232,7 @@ export function StepRow({
                     onClick={() => switchTo(mode)}
                     className={cn(
                       'h-6 px-2.5 rounded text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                      step.source.type === mode ? 'bg-surface text-ink shadow-card' : 'text-ink-muted hover:text-ink'
+                      step.source.type === mode ? 'bg-field-raised text-ink' : 'text-ink-muted hover:text-ink'
                     )}
                   >
                     {label}
