@@ -148,7 +148,7 @@ export function FunctionsBrowse() {
           onChange={setCategory}
         />
 
-        <ul aria-label="Functions" className="flex flex-col gap-1 px-3 py-4 min-w-0 lg:overflow-y-auto">
+        <ul aria-label="Functions" className="flex flex-col px-3 py-4 min-w-0 lg:overflow-y-auto">
           {listed.map((func) => {
             const on = func.id === selected?.id;
             const uses = usageCount.get(func.id) ?? 0;
@@ -167,9 +167,13 @@ export function FunctionsBrowse() {
                   }}
                   onDoubleClick={() => router.push(editHref(func.id))}
                   className={cn(
-                    'flex gap-3 px-3 py-3.5 rounded-row border transition-colors duration-150',
+                    // As in the catalog lists: a hairline between rows, a surface fill on hover, and
+                    // from lg the chosen row is a surface card with the accent ring.
+                    'relative flex gap-3 px-3 py-3.5 border border-transparent border-b-border transition-colors duration-150',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                    on ? 'lg:bg-surface lg:border-border-strong border-transparent' : 'border-transparent hover:bg-surface-hover'
+                    on
+                      ? 'lg:rounded-row lg:bg-surface lg:border-accent lg:shadow-focus hover:rounded-md lg:hover:rounded-row'
+                      : 'hover:bg-surface hover:rounded-md'
                   )}
                 >
                   <span className="flex-1 min-w-0">

@@ -143,7 +143,7 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
       <div className="grid grid-cols-1 md:grid-cols-[var(--category-w)_minmax(0,1fr)] lg:grid-cols-[var(--category-w)_minmax(0,1fr)_var(--quickview-w)] lg:flex-1 lg:min-h-0">
         <CategoryRail options={categoryOptions} value={category} onChange={setCategory} />
 
-        <ul aria-label="Calculators" className="flex flex-col gap-1 px-3 py-4 min-w-0 lg:overflow-y-auto">
+        <ul aria-label="Calculators" className="flex flex-col px-3 py-4 min-w-0 lg:overflow-y-auto">
           {listed.map((calculator) => {
             const on = calculator.id === selected?.id;
             const partCount = calculator.parts.length;
@@ -163,9 +163,13 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
                   }}
                   onDoubleClick={() => router.push(useOnly ? runHref(calculator) : builderHref(calculator.id, { category }))}
                   className={cn(
-                    'flex gap-3 px-3 py-3.5 rounded-row border transition-colors duration-150',
+                    // As in the catalog lists: a hairline between rows, a surface fill on hover, and
+                    // from lg the chosen row is a surface card with the accent ring.
+                    'relative flex gap-3 px-3 py-3.5 border border-transparent border-b-border transition-colors duration-150',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                    on ? 'lg:bg-surface lg:border-border-strong border-transparent' : 'border-transparent hover:bg-surface-hover'
+                    on
+                      ? 'lg:rounded-row lg:bg-surface lg:border-accent lg:shadow-focus hover:rounded-md lg:hover:rounded-row'
+                      : 'hover:bg-surface hover:rounded-md'
                   )}
                 >
                   <span className="flex-1 min-w-0">

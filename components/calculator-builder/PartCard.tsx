@@ -170,7 +170,7 @@ export const PartSteps = memo(function PartSteps({
           Add a step to start calculating. A step is a formula using inputs, other steps and functions.
         </p>
       ) : (
-        <ul className="flex flex-col gap-1.5">
+        <ul className="flex flex-col">
           {steps.map((step, index) => (
             <StepRow
               key={step.id}

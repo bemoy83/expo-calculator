@@ -18,8 +18,8 @@ interface RailRowProps {
   className?: string;
 }
 
-// Left-rail list item (Ledger lists/RailRow.jsx): selected = surface + strong border, with the
-// index badge on accent.
+// Left-rail list item (Ledger lists/RailRow.jsx): selected = surface card with the accent ring,
+// with the index badge on accent.
 export function RailRow({ index, title, subtitle, value, stacked = false, selected = false, status, onClick, className }: RailRowProps) {
   const isError = status === 'error';
   const isDraft = status === 'draft';
@@ -45,10 +45,12 @@ export function RailRow({ index, title, subtitle, value, stacked = false, select
       onClick={onClick}
       aria-current={selected || undefined}
       className={cn(
-        'flex gap-2.5 w-full px-2.5 py-3 rounded-row border text-left text-ink',
-        'transition-[background-color] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
+        // Like the catalog lists: a hairline between rows, a surface fill on hover, and the chosen
+        // row a surface card with the accent ring.
+        'relative flex gap-2.5 w-full px-2.5 py-3 border border-transparent border-b-border text-left text-ink',
+        'transition-[background-color,box-shadow] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-        selected ? 'bg-surface border-border-strong' : 'border-transparent hover:bg-surface-hover',
+        selected ? 'rounded-row bg-surface border-accent shadow-focus' : 'hover:bg-surface hover:rounded-md',
         className
       )}
     >

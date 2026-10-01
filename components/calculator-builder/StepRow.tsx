@@ -137,12 +137,14 @@ export function StepRow({
   return (
     <li
       className={cn(
-        'rounded-row border transition-[border-color,box-shadow] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
+        'border transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
+        // A closed step is a list row (hairline, surface fill on hover); the open one is a card
+        // with the accent ring; a real error keeps its red border either way.
         expanded
-          ? cn('bg-surface shadow-focus', isError ? 'border-danger' : 'border-accent')
+          ? cn('my-1 rounded-row bg-surface shadow-focus', isError ? 'border-danger' : 'border-accent')
           : isError
-            ? 'border-danger-border'
-            : 'border-border'
+            ? 'my-0.5 rounded-row border-danger-border'
+            : 'border-transparent border-b-border hover:bg-surface hover:rounded-md'
       )}
     >
       {/* Closed (mockup 4b): index · label · formula · value. Open, the formula column says how it's used. */}
