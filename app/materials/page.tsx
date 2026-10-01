@@ -23,6 +23,8 @@ const MATERIAL_GRID = 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1.1fr) 7.5rem 4rem
 const isCustomCategory = (category: string) => category.toLowerCase() === 'custom';
 const categoryOf = (item: { category: string }) => item.category;
 
+const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+
 export default function MaterialsPage() {
   const materials = useMaterialsStore((state) => state.materials);
   const addMaterial = useMaterialsStore((state) => state.addMaterial);
@@ -80,15 +82,15 @@ export default function MaterialsPage() {
 
   return (
     <CatalogPageShell
-      tab="materials"
-      editorPlaceholder="Choose a material to edit it, or add one with + New material."
+      editorPlaceholder="Choose a material to edit it."
       title="Materials"
+      eyebrow={`${plural(materials.length, 'material')} · prices used by every calculator`}
+      itemNoun="material"
       addLabel="New material"
       searchPlaceholder="Search name, SKU, variable…"
-      firstItemLabel="Add your first material"
       emptyTitle="No materials yet"
       emptyFilteredTitle="No materials found"
-      emptyDescription="Add your first material to start building your catalog."
+      emptyDescription="Materials hold the prices your calculators use. Formulas read them by name, so a price change reaches every calculator."
       emptyFilteredDescription="Try adjusting your search or filter criteria."
       emptyIcon={Package}
       items={catalog.listed}

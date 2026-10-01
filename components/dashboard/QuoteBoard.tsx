@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, MoreHorizontal } from 'lucide-react';
+import { FileText, MoreHorizontal, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { LedgerRow, LedgerTable, type LedgerColumn } from '@/components/ui/LedgerTable';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -86,8 +86,8 @@ export function QuoteBoard() {
             placeholder="Search quotes…"
             className="flex-1 min-w-[10rem] sm:w-[220px] sm:flex-none"
           />
-          <Button variant="accent" onClick={handleNewQuote} className="shrink-0">
-            + New quote
+          <Button variant="accent" onClick={handleNewQuote} title="New quote" aria-label="New quote" className="shrink-0 w-9 px-0">
+            <Plus className="h-4 w-4" aria-hidden="true" />
           </Button>
         </>
       }
@@ -104,13 +104,8 @@ export function QuoteBoard() {
           <EmptyState
             icon={FileText}
             title="No quotes yet"
-            description="Open a calculator, fill it in, and use Send to quote. Or start an empty quote here."
+            description="Open a calculator, fill it in, and use Send to quote. Or start an empty quote with the + above."
             iconSize="small"
-            actions={
-              <Button variant="accent" onClick={handleNewQuote}>
-                + New quote
-              </Button>
-            }
           />
         ) : (
           <>

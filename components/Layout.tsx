@@ -19,17 +19,22 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-const MAIN_TABS: TopBarTab[] = [
-  { id: 'calculators', label: 'Calculators', href: '/' },
-  { id: 'quotes', label: 'Quotes', href: '/quotes/board' },
-  { id: 'catalog', label: 'Catalog', href: '/materials' },
+// The flow of the work: the library (materials, labor, functions) feeds the calculators, which
+// feed the quotes. Arrows between the groups show it.
+const LIBRARY_TABS: TopBarTab[] = [
+  { id: 'materials', label: 'Materials', href: '/materials' },
+  { id: 'labor', label: 'Labor', href: '/labor' },
+  { id: 'functions', label: 'Functions', href: '/functions' },
 ];
+const CALCULATOR_TABS: TopBarTab[] = [{ id: 'calculators', label: 'Calculators', href: '/' }];
+const QUOTE_TABS: TopBarTab[] = [{ id: 'quotes', label: 'Quotes', href: '/quotes/board' }];
+const arrow = (id: string): TopBarTab => ({ id, label: '', separator: true });
 
 /** The top tab a route belongs to: a calculator open at /calculator is under Calculators, an open quote under Quotes. */
 export function mainTabFor(pathname: string): string {
   const path = pathname.replace(/\/+$/, '') || '/';
   const under = (route: string) => path === route || path.startsWith(`${route}/`);
-  if (['/materials', '/labor', '/functions'].some(under)) return 'catalog';
+  for (const route of ['materials', 'labor', 'functions']) if (under(`/${route}`)) return route;
   if (under('/quotes')) return 'quotes';
   if (path === '/' || under('/calculator')) return 'calculators';
   return '';
@@ -75,8 +80,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     setShowPackExport(true);
   };
 
-  // Use-only mode hides the Catalog.
-  const tabs = useOnly ? MAIN_TABS.filter((tab) => tab.id !== 'catalog') : MAIN_TABS;
+  // Use-only mode hides the library pages.
+  const tabs = [
+    ...(useOnly ? [] : [...LIBRARY_TABS, arrow('to-calculators')]),
+    ...CALCULATOR_TABS,
+    arrow('to-quotes'),
+    ...QUOTE_TABS,
+  ];
 
   // The guard lets an open editor ask about unsaved edits before the top bar or drawer leaves it.
   return (

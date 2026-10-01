@@ -22,6 +22,8 @@ const LABOR_GRID = 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1.3fr) 9rem';
 const isCustomCategory = (category: string) => category.toLowerCase() === 'custom';
 const categoryOf = (item: { category: string }) => item.category;
 
+const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+
 export default function LaborPage() {
   const labor = useLaborStore((state) => state.labor);
   const addLabor = useLaborStore((state) => state.addLabor);
@@ -77,15 +79,15 @@ export default function LaborPage() {
 
   return (
     <CatalogPageShell
-      tab="labor"
-      editorPlaceholder="Choose a labor item to edit it, or add one with + New labor."
+      editorPlaceholder="Choose a labor item to edit it."
       title="Labor"
+      eyebrow={`${plural(labor.length, 'labor item')} · rates used by every calculator`}
+      itemNoun="labor item"
       addLabel="New labor"
       searchPlaceholder="Search name, variable…"
-      firstItemLabel="Add your first labor item"
       emptyTitle="No labor items yet"
       emptyFilteredTitle="No labor items found"
-      emptyDescription="Add your first labor item to start building your catalog."
+      emptyDescription="Labor items hold the hourly rates your calculators use. Formulas read them by name, so a rate change reaches every calculator."
       emptyFilteredDescription="Try adjusting your search or filter criteria."
       emptyIcon={Users}
       items={catalog.listed}

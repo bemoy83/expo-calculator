@@ -1,5 +1,6 @@
 'use client';
 
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { SearchInput } from '@/components/ui/SearchInput';
 
@@ -30,8 +31,8 @@ export function BrowseActions({
         />
       )}
       {addLabel && onAdd && (
-        <Button variant="accent" onClick={onAdd} className="shrink-0">
-          + {addLabel}
+        <Button variant="accent" onClick={onAdd} title={addLabel} aria-label={addLabel} className="shrink-0 w-9 px-0">
+          <Plus className="h-4 w-4" aria-hidden="true" />
         </Button>
       )}
     </>

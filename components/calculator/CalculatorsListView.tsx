@@ -6,11 +6,10 @@ import { Calculator as CalculatorIcon } from 'lucide-react';
 import { browseHref } from '@/components/shared/Breadcrumb';
 import { BrowseActions } from '@/components/shared/browse/BrowseActions';
 import { BrowseLayout } from '@/components/shared/browse/BrowseLayout';
+import { FirstRunPane } from '@/components/shared/browse/FirstRunPane';
 import { SortableRow } from '@/components/shared/browse/SortableRow';
 import { ALL_CATEGORIES, useBrowseList } from '@/components/shared/browse/useBrowseList';
 import { SortableList } from '@/components/shared/SortableList';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/shared/EmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import type { Calculator, CalculatorLibrary } from '@/lib/calculator/types';
 import { formatPackDate } from '@/lib/calculator/format';
@@ -99,36 +98,6 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
     />
   );
 
-  if (calculators.length === 0) {
-    return (
-      <>
-        {header}
-        <div className="px-4 sm:px-6 py-10">
-          {useOnly ? (
-            <EmptyState
-              icon={CalculatorIcon}
-              title="No calculators on this device yet"
-              description="Ask for a calculator pack file, then load it from Settings → Load calculator pack."
-              iconSize="small"
-            />
-          ) : (
-            <EmptyState
-              icon={CalculatorIcon}
-              title="No calculators yet"
-              description="Build one from inputs and steps, test each part as you go, and staff get one simple form."
-              iconSize="small"
-              actions={
-                <Button variant="accent" onClick={newCalculator}>
-                  + New calculator
-                </Button>
-              }
-            />
-          )}
-        </div>
-      </>
-    );
-  }
-
   const rows = listed.map((calculator) => {
     const on = calculator.id === selected?.id;
     const partCount = calculator.parts.length;
@@ -170,7 +139,25 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
       side={{
         below: 'hidden',
         open: !!selected,
-        placeholder: 'Choose a calculator to try it out.',
+        placeholder:
+          calculators.length === 0 ? (
+            useOnly ? (
+              <FirstRunPane
+                icon={CalculatorIcon}
+                title="No calculators on this device yet"
+                description="Ask for a calculator pack file, then load it from Settings → Load calculator pack."
+              />
+            ) : (
+              <FirstRunPane
+                icon={CalculatorIcon}
+                title="No calculators yet"
+                description="Build one from inputs and steps, test each part as you go, and staff get one simple form."
+                addLabel="calculator"
+              />
+            )
+          ) : (
+            'Choose a calculator to try it out.'
+          ),
         content: selected && (
           <CalculatorQuickView key={selected.id} calculator={selected} library={library} listCategory={category} onClose={deselect} />
         ),
@@ -187,7 +174,7 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
           rows
         )}
       </div>
-      {listed.length === 0 && (
+      {listed.length === 0 && calculators.length > 0 && (
         <p className="py-8 text-center text-sm text-ink-muted">
           {search.trim() ? `No calculators match “${search.trim()}”.` : 'No calculators in this category.'}
         </p>

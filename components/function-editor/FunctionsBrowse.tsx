@@ -10,12 +10,11 @@ import { FormulaWell } from '@/components/formula/FormulaWell';
 import { browseHref } from '@/components/shared/Breadcrumb';
 import { BrowseActions } from '@/components/shared/browse/BrowseActions';
 import { BrowseLayout } from '@/components/shared/browse/BrowseLayout';
+import { FirstRunPane } from '@/components/shared/browse/FirstRunPane';
 import { SortableRow } from '@/components/shared/browse/SortableRow';
 import { ALL_CATEGORIES, useBrowseList } from '@/components/shared/browse/useBrowseList';
 import { SortableList } from '@/components/shared/SortableList';
-import { EmptyState } from '@/components/shared/EmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { CatalogTabs, useCatalogTabItems } from '@/components/shared/catalog/CatalogTabs';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Eyebrow } from '@/components/ui/Eyebrow';
@@ -55,7 +54,6 @@ export function FunctionsBrowse() {
   const addFunction = useFunctionsStore((state) => state.addFunction);
   const reorderFunctions = useFunctionsStore((state) => state.reorderFunctions);
   const calculators = useCalculatorsStore((state) => state.calculators);
-  const tabs = useCatalogTabItems();
 
   const usageCount = useMemo(
     () =>
@@ -89,8 +87,8 @@ export function FunctionsBrowse() {
 
   const header = (
     <PageHeader
-      eyebrow="Catalog · Reusable calculations"
-      title="Catalog"
+      eyebrow={`${functions.length} ${functions.length === 1 ? 'function' : 'functions'} · reusable calculations`}
+      title="Functions"
       actions={
         <BrowseActions
           search={functions.length > 0 ? search : undefined}
@@ -100,31 +98,8 @@ export function FunctionsBrowse() {
           onAdd={() => router.push(editHref())}
         />
       }
-    >
-      <CatalogTabs items={tabs} active="functions" />
-    </PageHeader>
+    />
   );
-
-  if (functions.length === 0) {
-    return (
-      <>
-        {header}
-        <div className="px-4 sm:px-6 py-10">
-          <EmptyState
-            icon={FunctionSquare}
-            title="No functions yet"
-            description="Create reusable functions to use across your calculators and formulas."
-            iconSize="small"
-            actions={
-              <Button variant="accent" onClick={() => router.push(editHref())}>
-                + New function
-              </Button>
-            }
-          />
-        </div>
-      </>
-    );
-  }
 
   const rows = listed.map((func) => {
     const on = func.id === selected?.id;
@@ -167,7 +142,17 @@ export function FunctionsBrowse() {
       side={{
         below: 'hidden',
         open: !!selected,
-        placeholder: 'Choose a function to try it out.',
+        placeholder:
+          functions.length === 0 ? (
+            <FirstRunPane
+              icon={FunctionSquare}
+              title="No functions yet"
+              description="Functions are reusable calculations. Write one once, then use it in any calculator or formula."
+              addLabel="function"
+            />
+          ) : (
+            'Choose a function to try it out.'
+          ),
         content: selected && (
           <FunctionQuickView
             key={selected.id}
@@ -191,7 +176,7 @@ export function FunctionsBrowse() {
           rows
         )}
       </div>
-      {listed.length === 0 && (
+      {listed.length === 0 && functions.length > 0 && (
         <p className="py-8 text-center text-sm text-ink-muted">
           {search.trim() ? `No functions match “${search.trim()}”.` : 'No functions in this category.'}
         </p>

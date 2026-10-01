@@ -3,22 +3,22 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { Button } from '@/components/ui/Button';
 import { BrowseActions } from '@/components/shared/browse/BrowseActions';
 import { BrowseLayout } from '@/components/shared/browse/BrowseLayout';
+import { FirstRunPane } from '@/components/shared/browse/FirstRunPane';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SortableList } from '@/components/shared/SortableList';
 import { cn } from '@/lib/utils';
-import { CatalogTabs, useCatalogTabItems } from './CatalogTabs';
 import { useCatalogLayout, type CatalogColumn } from './CatalogTableRow';
 
 interface CatalogPageShellProps<T extends { id: string }> {
-  /** The Catalog sub-tab this page is */
-  tab: 'materials' | 'labor';
   title: string;
+  /** Above the title: the count and what the page is for */
+  eyebrow: string;
+  /** What the + adds, e.g. "material" (lower case, for the first-run hint) */
+  itemNoun: string;
   addLabel: string;
   searchPlaceholder: string;
-  firstItemLabel: string;
   emptyTitle: string;
   emptyFilteredTitle: string;
   emptyDescription: string;
@@ -46,11 +46,11 @@ interface CatalogPageShellProps<T extends { id: string }> {
 }
 
 export function CatalogPageShell<T extends { id: string }>({
-  tab,
   title,
+  eyebrow,
+  itemNoun,
   addLabel,
   searchPlaceholder,
-  firstItemLabel,
   emptyTitle,
   emptyFilteredTitle,
   emptyDescription,
@@ -74,15 +74,13 @@ export function CatalogPageShell<T extends { id: string }>({
   editorPlaceholder,
 }: CatalogPageShellProps<T>) {
   const isEmptyCatalog = totalItems === 0;
-  const tabs = useCatalogTabItems();
-
   return (
     <Layout>
       <BrowseLayout
         header={
           <PageHeader
-            eyebrow="Catalog · Prices used by every calculator"
-            title="Catalog"
+            eyebrow={eyebrow}
+            title={title}
             actions={
               <BrowseActions
                 search={searchQuery}
@@ -92,28 +90,28 @@ export function CatalogPageShell<T extends { id: string }>({
                 onAdd={onAdd}
               />
             }
-          >
-            <CatalogTabs items={tabs} active={tab} />
-          </PageHeader>
+          />
         }
         rail={{ options: categoryOptions, value: category, onChange: onCategoryChange }}
-        side={{ below: 'stack', open: isEditorOpen, placeholder: editorPlaceholder, content: editor }}
+        side={{
+          below: 'stack',
+          open: isEditorOpen,
+          placeholder: isEmptyCatalog ? (
+            <FirstRunPane icon={EmptyIcon} title={emptyTitle} description={emptyDescription} addLabel={itemNoun} />
+          ) : (
+            editorPlaceholder
+          ),
+          content: editor,
+        }}
       >
         {items.length === 0 ? (
-          <div className="text-center px-6 py-16">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-sunken mb-4">
-              <EmptyIcon className="h-7 w-7 text-ink-muted" aria-hidden="true" />
+          // An empty catalog says its piece in the side pane; a search that finds nothing, here.
+          isEmptyCatalog ? null : (
+            <div className="text-center px-6 py-16">
+              <h2 className="text-base font-semibold text-ink mb-1">{emptyFilteredTitle}</h2>
+              <p className="text-sm text-ink-muted max-w-md mx-auto">{emptyFilteredDescription}</p>
             </div>
-            <h2 className="text-base font-semibold text-ink mb-1">{isEmptyCatalog ? emptyTitle : emptyFilteredTitle}</h2>
-            <p className="text-sm text-ink-muted max-w-md mx-auto mb-5">
-              {isEmptyCatalog ? emptyDescription : emptyFilteredDescription}
-            </p>
-            {isEmptyCatalog && (
-              <Button variant="accent" onClick={onAdd}>
-                + {firstItemLabel}
-              </Button>
-            )}
-          </div>
+          )
         ) : (
           <CatalogTable title={title} columns={columns} gridTemplate={gridTemplate}>
             {canReorder ? (

@@ -2,12 +2,15 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGuardLink } from '@/components/shared/NavigationGuard';
 
 export interface TopBarTab {
   id: string;
   label: string;
+  /** An arrow between groups of tabs, showing the flow; has no label or link */
+  separator?: boolean;
   /** Renders the tab as a link; otherwise it calls onSelect */
   href?: string;
 }
@@ -53,8 +56,11 @@ export function TopBar({ tabs, active, onSelect, brand = 'Cost Estimator', brand
       ) : (
         <div className={brandClasses}>{brandMark}</div>
       )}
-      <nav aria-label="Main" className="flex gap-1 text-sm">
+      <nav aria-label="Main" className="flex items-center gap-1 text-sm">
         {tabs.map((tab) => {
+          if (tab.separator) {
+            return <ChevronRight key={tab.id} aria-hidden="true" className="mx-1.5 h-3.5 w-3.5 self-center text-ink-faint" />;
+          }
           const on = tab.id === active;
           const classes = cn(
             'px-3 py-[7px] rounded-[7px] transition-[background-color,color] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',

@@ -153,7 +153,6 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
         eyebrow={
           <Breadcrumb
             items={[
-              { label: 'Catalog', href: '/materials' },
               { label: 'Functions', href: backHref },
               ...(savedCategory
                 ? [{ label: savedCategory, href: browseHref('/functions', { category: savedCategory, id: existingFunction?.id }) }]

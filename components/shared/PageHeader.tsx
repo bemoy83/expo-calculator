@@ -10,7 +10,7 @@ interface PageHeaderProps {
   /** Underline the title as editable (builder) */
   editing?: boolean;
   actions?: React.ReactNode;
-  /** Sub-navigation under the title, e.g. <CatalogTabs/>; the band then has no bottom padding */
+  /** Sub-navigation under the title; the band then has no bottom padding */
   children?: React.ReactNode;
   className?: string;
 }

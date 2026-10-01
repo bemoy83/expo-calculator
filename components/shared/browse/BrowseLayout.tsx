@@ -8,7 +8,7 @@ export interface BrowseSide {
   /** The side pane's content: a quick view or an editor */
   content: React.ReactNode;
   /** Shown in place of the content while there is none, e.g. "Choose a material to edit it…" */
-  placeholder?: string;
+  placeholder?: React.ReactNode;
   /** Whether the content is there to show (an editor opened); a quick view is always there */
   open?: boolean;
   /** Below lg: hidden (a quick view; a row opens the item itself) or stacked under the list when open (an editor) */
@@ -56,9 +56,13 @@ export function BrowseLayout({
           {open ? (
             side.content
           ) : (
-            <div className="h-full flex flex-col items-center justify-center gap-2 px-8 text-center">
-              <p className="text-sm text-ink-muted">{side.placeholder}</p>
-            </div>
+            typeof side.placeholder === 'string' ? (
+              <div className="h-full flex flex-col items-center justify-center gap-2 px-8 text-center">
+                <p className="text-sm text-ink-muted">{side.placeholder}</p>
+              </div>
+            ) : (
+              side.placeholder
+            )
           )}
         </aside>
       </div>
