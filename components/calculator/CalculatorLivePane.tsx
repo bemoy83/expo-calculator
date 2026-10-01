@@ -1,23 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { CommitBlock } from '@/components/live/CommitBlock';
 import { LiveLabel } from '@/components/live/LiveLabel';
 import { costedParts, showsStaffResults } from '@/lib/calculator/editing';
 import type { LayoutRenderContext } from './CalculatorLayoutItem';
 import { CalculatorResultSections, hasResultSections } from './CalculatorForm';
-import { getBoardQuotes } from '@/lib/quotes/quote-board';
-import { useQuotesStore } from '@/lib/stores/quotes-store';
 import { useUseOnlyMode } from '@/hooks/use-device';
 import { cn } from '@/lib/utils';
-
-/** Where Send to quote goes by default: the most recently edited quote. */
-function useTargetQuoteName(): string | undefined {
-  const savedQuotes = useQuotesStore((state) => state.quotes);
-  const currentQuote = useQuotesStore((state) => state.currentQuote);
-  return useMemo(() => getBoardQuotes(savedQuotes, currentQuote)[0]?.name, [savedQuotes, currentQuote]);
-}
 
 /** Each part's cost, when there's more than one part and the layout doesn't already list them. */
 function usePartCosts(context: LayoutRenderContext) {
@@ -54,7 +45,6 @@ export function CalculatorLivePane({
   layout?: 'full' | 'compact';
 }) {
   const { calculator, result, formatMoney } = context;
-  const target = useTargetQuoteName();
   const partCosts = usePartCosts(context);
   const [resultsOpen, setResultsOpen] = useState(true);
   const amount = result.quoteCost !== undefined ? formatMoney(result.quoteCost) : '—';
@@ -92,7 +82,6 @@ export function CalculatorLivePane({
             actionLabel="Send to quote"
             onAction={onSend}
             actionDisabled={!canSend}
-            note={target ? `→ ${target}` : '→ a new quote'}
           />
         </div>
       </div>
@@ -123,7 +112,6 @@ export function CalculatorLivePane({
         actionLabel="Send to quote"
         onAction={onSend}
         actionDisabled={!canSend}
-        note={target ? `Adds a line to ${target}` : 'Adds a line to a new quote'}
       />
     </div>
   );

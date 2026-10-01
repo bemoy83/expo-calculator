@@ -84,7 +84,8 @@ export function SendToQuoteDialog({
           send();
         }}
       >
-        <div className="flex items-baseline justify-between gap-3 rounded-md bg-sunken px-3 py-2.5">
+        {/* What is being sent: a plain line with a rule under it, not a filled box that could be mistaken for a field. */}
+        <div className="flex items-baseline justify-between gap-3 pb-3 border-b border-border">
           <span className="text-sm text-ink-body">{calculator.name}</span>
           <span className="font-numeric text-base font-semibold text-ink">{cost !== undefined ? formatMoney(cost) : '—'}</span>
         </div>

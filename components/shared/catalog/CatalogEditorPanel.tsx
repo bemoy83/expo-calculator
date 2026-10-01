@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Edit2, Trash2, X } from 'lucide-react';
+import { Edit2, Info, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Eyebrow } from '@/components/ui/Eyebrow';
@@ -96,15 +96,19 @@ export function CatalogEditorPanel({
   );
 }
 
-// Shown in the panel: how the item reads in formulas, e.g. `mdf18` → 142.00 kr / m².
+// Help text in the panel, not a field: how the item reads in formulas, e.g. `mdf18` → 142.00 kr / m².
+// No fill, so it can't be taken for an input.
 export function FormulaReference({ variableName, value }: { variableName: string; value: string }) {
   return (
-    <div className="rounded-md bg-sunken px-3 py-2 text-xs text-ink-muted">
-      In formulas this is{' '}
-      <code className="font-numeric font-medium text-token-input">{variableName || '…'}</code>
-      <span aria-hidden="true"> → </span>
-      <span className="sr-only">, which is </span>
-      <span className="font-numeric text-ink">{value}</span>
+    <div className="flex items-start gap-2 text-xs leading-[1.5] text-ink-muted">
+      <Info className="mt-[3px] h-3.5 w-3.5 shrink-0 text-ink-faint" aria-hidden="true" />
+      <p>
+        In formulas this is{' '}
+        <code className="font-numeric font-medium text-token-input">{variableName || '…'}</code>
+        <span aria-hidden="true"> → </span>
+        <span className="sr-only">, which is </span>
+        <span className="font-numeric text-ink">{value}</span>
+      </p>
     </div>
   );
 }

@@ -15,19 +15,19 @@ interface CommitBlockProps {
   actionLabel?: React.ReactNode;
   onAction?: () => void;
   actionDisabled?: boolean;
-  /** e.g. "Adds a line to Stand B12" */
-  note?: React.ReactNode;
   className?: string;
 }
 
-function Pill({ amount, size }: { amount: React.ReactNode; size: 'lg' | 'md' | 'sm' }) {
+function Pill({ amount, size, block }: { amount: React.ReactNode; size: 'lg' | 'md' | 'sm'; block?: boolean }) {
   return (
     <span
       className={cn(
-        'self-start font-numeric font-semibold tracking-[-0.04em] leading-[1.15] whitespace-nowrap bg-accent text-accent-ink',
+        'font-numeric font-semibold tracking-[-0.04em] leading-[1.15] whitespace-nowrap bg-accent text-accent-ink',
+        // In the stacked block the pill is as wide as the button under it.
+        block ? 'w-full text-center' : 'self-start',
         size === 'lg' && 'text-[40px] px-3 py-0.5 rounded-row',
         size === 'md' && 'text-[32px] px-3 py-0.5 rounded-row',
-        size === 'sm' && 'text-[26px] px-2.5 py-px rounded-md'
+        size === 'sm' && 'text-[26px] px-2.5 py-1 rounded-md'
       )}
     >
       {amount}
@@ -35,7 +35,20 @@ function Pill({ amount, size }: { amount: React.ReactNode; size: 'lg' | 'md' | '
   );
 }
 
-function Cta({ label, onAction, disabled, block }: { label: React.ReactNode; onAction?: () => void; disabled?: boolean; block?: boolean }) {
+function Cta({
+  label,
+  onAction,
+  disabled,
+  block,
+  compact,
+}: {
+  label: React.ReactNode;
+  onAction?: () => void;
+  disabled?: boolean;
+  block?: boolean;
+  /** As tall as the small pill beside it */
+  compact?: boolean;
+}) {
   return (
     <button
       type="button"
@@ -46,7 +59,7 @@ function Cta({ label, onAction, disabled, block }: { label: React.ReactNode; onA
         'transition-opacity duration-150 ease-[cubic-bezier(.4,0,.2,1)] hover:opacity-90',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-inverse',
         'disabled:opacity-50 disabled:cursor-not-allowed',
-        block ? 'w-full p-3' : 'px-5 py-3'
+        block ? 'w-full p-3' : compact ? 'h-[38px] px-5' : 'px-5 py-3'
       )}
     >
       {label}
@@ -66,7 +79,6 @@ export function CommitBlock({
   actionLabel,
   onAction,
   actionDisabled,
-  note,
   className,
 }: CommitBlockProps) {
   const base = 'bg-inverse text-inverse-ink';
@@ -95,15 +107,15 @@ export function CommitBlock({
   }
 
   if (layout === 'compact') {
+    // The label on top; the total and the action on one line, level with each other.
     return (
-      <div className={cn(base, 'flex items-center gap-3.5 py-3 pr-3.5 pl-4 rounded-lg', className)}>
-        <div className="flex-1 min-w-0 flex flex-col gap-1">
-          <span className="text-xs opacity-70">{label}</span>
-          <Pill amount={amount} size="sm" />
-        </div>
-        <div className="flex flex-col items-end gap-[5px]">
-          {actionLabel && <Cta label={actionLabel} onAction={onAction} disabled={actionDisabled} />}
-          {note && <span className="text-[11px] opacity-60">{note}</span>}
+      <div className={cn(base, 'flex flex-col gap-1.5 py-3 pr-3.5 pl-4 rounded-lg', className)}>
+        <span className="text-xs opacity-70">{label}</span>
+        <div className="flex items-center gap-3.5">
+          <div className="flex-1 min-w-0 flex flex-col">
+            <Pill amount={amount} size="sm" />
+          </div>
+          {actionLabel && <Cta label={actionLabel} onAction={onAction} disabled={actionDisabled} compact />}
         </div>
       </div>
     );
@@ -112,13 +124,12 @@ export function CommitBlock({
   return (
     <div className={cn(base, 'flex flex-col gap-3 p-[18px] rounded-inverse', className)}>
       <span className="text-[13px] opacity-70">{label}</span>
-      <Pill amount={amount} size="lg" />
+      <Pill amount={amount} size="lg" block />
       {actionLabel && (
         <div className="mt-1">
           <Cta label={actionLabel} onAction={onAction} disabled={actionDisabled} block />
         </div>
       )}
-      {note && <div className="text-xs opacity-60 text-center">{note}</div>}
     </div>
   );
 }

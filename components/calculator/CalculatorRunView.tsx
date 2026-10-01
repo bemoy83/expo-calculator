@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Maximize2, Pencil, RotateCcw, X } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 import { IconButton, iconButtonClasses } from '@/components/ui/IconButton';
 import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -44,18 +43,23 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
         description={calculator.description}
         actions={
           <>
-            <Button variant="ghost" onClick={run.reset} disabled={!run.hasValues}>
-              Reset
-            </Button>
+            <IconButton
+              label="Reset values"
+              size="lg"
+              icon={<RotateCcw className="h-4 w-4" aria-hidden="true" />}
+              onClick={run.reset}
+              disabled={!run.hasValues}
+            />
             {!useOnly && (
-              <Button variant="secondary" onClick={() => router.push(builderHref(calculator.id))}>
-                Edit
-              </Button>
+              <IconButton
+                label="Edit"
+                size="lg"
+                icon={<Pencil className="h-4 w-4" aria-hidden="true" />}
+                onClick={() => router.push(builderHref(calculator.id))}
+              />
             )}
             <HeaderDivider />
-            <Button variant="secondary" onClick={() => router.push(listHref)}>
-              Close
-            </Button>
+            <IconButton label="Close" size="lg" icon={<X className="h-4 w-4" aria-hidden="true" />} onClick={() => router.push(listHref)} />
           </>
         }
       />

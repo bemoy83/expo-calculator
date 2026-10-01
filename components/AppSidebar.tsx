@@ -9,6 +9,7 @@ import { ChevronDown, Download, Package, Settings, Upload, X } from 'lucide-reac
 import { cn } from '@/lib/utils';
 import { useGuardLink } from '@/components/shared/NavigationGuard';
 import { CurrencySelector } from '@/components/shared/CurrencySelector';
+import { Segmented } from '@/components/ui/Segmented';
 import { FIELD_LABEL } from '@/components/ui/field-styles';
 import { exportAllData, downloadDataAsJSON } from '@/lib/utils/data-export';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
@@ -206,28 +207,16 @@ function ColorModeSwitch() {
       <span id="color-mode-label" className={FIELD_LABEL}>
         Appearance
       </span>
-      <div role="group" aria-labelledby="color-mode-label" className="flex gap-1 p-1 rounded-full bg-border">
-        {(['light', 'dark'] as const).map((mode) => {
-          const active = resolvedTheme === mode;
-          return (
-            <button
-              key={mode}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setTheme(mode)}
-              className={cn(
-                'flex-1 py-1.5 rounded-full text-[11px] transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                active
-                  ? 'bg-surface text-ink font-semibold shadow-card'
-                  : 'text-ink-muted font-medium hover:text-ink'
-              )}
-            >
-              {mode === 'light' ? 'Light' : 'Dark'}
-            </button>
-          );
-        })}
-      </div>
+      <Segmented
+        block
+        aria-labelledby="color-mode-label"
+        options={[
+          { value: 'light', label: 'Light' },
+          { value: 'dark', label: 'Dark' },
+        ]}
+        value={resolvedTheme === 'dark' ? 'dark' : 'light'}
+        onChange={setTheme}
+      />
     </div>
   );
 }
