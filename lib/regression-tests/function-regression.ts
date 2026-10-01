@@ -4,6 +4,8 @@ import {
   addSuggestedParameter,
   buildFunctionSaveData,
   collectFunctionAutocompleteCandidates,
+  findUnknownMaterialProperties,
+  getPropertyCandidatesForBase,
   getParameterSuggestions,
   getFormulaWithInsertedOperator,
   getFormulaWithInsertedToken,
@@ -109,6 +111,32 @@ assertCheck(
     candidates.some((candidate) => candidate.name === 'other_fn' && candidate.functionSignature === 'x') &&
     !candidates.some((candidate) => candidate.name === 'current_fn') &&
     candidates.some((candidate) => candidate.name === 'installer.m2_per_hr')
+);
+
+const catalogMaterials = [
+  { id: 'm1', name: 'Board', variableName: 'board', price: 1, properties: [{ id: 'p1', name: 'width', type: 'number', value: 1, unitSymbol: 'mm' }] },
+  { id: 'm2', name: 'Screw', variableName: 'screw', price: 1, properties: [{ id: 'p2', name: 'pitch', type: 'number', value: 1 }] },
+] as unknown as import('../types').Material[];
+const materialParams = [
+  { name: 'board', label: 'Board', kind: 'material', required: true },
+  { name: 'auto', label: 'Auto', required: true },
+  { name: 'n', label: 'N', kind: 'number', required: true },
+] as unknown as import('../types').SharedFunction['parameters'];
+const forBase = (base: string) =>
+  getPropertyCandidatesForBase({ base, parameters: materialParams, materials: catalogMaterials, labor: [], functions: [] }).map((c) => c.name);
+assertCheck(
+  'offers properties after the dot for material, automatic and not-yet-declared names, not numbers',
+  forBase('board').includes('board.width') &&
+    forBase('board').includes('board.pitch') &&
+    forBase('board').includes('board.thickness') &&
+    forBase('auto').includes('auto.width') &&
+    forBase('plank').includes('plank.width') &&
+    forBase('n').length > 0 === false
+);
+const typos = findUnknownMaterialProperties({ formula: 'board.widht + board.pitch + n', parameters: materialParams, materials: catalogMaterials });
+assertCheck(
+  'flags a property no material has and suggests the near one',
+  typos.length === 1 && typos[0].reference === 'board.widht' && typos[0].suggestion === 'width'
 );
 
 const insertedToken = getFormulaWithInsertedToken({

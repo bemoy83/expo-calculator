@@ -8,6 +8,8 @@ import {
   addSuggestedParameter,
   buildFunctionSaveData,
   collectFunctionAutocompleteCandidates,
+  findUnknownMaterialProperties,
+  getPropertyCandidatesForBase,
   FunctionFormData,
   getParameterSuggestions,
   getExistingParameterNames,
@@ -17,7 +19,7 @@ import {
   validateFunctionEditorForm,
 } from '@/lib/functions/function-editor-helpers';
 import type { Calculator } from '@/lib/calculator/types';
-import type { Labor, SharedFunction } from '@/lib/types';
+import type { Labor, Material, SharedFunction } from '@/lib/types';
 import { labelToVariableName } from '@/lib/utils';
 import { countParameterUses } from '@/lib/functions/function-usage';
 import { labelFromName } from '@/lib/utils/function-parameters';
@@ -27,6 +29,8 @@ interface UseFunctionEditorStateOptions {
   existingFunction: SharedFunction | null;
   functions: SharedFunction[];
   labor: Labor[];
+  /** The catalog, whose property names a material parameter offers after the dot. */
+  materials: Material[];
   /** Calculators, whose inputs are offered as parameters after the other functions' parameters. */
   calculators: Calculator[];
   addFunction: (func: Omit<SharedFunction, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -38,6 +42,7 @@ export function useFunctionEditorState({
   existingFunction,
   functions,
   labor,
+  materials,
   calculators,
   addFunction,
   updateFunction,
@@ -56,7 +61,7 @@ export function useFunctionEditorState({
   const [hasManuallyEditedVariableName, setHasManuallyEditedVariableName] = useState(!!existingFunction);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [parameterErrors] = useState<Record<number, Record<string, string>>>({});
-  const [formulaValidation, setFormulaValidation] = useState<{ valid: boolean; error?: string; /** an error is on its way, held back while the formula is still being typed */ pending?: boolean }>({
+  const [formulaValidation, setFormulaValidation] = useState<{ valid: boolean; error?: string; /** an error is on its way, held back while the formula is still being typed */ pending?: boolean; /** what the check said before the pending one, for the header to keep showing */ wasValid?: boolean }>({
     valid: true,
   });
   const validatedOnce = useRef(false);
@@ -109,7 +114,7 @@ export function useFunctionEditorState({
       setFormulaValidation(validation);
       return;
     }
-    setFormulaValidation({ valid: false, pending: true });
+    setFormulaValidation((prev) => ({ valid: false, pending: true, wasValid: prev.pending ? prev.wasValid : prev.valid }));
     const timer = setTimeout(() => setFormulaValidation(validation), 700);
     return () => clearTimeout(timer);
   }, [formData.formula, parameters, functions]);
@@ -142,10 +147,34 @@ export function useFunctionEditorState({
     [parameters, functions, functionId, labor]
   );
 
+  // Likely property typos (`board.widht`), shown once the formula has stood for a moment.
+  const [propertyHint, setPropertyHint] = useState<string | undefined>();
+  useEffect(() => {
+    const unknown = findUnknownMaterialProperties({ formula: formData.formula, parameters, materials });
+    if (unknown.length === 0) {
+      setPropertyHint(undefined);
+      return;
+    }
+    const timer = setTimeout(
+      () =>
+        setPropertyHint(
+          unknown
+            .slice(0, 3)
+            .map(({ reference, suggestion }) =>
+              suggestion ? `No material has “${reference}”. Did you mean “${reference.split('.')[0]}.${suggestion}”?` : `No material has “${reference}”.`
+            )
+            .join(' ')
+        ),
+      700
+    );
+    return () => clearTimeout(timer);
+  }, [formData.formula, parameters, materials]);
+
   const autocomplete = useFormulaAutocomplete({
     formula: formData.formula,
     formulaTextareaRef,
     collectAutocompleteCandidates,
+    candidatesForBase: (base) => getPropertyCandidatesForBase({ base, parameters, materials, labor, functions }),
     onFormulaChange: (formula) => setFormData((prev) => ({ ...prev, formula })),
   });
 
@@ -197,11 +226,15 @@ export function useFunctionEditorState({
   // "+ Create parameter" for a name the formula uses but no parameter has yet.
   const addParameterNamed = useCallback(
     (name: string) => {
+      // A name the formula reads properties from (`board.width`) can only be a material.
+      const isMaterial = formData.formula.includes(`${name}.`);
       setParameters((prev) =>
-        prev.some((param) => param.name === name) ? prev : [...prev, { name, label: labelFromName(name), required: true }]
+        prev.some((param) => param.name === name)
+          ? prev
+          : [...prev, { name, label: labelFromName(name), required: true, ...(isMaterial ? { kind: 'material' as const } : {}) }]
       );
     },
-    [setParameters]
+    [setParameters, formData.formula]
   );
 
   // Calls pass values by position, so the order is part of the function.
@@ -260,6 +293,7 @@ export function useFunctionEditorState({
     errors,
     parameterErrors,
     formulaValidation,
+    propertyHint,
     parameters,
     expandedParameters,
     parameterSuggestions,

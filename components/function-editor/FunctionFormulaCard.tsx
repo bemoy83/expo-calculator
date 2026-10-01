@@ -34,6 +34,8 @@ interface FunctionFormulaCardProps {
   formulaTextareaRef: React.RefObject<HTMLTextAreaElement>;
   formulaValidation: { valid: boolean; error?: string };
   formulaError?: string;
+  /** A likely misspelt material property, a hint rather than an error */
+  propertyHint?: string;
   parameters: ParameterInfo[];
   onInsertParameter: (variableName: string) => void;
   onInsertOperator: (operator: string) => void;
@@ -59,6 +61,7 @@ export function FunctionFormulaCard({
   formulaTextareaRef,
   formulaValidation,
   formulaError,
+  propertyHint,
   parameters,
   onInsertParameter,
   onInsertOperator,
@@ -201,13 +204,14 @@ export function FunctionFormulaCard({
           )}
         </div>
         {formulaValidation.error && <p className="text-xs text-danger">{formulaValidation.error}</p>}
+        {!formulaValidation.error && propertyHint && <p className="text-xs text-ink-faint">{propertyHint}</p>}
         {onCreateParameter && unknownNames.length > 0 && (
           <div className="flex flex-wrap gap-1 -ml-2">
             {unknownNames.slice(0, 6).map((name) => (
               <Button key={name} variant="ghost" size="sm" onClick={() => onCreateParameter(name)} className="px-2">
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>
-                  Create parameter “<span className="font-numeric">{name}</span>”
+                  {formula.includes(`${name}.`) ? 'Create material parameter' : 'Create parameter'} “<span className="font-numeric">{name}</span>”
                 </span>
               </Button>
             ))}

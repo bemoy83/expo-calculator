@@ -1,5 +1,5 @@
 import type { Calculator } from "../calculator/types";
-import type { Labor, SharedFunction } from "../types";
+import { COMMON_MATERIAL_PROPERTIES, type Labor, type Material, type SharedFunction } from "../types";
 import { isValidName } from '../formula/identifiers';
 
 export type FunctionFormData = {
@@ -86,6 +86,130 @@ export function addSuggestedParameter(
   const blank = parameters.findIndex((param) => !param.name.trim() && !param.label.trim());
   if (blank === -1) return [...parameters, added];
   return parameters.map((param, index) => (index === blank ? added : param));
+}
+
+export type MaterialPropertyInfo = { name: string; unitSymbol?: string; count: number; total: number };
+
+/**
+ * Every property name a material can have: the common ones plus any the catalog defines,
+ * with how many materials have each. A material parameter doesn't know its material until a
+ * calculator picks one, so this is what `board.` can offer.
+ */
+export function getMaterialPropertyCatalog(materials: Material[]): MaterialPropertyInfo[] {
+  const found = new Map<string, MaterialPropertyInfo>();
+  const total = materials.length;
+  materials.forEach((material) => {
+    const seen = new Set<string>();
+    material.properties?.forEach((prop) => {
+      const name = prop.name.trim();
+      const key = name.toLowerCase();
+      if (!name || seen.has(key)) return;
+      seen.add(key);
+      const info = found.get(key) ?? { name, unitSymbol: prop.unitSymbol, count: 0, total };
+      info.count += 1;
+      info.unitSymbol ??= prop.unitSymbol;
+      found.set(key, info);
+    });
+  });
+  COMMON_MATERIAL_PROPERTIES.forEach((name) => {
+    if (!found.has(name)) found.set(name, { name, count: 0, total });
+  });
+  return Array.from(found.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/** A parameter is a material when marked so, or (kind left automatic) once the formula uses a dot on it. */
+function isMaterialParameter(param: FunctionParameter, formula: string): boolean {
+  if (param.kind) return param.kind === "material";
+  const escaped = param.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return !!param.name.trim() && new RegExp(`(^|[^\\w.])${escaped}\\.`).test(formula);
+}
+
+/**
+ * The properties to offer after `base.` in a formula. A catalog material offers its own. Any
+ * other name that could be a material (a material parameter, or no parameter yet, which the
+ * editor will offer to create as one) offers every property the catalog knows. Numbers,
+ * labor, functions and the like offer none here.
+ */
+export function getPropertyCandidatesForBase(input: {
+  base: string;
+  parameters: FunctionParameter[];
+  materials: Material[];
+  labor: Labor[];
+  functions: SharedFunction[];
+}): FunctionAutocompleteCandidate[] {
+  const base = input.base.trim();
+  if (!base || !isValidName(base)) return [];
+  const lower = base.toLowerCase();
+  const param = input.parameters.find((p) => p.name.trim().toLowerCase() === lower);
+  if (param) {
+    if (param.kind && param.kind !== "material") return [];
+  } else if (
+    input.labor.some((item) => item.variableName.toLowerCase() === lower) ||
+    input.functions.some((fn) => fn.name.trim().toLowerCase() === lower)
+  ) {
+    return [];
+  }
+
+  const own = param ? undefined : input.materials.find((m) => m.variableName.toLowerCase() === lower);
+  const catalog = getMaterialPropertyCatalog(own ? [own] : input.materials);
+  return catalog
+    .filter((info) => !own || info.count > 0)
+    .map((info) => ({
+      name: `${base}.${info.name}`,
+      displayName: `${base}.${info.name}${info.unitSymbol ? ` (${info.unitSymbol})` : ""}`,
+      type: "property" as const,
+      description: own
+        ? own.name
+        : info.count > 0
+          ? `On ${info.count} of ${info.total} materials`
+          : "Common property; no material has it yet",
+    }));
+}
+
+function editDistance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const above = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return row[b.length];
+}
+
+/**
+ * `board.widht` where no material has a `widht`: the likely typos, each with the property it
+ * probably meant. A property some materials lack is not flagged; only names found nowhere.
+ */
+export function findUnknownMaterialProperties(input: {
+  formula: string;
+  parameters: FunctionParameter[];
+  materials: Material[];
+}): Array<{ reference: string; suggestion?: string }> {
+  const known = getMaterialPropertyCatalog(input.materials).map((info) => info.name);
+  const knownLower = new Set(known.map((name) => name.toLowerCase()));
+  const unknown = new Map<string, { reference: string; suggestion?: string }>();
+  input.parameters.forEach((param) => {
+    const name = param.name.trim();
+    if (!name || !isMaterialParameter(param, input.formula)) return;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`(?:^|[^\\w.])${escaped}\\.([A-Za-z_]\\w*)(?!\\w)`, "g");
+    for (const match of input.formula.matchAll(pattern)) {
+      const prop = match[1];
+      if (knownLower.has(prop.toLowerCase()) || unknown.has(`${name}.${prop}`)) continue;
+      const best = known
+        .map((candidate) => ({ candidate, distance: editDistance(prop.toLowerCase(), candidate.toLowerCase()) }))
+        .sort((a, b) => a.distance - b.distance)[0];
+      unknown.set(`${name}.${prop}`, {
+        reference: `${name}.${prop}`,
+        suggestion: best && best.distance <= Math.max(2, Math.floor(prop.length / 3)) ? best.candidate : undefined,
+      });
+    }
+  });
+  return Array.from(unknown.values());
 }
 
 export function collectFunctionAutocompleteCandidates(input: {

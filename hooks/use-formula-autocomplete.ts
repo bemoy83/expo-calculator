@@ -21,6 +21,8 @@ interface UseFormulaAutocompleteProps {
   formula: string;
   formulaTextareaRef: React.RefObject<HTMLTextAreaElement>;
   collectAutocompleteCandidates: AutocompleteSuggestion[];
+  /** Extra suggestions for what follows `base.`, asked for as it is typed, so a name that isn't declared yet can still offer them. */
+  candidatesForBase?: (base: string) => AutocompleteSuggestion[];
   onFormulaChange: (formula: string) => void;
 }
 
@@ -28,6 +30,7 @@ export function useFormulaAutocomplete({
   formula,
   formulaTextareaRef,
   collectAutocompleteCandidates,
+  candidatesForBase,
   onFormulaChange,
 }: UseFormulaAutocompleteProps) {
   const [recentlyUsedVariables, setRecentlyUsedVariables] = useState<string[]>([]);
@@ -270,9 +273,11 @@ export function useFormulaAutocomplete({
     }
 
     // Filter suggestions
+    const extra = wordInfo.hasDot && wordInfo.baseWord && candidatesForBase ? candidatesForBase(wordInfo.baseWord) : [];
+    const known = new Set(collectAutocompleteCandidates.map((c) => c.name));
     const filtered = filterSuggestions(
       wordInfo.word,
-      collectAutocompleteCandidates,
+      extra.length ? [...collectAutocompleteCandidates, ...extra.filter((c) => !known.has(c.name))] : collectAutocompleteCandidates,
       recentlyUsedVariables,
       wordInfo.hasDot,
       wordInfo.baseWord
@@ -359,7 +364,7 @@ export function useFormulaAutocomplete({
     } else {
       setIsAutocompleteOpen(false);
     }
-  }, [formulaTextareaRef, getWordAtCursor, filterSuggestions, collectAutocompleteCandidates, recentlyUsedVariables]);
+  }, [formulaTextareaRef, getWordAtCursor, filterSuggestions, collectAutocompleteCandidates, candidatesForBase, recentlyUsedVariables]);
 
   // Handle keyboard navigation for autocomplete
   const handleAutocompleteKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {

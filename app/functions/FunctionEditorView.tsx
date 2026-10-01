@@ -22,6 +22,7 @@ import { copyOfFunction, describeFunctionUsage, findFunctionUsage, formatFunctio
 import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
+import { useMaterialsStore } from '@/lib/stores/materials-store';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
@@ -42,6 +43,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
   const getAllCategories = useCategoriesStore((state) => state.getAllCategories);
   const addCategory = useCategoriesStore((state) => state.addCategory);
   const labor = useLaborStore((state) => state.labor);
+  const materials = useMaterialsStore((state) => state.materials);
   const calculators = useCalculatorsStore((state) => state.calculators);
   const library = useCalculatorLibrary();
   const isNew = functionId === 'new';
@@ -66,6 +68,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
     existingFunction,
     functions,
     labor,
+    materials,
     calculators,
     addFunction: (func) => {
       const created = addFunction(func);
@@ -173,11 +176,10 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
         }
         status={
           formula
-            ? editor.formulaValidation.valid
+            ? // While an error is still settling, the header keeps saying what it said before.
+              (editor.formulaValidation.pending ? editor.formulaValidation.wasValid : editor.formulaValidation.valid)
               ? { tone: 'ok', label: 'Formula works' }
-              : editor.formulaValidation.pending
-                ? { tone: 'draft', label: 'Formula incomplete' }
-                : { tone: 'error', label: 'Formula has an error' }
+              : { tone: 'error', label: 'Formula has an error' }
             : undefined
         }
         description={editor.errors.displayName && <span className="text-danger">{editor.errors.displayName}</span>}
@@ -304,6 +306,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               onFormulaChange={(next) => editor.handleFormDataChange({ formula: next })}
               formulaTextareaRef={editor.formulaTextareaRef}
               formulaValidation={editor.formulaValidation}
+              propertyHint={editor.propertyHint}
               formulaError={editor.errors.formula}
               parameters={editor.parameters}
               onInsertParameter={editor.insertParameterAtCursor}
