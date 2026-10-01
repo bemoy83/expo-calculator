@@ -23,6 +23,7 @@ import { useCategoriesStore } from '@/lib/stores/categories-store';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
+import { getMaterialCategories } from '@/lib/utils/material-category';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
@@ -44,6 +45,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
   const addCategory = useCategoriesStore((state) => state.addCategory);
   const labor = useLaborStore((state) => state.labor);
   const materials = useMaterialsStore((state) => state.materials);
+  const materialCategories = useMemo(() => getMaterialCategories(materials), [materials]);
   const calculators = useCalculatorsStore((state) => state.calculators);
   const library = useCalculatorLibrary();
   const isNew = functionId === 'new';
@@ -212,6 +214,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
         <div className="flex flex-col px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
           <ParameterRail
             parameters={editor.parameters}
+            materialCategories={materialCategories}
             formula={editor.formData.formula}
             openIndex={openIndex}
             onToggle={(index) => setOpenIndex((open) => (open === index ? null : index))}

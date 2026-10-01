@@ -143,6 +143,8 @@ export interface SharedFunction {
     required?: boolean;
     /** What the parameter expects; inferred when unset (see getFunctionParamKinds). */
     kind?: FunctionParamKind;
+    /** For a material parameter: the category its properties are suggested from (empty = any). */
+    materialCategory?: string;
   }>;
   returnUnitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count';
   returnUnitSymbol?: string;

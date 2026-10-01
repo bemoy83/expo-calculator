@@ -30,6 +30,8 @@ const KIND_NAME: Record<FunctionParamKind, string> = {
 
 interface ParameterRailProps {
   parameters: FunctionParameter[];
+  /** Categories of the catalog's materials, for limiting a material parameter's suggestions */
+  materialCategories: string[];
   formula: string;
   /** The parameter open for editing */
   openIndex: number | null;
@@ -54,6 +56,7 @@ interface ParameterRailProps {
 // in place to edit it; the order is the order calls pass values in.
 export function ParameterRail({
   parameters,
+  materialCategories,
   formula,
   openIndex,
   onToggle,
@@ -234,7 +237,9 @@ export function ParameterRail({
                     const next = (event.target.value || undefined) as FunctionParamKind | undefined;
                     onUpdate(
                       index,
-                      next && next !== 'number' ? { kind: next, unitSymbol: undefined, unitCategory: undefined } : { kind: next }
+                      next && next !== 'number'
+                        ? { kind: next, unitSymbol: undefined, unitCategory: undefined, materialCategory: next === 'material' ? parameter.materialCategory : undefined }
+                        : { kind: next, materialCategory: undefined }
                     );
                   }}
                 />
@@ -254,6 +259,28 @@ export function ParameterRail({
                   />
                 )}
               </div>
+              {(parameter.kind ?? inferred[name]) === 'material' && (
+                <Select
+                  label="Category"
+                  size="compact"
+                  value={parameter.materialCategory ?? ''}
+                  options={[
+                    { value: '', label: 'Any category' },
+                    ...(parameter.materialCategory && !materialCategories.includes(parameter.materialCategory)
+                      ? [{ value: parameter.materialCategory, label: parameter.materialCategory }]
+                      : []),
+                    ...materialCategories.map((category) => ({ value: category, label: category })),
+                  ]}
+                  onChange={(event) => onUpdate(index, { materialCategory: event.target.value || undefined })}
+                />
+              )}
+              {(parameter.kind ?? inferred[name]) === 'material' && (
+                <p className="text-[11px] text-ink-faint">
+                  {parameter.materialCategory
+                    ? `After “${name}.” the editor suggests properties of ${parameter.materialCategory} materials.`
+                    : `After “${name}.” the editor suggests properties of any material.`}
+                </p>
+              )}
               {!parameter.kind && name && (
                 <p className="text-[11px] text-ink-faint">Worked out from the formula: {KIND_NAME[inferred[name] ?? 'number']}</p>
               )}

@@ -11,6 +11,7 @@ import {
   getFormulaWithInsertedToken,
   validateFunctionEditorForm,
 } from '../functions/function-editor-helpers';
+import { categoryForName, resolveMaterialCategory } from '../utils/material-category';
 import type { Calculator } from '../calculator/types';
 import type { Labor, SharedFunction } from '../types';
 import { assertCheck } from './test-helpers';
@@ -125,10 +126,10 @@ const materialParams = [
 const forBase = (base: string) =>
   getPropertyCandidatesForBase({ base, parameters: materialParams, materials: catalogMaterials, labor: [], functions: [] }).map((c) => c.name);
 assertCheck(
-  'offers properties after the dot for material, automatic and not-yet-declared names, not numbers',
+  'offers the catalog\'s own properties after the dot for material, automatic and not-yet-declared names, not numbers',
   forBase('board').includes('board.width') &&
     forBase('board').includes('board.pitch') &&
-    forBase('board').includes('board.thickness') &&
+    !forBase('board').includes('board.thickness') &&
     forBase('auto').includes('auto.width') &&
     forBase('plank').includes('plank.width') &&
     forBase('n').length > 0 === false
@@ -137,6 +138,35 @@ const typos = findUnknownMaterialProperties({ formula: 'board.widht + board.pitc
 assertCheck(
   'flags a property no material has and suggests the near one',
   typos.length === 1 && typos[0].reference === 'board.widht' && typos[0].suggestion === 'width'
+);
+
+const categorised = [
+  { id: 'a', name: 'Gyproc', category: 'Sheets', variableName: 'gyproc', price: 1, properties: [{ id: 'p1', name: 'width', type: 'number', value: 1 }] },
+  { id: 'b', name: 'Screw', category: 'Fasteners', variableName: 'screw', price: 1, properties: [{ id: 'p2', name: 'pitch', type: 'number', value: 1 }] },
+] as unknown as import('../types').Material[];
+const sheetProps = getPropertyCandidatesForBase({
+  base: 'sheets',
+  parameters: [{ name: 'sheets', label: 'Sheets', kind: 'material', materialCategory: 'sheets', required: true }] as unknown as import('../types').SharedFunction['parameters'],
+  materials: categorised,
+  labor: [],
+  functions: [],
+}).filter((c) => c.description?.startsWith('On '));
+assertCheck(
+  'a material parameter with a category suggests only that category\'s properties',
+  sheetProps.length === 1 && sheetProps[0].name === 'sheets.width'
+);
+const undeclared = getPropertyCandidatesForBase({ base: 'sheets', parameters: [], materials: categorised, labor: [], functions: [] }).filter((c) => c.description?.startsWith('On '));
+assertCheck(
+  'an undeclared name that is a category suggests only that category\'s properties',
+  undeclared.length === 1 && undeclared[0].name === 'sheets.width'
+);
+assertCheck(
+  'category helpers: empty is uncategorised, case snaps, near misses nudge',
+  resolveMaterialCategory('', ['Sheets']).value === 'Uncategorised' &&
+    resolveMaterialCategory(' sheets ', ['Sheets']).value === 'Sheets' &&
+    resolveMaterialCategory('Sheet', ['Sheets']).didYouMean === 'Sheets' &&
+    resolveMaterialCategory('Insulation', ['Sheets']).didYouMean === undefined &&
+    categoryForName('sheet', ['Sheets', 'Fasteners']) === 'Sheets'
 );
 
 const insertedToken = getFormulaWithInsertedToken({

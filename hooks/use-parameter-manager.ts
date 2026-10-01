@@ -9,6 +9,7 @@ export interface FunctionParameter {
   unitSymbol?: string;
   required?: boolean;
   kind?: FunctionParamKind;
+  materialCategory?: string;
 }
 
 interface UseParameterManagerProps {

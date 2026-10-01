@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
+import { CategoryCombobox } from '@/components/materials/CategoryCombobox';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { PriceForm } from '@/components/materials/PriceForm';
@@ -27,6 +28,7 @@ import { propertyValueInUnit } from '@/lib/catalog/prices';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
 import { getUnitCategory } from '@/lib/units';
 import { generateId, labelToVariableName } from '@/lib/utils';
+import { getMaterialCategories, resolveMaterialCategory, UNCATEGORISED } from '@/lib/utils/material-category';
 
 type MaterialFormData = {
   name: string;
@@ -125,6 +127,10 @@ export function MaterialEditorPanel({
     setPriceFormFor(null);
   }, [material]);
 
+  // Categories already in use, to pick from; a near miss of one is pointed out, not refused.
+  const categories = useMemo(() => getMaterialCategories(materials), [materials]);
+  const categoryNudge = resolveMaterialCategory(formData.category, categories).didYouMean;
+
   const selectedMaterialId = material?.id ?? null;
   const isCreating = selectedMaterialId === null;
 
@@ -133,7 +139,6 @@ export function MaterialEditorPanel({
     const newPropertyErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.category.trim()) newErrors.category = 'Category is required';
     if (!formData.unit.trim()) newErrors.unit = 'Unit is required';
     if (!formData.price.trim() || isNaN(Number(formData.price)) || Number(formData.price) < 0) {
       newErrors.price = 'Valid price is required';
@@ -223,7 +228,7 @@ export function MaterialEditorPanel({
 
     onSave(selectedMaterialId, {
       name: formData.name.trim(),
-      category: formData.category.trim(),
+      category: resolveMaterialCategory(formData.category, categories).value,
       unit: formData.unit.trim(),
       price: Number(formData.price),
       variableName: formData.variableName.trim(),
@@ -270,13 +275,29 @@ export function MaterialEditorPanel({
       />
 
       <div className="grid grid-cols-2 gap-3">
-        <Input
-          label="Category"
-          value={formData.category}
-          onChange={(event) => setFormData({ ...formData, category: event.target.value })}
-          error={errors.category}
-          required
-        />
+        <div className="w-full">
+          <CategoryCombobox
+            label="Category"
+            value={formData.category}
+            options={categories}
+            placeholder={UNCATEGORISED}
+            onChange={(category) => setFormData({ ...formData, category })}
+          />
+          {categoryNudge ? (
+            <p className="mt-1 text-[11px] text-draft">
+              Did you mean “{categoryNudge}”?{' '}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, category: categoryNudge })}
+                className="underline rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+              >
+                Use it
+              </button>
+            </p>
+          ) : (
+            !formData.category.trim() && <p className="mt-1 text-[11px] text-ink-faint">Not sure? It&apos;s saved as {UNCATEGORISED}.</p>
+          )}
+        </div>
         <Input
           label="Variable"
           value={formData.variableName}

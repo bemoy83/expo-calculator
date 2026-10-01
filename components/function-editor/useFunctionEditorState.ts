@@ -22,6 +22,7 @@ import type { Calculator } from '@/lib/calculator/types';
 import type { Labor, Material, SharedFunction } from '@/lib/types';
 import { labelToVariableName } from '@/lib/utils';
 import { countParameterUses } from '@/lib/functions/function-usage';
+import { categoryForName, getMaterialCategories } from '@/lib/utils/material-category';
 import { labelFromName } from '@/lib/utils/function-parameters';
 
 interface UseFunctionEditorStateOptions {
@@ -228,13 +229,15 @@ export function useFunctionEditorState({
     (name: string) => {
       // A name the formula reads properties from (`board.width`) can only be a material.
       const isMaterial = formData.formula.includes(`${name}.`);
+      // and a name that is a category (`sheets`) starts out limited to it.
+      const materialCategory = isMaterial ? categoryForName(name, getMaterialCategories(materials)) : undefined;
       setParameters((prev) =>
         prev.some((param) => param.name === name)
           ? prev
-          : [...prev, { name, label: labelFromName(name), required: true, ...(isMaterial ? { kind: 'material' as const } : {}) }]
+          : [...prev, { name, label: labelFromName(name), required: true, ...(isMaterial ? { kind: 'material' as const, ...(materialCategory ? { materialCategory } : {}) } : {}) }]
       );
     },
-    [setParameters, formData.formula]
+    [setParameters, formData.formula, materials]
   );
 
   // Calls pass values by position, so the order is part of the function.

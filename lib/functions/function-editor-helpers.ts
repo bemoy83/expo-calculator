@@ -1,5 +1,6 @@
 import type { Calculator } from "../calculator/types";
 import { COMMON_MATERIAL_PROPERTIES, type Labor, type Material, type SharedFunction } from "../types";
+import { categoryForName, editDistance, getMaterialCategories, sameCategory } from '../utils/material-category';
 import { isValidName } from '../formula/identifiers';
 
 export type FunctionFormData = {
@@ -91,11 +92,12 @@ export function addSuggestedParameter(
 export type MaterialPropertyInfo = { name: string; unitSymbol?: string; count: number; total: number };
 
 /**
- * Every property name a material can have: the common ones plus any the catalog defines,
- * with how many materials have each. A material parameter doesn't know its material until a
+ * Every property name the catalog's materials define, with how many have each; the common
+ * names stand in only while none do. A material parameter doesn't know its material until a
  * calculator picks one, so this is what `board.` can offer.
  */
-export function getMaterialPropertyCatalog(materials: Material[]): MaterialPropertyInfo[] {
+export function getMaterialPropertyCatalog(allMaterials: Material[], category?: string): MaterialPropertyInfo[] {
+  const materials = category ? allMaterials.filter((material) => sameCategory(material.category, category)) : allMaterials;
   const found = new Map<string, MaterialPropertyInfo>();
   const total = materials.length;
   materials.forEach((material) => {
@@ -111,9 +113,11 @@ export function getMaterialPropertyCatalog(materials: Material[]): MaterialPrope
       found.set(key, info);
     });
   });
-  COMMON_MATERIAL_PROPERTIES.forEach((name) => {
-    if (!found.has(name)) found.set(name, { name, count: 0, total });
-  });
+  // The common names only start an empty catalog off; once materials have properties of their
+  // own (in whatever language), padding the list with names none of them uses just adds noise.
+  if (found.size === 0) {
+    COMMON_MATERIAL_PROPERTIES.forEach((name) => found.set(name, { name, count: 0, total }));
+  }
   return Array.from(found.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
@@ -151,7 +155,12 @@ export function getPropertyCandidatesForBase(input: {
   }
 
   const own = param ? undefined : input.materials.find((m) => m.variableName.toLowerCase() === lower);
-  const catalog = getMaterialPropertyCatalog(own ? [own] : input.materials);
+  // A declared parameter uses the category chosen for it. A name not declared yet that is a
+  // category (`sheets`, `sheet`) is taken to mean it, as "Create material parameter" will.
+  const category = param
+    ? param.materialCategory?.trim() || undefined
+    : categoryForName(base, getMaterialCategories(input.materials));
+  const catalog = getMaterialPropertyCatalog(own ? [own] : input.materials, category);
   return catalog
     .filter((info) => !own || info.count > 0)
     .map((info) => ({
@@ -161,23 +170,11 @@ export function getPropertyCandidatesForBase(input: {
       description: own
         ? own.name
         : info.count > 0
-          ? `On ${info.count} of ${info.total} materials`
+          ? category
+          ? `On ${info.count} of ${info.total} in ${category}`
+          : `On ${info.count} of ${info.total} materials`
           : "Common property; no material has it yet",
     }));
-}
-
-function editDistance(a: string, b: string): number {
-  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    let diagonal = row[0];
-    row[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const above = row[j];
-      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
-      diagonal = above;
-    }
-  }
-  return row[b.length];
 }
 
 /**
@@ -189,12 +186,12 @@ export function findUnknownMaterialProperties(input: {
   parameters: FunctionParameter[];
   materials: Material[];
 }): Array<{ reference: string; suggestion?: string }> {
-  const known = getMaterialPropertyCatalog(input.materials).map((info) => info.name);
-  const knownLower = new Set(known.map((name) => name.toLowerCase()));
   const unknown = new Map<string, { reference: string; suggestion?: string }>();
   input.parameters.forEach((param) => {
     const name = param.name.trim();
     if (!name || !isMaterialParameter(param, input.formula)) return;
+    const known = getMaterialPropertyCatalog(input.materials, param.materialCategory?.trim() || undefined).map((info) => info.name);
+    const knownLower = new Set(known.map((candidate) => candidate.toLowerCase()));
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp(`(?:^|[^\\w.])${escaped}\\.([A-Za-z_]\\w*)(?!\\w)`, "g");
     for (const match of input.formula.matchAll(pattern)) {
@@ -435,6 +432,7 @@ export function buildFunctionSaveData(input: {
       required: param.required !== false,
       // What the parameter expects, when chosen ("Expects"); left out it's inferred from the formula.
       ...(param.kind ? { kind: param.kind } : {}),
+      ...(param.materialCategory?.trim() ? { materialCategory: param.materialCategory.trim() } : {}),
     })),
     category: input.formData.category.trim() || undefined,
   };
