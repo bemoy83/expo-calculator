@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Download, Package, Settings, Upload, X } from 'lucide-react';
+import { ChevronDown, Download, Package, Settings, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGuardLink } from '@/components/shared/NavigationGuard';
 import { CurrencySelector } from '@/components/shared/CurrencySelector';
@@ -77,18 +77,22 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onExportPack }: 
     }
   }, [isOpen]);
 
-  const primaryItems: NavItem[] = [
-    // Calculators are the home page; one open at /calculator belongs to it too.
-    { name: 'Calculators', href: '/', count: calculatorsCount, alsoActiveOn: ['/calculator'] },
-    // An open quote at /quotes belongs to the quotes board.
-    { name: 'Quotes', href: '/quotes/board', count: quotesCount, alsoActiveOn: ['/quotes'] },
-  ];
-
-  const catalogItems: NavItem[] = [
+  // The flow of the work, as in the top bar: the library feeds the calculators, which feed the quotes.
+  const libraryItems: NavItem[] = [
     { name: 'Materials', href: '/materials', count: materialsCount },
     { name: 'Labor', href: '/labor', count: laborCount },
     { name: 'Functions', href: '/functions', count: functionsCount },
   ];
+  const calculatorItems: NavItem[] = [
+    // Calculators are the home page; one open at /calculator belongs to it too.
+    { name: 'Calculators', href: '/', count: calculatorsCount, alsoActiveOn: ['/calculator'] },
+  ];
+  const quoteItems: NavItem[] = [
+    // An open quote at /quotes belongs to the quotes board.
+    { name: 'Quotes', href: '/quotes/board', count: quotesCount, alsoActiveOn: ['/quotes'] },
+  ];
+  // Use-only mode hides the library pages.
+  const groups = [...(useOnly ? [] : [libraryItems]), calculatorItems, quoteItems];
 
   const matchesRoute = (href: string) =>
     pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
@@ -128,16 +132,12 @@ export function AppSidebar({ id, isOpen, onClose, onImportData, onExportPack }: 
       </div>
 
       <nav aria-label="Main navigation" className="flex-1 min-h-0 overflow-y-auto px-3">
-        <NavList items={primaryItems} isActive={isActive} showCounts={mounted} itemHeight="h-9" />
-        {/* Use-only mode hides the library pages. */}
-        {!useOnly && (
-          <>
-            <p className="px-2.5 pt-[22px] pb-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-              Catalog
-            </p>
-            <NavList items={catalogItems} isActive={isActive} showCounts={mounted} itemHeight="h-[34px]" />
-          </>
-        )}
+        {groups.map((items, index) => (
+          <React.Fragment key={items[0].href}>
+            {index > 0 && <ChevronDown aria-hidden="true" className="mx-auto my-1 h-3.5 w-3.5 text-ink-faint" />}
+            <NavList items={items} isActive={isActive} showCounts={mounted} itemHeight="h-9" />
+          </React.Fragment>
+        ))}
       </nav>
 
       <div className="px-3 pt-3 pb-4 border-t border-border">

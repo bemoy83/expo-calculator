@@ -12,7 +12,10 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Breadcrumb, browseHref, withSelected } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useLeaveEditor } from '@/components/shared/NavigationGuard';
-import { OverflowMenu } from '@/components/shared/OverflowMenu';
+import { HeaderDivider } from '@/components/shared/OverflowMenu';
+import { SaveButton } from '@/components/shared/SaveButton';
+import { IconButton } from '@/components/ui/IconButton';
+import { Check, Copy, Pencil, Trash2, X } from 'lucide-react';
 import { SaveChangesDialog } from '@/components/shared/SaveChangesDialog';
 import { useSaveShortcut } from '@/hooks/use-save-shortcut';
 import { notify } from '@/lib/stores/notifications-store';
@@ -187,24 +190,27 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
         actions={
           <>
             {existingFunction && (
-              <OverflowMenu
-                items={[
-                  {
-                    label: 'Duplicate',
-                    onSelect: duplicate,
-                    disabled: dirty,
-                    title: dirty ? 'Save or discard your changes first' : undefined,
-                  },
-                  { label: 'Delete function', danger: true, onSelect: () => setConfirmingDelete(true) },
-                ]}
-              />
+              <>
+                <IconButton
+                  label="Duplicate"
+                  size="lg"
+                  icon={<Copy className="h-4 w-4" aria-hidden="true" />}
+                  onClick={duplicate}
+                  disabled={dirty}
+                  tooltip={dirty ? 'Save or discard your changes first' : undefined}
+                />
+                <IconButton
+                  label="Delete function"
+                  size="lg"
+                  variant="danger"
+                  icon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
+                  onClick={() => setConfirmingDelete(true)}
+                />
+                <HeaderDivider />
+              </>
             )}
-            <Button variant="secondary" onClick={() => leave(backHref)}>
-              Close
-            </Button>
-            <Button variant="accent" onClick={() => save()}>
-              Save
-            </Button>
+            <IconButton label="Close" size="lg" icon={<X className="h-4 w-4" aria-hidden="true" />} onClick={() => leave(backHref)} />
+            <SaveButton dirty={dirty} onClick={() => save()} />
           </>
         }
       />
@@ -244,14 +250,14 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               <Eyebrow as="h2" id="function-details-heading">
                 Details
               </Eyebrow>
-              <button
-                type="button"
+              <IconButton
+                label={editingDetails ? 'Done editing details' : 'Edit details'}
+                size="sm"
+                icon={editingDetails ? <Check className="h-4 w-4" aria-hidden="true" /> : <Pencil className="h-4 w-4" aria-hidden="true" />}
                 onClick={() => setEditingDetails((editing) => !editing)}
                 aria-expanded={editingDetails}
-                className="font-numeric text-xs tracking-[.06em] text-ink hover:text-ink-muted rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-              >
-                {editingDetails ? 'Done' : 'Edit'}
-              </button>
+                className="-mr-1.5"
+              />
             </div>
             {editingDetails ? (
               <div className="px-2.5">

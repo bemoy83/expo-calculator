@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Download, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DashedAdd } from '@/components/ui/DashedAdd';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { RailRow } from '@/components/ui/RailRow';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { HeaderDivider, OverflowMenu } from '@/components/shared/OverflowMenu';
+import { HeaderDivider } from '@/components/shared/OverflowMenu';
+import { IconButton } from '@/components/ui/IconButton';
 import { AddCalculatorDialog } from '@/components/quotes/AddCalculatorDialog';
 import { QuoteLineEditor } from '@/components/quotes/QuoteLineEditor';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
@@ -148,15 +150,20 @@ export function QuoteView({ quote, onDelete }: { quote: Quote; onDelete: () => v
               + Add calculator
             </Button>
             <HeaderDivider />
-            <OverflowMenu
-              items={[
-                { label: 'Export JSON', onSelect: () => requestExport('json') },
-                { label: 'Delete quote', danger: true, onSelect: () => setConfirmingDelete(true) },
-              ]}
+            <IconButton
+              label="Export JSON"
+              size="lg"
+              icon={<Download className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => requestExport('json')}
             />
-            <Button variant="secondary" onClick={() => router.push('/quotes/board')}>
-              Close
-            </Button>
+            <IconButton
+              label="Delete quote"
+              size="lg"
+              variant="danger"
+              icon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => setConfirmingDelete(true)}
+            />
+            <IconButton label="Close" size="lg" icon={<X className="h-4 w-4" aria-hidden="true" />} onClick={() => router.push('/quotes/board')} />
           </>
         }
       />

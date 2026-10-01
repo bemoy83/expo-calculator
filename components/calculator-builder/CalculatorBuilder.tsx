@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DashedAdd } from '@/components/ui/DashedAdd';
 import { Eyebrow } from '@/components/ui/Eyebrow';
@@ -14,7 +14,9 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Breadcrumb, browseHref, withSelected } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useLeaveEditor } from '@/components/shared/NavigationGuard';
-import { HeaderDivider, OverflowMenu } from '@/components/shared/OverflowMenu';
+import { HeaderDivider } from '@/components/shared/OverflowMenu';
+import { SaveButton } from '@/components/shared/SaveButton';
+import { IconButton } from '@/components/ui/IconButton';
 import { SaveChangesDialog } from '@/components/shared/SaveChangesDialog';
 import { useSaveShortcut } from '@/hooks/use-save-shortcut';
 import {
@@ -450,14 +452,16 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
           />
           <HeaderDivider />
           {isSaved && (
-            <OverflowMenu items={[{ label: 'Delete calculator', danger: true, onSelect: () => setPending({ kind: 'delete-calculator' }) }]} />
+            <IconButton
+              label="Delete calculator"
+              size="lg"
+              variant="danger"
+              icon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => setPending({ kind: 'delete-calculator' })}
+            />
           )}
-          <Button variant="secondary" onClick={() => leave(closeHref)}>
-            Close
-          </Button>
-          <Button variant="accent" onClick={() => save()}>
-            Save
-          </Button>
+          <IconButton label="Close" size="lg" icon={<X className="h-4 w-4" aria-hidden="true" />} onClick={() => leave(closeHref)} />
+          <SaveButton dirty={dirty} onClick={() => save()} />
         </>
       }
     />

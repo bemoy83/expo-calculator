@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { IconButton } from '@/components/ui/IconButton';
 import { ArrowDown, ArrowUp, CheckCircle2, Pencil, Plus } from 'lucide-react';
 import { DashedAdd } from '@/components/ui/DashedAdd';
 import { Eyebrow } from '@/components/ui/Eyebrow';
@@ -109,17 +110,16 @@ export function ParameterRail({
         <Eyebrow as="h2" id="parameters-heading">
           Parameters · {parameters.length}
         </Eyebrow>
-        <button
-          type="button"
+        <IconButton
+          label="Add parameter"
+          size="sm"
+          icon={<Plus className="h-4 w-4" aria-hidden="true" />}
           onClick={() => {
             setRenaming(null);
             onAdd();
           }}
-          aria-label="Add parameter"
-          className="font-numeric text-xs tracking-[.06em] text-ink hover:text-ink-muted rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-        >
-          + New
-        </button>
+          className="-mr-1.5"
+        />
       </div>
 
       {parameters.length === 0 && (
