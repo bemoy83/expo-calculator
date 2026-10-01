@@ -491,6 +491,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
               key={candidate.id}
               index={index + 1}
               title={candidate.name || 'Unnamed part'}
+              stacked
               value={cost !== undefined ? formatMoney(cost) : partStatus(candidate.id) ? undefined : '—'}
               status={partStatus(candidate.id)}
               selected={candidate.id === part?.id}

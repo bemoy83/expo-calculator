@@ -37,7 +37,7 @@ interface CurrencyStore {
 export const useCurrencyStore = create<CurrencyStore>()(
     persist(
         (set, get) => ({
-            currency: 'USD',
+            currency: 'NOK',
             setCurrency: (currency) => set({ currency }),
             formatCurrency: (amount: number) => {
                 const symbol = CURRENCY_SYMBOLS[get().currency];

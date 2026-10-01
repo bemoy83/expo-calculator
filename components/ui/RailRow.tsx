@@ -9,6 +9,9 @@ interface RailRowProps {
   /** Right-aligned mono value: line cost, count */
   value?: React.ReactNode;
   selected?: boolean;
+  /** Put the value on its own line under the title instead of the right edge, so a wide value
+   *  (1167.32 kr) never squeezes the name */
+  stacked?: boolean;
   /** error: a red dot · draft: an amber dot (unfinished); with no value, — */
   status?: 'error' | 'draft';
   onClick?: () => void;
@@ -17,9 +20,25 @@ interface RailRowProps {
 
 // Left-rail list item (Ledger lists/RailRow.jsx): selected = surface + strong border, with the
 // index badge on accent.
-export function RailRow({ index, title, subtitle, value, selected = false, status, onClick, className }: RailRowProps) {
+export function RailRow({ index, title, subtitle, value, stacked = false, selected = false, status, onClick, className }: RailRowProps) {
   const isError = status === 'error';
   const isDraft = status === 'draft';
+  const valueNode =
+    (value != null || status) && (
+      <span
+        className={cn(
+          'flex items-center gap-1.5 font-numeric whitespace-nowrap',
+          stacked ? 'mt-0.5 text-xs' : 'flex-none text-[13px]',
+          isError ? 'text-danger' : isDraft ? 'text-draft' : selected ? 'text-ink' : 'text-ink-muted'
+        )}
+      >
+        {status && (
+          <span aria-hidden="true" className={cn('w-1.5 h-1.5 rounded-full', isError ? 'bg-danger' : 'bg-draft')} />
+        )}
+        {value ?? '—'}
+      </span>
+    );
+
   return (
     <button
       type="button"
@@ -45,21 +64,10 @@ export function RailRow({ index, title, subtitle, value, selected = false, statu
       )}
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-semibold">{title}</span>
+        {stacked && valueNode}
         {subtitle && <span className="block mt-0.5 text-xs text-ink-muted">{subtitle}</span>}
       </span>
-      {(value != null || status) && (
-        <span
-          className={cn(
-            'flex-none flex items-center gap-1.5 font-numeric text-[13px] whitespace-nowrap',
-            isError ? 'text-danger' : isDraft ? 'text-draft' : selected ? 'text-ink' : 'text-ink-muted'
-          )}
-        >
-          {status && (
-            <span aria-hidden="true" className={cn('w-1.5 h-1.5 rounded-full', isError ? 'bg-danger' : 'bg-draft')} />
-          )}
-          {value ?? '—'}
-        </span>
-      )}
+      {!stacked && valueNode}
     </button>
   );
 }
