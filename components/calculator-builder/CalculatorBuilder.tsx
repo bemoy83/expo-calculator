@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, Trash2, X } from 'lucide-react';
+import { AlertCircle, Eye, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DashedAdd } from '@/components/ui/DashedAdd';
 import { Eyebrow } from '@/components/ui/Eyebrow';
@@ -101,11 +101,13 @@ interface CalculatorBuilderProps {
   library: CalculatorLibrary;
   /** Opened from the calculators list (`?from=list`): Close goes back there. */
   fromList?: FromList;
+  /** The tab to open on (the Layout tab when coming back from the preview) */
+  initialView?: 'parts' | 'layout';
 }
 
 // The builder's parts view: each part as its own card to build and test, inputs defined
 // once for the whole calculator, and test values shared with the staff view.
-export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, fromList }: CalculatorBuilderProps) {
+export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, fromList, initialView = 'parts' }: CalculatorBuilderProps) {
   const router = useRouter();
   // Layout items get ids up front so a selection survives moving them.
   const [calculator, setCalculator] = useState(() => ensureLayoutIds(initial, generateId));
@@ -116,8 +118,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   const [nameDraft, setNameDraft] = useState(initial.name);
   const [categoryDraft, setCategoryDraft] = useState(initial.category ?? '');
   const [descriptionDraft, setDescriptionDraft] = useState(initial.description ?? '');
-  const [view, setView] = useState<'parts' | 'layout'>('parts');
-  const [preview, setPreview] = useState(false);
+  const [view, setView] = useState<'parts' | 'layout'>(initialView);
   const [selection, setSelection] = useState<LayoutSelection>(null);
   const [dirty, setDirty] = useState(false);
   const [isSaved, setIsSaved] = useState(initiallySaved);
@@ -436,10 +437,19 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
       description={nameError && <span className="text-danger">{nameError}</span>}
       actions={
         <>
-          {view === 'layout' && (
-            <Button variant="ghost" onClick={() => setPreview((current) => !current)} aria-pressed={preview}>
-              {preview ? 'Back to editing' : 'Preview'}
-            </Button>
+          {/* The preview is the staff view itself, the calculator's full-size page; with unsaved edits it asks to save first. */}
+          {view === 'layout' && isSaved && (
+            <IconButton
+              label="Preview as staff see it"
+              size="lg"
+              icon={<Eye className="h-4 w-4" aria-hidden="true" />}
+              // `back` is where the preview's Close returns to: this builder, on the Layout tab.
+              onClick={() =>
+                leave(
+                  `/calculator?id=${encodeURIComponent(calculator.id)}&back=${encodeURIComponent(builderHref(calculator.id, fromList, 'layout'))}`
+                )
+              }
+            />
           )}
           <Segmented
             aria-label="Builder view"
@@ -677,80 +687,72 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
     'w-full px-2.5 py-[9px] rounded-md text-[13px] text-left text-ink-muted transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
 
   const layoutView = (
-    <div
-      className={cn(
-        'grid grid-cols-1 lg:flex-1 lg:min-h-0',
-        !preview && 'lg:grid-cols-[240px_minmax(0,1fr)_320px]'
-      )}
-    >
-      {!preview && (
-        <nav aria-label="Add to the form" className="flex flex-col gap-1 px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
-          <Eyebrow className="px-2.5 pb-2">Not placed</Eyebrow>
-          {unplaced.length === 0 && unshownSteps.length === 0 && (
-            <p className="px-2.5 text-xs text-ink-muted">Every input and result is on the form.</p>
-          )}
-          {unplaced.map((input) => (
-            <button
-              key={input.id}
-              type="button"
-              className={paletteRow}
-              onClick={() => placeInTarget({ type: 'input', inputId: input.id })}
-              aria-label={`Place input ${input.label} on the form`}
-            >
-              <span className="truncate">{input.label}</span>
-              <span className="font-numeric text-token-input truncate">{input.key}</span>
-            </button>
-          ))}
-          {unshownSteps.map((step) => (
-            <button
-              key={step.id}
-              type="button"
-              className={paletteRow}
-              onClick={() => placeInTarget({ type: 'result', stepId: step.id, style: 'row' })}
-              aria-label={`Place result ${step.label || step.key} on the form`}
-            >
-              <span className="truncate">{step.label || step.key}</span>
-              <span className="font-numeric text-token-result truncate">{step.key}</span>
-            </button>
-          ))}
+    <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:flex-1 lg:min-h-0">
+      <nav aria-label="Add to the form" className="flex flex-col gap-1 px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
+        <Eyebrow className="px-2.5 pb-2">Not placed</Eyebrow>
+        {unplaced.length === 0 && unshownSteps.length === 0 && (
+          <p className="px-2.5 text-xs text-ink-muted">Every input and result is on the form.</p>
+        )}
+        {unplaced.map((input) => (
+          <button
+            key={input.id}
+            type="button"
+            className={paletteRow}
+            onClick={() => placeInTarget({ type: 'input', inputId: input.id })}
+            aria-label={`Place input ${input.label} on the form`}
+          >
+            <span className="truncate">{input.label}</span>
+            <span className="font-numeric text-token-input truncate">{input.key}</span>
+          </button>
+        ))}
+        {unshownSteps.map((step) => (
+          <button
+            key={step.id}
+            type="button"
+            className={paletteRow}
+            onClick={() => placeInTarget({ type: 'result', stepId: step.id, style: 'row' })}
+            aria-label={`Place result ${step.label || step.key} on the form`}
+          >
+            <span className="truncate">{step.label || step.key}</span>
+            <span className="font-numeric text-token-result truncate">{step.key}</span>
+          </button>
+        ))}
 
-          <Eyebrow className="px-2.5 pt-[22px] pb-2">Add</Eyebrow>
-          <button type="button" className={addRow} onClick={() => addLayoutSection(targetSectionId)}>
-            + Section
-          </button>
-          <button type="button" className={addRow} onClick={() => placeInTarget({ type: 'text', text: '' })}>
-            + Text
-          </button>
-          <button type="button" className={addRow} onClick={() => placeInTarget({ type: 'divider' })}>
-            + Divider
-          </button>
-          <button
-            type="button"
-            className={addRow}
-            onClick={() => placeInTarget({ type: 'breakdown', partIds: calculator.parts.map((candidate) => candidate.id) })}
-          >
-            + Breakdown
-          </button>
-          <button
-            type="button"
-            className={addRow}
-            onClick={() => (targetSectionId ? layoutActions.onNewInput(targetSectionId) : addLayoutSection())}
-          >
-            + New input
-          </button>
-          <p className="mt-auto pt-4 px-2.5 text-xs leading-[1.5] text-ink-faint">
-            Select a section, then click to add to it. Drag items on the form by their handle to move them.
-          </p>
-        </nav>
-      )}
+        <Eyebrow className="px-2.5 pt-[22px] pb-2">Add</Eyebrow>
+        <button type="button" className={addRow} onClick={() => addLayoutSection(targetSectionId)}>
+          + Section
+        </button>
+        <button type="button" className={addRow} onClick={() => placeInTarget({ type: 'text', text: '' })}>
+          + Text
+        </button>
+        <button type="button" className={addRow} onClick={() => placeInTarget({ type: 'divider' })}>
+          + Divider
+        </button>
+        <button
+          type="button"
+          className={addRow}
+          onClick={() => placeInTarget({ type: 'breakdown', partIds: calculator.parts.map((candidate) => candidate.id) })}
+        >
+          + Breakdown
+        </button>
+        <button
+          type="button"
+          className={addRow}
+          onClick={() => (targetSectionId ? layoutActions.onNewInput(targetSectionId) : addLayoutSection())}
+        >
+          + New input
+        </button>
+        <p className="mt-auto pt-4 px-2.5 text-xs leading-[1.5] text-ink-faint">
+          Select a section, then click to add to it. Drag items on the form by their handle to move them.
+        </p>
+      </nav>
 
       <div className="min-w-0 bg-sunken px-4 sm:px-8 py-6 lg:overflow-y-auto">
-        <div className={cn('mx-auto', preview ? 'max-w-[760px]' : 'max-w-[800px]')}>
+        <div className="mx-auto max-w-[800px]">
           {warnings}
           <LayoutCanvas
             context={layoutContext}
             selection={selection}
-            preview={preview}
             onSelect={setSelection}
             onMove={layoutActions.onMoveItem}
             onAddSection={() => addLayoutSection()}
@@ -758,17 +760,15 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
         </div>
       </div>
 
-      {!preview && (
-        <div className="px-6 py-5 bg-panel border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto">
-          <LayoutInspector
-            calculator={calculator}
-            selectedSection={selectedSection}
-            selectedItem={selectedItem}
-            library={library}
-            actions={layoutActions}
-          />
-        </div>
-      )}
+      <div className="px-6 py-5 bg-panel border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto">
+        <LayoutInspector
+          calculator={calculator}
+          selectedSection={selectedSection}
+          selectedItem={selectedItem}
+          library={library}
+          actions={layoutActions}
+        />
+      </div>
     </div>
   );
 

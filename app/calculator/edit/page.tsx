@@ -41,6 +41,8 @@ function CalculatorEditContent() {
   const id = searchParams.get('id');
   // Opened from the calculators list (see builderHref): Close goes back to it.
   const fromList = searchParams.get('from') === 'list' ? { category: searchParams.get('category') ?? '' } : undefined;
+  // Coming back from the preview (see CalculatorBuilder): the Layout tab.
+  const initialView = searchParams.get('view') === 'layout' ? 'layout' : 'parts';
   const router = useRouter();
   const library = useCalculatorLibrary();
   const [mounted, setMounted] = useState(false);
@@ -69,6 +71,7 @@ function CalculatorEditContent() {
       isSaved={start.isSaved}
       library={library}
       fromList={fromList}
+      initialView={initialView}
     />;
 }
 

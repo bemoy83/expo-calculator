@@ -20,7 +20,6 @@ import { GripVertical } from 'lucide-react';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import {
   CalculatorLayoutItem,
-  SectionHeading,
   isResultSection,
   isShown,
   itemSpan,
@@ -75,28 +74,17 @@ function CanvasItem({
   itemKey,
   context,
   selected,
-  preview,
   onSelect,
 }: {
   item: LayoutItem;
   itemKey: string;
   context: LayoutRenderContext;
   selected: boolean;
-  preview: boolean;
   onSelect: () => void;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: itemKey,
-    disabled: preview,
   });
-
-  if (preview) {
-    return (
-      <div className={itemSpan(item)}>
-        <ItemBody item={item} context={context} />
-      </div>
-    );
-  }
 
   const condition = item.type === 'input' ? context.inputsById.get(item.inputId)?.visibleWhen : undefined;
   const conditionText = condition ? `Shown only when ${describeCondition(condition, context.calculator, context.library)}` : undefined;
@@ -161,19 +149,17 @@ function CanvasSection({
   section,
   context,
   selection,
-  preview,
   dropTarget,
   onSelect,
 }: {
   section: LayoutSection;
   context: LayoutRenderContext;
   selection: LayoutSelection;
-  preview: boolean;
   /** An item is being dragged over this section */
   dropTarget: boolean;
   onSelect: (selection: LayoutSelection) => void;
 }) {
-  const { setNodeRef } = useDroppable({ id: `${SECTION_DROP}${section.id}`, disabled: preview });
+  const { setNodeRef } = useDroppable({ id: `${SECTION_DROP}${section.id}` });
   const keys = section.items.map((item, index) => layoutItemKey(item, section.id, index));
   const sectionSelected = selection?.type === 'section' && selection.sectionId === section.id;
 
@@ -181,13 +167,11 @@ function CanvasSection({
     <section
       className={cn(
         'px-2.5 py-3.5 rounded-lg bg-canvas border border-border-strong transition-[outline-color] duration-150',
-        !preview && sectionSelected && 'outline outline-[1.5px] outline-dashed outline-offset-2 outline-accent',
-        !preview && dropTarget && !sectionSelected && 'outline outline-[1.5px] outline-dashed outline-offset-2 outline-accent/60'
+        sectionSelected && 'outline outline-[1.5px] outline-dashed outline-offset-2 outline-accent',
+        dropTarget && !sectionSelected && 'outline outline-[1.5px] outline-dashed outline-offset-2 outline-accent/60'
       )}
     >
-      {preview ? (
-        <SectionHeading section={section} />
-      ) : (
+      {
         // One header row: the section's selectable chip, its title, then what's hidden about it.
         <div className="mb-2.5 px-2.5">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
@@ -215,9 +199,9 @@ function CanvasSection({
           </div>
           {section.description && <p className="mt-1.5 text-xs text-ink-muted">{section.description}</p>}
         </div>
-      )}
+      }
       <SortableContext items={keys} strategy={rectSortingStrategy}>
-        <div ref={setNodeRef} className={cn('grid grid-cols-1 sm:grid-cols-6 gap-2.5', !preview && 'min-h-[48px]')}>
+        <div ref={setNodeRef} className={cn('grid grid-cols-1 sm:grid-cols-6 gap-2.5', 'min-h-[48px]')}>
           {section.items.map((item, index) => (
             <CanvasItem
               key={keys[index]}
@@ -225,11 +209,10 @@ function CanvasSection({
               itemKey={keys[index]}
               context={context}
               selected={selection?.type === 'item' && selection.key === keys[index]}
-              preview={preview}
               onSelect={() => onSelect({ type: 'item', key: keys[index] })}
             />
           ))}
-          {!preview && section.items.length === 0 && (
+          {section.items.length === 0 && (
             <p className="sm:col-span-6 py-3 text-center text-xs text-ink-faint">
               Empty section. Drag items here, or select the section to add some.
             </p>
@@ -251,21 +234,19 @@ const collision: CollisionDetection = (args) => {
 };
 
 // The page staff see, drawn live, with each item selectable and draggable within and between
-// sections. In preview it is exactly the staff view.
+// sections. (The staff view itself is the calculator's full-size page.)
 // Memoized on the data props only: `onSelect`/`onMove`/`onAddSection` are fresh closures every
-// CalculatorBuilder render, but behaviorally stable whenever `context`/`selection`/`preview`
+// CalculatorBuilder render, but behaviorally stable whenever `context`/`selection`
 // haven't changed — so it's safe to bail without comparing them.
 export const LayoutCanvas = memo(function LayoutCanvas({
   context,
   selection,
-  preview,
   onSelect,
   onMove,
   onAddSection,
 }: {
   context: LayoutRenderContext;
   selection: LayoutSelection;
-  preview: boolean;
   onSelect: (selection: LayoutSelection) => void;
   onMove: (from: LayoutPosition, to: LayoutPosition) => void;
   onAddSection: () => void;
@@ -276,7 +257,7 @@ export const LayoutCanvas = memo(function LayoutCanvas({
   );
   const { calculator } = context;
   const [overSectionId, setOverSectionId] = useState<string | null>(null);
-  const visible = calculator.layout.filter((section) => !preview || isShown(section.visibleWhen, context));
+  const visible = calculator.layout;
   // One column, as on a phone: input sections, then the sections holding only results.
   const ordered = [...visible.filter((section) => !isResultSection(section)), ...visible.filter(isResultSection)];
 
@@ -316,7 +297,6 @@ export const LayoutCanvas = memo(function LayoutCanvas({
       section={section}
       context={context}
       selection={selection}
-      preview={preview}
       dropTarget={overSectionId === section.id}
       onSelect={onSelect}
     />
@@ -332,15 +312,13 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     >
       <div className="flex flex-col gap-4">
         {ordered.map(renderSection)}
-        {!preview && (
-          <button
-            type="button"
-            onClick={onAddSection}
-            className="w-full p-3 rounded-lg border border-dashed border-border-strong text-center text-[13px] text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
-          >
-            + Add section
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onAddSection}
+          className="w-full p-3 rounded-lg border border-dashed border-border-strong text-center text-[13px] text-ink-muted hover:text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
+        >
+          + Add section
+        </button>
       </div>
     </DndContext>
   );
@@ -352,6 +330,5 @@ export const LayoutCanvas = memo(function LayoutCanvas({
   prev.context.library === next.context.library &&
   prev.context.formatMoney === next.context.formatMoney &&
   prev.context.required === next.context.required &&
-  prev.selection === next.selection &&
-  prev.preview === next.preview
+  prev.selection === next.selection
 );

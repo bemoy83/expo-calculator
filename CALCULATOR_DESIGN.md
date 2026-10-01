@@ -282,7 +282,7 @@ module in today's quote workspace:
 - **Inspector** (right): properties of the selected item. For an input: label, help, key,
   kind, unit, default, limits, widget (only widgets valid for the kind), options for a
   choice, "show when…". For a result: which step, style, format.
-- Preview toggle hides editing chrome to show exactly what staff see.
+- Preview opens the calculator's full-size page, which is what staff see.
 
 **Checks** shown in both views: unbound parameter, unit mismatch, cycle, input not placed in
 the layout, missing default, result referring to a deleted step, key in use, material
@@ -468,8 +468,9 @@ Each step is committed separately, like the reskin.
 **Step 4 — Builder: layout view** (`LayoutCanvas`, `LayoutInspector`):
 - The builder has **Parts | Layout** tabs. The layout canvas draws the page with the same
   renderer as the staff view (`components/calculator/CalculatorLayoutItem.tsx`), live, so
-  test values can be typed while arranging. **Preview** hides the editing chrome and the
-  inspector.
+  test values can be typed while arranging. The **Preview** icon opens the calculator's full-size
+  page (the staff view) instead of a second copy of the canvas; with unsaved edits it asks
+  "Save changes?" first, and it isn't there for a calculator that hasn't been saved yet.
 - **Selecting**: clicking or focusing an item selects it; the "Section" tag selects its
   section. **Moving**: drag an item by its handle within or between sections (dnd-kit, one
   sortable group per section, empty sections accept drops), or use the inspector's Section
@@ -1030,3 +1031,10 @@ is the source of truth; this records the intent.
   without test values; the same rules in the function editor and its test panel. The
   banner that repeated the message in the live pane was dropped.
 - **Currency** defaults to Norwegian krone (only for a device with no saved choice).
+- **Layout preview** (2026-10): the builder's own Preview mode was removed. It repeated the
+  editing canvas without its chrome and didn't show how the calculator looks in a quote, so
+  the Preview icon now goes to the staff view. The Layout tab owns it: the preview's Close
+  goes back to the Layout tab (`?back=`), and its Edit icon is left out since Close already
+  returns to the builder. The quick view's "open full size" icon was dropped; the full page
+  is reached from the builder's Preview, from the quick view's "Open to use" arrow, or, on a
+  use-only device (which has no quick view or side pane), by clicking the row.

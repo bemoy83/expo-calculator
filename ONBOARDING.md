@@ -135,7 +135,9 @@ export can't have a page per calculator.
   exactly the window's height from lg with each pane scrolling on its own; below lg they
   stack. Browse pages (Calculators, Functions) keep the choice in `?id=` and the category
   filter in `?category=`, with a quick view. From lg a click picks a row for the quick
-  view and a double-click opens its editor (in use-only mode, a calculator opens to use).
+  view; its arrow icon opens the calculator to use and a double-click opens its editor. A
+  use-only device has no quick view and no side pane (`BrowseLayout` without `side`): a
+  click opens the calculator.
   Nothing is chosen until the user chooses: the side pane says "Choose a … to try it out"
   and the quick view has a ✕ that clears the choice. Before anything exists the side pane
   explains the page and points at the + in the header (`FirstRunPane`).
@@ -155,7 +157,7 @@ export can't have a page per calculator.
 - Buttons that are only an action are icons (Lucide, via `ui/IconButton` with its name in
   the tooltip): Duplicate, Edit, Delete, Close, Reset, Save, the + in headers. Text stays
   for the main action of a pane ("Edit function", "Send to quote", "Save material"),
-  mode toggles (Preview) and first-run messages.
+  and first-run messages.
 - A step that isn't filled in yet (no formula, no function chosen) is "Incomplete" in
   amber, not an error; a real error is red and, while it's still being typed, waits 700 ms
   (`hooks/use-settled-errors`, `use-settled-value`) before it shows. The full message
@@ -168,7 +170,7 @@ export can't have a page per calculator.
   pages have no crumbs; the top bar says where you are.
 - Editor header contract (builder, function editor, quote), all icon buttons. Left:
   breadcrumb with state, the editable title, status dot. Right, always in this order: the
-  editor's own tools, if any (builder: Preview, Parts/Layout; quote: + Add calculator),
+  editor's own tools, if any (builder: Preview — the staff view, the calculator's full-size page, asking to save first when there are unsaved edits, and its Close returns to the builder's Layout tab (`?back=`, `builderHref(…, 'layout')`) — and Parts/Layout; quote: + Add calculator),
   then a thin divider (`HeaderDivider`); the occasional actions as icons — Duplicate,
   Export JSON, and Delete last (red on hover, confirmed); Close (✕), back to where the
   editor is opened from: the function editor to the functions list with the function

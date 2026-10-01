@@ -12,7 +12,11 @@ import { useCalculatorLibrary, useCalculators } from '@/hooks/use-calculators';
 // Calculators live in the browser, so a static export can't have a page per calculator; the
 // one to show comes from ?id=.
 function CalculatorPageContent() {
-  const id = useSearchParams().get('id');
+  const params = useSearchParams();
+  const id = params.get('id');
+  // A preview opened from the builder's Layout tab says where its Close goes back to.
+  const back = params.get('back');
+  const backHref = back?.startsWith('/calculator/edit') ? back : undefined;
   const router = useRouter();
   const calculators = useCalculators();
   const library = useCalculatorLibrary();
@@ -35,7 +39,7 @@ function CalculatorPageContent() {
       </div>
     );
   }
-  return <CalculatorRunView key={calculator.id} calculator={calculator} library={library} />;
+  return <CalculatorRunView key={calculator.id} calculator={calculator} library={library} backHref={backHref} />;
 }
 
 export default function CalculatorPage() {

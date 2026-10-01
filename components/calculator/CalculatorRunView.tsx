@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Maximize2, Pencil, RotateCcw, X } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowUpRight, Pencil, RotateCcw, X } from 'lucide-react';
 import { IconButton, iconButtonClasses } from '@/components/ui/IconButton';
 import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -19,14 +19,24 @@ import { builderHref } from '@/components/calculator-builder/builder-href';
 // A calculator as staff use it, full size (mockup 4a): its sections with 46px inputs, and a
 // live pane with the results, part costs and the total to send to a quote. The header follows
 // the editors': Reset · Edit │ Close, with no ⋯ and no Save, as there's nothing to save here.
-export function CalculatorRunView({ calculator, library }: { calculator: Calculator; library: CalculatorLibrary }) {
+export function CalculatorRunView({
+  calculator,
+  library,
+  backHref,
+}: {
+  calculator: Calculator;
+  library: CalculatorLibrary;
+  /** Opened as the builder's preview: Close goes back there (and Edit isn't needed) */
+  backHref?: string;
+}) {
   const router = useRouter();
   const useOnly = useUseOnlyMode();
   const [sending, setSending] = useState(false);
   const run = useCalculatorRun(calculator, library, 'large');
   const category = calculator.category?.trim();
   // The list with this calculator selected, in its category: the last crumb, and where Close goes.
-  const listHref = browseHref('/', { category, id: calculator.id });
+  // (A use-only device has no quick view, so nothing is selected there.)
+  const listHref = browseHref('/', { category, id: useOnly ? undefined : calculator.id });
 
   return (
     <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
@@ -50,7 +60,7 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
               onClick={run.reset}
               disabled={!run.hasValues}
             />
-            {!useOnly && (
+            {!useOnly && !backHref && (
               <IconButton
                 label="Edit"
                 size="lg"
@@ -59,7 +69,12 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
               />
             )}
             <HeaderDivider />
-            <IconButton label="Close" size="lg" icon={<X className="h-4 w-4" aria-hidden="true" />} onClick={() => router.push(listHref)} />
+            <IconButton
+              label={backHref ? 'Close preview' : 'Close'}
+              size="lg"
+              icon={<X className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => router.push(backHref ?? listHref)}
+            />
           </>
         }
       />
@@ -104,7 +119,6 @@ export function CalculatorQuickView({
   const useOnly = useUseOnlyMode();
   const [sending, setSending] = useState(false);
   const run = useCalculatorRun(calculator, library, 'compact');
-  const fullHref = `/calculator?id=${encodeURIComponent(calculator.id)}`;
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -115,6 +129,14 @@ export function CalculatorQuickView({
             {calculator.description && <p className="mt-0.5 text-[13px] text-ink-muted">{calculator.description}</p>}
           </div>
           <div className="flex gap-0.5">
+            <Link
+              href={`/calculator?id=${encodeURIComponent(calculator.id)}`}
+              title="Open to use"
+              aria-label={`Open ${calculator.name} to use`}
+              className={iconButtonClasses()}
+            >
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
             <IconButton
               label="Reset values"
               icon={<RotateCcw className="h-4 w-4" aria-hidden="true" />}
@@ -128,9 +150,6 @@ export function CalculatorQuickView({
                 onClick={() => router.push(builderHref(calculator.id, { category: listCategory }))}
               />
             )}
-            <Link href={fullHref} title="Open full size" aria-label={`Open ${calculator.name} full size`} className={iconButtonClasses()}>
-              <Maximize2 className="h-4 w-4" aria-hidden="true" />
-            </Link>
             {onClose && <IconButton label="Close preview" icon={<X className="h-4 w-4" aria-hidden="true" />} onClick={onClose} />}
           </div>
         </div>

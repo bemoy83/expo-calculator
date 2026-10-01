@@ -10,13 +10,15 @@ export interface FromList {
  * says so (`from=list`, with the list's category), so Close goes back to the list rather than
  * to the calculator; the builder's other way in is the calculator's own Edit.
  */
-export function builderHref(id?: string, fromList?: FromList): string {
+export function builderHref(id?: string, fromList?: FromList, view?: 'layout'): string {
   const query = new URLSearchParams();
   if (id) query.set('id', id);
   if (fromList) {
     query.set('from', 'list');
     if (fromList.category) query.set('category', fromList.category);
   }
+  // Back from the preview lands on the Layout tab it was opened from.
+  if (view) query.set('view', view);
   const text = query.toString();
   return text ? `/calculator/edit?${text}` : '/calculator/edit';
 }

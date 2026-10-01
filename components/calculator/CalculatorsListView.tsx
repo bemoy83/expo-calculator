@@ -68,7 +68,8 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
   // A device that only uses calculators doesn't edit them, the order included.
   const canReorder = list.canReorder && !useOnly;
   // Only a calculator the user chose, and only while it's listed; the quick view says so otherwise.
-  const selected = listed.find((calculator) => calculator.id === selectedId);
+  // A use-only device has no quick view: a row opens the calculator.
+  const selected = useOnly ? undefined : listed.find((calculator) => calculator.id === selectedId);
 
   const select = (calculator: Calculator) =>
     router.replace(browseHref(pathname, { category, id: calculator.id }), { scroll: false });
@@ -106,15 +107,15 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
           href={runHref(calculator)}
           aria-current={on ? 'true' : undefined}
           onClick={(event) => {
-            // From lg the row picks the calculator for the quick view instead; a double-click
-            // edits it (or opens it, in use-only mode, where there's no builder).
-            if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+            // From lg the row picks the calculator for the quick view instead (its arrow opens it,
+            // a double-click edits it); on a use-only device a row just opens the calculator.
+            if (useOnly || event.metaKey || event.ctrlKey || event.shiftKey) return;
             if (window.matchMedia('(min-width: 1024px)').matches) {
               event.preventDefault();
               select(calculator);
             }
           }}
-          onDoubleClick={() => router.push(useOnly ? runHref(calculator) : builderHref(calculator.id, { category }))}
+          onDoubleClick={useOnly ? undefined : () => router.push(builderHref(calculator.id, { category }))}
           className="flex gap-3 py-3.5 pl-1 pr-3 rounded-row focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           <span className="flex-1 min-w-0">
@@ -135,32 +136,29 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
     <BrowseLayout
       header={header}
       rail={{ options: list.railOptions, value: category, onChange: setCategory }}
-      side={{
-        below: 'hidden',
-        open: !!selected,
-        placeholder:
-          calculators.length === 0 ? (
-            useOnly ? (
-              <FirstRunPane
-                icon={CalculatorIcon}
-                title="No calculators on this device yet"
-                description="Ask for a calculator pack file, then load it from Settings → Load calculator pack."
-              />
-            ) : (
-              <FirstRunPane
-                icon={CalculatorIcon}
-                title="No calculators yet"
-                description="Build one from inputs and steps, test each part as you go, and staff get one simple form."
-                addLabel="calculator"
-              />
-            )
-          ) : (
-            'Choose a calculator to try it out.'
-          ),
-        content: selected && (
-          <CalculatorQuickView key={selected.id} calculator={selected} library={library} listCategory={category} onClose={deselect} />
-        ),
-      }}
+      // A use-only device has no side pane: a row opens the calculator.
+      side={
+        useOnly
+          ? undefined
+          : {
+              below: 'hidden',
+              open: !!selected,
+              placeholder:
+                calculators.length === 0 ? (
+                  <FirstRunPane
+                    icon={CalculatorIcon}
+                    title="No calculators yet"
+                    description="Build one from inputs and steps, test each part as you go, and staff get one simple form."
+                    addLabel="calculator"
+                  />
+                ) : (
+                  'Choose a calculator to try it out.'
+                ),
+              content: selected && (
+                <CalculatorQuickView key={selected.id} calculator={selected} library={library} listCategory={category} onClose={deselect} />
+              ),
+            }
+      }
     >
       <div role="list" aria-label="Calculators">
         {canReorder ? (
@@ -173,6 +171,15 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
           rows
         )}
       </div>
+      {useOnly && calculators.length === 0 && (
+        <div className="py-16">
+          <FirstRunPane
+            icon={CalculatorIcon}
+            title="No calculators on this device yet"
+            description="Ask for a calculator pack file, then load it from Settings → Load calculator pack."
+          />
+        </div>
+      )}
       {listed.length === 0 && calculators.length > 0 && (
         <p className="py-8 text-center text-sm text-ink-muted">
           {search.trim() ? `No calculators match “${search.trim()}”.` : 'No calculators in this category.'}
