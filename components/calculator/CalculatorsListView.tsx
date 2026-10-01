@@ -69,11 +69,12 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
   const { search, setSearch, listed } = list;
   // A device that only uses calculators doesn't edit them, the order included.
   const canReorder = list.canReorder && !useOnly;
-  // The chosen calculator when it's listed, else the first one listed.
-  const selected = listed.find((calculator) => calculator.id === selectedId) ?? listed[0];
+  // Only a calculator the user chose, and only while it's listed; the quick view says so otherwise.
+  const selected = listed.find((calculator) => calculator.id === selectedId);
 
   const select = (calculator: Calculator) =>
     router.replace(browseHref(pathname, { category, id: calculator.id }), { scroll: false });
+  const deselect = () => router.replace(browseHref(pathname, { category }), { scroll: false });
   const setCategory = (next: string) =>
     router.replace(browseHref(pathname, { category: next, id: selectedId ?? undefined }), { scroll: false });
 
@@ -168,7 +169,11 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
       rail={{ options: list.railOptions, value: category, onChange: setCategory }}
       side={{
         below: 'hidden',
-        content: selected && <CalculatorQuickView key={selected.id} calculator={selected} library={library} listCategory={category} />,
+        open: !!selected,
+        placeholder: 'Choose a calculator to try it out.',
+        content: selected && (
+          <CalculatorQuickView key={selected.id} calculator={selected} library={library} listCategory={category} onClose={deselect} />
+        ),
       }}
     >
       <div role="list" aria-label="Calculators">

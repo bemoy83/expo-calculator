@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { FunctionSquare, X } from 'lucide-react';
+import { Copy, FunctionSquare, Pencil, X } from 'lucide-react';
 import { CommitBlock } from '@/components/live/CommitBlock';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { FormulaWell } from '@/components/formula/FormulaWell';
@@ -17,6 +17,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { CatalogTabs, useCatalogTabItems } from '@/components/shared/catalog/CatalogTabs';
 import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames } from '@/lib/calculator/formula-tokens';
@@ -234,21 +235,10 @@ function FunctionQuickView({
             <h2 className="text-[22px] font-bold tracking-[-.02em] text-ink">{func.displayName || func.name}</h2>
             {func.description && <p className="mt-0.5 text-[13px] text-ink-muted">{func.description}</p>}
           </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" onClick={onDuplicate} className="px-2">
-              Duplicate
-            </Button>
-            <Button variant="secondary" size="sm" onClick={onEdit}>
-              Edit
-            </Button>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close preview"
-              className="ml-1 p-1 rounded text-ink-faint hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
+          <div className="flex gap-0.5">
+            <IconButton label="Duplicate" icon={<Copy className="h-4 w-4" aria-hidden="true" />} onClick={onDuplicate} />
+            <IconButton label="Edit" icon={<Pencil className="h-4 w-4" aria-hidden="true" />} onClick={onEdit} />
+            <IconButton label="Close preview" icon={<X className="h-4 w-4" aria-hidden="true" />} onClick={onClose} />
           </div>
         </div>
 

@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Maximize2 } from 'lucide-react';
+import { Maximize2, Pencil, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { IconButton, iconButtonClasses } from '@/components/ui/IconButton';
 import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { HeaderDivider } from '@/components/shared/OverflowMenu';
@@ -86,11 +87,14 @@ export function CalculatorQuickView({
   calculator,
   library,
   listCategory,
+  onClose,
 }: {
   calculator: Calculator;
   library: CalculatorLibrary;
   /** The list's category filter, for the builder's Close to come back to. */
   listCategory: string;
+  /** Closes the quick view, leaving nothing chosen */
+  onClose?: () => void;
 }) {
   const router = useRouter();
   const useOnly = useUseOnlyMode();
@@ -106,27 +110,24 @@ export function CalculatorQuickView({
             <h2 className="text-[22px] font-bold tracking-[-.02em] text-ink">{calculator.name}</h2>
             {calculator.description && <p className="mt-0.5 text-[13px] text-ink-muted">{calculator.description}</p>}
           </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" onClick={run.reset} disabled={!run.hasValues} className="px-2">
-              Reset
-            </Button>
+          <div className="flex gap-0.5">
+            <IconButton
+              label="Reset values"
+              icon={<RotateCcw className="h-4 w-4" aria-hidden="true" />}
+              onClick={run.reset}
+              disabled={!run.hasValues}
+            />
             {!useOnly && (
-              <Button
-                variant="secondary"
-                size="sm"
+              <IconButton
+                label="Edit"
+                icon={<Pencil className="h-4 w-4" aria-hidden="true" />}
                 onClick={() => router.push(builderHref(calculator.id, { category: listCategory }))}
-              >
-                Edit
-              </Button>
+              />
             )}
-            <Link
-              href={fullHref}
-              title="Open full size"
-              aria-label={`Open ${calculator.name} full size`}
-              className="h-8 w-8 flex items-center justify-center rounded-md border border-border-strong text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-            >
+            <Link href={fullHref} title="Open full size" aria-label={`Open ${calculator.name} full size`} className={iconButtonClasses()}>
               <Maximize2 className="h-4 w-4" aria-hidden="true" />
             </Link>
+            {onClose && <IconButton label="Close preview" icon={<X className="h-4 w-4" aria-hidden="true" />} onClick={onClose} />}
           </div>
         </div>
         <CalculatorForm context={run.context} results="pane" className="gap-4" />

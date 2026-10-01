@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Edit2, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 
@@ -43,14 +44,13 @@ export function CatalogEditorPanel({
         <div>
           <div className="flex items-center justify-between gap-3">
             <Eyebrow as="h2">{title}</Eyebrow>
-            <button
-              type="button"
+            <IconButton
+              label="Close editor"
+              icon={<X className="h-4 w-4" aria-hidden="true" />}
               onClick={onClose}
-              aria-label="Close editor"
-              className="p-1 -mr-1 rounded text-ink-faint hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
+              size="sm"
+              className="-mr-1.5"
+            />
           </div>
           <p className="mt-4 pb-1.5 border-b border-border-strong text-[22px] font-bold tracking-[-.02em] text-ink break-words">
             {heading}
@@ -63,13 +63,13 @@ export function CatalogEditorPanel({
           {note && <p className="text-[13px] leading-[1.45] text-ink-muted">{note}</p>}
           <div className="flex gap-2">
             {onDelete && (
-              <button
-                type="button"
+              <IconButton
+                label="Delete"
+                variant="danger"
+                icon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
                 onClick={() => setConfirmingDelete(true)}
-                className="px-3.5 py-3 rounded-row border border-border-strong text-sm font-semibold text-danger transition-colors hover:bg-danger-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-              >
-                Delete
-              </button>
+                className="h-[46px] w-[46px] rounded-row bg-field"
+              />
             )}
             <Button type="submit" variant="primary" block className="flex-1 h-auto py-3 text-sm">
               {submitLabel}
