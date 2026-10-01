@@ -14,6 +14,8 @@ The codebase is generally clean — recent refactors (reskin, MD3 removal, unifi
 
 ## 1. Dead code
 
+> **Status (2026-10-01): done.** Everything in §1 below was removed in a clean-up pass, along with what the UI polish work left unused (`FilterChip`, `OverflowMenu`, `CatalogTabs`/`CatalogCategoryChips`/`useCatalogListState`, the `PageHeader` sub-navigation slot, `CalculationResolver`, `shouldSelectAllOnFocus`), and `app/dev`/`hooks/__examples__` (empty folders). `HeaderDivider` moved to its own file. Left as they were: `analyzeFormulaVariables`'s unused `fields` parameter (a public signature the regression tests call), and the "unnecessary export keyword" cases. `tsc --noUnusedLocals` is clean.
+
 ### 1.1 Unused files — safe to delete
 Both `knip` and a direct `grep` across `app/`, `components/`, `lib/`, `hooks/` confirm zero importers.
 

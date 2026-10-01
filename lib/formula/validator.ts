@@ -1,6 +1,6 @@
 import { Labor, Material, SharedFunction } from '../types';
 import { mathInstance } from './math-runtime';
-import { MATH_FUNCTIONS, parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
+import { parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
 import { translateParserError } from './error-messages';
 import { validateUnitCompatibility } from './unit-validation';
 import { FormulaField } from './validation-types';
@@ -272,7 +272,6 @@ export function validateFormula(
     const matches = findStandalone(formula, NAME_WITH_PROPERTY);
     
     // Separate computed output references from regular identifiers
-    const computedOutputRefs = matches.filter(m => m.startsWith('out.'));
     const regularMatches = matches.filter(m => !m.startsWith('out.'));
 
     if (matches.length > 0) {

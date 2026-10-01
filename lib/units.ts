@@ -123,64 +123,6 @@ export function getUnitCategory(symbol: string): UnitCategory | undefined {
 }
 
 /**
- * Convert value from one unit to another
- */
-export function convert(value: number, fromUnitSymbol: string, toUnitSymbol: string): number {
-  const fromUnit = getUnit(fromUnitSymbol);
-  const toUnit = getUnit(toUnitSymbol);
-  
-  if (!fromUnit || !toUnit) {
-    throw new Error(`Invalid unit symbols: ${fromUnitSymbol} or ${toUnitSymbol}`);
-  }
-  
-  if (fromUnit.category !== toUnit.category) {
-    throw new Error(`Cannot convert between different unit categories: ${fromUnit.category} and ${toUnit.category}`);
-  }
-  
-  // Convert to base, then to target
-  const baseValue = fromUnit.toBase(value);
-  return toUnit.fromBase(baseValue);
-}
-
-/**
- * Check if two units are compatible (same category)
- */
-export function areCompatible(unit1Symbol: string, unit2Symbol: string): boolean {
-  const unit1 = getUnit(unit1Symbol);
-  const unit2 = getUnit(unit2Symbol);
-  
-  if (!unit1 || !unit2) {
-    return false;
-  }
-  
-  return unit1.category === unit2.category;
-}
-
-/**
- * Multiply two unit categories and return the result category
- * 
- * Rules:
- * - length * length → area
- * - area * length → volume
- * - length * area → volume
- * - unitless acts as scalar (returns the other category)
- * - cross-category → unitless (count)
- */
-export function multiplyUnits(cat1: UnitCategory, cat2: UnitCategory): UnitCategory | null {
-  // Same dimension promotion
-  if (cat1 === 'length' && cat2 === 'length') return 'area';
-  if (cat1 === 'area' && cat2 === 'length') return 'volume';
-  if (cat1 === 'length' && cat2 === 'area') return 'volume';
-  
-  // Unitless acts as scalar
-  if (cat1 === 'count' || cat1 === 'percentage') return cat2;
-  if (cat2 === 'count' || cat2 === 'percentage') return cat1;
-  
-  // Cross-category → unitless
-  return 'count';
-}
-
-/**
  * Divide two unit categories and return the result category
  * 
  * Rules:
@@ -207,15 +149,6 @@ export function divideUnits(cat1: UnitCategory, cat2: UnitCategory): UnitCategor
   
   // Different dimensional units → disallow
   return null; // Error
-}
-
-/**
- * Get all available unit symbols for a given category
- */
-export function getUnitsByCategory(category: UnitCategory): string[] {
-  return Object.entries(UNITS)
-    .filter(([_, unit]) => unit.category === category)
-    .map(([symbol]) => symbol);
 }
 
 /**
@@ -248,4 +181,3 @@ export function convertFromBase(value: number, unitSymbol: string): number {
   }
   return unit.fromBase(value);
 }
-

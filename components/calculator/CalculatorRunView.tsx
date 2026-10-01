@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { IconButton, iconButtonClasses } from '@/components/ui/IconButton';
 import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { HeaderDivider } from '@/components/shared/OverflowMenu';
+import { HeaderDivider } from '@/components/shared/HeaderDivider';
 import type { Calculator, CalculatorLibrary } from '@/lib/calculator/types';
 import { useUseOnlyMode } from '@/hooks/use-device';
 import { CalculatorForm } from './CalculatorForm';

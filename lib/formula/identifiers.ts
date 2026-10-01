@@ -63,11 +63,6 @@ export function findStandalone(text: string, body: string): string[] {
   return matchStandalone(text, body).map((match) => match.text);
 }
 
-/** Whether `literal` (e.g. a name or `board.width`) appears on its own in `text`. */
-export function containsStandalone(text: string, literal: string): boolean {
-  return matchStandalone(text, escapeRegex(literal)).length > 0;
-}
-
 /** Replaces every standalone `literal` in `text`. */
 export function replaceStandalone(text: string, literal: string, replacement: string): string {
   return text.replace(standalone(escapeRegex(literal)), (_whole, before: string) => before + replacement);

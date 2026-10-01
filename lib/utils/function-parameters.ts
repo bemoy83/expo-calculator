@@ -5,7 +5,6 @@
  */
 
 import { labelToVariableName } from '../utils';
-import { isValidName } from '../formula/identifiers';
 
 export interface FunctionParameter {
   name: string;
@@ -58,43 +57,6 @@ export function generateParameterName(
 
   return candidate;
 }
-
-/**
- * Validates a parameter name
- * - Must be a valid identifier pattern
- * - Must be unique within the function's parameters
- */
-export function validateParameterName(
-  name: string,
-  existingParameters: FunctionParameter[],
-  excludeIndex?: number
-): { valid: boolean; error?: string } {
-  if (!name || !name.trim()) {
-    return { valid: false, error: 'Parameter name is required' };
-  }
-
-  const trimmedName = name.trim();
-
-  // Check: valid identifier pattern
-  if (!isValidName(trimmedName)) {
-    return {
-      valid: false,
-      error: 'Parameter name must start with a letter or underscore and contain only letters, numbers, and underscores',
-    };
-  }
-
-  // Check: unique within function parameters
-  const existingNames = existingParameters
-    .map((p, index) => (index !== excludeIndex ? p.name.toLowerCase() : null))
-    .filter((name): name is string => name !== null && name !== '');
-
-  if (existingNames.includes(trimmedName.toLowerCase())) {
-    return { valid: false, error: 'Parameter name must be unique' };
-  }
-
-  return { valid: true };
-}
-
 
 /**
  * A parameter's name after its label changes: while the name is still the one made from the

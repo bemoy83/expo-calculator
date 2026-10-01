@@ -1,9 +1,7 @@
-import { CalculationResolver, Material, Labor } from '../types';
-import { UnitCategory, getUnitCategory, normalizeToBase } from '../units';
+import { Material, Labor } from '../types';
+import { normalizeToBase } from '../units';
 import { priceToBase } from '../catalog/prices';
 import { EvaluationContext } from './types';
-
-type FieldValues = Record<string, string | number | boolean>;
 
 export interface FormulaResolver {
   materialsByVariableName: Map<string, Material>;
@@ -127,35 +125,6 @@ export function resolveMaterialProperty(
   return createFormulaResolver({ fieldValues: {}, materials }).resolveMaterialProperty(materialVar, propertyName);
 }
 
-/**
- * Gets the unit category for a material property
- */
-export function getMaterialPropertyUnitCategory(
-  materialVar: string,
-  propertyName: string,
-  materials: Material[]
-): UnitCategory | undefined {
-  const material = materials.find((m) => m.variableName === materialVar);
-  if (!material || !material.properties) {
-    return undefined;
-  }
-
-  const property = material.properties.find((p) => p.name === propertyName);
-  if (!property) {
-    return undefined;
-  }
-
-  // Use unitCategory if available, otherwise infer from unitSymbol
-  if (property.unitCategory) {
-    return property.unitCategory;
-  }
-  if (property.unitSymbol) {
-    return getUnitCategory(property.unitSymbol);
-  }
-
-  return undefined;
-}
-
 export function getMaterialPropertyValueFromMaterial(
   material: Material,
   propertyName: string
@@ -232,35 +201,6 @@ export function resolveLaborProperty(
   return createFormulaResolver({ fieldValues: {}, materials: [], labor }).resolveLaborProperty(laborVar, propertyName);
 }
 
-/**
- * Gets the unit category for a labor property
- */
-export function getLaborPropertyUnitCategory(
-  laborVar: string,
-  propertyName: string,
-  labor: Labor[]
-): UnitCategory | undefined {
-  const laborItem = labor.find((l) => l.variableName === laborVar);
-  if (!laborItem || !laborItem.properties) {
-    return undefined;
-  }
-
-  const property = laborItem.properties.find((p) => p.name === propertyName);
-  if (!property) {
-    return undefined;
-  }
-
-  // Use unitCategory if available, otherwise infer from unitSymbol
-  if (property.unitCategory) {
-    return property.unitCategory;
-  }
-  if (property.unitSymbol) {
-    return getUnitCategory(property.unitSymbol);
-  }
-
-  return undefined;
-}
-
 export function getLaborPropertyValueFromLabor(
   laborItem: Labor,
   propertyName: string
@@ -283,39 +223,4 @@ export function getLaborPropertyValueFromLabor(
   }
 
   return null;
-}
-
-export function createCalculationResolver(input: {
-  fieldValues: FieldValues;
-  materials: Material[];
-  labor?: Labor[];
-}): CalculationResolver {
-  const resolver = createFormulaResolver(input);
-
-  return {
-    resolveValue(name) {
-      return resolver.resolveVariable(name);
-    },
-    resolveProperty(base, property) {
-      const selectedValue = input.fieldValues[base];
-      if (typeof selectedValue === 'string') {
-        const selectedMaterialValue = resolver.resolveMaterialProperty(selectedValue, property);
-        if (selectedMaterialValue !== null) {
-          return selectedMaterialValue;
-        }
-
-        const selectedLaborValue = resolver.resolveLaborProperty(selectedValue, property);
-        if (selectedLaborValue !== null) {
-          return selectedLaborValue;
-        }
-      }
-
-      const materialValue = resolver.resolveMaterialProperty(base, property);
-      if (materialValue !== null) {
-        return materialValue;
-      }
-
-      return resolver.resolveLaborProperty(base, property);
-    },
-  };
 }

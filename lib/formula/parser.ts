@@ -206,7 +206,3 @@ export function parseFieldPropertyReferences(
       fullMatch: ref.fullMatch,
     }));
 }
-
-export function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}

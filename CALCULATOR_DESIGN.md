@@ -457,7 +457,7 @@ Each step is committed separately, like the reskin.
   calculator's URL switches to its id on save. Close goes back to where the builder was
   opened from: the calculators list (`?from=list`) or the calculator. With unsaved edits,
   Close asks "Save changes
-  to …?" (Save / Discard / Keep editing); Delete is under ⋯ in the header.
+  to …?" (Save / Discard / Keep editing); Delete is a trash icon in the header.
 - Checked in the browser on an empty origin: building a calculator from nothing (step →
   "Create input" → dialog → live values → cost → rename carried into the formula → save →
   staff view → delete); and on real data, opening the partition wall in the builder and
@@ -675,7 +675,7 @@ Each step is committed separately, like the reskin.
 - **Which pack**: the Calculators page header shows "Calculator pack from <date>" on a
   device that loaded one, and "Last pack exported <date>" on the device packs are made on.
 - **Use-only mode**: a switch in Settings with the hint that it's a convenience, not a lock.
-  It hides the Catalog navigation, New calculator (the empty state says to load a pack),
+  It hides the Materials, Labor and Functions tabs, New calculator (the empty state says to load a pack),
   Edit on a calculator, and the two export items (Import becomes "Load calculator pack").
   `/calculator/edit`, `/functions`, `/materials` and `/labor` show a "Not available in
   use-only mode" notice from `Layout` instead of the page. `useUseOnlyMode` reads the
@@ -971,8 +971,8 @@ with 5–6 parameters the formula fell below the fold and the operators were out
   `/functions/edit?id=` edits. Double-click or "+ New function" goes straight to the
   editor; Close and the breadcrumb return to the list with the row selected.
 - **Header** (the editor header shared with the builder and quote, see ONBOARDING "Design
-  system"): ⋯ (Duplicate, disabled while there are unsaved edits, and Delete function;
-  both only once saved) · Close · Save. Save (or ⌘S) saves and stays; a new function's
+  system"), all icons: Duplicate (disabled while there are unsaved edits) and Delete
+  (both only once saved) │ Close · Save (a dot on it while there are unsaved edits). Save (or ⌘S) saves and stays; a new function's
   first Save opens it at `/functions/edit?id=<new id>`. Renaming a function other
   formulas call still asks first. Close, the breadcrumb and the top bar ask "Save changes
   to …?" (Save / Discard / Keep editing) when there are unsaved edits. Before, Save and
@@ -1002,3 +1002,31 @@ with 5–6 parameters the formula fell below the fold and the operators were out
 - **Not built:** the "All functions ▾" switcher (little value for its cost; maybe later as
   "jump to a function named in the formula") and the "Your functions" palette column.
 
+
+## UI polish (2026-09 / 10)
+
+Decided with the user, in order, after the builder and quote workspace were done. The code
+is the source of truth; this records the intent.
+
+- **Borderless fields.** Inputs, selects, textareas, the toggle, the slider track and the
+  segmented control are fills, not outlined boxes (`--field` tokens, see ONBOARDING).
+  Dark mode adapts the fill to the surface: lighter than the page, near-black on panels and
+  cards, with hover going to more contrast with the surface.
+- **One page shape.** The library, calculators and quotes are all top-level tabs, arranged
+  as the flow of the work with arrows between the groups; the catalog sub-tabs are gone.
+  All four browse pages share `BrowseLayout` (rail, list, side pane), the same row style
+  and drag-to-reorder (off while filtering). Materials/Labor lost their category chips for
+  the rail. The side pane starts empty (the user chooses) and explains the page before
+  anything exists; the quick view closes with a ✕.
+- **Icons for actions.** Header and pane actions are icon-only with tooltips; the ⋯ menu
+  was dropped as every editor's menu held only one to three items. The + in a page header
+  adds that page's thing (the title says what).
+- **Layout builder canvas.** Items are dashed frames with the handle in a column of their
+  own, dragged with no overlay (the item moves, like the catalog list); a section's width
+  matches the staff view; yes/no inputs are labelled by the input's name above and say Yes
+  or No inside. Reordering sections by drag was deferred (the arrows work).
+- **Errors.** "Incomplete" (amber) versus "Error" (red), a 700 ms delay before a typed
+  error shows, plain-language messages shown once under the formula, syntax errors found
+  without test values; the same rules in the function editor and its test panel. The
+  banner that repeated the message in the live pane was dropped.
+- **Currency** defaults to Norwegian krone (only for a device with no saved choice).

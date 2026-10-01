@@ -9,7 +9,7 @@ import { Eyebrow } from '@/components/ui/Eyebrow';
 import { RailRow } from '@/components/ui/RailRow';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { HeaderDivider } from '@/components/shared/OverflowMenu';
+import { HeaderDivider } from '@/components/shared/HeaderDivider';
 import { IconButton } from '@/components/ui/IconButton';
 import { AddCalculatorDialog } from '@/components/quotes/AddCalculatorDialog';
 import { QuoteLineEditor } from '@/components/quotes/QuoteLineEditor';

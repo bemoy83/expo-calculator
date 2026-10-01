@@ -55,7 +55,6 @@ function toDisplay(value: number, unitSymbol: string) {
 
 function draftFrom(
   input: CalculatorInput | undefined,
-  calculator: Calculator,
   suggestedKey?: string,
   suggestedKind?: InputKind,
   suggestedLabel?: string,
@@ -143,12 +142,12 @@ export function InputEditorDialog({
   onDelete,
   onClose,
 }: InputEditorDialogProps) {
-  const [draft, setDraft] = useState<Draft>(() => draftFrom(input, calculator, suggestedKey, suggestedKind, suggestedLabel, suggestedUnitSymbol));
+  const [draft, setDraft] = useState<Draft>(() => draftFrom(input, suggestedKey, suggestedKind, suggestedLabel, suggestedUnitSymbol));
   const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setDraft(draftFrom(input, calculator, suggestedKey, suggestedKind, suggestedLabel, suggestedUnitSymbol));
+      setDraft(draftFrom(input, suggestedKey, suggestedKind, suggestedLabel, suggestedUnitSymbol));
       setShowErrors(false);
     }
     // Reset only when the dialog opens for another input.

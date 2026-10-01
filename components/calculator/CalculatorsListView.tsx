@@ -17,7 +17,6 @@ import { groupCalculatorsByCategory } from '@/lib/quotes/workspace';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useDeviceStore } from '@/lib/stores/device-store';
 import { useUseOnlyMode } from '@/hooks/use-device';
-import { cn } from '@/lib/utils';
 import { useCallback } from 'react';
 import { CalculatorQuickView } from './CalculatorRunView';
 import { builderHref } from '@/components/calculator-builder/builder-href';

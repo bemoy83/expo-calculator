@@ -56,8 +56,3 @@ export function fixPricePropertyStorage(material: Material): Material {
     ),
   };
 }
-
-/** Price properties of a material: its prices besides the default one. */
-export function otherPrices(material: Pick<Material, 'properties'>): MaterialProperty[] {
-  return (material.properties ?? []).filter((property) => property.type === 'price');
-}

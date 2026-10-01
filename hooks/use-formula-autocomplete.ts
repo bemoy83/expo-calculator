@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { isNameChar } from '@/lib/formula/identifiers';
 
 export interface AutocompleteSuggestion {
@@ -333,7 +333,6 @@ export function useFormulaAutocomplete({
         setIsAutocompleteOpen(true);
       } catch (error) {
         // Fallback to simple positioning if measurement fails
-        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
         const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
         
         // Simple fallback: position below textarea

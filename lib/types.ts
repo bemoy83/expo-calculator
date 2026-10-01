@@ -219,11 +219,6 @@ export interface CalculationResult {
   errors: CalculationError[];
 }
 
-export interface CalculationResolver {
-  resolveValue: (name: string) => number | null;
-  resolveProperty: (base: string, property: string) => number | null;
-}
-
 /** A template (a chain of linked modules), from before calculators; see CalculationModule. */
 export interface ModuleTemplate {
   id: string;

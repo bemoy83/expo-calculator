@@ -15,7 +15,6 @@ import { SortableRow } from '@/components/shared/browse/SortableRow';
 import { ALL_CATEGORIES, useBrowseList } from '@/components/shared/browse/useBrowseList';
 import { SortableList } from '@/components/shared/SortableList';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
@@ -24,7 +23,6 @@ import { copyOfFunction, countParameterUses, findFunctionUsage } from '@/lib/fun
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useFunctionsStore } from '@/lib/stores/functions-store';
 import type { SharedFunction } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { FunctionTryInputs, splitReturn, useFunctionTryIt } from './FunctionTestPanel';
 
 const editHref = (id?: string) => (id ? `/functions/edit?id=${encodeURIComponent(id)}` : '/functions/edit');

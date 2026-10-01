@@ -38,7 +38,7 @@ export function SortableList<T extends { id: UniqueIdentifier }>({
   collisionDetection = closestCenter,
   modifiers,
 }: SortableListProps<T>) {
-  const { sensors, activeId, overId, handleDragStart, handleDragOver, handleDragEnd } = useSortableList({
+  const { sensors, activeId, handleDragStart, handleDragOver, handleDragEnd } = useSortableList({
     items: items.map((i) => i.id),
     onReorder,
     activationConstraint,

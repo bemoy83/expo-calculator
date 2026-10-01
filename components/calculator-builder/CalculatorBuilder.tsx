@@ -14,7 +14,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Breadcrumb, browseHref, withSelected } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useLeaveEditor } from '@/components/shared/NavigationGuard';
-import { HeaderDivider } from '@/components/shared/OverflowMenu';
+import { HeaderDivider } from '@/components/shared/HeaderDivider';
 import { SaveButton } from '@/components/shared/SaveButton';
 import { IconButton } from '@/components/ui/IconButton';
 import { SaveChangesDialog } from '@/components/shared/SaveChangesDialog';

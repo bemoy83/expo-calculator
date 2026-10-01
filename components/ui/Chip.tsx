@@ -67,7 +67,6 @@ export const Chip: React.FC<ChipProps> = ({
 
 
   const isInteractive = typeof rest.onClick === 'function'
-const Component = isInteractive ? 'button' as const : 'div'
 
 if (isInteractive) {
   return (
@@ -110,50 +109,3 @@ if (isInteractive) {
   )  
 
 }
-
-/**
- * Filter pill (Ledger controls/Chip.jsx): sunken when off, inverted ink when on, with an
- * optional count. Used for catalog category filters.
- */
-export function FilterChip({
-  selected = false,
-  count,
-  onClick,
-  children,
-  className,
-}: {
-  selected?: boolean
-  count?: number
-  onClick?: () => void
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={onClick}
-      className={cn(
-        'px-[11px] py-[5px] rounded-full text-[13px] whitespace-nowrap',
-        'transition-[background-color,color] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-        selected ? 'bg-inverse text-inverse-ink font-semibold' : 'bg-sunken text-ink-muted hover:text-ink',
-        onClick ? 'cursor-pointer' : 'cursor-default',
-        className
-      )}
-    >
-      {children}
-      {count != null && ` ${count}`}
-    </button>
-  )
-}
-
-export default Chip
-
-
-
-
-
-
-
-

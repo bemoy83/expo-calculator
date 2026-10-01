@@ -10,19 +10,17 @@ interface PageHeaderProps {
   /** Underline the title as editable (builder) */
   editing?: boolean;
   actions?: React.ReactNode;
-  /** Sub-navigation under the title; the band then has no bottom padding */
-  children?: React.ReactNode;
   className?: string;
 }
 
 // Full-bleed page header band (Ledger shell/PageHeader.jsx): eyebrow, 30px title, status or
-// description, actions on the right, optional sub-tabs underneath.
-export function PageHeader({ eyebrow, title, description, status, editing = false, actions, children, className }: PageHeaderProps) {
+// description, actions on the right.
+export function PageHeader({ eyebrow, title, description, status, editing = false, actions, className }: PageHeaderProps) {
   return (
     <div
       className={cn(
         'flex flex-wrap items-end gap-x-4 gap-y-3 px-4 sm:px-6 pt-[22px] border-b border-border text-ink',
-        children ? 'pb-0' : 'pb-[18px]',
+        'pb-[18px]',
         className
       )}
     >
@@ -54,9 +52,8 @@ export function PageHeader({ eyebrow, title, description, status, editing = fals
           )}
         </div>
         {description && <div className="mt-1 text-sm text-ink-muted">{description}</div>}
-        {children && <div className="mt-3.5">{children}</div>}
       </div>
-      {actions && <div className={cn('flex flex-wrap items-center gap-2', children && 'pb-3.5')}>{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
