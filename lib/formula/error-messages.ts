@@ -89,6 +89,7 @@ function friendlyBody(raw: string): string {
   }
   if (/^Value expected/.test(message)) return `A value is missing here.`;
   const operator = message.match(/^Unexpected operator (.+)$/);
+  if (operator?.[1] === ')') return `A closing bracket has no matching opening one.`;
   if (operator) return `The operator ${operator[1]} has no value next to it. Check for a doubled or leading symbol.`;
   const part = message.match(/^Unexpected part "([^"]+)"/);
   if (part) {

@@ -1,4 +1,6 @@
 import { MATH_FUNCTIONS } from '../formula/parser';
+import { friendlyEvaluationMessage } from '../formula/error-messages';
+import { mathInstance } from '../formula/math-runtime';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import type { SharedFunction } from '../types';
 import type { Calculator, CalculatorStep, Condition, InputKind } from './types';
@@ -38,6 +40,27 @@ export function scanExpression(expression: string): ExpressionToken[] {
     });
   }
   return tokens;
+}
+
+/**
+ * What's wrong with how a formula is written, whatever the values: a missing operand, an unclosed
+ * bracket. Names stand in for values as same-length placeholders, so the reported position
+ * still points into the formula as written. Function names stay, being only called.
+ */
+export function findSyntaxError(expression: string): string | undefined {
+  let probe = '';
+  let last = 0;
+  for (const token of scanExpression(expression)) {
+    probe += expression.slice(last, token.start) + (token.isCall ? token.text : 'x'.repeat(token.text.length));
+    last = token.end;
+  }
+  probe += expression.slice(last);
+  try {
+    mathInstance.parse(probe);
+    return undefined;
+  } catch (error) {
+    return friendlyEvaluationMessage(error instanceof Error ? error.message : 'Invalid formula');
+  }
 }
 
 /** A name passed whole as a function argument, as in `sheets_width(width, sheets)`. */
@@ -212,6 +235,8 @@ export function getStepDependencies(step: CalculatorStep, scope: DependencyScope
       errors.push(`Unknown name "${token.base}".`);
     }
   }
+  const syntaxError = expression.trim() ? findSyntaxError(expression) : undefined;
+  if (syntaxError) errors.push(syntaxError);
   return result();
 }
 
