@@ -64,3 +64,51 @@ export function translateParserError(errorMessage: string, formula: string): str
 
   return `Formula syntax error${context}: ${errorMessage}. Check that your formula uses valid operators (+, -, *, /) and proper parentheses.`;
 }
+
+/**
+ * A step's evaluator error in plain words, for the person writing the formula. The evaluator's
+ * own messages ("Formula evaluation failed: Unexpected end of expression (char 8)") stay as
+ * they are for the validator and the old module calculator; this is only for what a step shows.
+ */
+export function friendlyEvaluationMessage(raw: string): string {
+  const position = raw.match(/\(char (\d+)\)\s*$/);
+  const text = friendlyBody(raw);
+  return position && !/^In .+\(\):/.test(text) ? `${text} (character ${position[1]})` : text;
+}
+
+function friendlyBody(raw: string): string {
+  let message = raw.replace(/^Formula evaluation failed:\s*/, '').trim();
+  const position = message.match(/\s*\(char (\d+)\)\s*$/);
+  if (position) message = message.slice(0, position.index).trim();
+
+  const nested = message.match(/^Error evaluating (?:nested )?function '([^']+)'[^:]*:\s*(.*)$/s);
+  if (nested) return `In ${nested[1]}(): ${friendlyEvaluationMessage(nested[2])}`;
+
+  if (/^Unexpected end of expression/.test(message)) {
+    return `The formula stops too early. A value is missing after the last operator.`;
+  }
+  if (/^Value expected/.test(message)) return `A value is missing here.`;
+  const operator = message.match(/^Unexpected operator (.+)$/);
+  if (operator) return `The operator ${operator[1]} has no value next to it. Check for a doubled or leading symbol.`;
+  const part = message.match(/^Unexpected part "([^"]+)"/);
+  if (part) {
+    return /^\d/.test(part[1])
+      ? `Two values sit next to each other. Put an operator (+, -, *, /) between them.`
+      : `Didn't expect "${part[1]}" here. Is an operator (+, -, *, /) missing before it?`;
+  }
+  if (/^Parenthesis \) expected/.test(message)) return `A bracket is never closed. Add the missing ).`;
+  if (/^Parenthesis/.test(message) || /unexpected/i.test(message) && /parenthesis/i.test(message)) {
+    return `A closing bracket has no matching opening one.`;
+  }
+  const symbol = message.match(/^Undefined symbol (.+)$/);
+  if (symbol) return `"${symbol[1]}" isn't an input, a step or a catalog item. Check the spelling.`;
+  const fn = message.match(/^Undefined function (.+)$/) ?? message.match(/^Function '([^']+)' not found$/);
+  if (fn) return `There's no function called "${fn[1]}".`;
+  const missing = message.match(/^Missing values for variables: (.+)$/);
+  if (missing) return `No value yet for ${missing[1]}.`;
+  if (/infinity/.test(message)) return 'The result is infinite. Something is divided by zero.';
+  if (/NaN|non-numeric/.test(message)) return "The formula doesn't give a number.";
+
+  const sentence = /^\w+\(\)/.test(message) ? message : `${message.charAt(0).toUpperCase()}${message.slice(1)}`;
+  return message.endsWith('.') ? sentence : `${sentence}.`;
+}

@@ -172,6 +172,8 @@ export interface StepResult {
   /** Value in the step's unit, for display. */
   displayValue?: number;
   message?: string;
+  /** With status error: not a mistake, just not filled in yet (no formula, no function chosen). */
+  incomplete?: boolean;
   /** Input keys without a value that this step needs, directly or through the steps it reads. */
   missingInputs?: string[];
   /** Step keys this one waits on (blocked). */

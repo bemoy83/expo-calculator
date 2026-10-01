@@ -1,4 +1,5 @@
 import { evaluateFormula } from '../formula/evaluator';
+import { friendlyEvaluationMessage } from '../formula/error-messages';
 import { getLaborValue, getMaterialValue } from '../formula/resolver';
 import { convertFromBase, normalizeToBase } from '../units';
 import { callFunction, type FunctionArgValue } from './call-function';
@@ -65,7 +66,7 @@ export function resolveInputValues(
 }
 
 function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : 'This step could not be calculated.';
+  return error instanceof Error ? friendlyEvaluationMessage(error.message) : 'This step could not be calculated.';
 }
 
 // Evaluates every step in dependency order. Problems stay with the step that has them: a
@@ -168,7 +169,9 @@ export function evaluateCalculator(
 
   const evaluateStep = (step: CalculatorStep) => {
     const deps = dependencies.get(step.id)!;
-    if (deps.errors.length > 0) return finish(step, { status: 'error', message: deps.errors[0] });
+    if (deps.errors.length > 0) {
+      return finish(step, { status: 'error', message: deps.errors[0], incomplete: deps.incomplete || undefined });
+    }
 
     const loop = cycles.get(step.key);
     if (loop) {

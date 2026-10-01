@@ -1,7 +1,7 @@
 'use client';
 
 import { costedParts } from '@/lib/calculator/editing';
-import { describeStepProblem, formatStepValue, stepDisplayLabel } from '@/lib/calculator/format';
+import { describeStepProblem, describeStepProblemShort, isStepError, formatStepValue, stepDisplayLabel } from '@/lib/calculator/format';
 import type { Calculator, CalculatorResult, CalculatorStep, LayoutItem } from '@/lib/calculator/types';
 import { cn } from '@/lib/utils';
 
@@ -27,8 +27,11 @@ function StepValue({
   const problem = describeStepProblem(stepResult, calculator);
   if (problem || stepResult?.displayValue === undefined) {
     return (
-      <span className={cn('text-xs', stepResult?.status === 'error' ? 'text-danger' : 'text-ink-muted')}>
-        {problem ?? "Can't calculate"}
+      <span
+        title={isStepError(stepResult) ? stepResult?.message : undefined}
+        className={cn('text-xs', isStepError(stepResult) ? 'text-danger' : 'text-ink-muted')}
+      >
+        {describeStepProblemShort(stepResult, calculator) ?? "Can't calculate"}
       </span>
     );
   }

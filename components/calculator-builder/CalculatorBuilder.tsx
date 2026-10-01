@@ -49,8 +49,9 @@ import {
   updateStep,
   unplacedInputs,
 } from '@/lib/calculator/editing';
+import { useSettledErrors } from '@/hooks/use-settled-errors';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
-import { describeStepProblem, displayUnit, stepDisplayLabel } from '@/lib/calculator/format';
+import { displayUnit, isStepError, stepDisplayLabel } from '@/lib/calculator/format';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type {
   Calculator,
@@ -140,9 +141,12 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   const setValue = useCalculatorSessionStore((state) => state.setValue);
   const formatMoney = useCurrencyStore((state) => state.formatCurrency);
 
-  const result = useMemo(() => evaluateCalculator(calculator, values, library), [calculator, values, library]);
+  const evaluated = useMemo(() => evaluateCalculator(calculator, values, library), [calculator, values, library]);
+  // A half-typed formula shows as incomplete until its error has stood for a moment.
+  const result = useSettledErrors(evaluated);
   const required = useMemo(() => requiredProperties(calculator, library.functions), [calculator, library.functions]);
-  const errorCount = Object.values(result.steps).filter((step) => step.status === 'error').length;
+  const errorCount = Object.values(result.steps).filter(isStepError).length;
+  const incompleteCount = Object.values(result.steps).filter((step) => step.status === 'error' && step.incomplete).length;
   const showsNothing = calculator.steps.length > 0 && !showsStaffResults(calculator);
   const unnamedShown = calculator.steps.filter((step) => !step.label.trim() && isStepShown(calculator, step.id));
   const usedInputs = new Set(Object.values(result.parts).flatMap((part) => part.inputKeys));
@@ -362,13 +366,12 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
 
   const part = calculator.parts.find((candidate) => candidate.id === chosenPartId) ?? calculator.parts[0];
   const partIndex = part ? calculator.parts.indexOf(part) : -1;
-  // Parts whose steps can't work out, for the live pane's error card.
-  const partErrors = calculator.parts.flatMap((candidate) => {
-    const failing = calculator.steps.find((step) => step.partId === candidate.id && result.steps[step.id]?.status === 'error');
-    return failing ? [{ part: candidate, problem: describeStepProblem(result.steps[failing.id], calculator) }] : [];
-  });
   const partStatus = (partId: string) =>
-    calculator.steps.some((step) => step.partId === partId && result.steps[step.id]?.status === 'error') ? ('error' as const) : undefined;
+    calculator.steps.some((step) => step.partId === partId && isStepError(result.steps[step.id]))
+      ? ('error' as const)
+      : calculator.steps.some((step) => step.partId === partId && result.steps[step.id]?.incomplete)
+        ? ('draft' as const)
+        : undefined;
 
   // Where palette items go: the selected section, the selected item's section, else the first.
   const targetSectionId = selectedSection?.id ?? selectedPosition?.sectionId ?? calculator.layout[0]?.id;
@@ -414,8 +417,17 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
       status={
         calculator.steps.length > 0
           ? {
-              tone: errorCount === 0 ? 'ok' : 'error',
-              label: errorCount === 0 ? 'No errors' : errorCount === 1 ? '1 step has an error' : `${errorCount} steps have errors`,
+              tone: errorCount > 0 ? 'error' : incompleteCount > 0 ? 'draft' : 'ok',
+              label:
+                errorCount > 0
+                  ? errorCount === 1
+                    ? '1 step has an error'
+                    : `${errorCount} steps have errors`
+                  : incompleteCount > 0
+                    ? incompleteCount === 1
+                      ? '1 step incomplete'
+                      : `${incompleteCount} steps incomplete`
+                    : 'No errors',
             }
           : undefined
       }
@@ -644,11 +656,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
           />
         )}
         <div className="mt-auto flex flex-col gap-4">
-          {partErrors.map(({ part: failing, problem }) => (
-            <p key={failing.id} role="status" className="px-3.5 py-3 rounded-row border border-danger text-[13px] leading-[1.45] text-ink">
-              <b className="text-danger">{failing.name || 'A part'}</b> doesn&apos;t add up yet: {problem}. The total leaves it out.
-            </p>
-          ))}
           <div className="border-t border-border-strong pt-3.5">
             <div className="text-[13px] text-ink-muted">Calculator total</div>
             <div className="font-numeric text-[38px] font-semibold tracking-[-.04em] leading-[1.1] text-accent break-all">

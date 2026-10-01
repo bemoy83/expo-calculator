@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { keyProblem, suggestKey } from '@/lib/calculator/editing';
-import { describeCondition, describeStepProblem, displayUnit, formatStepValue } from '@/lib/calculator/format';
+import { describeCondition, describeStepProblem, describeStepProblemShort, displayUnit, isStepError, formatStepValue } from '@/lib/calculator/format';
 import { callToExpression, expressionToCall } from '@/lib/calculator/step-source';
 import type { Calculator, CalculatorLibrary, CalculatorStep, StepFormat, StepResult, StepSource } from '@/lib/calculator/types';
 import type { FunctionParamKind } from '@/lib/types';
@@ -85,7 +85,8 @@ export function StepRow({
   // The name follows the label until it's edited, or once the step has a real name.
   const [keyTouched, setKeyTouched] = useState(() => !/^step(_\d+)?$/.test(step.key));
   const problem = describeStepProblem(result, calculator);
-  const isError = result?.status === 'error';
+  const isError = isStepError(result);
+  const isIncomplete = result?.status === 'error' && !!result.incomplete;
   const unknown = unknownNameIn(result?.message);
   const nameProblem = keyProblem(calculator, step.key, step.id);
   const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
@@ -128,7 +129,9 @@ export function StepRow({
         );
       })()
     ) : (
-      <span className={cn('text-xs text-right', isError ? 'text-danger' : 'text-ink-muted')}>{problem}</span>
+      <span title={isError ? result?.message : undefined} className={cn('text-xs text-right', isError ? 'text-danger' : isIncomplete ? 'text-draft' : 'text-ink-muted')}>
+        {describeStepProblemShort(result, calculator)}
+      </span>
     );
 
   return (
@@ -260,6 +263,7 @@ export function StepRow({
               />
             )}
             {isError && <p className="mt-1 text-xs text-danger">{result?.message}</p>}
+            {isIncomplete && result?.message && <p className="mt-1 text-xs text-ink-muted">{result.message}</p>}
             {unknown && (
               <Button variant="ghost" size="sm" className="mt-1" onClick={() => onCreateInput(unknown)}>
                 <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />

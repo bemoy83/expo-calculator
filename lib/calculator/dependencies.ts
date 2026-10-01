@@ -68,6 +68,8 @@ export interface StepDependencies {
   steps: string[];
   /** Reasons the step can't calculate regardless of values (unknown names, unbound parameters). */
   errors: string[];
+  /** Every reason is something still to fill in (no formula, no function, no value chosen), not a mistake. */
+  incomplete: boolean;
 }
 
 export interface DependencyScope {
@@ -103,6 +105,18 @@ export function getStepDependencies(step: CalculatorStep, scope: DependencyScope
   const inputs = new Set<string>(getConditionInputs(step.enabledWhen));
   const steps = new Set<string>();
   const errors: string[] = [];
+  // Reasons that mean "not filled in yet" rather than "wrong".
+  const todos = new Set<string>();
+  const todo = (message: string) => {
+    todos.add(message);
+    errors.push(message);
+  };
+  const result = (): StepDependencies => ({
+    inputs: [...inputs],
+    steps: [...steps],
+    errors: [...new Set(errors)],
+    incomplete: errors.length > 0 && errors.every((message) => todos.has(message)),
+  });
 
   const readInput = (key: string) => {
     if (scope.inputKinds.get(key) === 'text') {
@@ -119,7 +133,7 @@ export function getStepDependencies(step: CalculatorStep, scope: DependencyScope
   if (step.source.type === 'call') {
     const fn = scope.functions.get(step.source.functionName);
     if (!step.source.functionName) {
-      errors.push('Choose a function.');
+      todo('Choose a function.');
     } else if (!fn) {
       errors.push(`Function "${step.source.functionName}" doesn't exist.`);
     } else {
@@ -128,7 +142,7 @@ export function getStepDependencies(step: CalculatorStep, scope: DependencyScope
         const binding = step.source.args[param.name];
         const paramLabel = param.label || param.name;
         if (!binding) {
-          errors.push(`Choose a value for ${paramLabel}.`);
+          todo(`Choose a value for ${paramLabel}.`);
           continue;
         }
         // A material or labor parameter needs a pick of that kind; anything else can't have
@@ -156,12 +170,12 @@ export function getStepDependencies(step: CalculatorStep, scope: DependencyScope
         }
       }
     }
-    return { inputs: [...inputs], steps: [...steps], errors };
+    return result();
   }
 
   const expression = step.source.expression;
   if (!expression.trim()) {
-    errors.push('Add a formula for this step.');
+    todo('Add a formula for this step.');
   }
   for (const token of scanExpression(expression)) {
     if (token.isCall) {
@@ -198,7 +212,7 @@ export function getStepDependencies(step: CalculatorStep, scope: DependencyScope
       errors.push(`Unknown name "${token.base}".`);
     }
   }
-  return { inputs: [...inputs], steps: [...steps], errors: [...new Set(errors)] };
+  return result();
 }
 
 export interface StepOrder {

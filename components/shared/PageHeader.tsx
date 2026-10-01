@@ -6,7 +6,7 @@ interface PageHeaderProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   /** Status dot beside the title, e.g. the builder's "1 step has an error" */
-  status?: { tone: 'ok' | 'error'; label: string };
+  status?: { tone: 'ok' | 'error' | 'draft'; label: string };
   /** Underline the title as editable (builder) */
   editing?: boolean;
   actions?: React.ReactNode;
@@ -42,12 +42,12 @@ export function PageHeader({ eyebrow, title, description, status, editing = fals
             <span
               className={cn(
                 'flex items-center gap-[7px] text-[13px]',
-                status.tone === 'error' ? 'text-danger' : 'text-committed'
+                status.tone === 'error' ? 'text-danger' : status.tone === 'draft' ? 'text-draft' : 'text-committed'
               )}
             >
               <span
                 aria-hidden="true"
-                className={cn('w-[7px] h-[7px] rounded-full', status.tone === 'error' ? 'bg-danger' : 'bg-committed')}
+                className={cn('w-[7px] h-[7px] rounded-full', status.tone === 'error' ? 'bg-danger' : status.tone === 'draft' ? 'bg-draft' : 'bg-committed')}
               />
               {status.label}
             </span>

@@ -57,6 +57,21 @@ export function describeStepProblem(result: StepResult | undefined, calculator: 
   }
 }
 
+/** A step that's wrong, as opposed to one that's just not filled in yet (or still being typed). */
+export function isStepError(result: StepResult | undefined): boolean {
+  return result?.status === 'error' && !result.incomplete;
+}
+
+/**
+ * describeStepProblem for narrow places (a value column, a result row): an evaluator error is
+ * just "Error" ("Incomplete" when it's only not filled in yet), its full message being shown once, where the formula is edited (and as a tooltip).
+ */
+export function describeStepProblemShort(result: StepResult | undefined, calculator: Calculator): string | undefined {
+  const problem = describeStepProblem(result, calculator);
+  if (!problem || result?.status !== 'error' || result.missingInputs?.length) return problem;
+  return result.incomplete ? 'Incomplete' : 'Error';
+}
+
 /** Input labels for a list of keys, joined for a sentence. */
 export function describeInputs(keys: string[], calculator: Calculator): string {
   return joinNames(keys.map((key) => calculator.inputs.find((input) => input.key === key)?.label ?? key));

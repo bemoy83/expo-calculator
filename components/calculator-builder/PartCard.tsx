@@ -9,7 +9,7 @@ import type { FieldSize } from '@/components/ui/field-styles';
 import { LiveLabel } from '@/components/live/LiveLabel';
 import { ResultRow } from '@/components/live/ResultRow';
 import { CalculatorInputField } from '@/components/calculator/CalculatorInputField';
-import { describeInputs, describeStepProblem, formatStepValue } from '@/lib/calculator/format';
+import { describeInputs, describeStepProblem, describeStepProblemShort, formatStepValue, isStepError } from '@/lib/calculator/format';
 import type {
   Calculator,
   CalculatorInput,
@@ -214,7 +214,7 @@ export const PartSteps = memo(function PartSteps({
             {external.map((step) => {
               const stepResult = result.steps[step.id];
               const owner = calculator.parts.find((candidate) => candidate.id === step.partId);
-              const problem = describeStepProblem(stepResult, calculator);
+              const problem = describeStepProblemShort(stepResult, calculator);
               const shown =
                 stepResult?.displayValue !== undefined && !problem ? formatStepValue(step, stepResult.displayValue, formatMoney) : undefined;
               return (
@@ -308,7 +308,7 @@ export const PartLivePane = memo(function PartLivePane({
               <ResultRow
                 key={step.id}
                 label={step.label || step.key}
-                value={shown ? shown.text : <span className={cn('text-xs', stepResult?.status === 'error' ? 'text-danger' : 'text-ink-muted')}>{problem ?? '—'}</span>}
+                value={shown ? shown.text : <span title={isStepError(stepResult) ? stepResult?.message : undefined} className={cn('text-xs', isStepError(stepResult) ? 'text-danger' : stepResult?.incomplete ? 'text-draft' : 'text-ink-muted')}>{describeStepProblemShort(stepResult, calculator) ?? '—'}</span>}
                 unit={shown?.unit}
                 highlight={step.id === expandedStepId}
                 leader={false}
