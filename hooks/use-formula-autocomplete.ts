@@ -184,21 +184,8 @@ export function useFormulaAutocomplete({
       variableToInsert = suggestion.displayName;
     }
     
-    // Handle dot notation: if typing "mat_plank." and selecting "width", insert just "width"
-    // BUT: computed outputs (out.*) should always insert the full name, not just the variable part
-    if (wordInfo.hasDot && wordInfo.baseWord && suggestion.type !== 'function') {
-      // Special handling for computed outputs - always insert full "out.variableName"
-      if (suggestion.name.startsWith('out.')) {
-        // Keep the full computed output name
-        variableToInsert = suggestion.name;
-      } else if (suggestion.name.startsWith(`${wordInfo.baseWord}.`)) {
-        // Extract property name only for regular properties
-        variableToInsert = suggestion.name.substring(wordInfo.baseWord.length + 1);
-      } else if (suggestion.name === wordInfo.baseWord) {
-        // Keep the base word
-        variableToInsert = wordInfo.baseWord;
-      }
-    }
+    // The word being replaced runs from the start of the name (`board.wi`), so a property is
+    // inserted by its full name (`board.width`), as are computed outputs (`out.area`).
 
     const before = formula.substring(0, wordInfo.start);
     const after = formula.substring(wordInfo.end);
@@ -219,10 +206,7 @@ export function useFormulaAutocomplete({
     const spaceBefore = needsSpaceBefore ? ' ' : '';
     const spaceAfter = needsSpaceAfter ? ' ' : '';
     
-    // If we had dot notation and are inserting property, don't add space before
-    const finalBefore = wordInfo.hasDot && variableToInsert !== wordInfo.baseWord && suggestion.type !== 'function' ? '' : spaceBefore;
-    
-    const insertedText = `${finalBefore}${variableToInsert}${spaceAfter}`;
+    const insertedText = `${spaceBefore}${variableToInsert}${spaceAfter}`;
     const newValue = before + insertedText + after;
     
     // For function calls, position cursor between parentheses
