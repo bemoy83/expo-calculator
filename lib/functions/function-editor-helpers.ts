@@ -1,5 +1,5 @@
 import type { Calculator } from "../calculator/types";
-import { COMMON_MATERIAL_PROPERTIES, type Labor, type Material, type SharedFunction } from "../types";
+import type { Labor, Material, SharedFunction } from "../types";
 import { categoryForName, editDistance, getMaterialCategories, sameCategory } from '../utils/material-category';
 import { isValidName } from '../formula/identifiers';
 
@@ -92,8 +92,8 @@ export function addSuggestedParameter(
 export type MaterialPropertyInfo = { name: string; unitSymbol?: string; count: number; total: number };
 
 /**
- * Every property name the catalog's materials define, with how many have each; the common
- * names stand in only while none do. A material parameter doesn't know its material until a
+ * Every property name the catalog's materials define, with how many have each. Nothing is
+ * assumed: a property no material has isn't offered, since a call couldn't pass a value for it. A material parameter doesn't know its material until a
  * calculator picks one, so this is what `board.` can offer.
  */
 export function getMaterialPropertyCatalog(allMaterials: Material[], category?: string): MaterialPropertyInfo[] {
@@ -113,11 +113,6 @@ export function getMaterialPropertyCatalog(allMaterials: Material[], category?: 
       found.set(key, info);
     });
   });
-  // The common names only start an empty catalog off; once materials have properties of their
-  // own (in whatever language), padding the list with names none of them uses just adds noise.
-  if (found.size === 0) {
-    COMMON_MATERIAL_PROPERTIES.forEach((name) => found.set(name, { name, count: 0, total }));
-  }
   return Array.from(found.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
@@ -162,18 +157,15 @@ export function getPropertyCandidatesForBase(input: {
     : categoryForName(base, getMaterialCategories(input.materials));
   const catalog = getMaterialPropertyCatalog(own ? [own] : input.materials, category);
   return catalog
-    .filter((info) => !own || info.count > 0)
     .map((info) => ({
       name: `${base}.${info.name}`,
       displayName: `${base}.${info.name}${info.unitSymbol ? ` (${info.unitSymbol})` : ""}`,
       type: "property" as const,
       description: own
         ? own.name
-        : info.count > 0
-          ? category
+        : category
           ? `On ${info.count} of ${info.total} in ${category}`
-          : `On ${info.count} of ${info.total} materials`
-          : "Common property; no material has it yet",
+          : `On ${info.count} of ${info.total} materials`,
     }));
 }
 
