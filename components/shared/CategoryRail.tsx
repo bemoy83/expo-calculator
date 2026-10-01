@@ -3,7 +3,7 @@
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { cn } from '@/lib/utils';
 
-export const ALL_CATEGORIES = '';
+export { ALL_CATEGORIES } from '@/components/shared/browse/useBrowseList';
 
 // Category filter rail (mockups 6b, 3a): All plus each category with its count. A column from
 // md up; a scrolling row of buttons on a phone.

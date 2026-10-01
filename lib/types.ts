@@ -149,6 +149,8 @@ export interface SharedFunction {
   returnUnitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count';
   returnUnitSymbol?: string;
   category?: string; // For organization
+  /** Place in the list, set by dragging; unset ones follow the default order */
+  order?: number;
   createdAt: string;
   updatedAt: string;
 }

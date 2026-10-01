@@ -14,6 +14,8 @@ interface CalculatorsStore {
   updateCalculator: (id: string, updates: Partial<Omit<Calculator, 'id' | 'createdAt'>>) => void;
   /** Saves a calculator the builder edited: replaces the one with its id, or adds it. */
   saveCalculator: (calculator: Calculator) => Calculator;
+  /** Sets the order of the whole list, as dragged. */
+  reorderCalculators: (calculators: Calculator[]) => void;
   deleteCalculator: (id: string) => void;
   getCalculator: (id: string) => Calculator | undefined;
 }
@@ -26,7 +28,13 @@ export const useCalculatorsStore = create<CalculatorsStore>()(
 
       addCalculator: (calculatorData) => {
         const now = new Date().toISOString();
-        const calculator: Calculator = { ...calculatorData, id: generateId(), createdAt: now, updatedAt: now };
+        const calculator: Calculator = {
+          ...calculatorData,
+          id: generateId(),
+          order: calculatorData.order ?? get().calculators.length,
+          createdAt: now,
+          updatedAt: now,
+        };
         set((state) => ({ calculators: [...state.calculators, calculator] }));
         return calculator;
       },
@@ -44,9 +52,17 @@ export const useCalculatorsStore = create<CalculatorsStore>()(
         set((state) => ({
           calculators: state.calculators.some((existing) => existing.id === saved.id)
             ? state.calculators.map((existing) => (existing.id === saved.id ? saved : existing))
-            : [...state.calculators, saved],
+            : [...state.calculators, { ...saved, order: saved.order ?? state.calculators.length }],
         }));
         return saved;
+      },
+
+      reorderCalculators: (orderedCalculators) => {
+        set({
+          calculators: orderedCalculators.map((calculator, index) =>
+            calculator.order === index ? calculator : { ...calculator, order: index }
+          ),
+        });
       },
 
       deleteCalculator: (id) => {

@@ -1,20 +1,23 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { FunctionSquare } from 'lucide-react';
+import { FunctionSquare, X } from 'lucide-react';
 import { CommitBlock } from '@/components/live/CommitBlock';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { FormulaWell } from '@/components/formula/FormulaWell';
 import { browseHref } from '@/components/shared/Breadcrumb';
-import { CategoryRail, ALL_CATEGORIES } from '@/components/shared/CategoryRail';
+import { BrowseActions } from '@/components/shared/browse/BrowseActions';
+import { BrowseLayout } from '@/components/shared/browse/BrowseLayout';
+import { SortableRow } from '@/components/shared/browse/SortableRow';
+import { ALL_CATEGORIES, useBrowseList } from '@/components/shared/browse/useBrowseList';
+import { SortableList } from '@/components/shared/SortableList';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { CatalogTabs, useCatalogTabItems } from '@/components/shared/catalog/CatalogTabs';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow } from '@/components/ui/Eyebrow';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames } from '@/lib/calculator/formula-tokens';
 import { copyOfFunction, countParameterUses, findFunctionUsage } from '@/lib/functions/function-usage';
@@ -24,7 +27,6 @@ import type { SharedFunction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { FunctionTryInputs, splitReturn, useFunctionTryIt } from './FunctionTestPanel';
 
-const OTHER = 'Other';
 const editHref = (id?: string) => (id ? `/functions/edit?id=${encodeURIComponent(id)}` : '/functions/edit');
 
 /** The call signature with its first three parameters: stendere(bredde, hoyde, cc, …). */
@@ -50,9 +52,9 @@ export function FunctionsBrowse() {
   const category = searchParams.get('category') ?? ALL_CATEGORIES;
   const functions = useFunctionsStore((state) => state.functions);
   const addFunction = useFunctionsStore((state) => state.addFunction);
+  const reorderFunctions = useFunctionsStore((state) => state.reorderFunctions);
   const calculators = useCalculatorsStore((state) => state.calculators);
   const tabs = useCatalogTabItems();
-  const [search, setSearch] = useState('');
 
   const usageCount = useMemo(
     () =>
@@ -65,29 +67,23 @@ export function FunctionsBrowse() {
     [functions, calculators]
   );
 
-  const categoryOf = (func: SharedFunction) => func.category?.trim() || OTHER;
-  const categories = useMemo(() => {
-    const counts = new Map<string, number>();
-    functions.forEach((func) => counts.set(categoryOf(func), (counts.get(categoryOf(func)) ?? 0) + 1));
-    return [...counts.entries()].sort(([a], [b]) => (a === OTHER ? 1 : b === OTHER ? -1 : a.localeCompare(b)));
-  }, [functions]);
-
-  const listed = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return functions
-      .filter((func) => category === ALL_CATEGORIES || categoryOf(func) === category)
-      .filter(
-        (func) =>
-          !needle ||
-          [func.displayName, func.name, func.description ?? ''].some((text) => text.toLowerCase().includes(needle))
-      );
-  }, [functions, category, search]);
-  // The chosen function when it's listed, else the first one listed.
-  const selected = listed.find((func) => func.id === selectedId) ?? listed[0];
+  const searchableText = useCallback((func: SharedFunction) => [func.displayName, func.name, func.description], []);
+  const categoryOf = useCallback((func: SharedFunction) => func.category ?? '', []);
+  const list = useBrowseList({
+    items: functions,
+    searchableText,
+    categoryOf,
+    category,
+    onCategoryChange: (next) => setCategory(next),
+  });
+  const { search, setSearch, listed } = list;
+  // Only a function the user chose, and only while it's listed; the quick view says so otherwise.
+  const selected = listed.find((func) => func.id === selectedId);
 
   const select = (id: string) => router.replace(browseHref(pathname, { category, id }), { scroll: false });
   const setCategory = (next: string) =>
     router.replace(browseHref(pathname, { category: next, id: selectedId ?? undefined }), { scroll: false });
+  const deselect = () => router.replace(browseHref(pathname, { category }), { scroll: false });
   const duplicate = (func: SharedFunction) => select(addFunction(copyOfFunction(func, functions)).id);
 
   const header = (
@@ -95,19 +91,13 @@ export function FunctionsBrowse() {
       eyebrow="Catalog · Reusable calculations"
       title="Catalog"
       actions={
-        <>
-          {functions.length > 0 && (
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search functions…"
-              className="flex-1 min-w-[10rem] sm:w-[220px] sm:flex-none"
-            />
-          )}
-          <Button variant="accent" onClick={() => router.push(editHref())} className="shrink-0">
-            + New function
-          </Button>
-        </>
+        <BrowseActions
+          search={functions.length > 0 ? search : undefined}
+          onSearch={setSearch}
+          searchPlaceholder="Search functions…"
+          addLabel="New function"
+          onAdd={() => router.push(editHref())}
+        />
       }
     >
       <CatalogTabs items={tabs} active="functions" />
@@ -135,83 +125,77 @@ export function FunctionsBrowse() {
     );
   }
 
+  const rows = listed.map((func) => {
+    const on = func.id === selected?.id;
+    const uses = usageCount.get(func.id) ?? 0;
+    return (
+      <SortableRow key={func.id} id={func.id} label={func.displayName || func.name} selected={on} disableDrag={!list.canReorder}>
+        <Link
+          href={editHref(func.id)}
+          aria-current={on ? 'true' : undefined}
+          onClick={(event) => {
+            // From lg the row picks the function for the quick view; a double-click edits it.
+            if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+            if (window.matchMedia('(min-width: 1024px)').matches) {
+              event.preventDefault();
+              select(func.id);
+            }
+          }}
+          onDoubleClick={() => router.push(editHref(func.id))}
+          className="flex gap-3 py-3.5 pl-1 pr-3 rounded-row focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+        >
+          <span className="flex-1 min-w-0">
+            <span className="flex flex-wrap items-baseline gap-x-3">
+              <span className="text-[15px] font-semibold text-ink">{func.displayName || func.name}</span>
+              <Signature func={func} />
+            </span>
+            {func.description && <span className="block mt-[3px] text-[13px] text-ink-muted line-clamp-2">{func.description}</span>}
+          </span>
+          <span className="font-numeric text-xs text-ink-faint whitespace-nowrap">
+            {func.parameters.length} in · {uses > 0 ? `used ${uses}×` : 'not used'}
+          </span>
+        </Link>
+      </SortableRow>
+    );
+  });
+
   return (
-    <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
-      {header}
-      <div className="grid grid-cols-1 md:grid-cols-[var(--category-w)_minmax(0,1fr)] lg:grid-cols-[var(--category-w)_minmax(0,1fr)_var(--quickview-w)] lg:flex-1 lg:min-h-0">
-        <CategoryRail
-          options={[
-            { value: ALL_CATEGORIES, label: 'All', count: functions.length },
-            ...categories.map(([name, count]) => ({ value: name, label: name, count })),
-          ]}
-          value={category}
-          onChange={setCategory}
-        />
-
-        <ul aria-label="Functions" className="flex flex-col px-3 py-4 min-w-0 lg:overflow-y-auto">
-          {listed.map((func) => {
-            const on = func.id === selected?.id;
-            const uses = usageCount.get(func.id) ?? 0;
-            return (
-              <li key={func.id}>
-                <Link
-                  href={editHref(func.id)}
-                  aria-current={on ? 'true' : undefined}
-                  onClick={(event) => {
-                    // From lg the row picks the function for the quick view; a double-click edits it.
-                    if (event.metaKey || event.ctrlKey || event.shiftKey) return;
-                    if (window.matchMedia('(min-width: 1024px)').matches) {
-                      event.preventDefault();
-                      select(func.id);
-                    }
-                  }}
-                  onDoubleClick={() => router.push(editHref(func.id))}
-                  className={cn(
-                    // As in the catalog lists: a hairline between rows, a surface fill on hover, and
-                    // from lg the chosen row is a surface card with the accent ring.
-                    'relative flex gap-3 px-3 py-3.5 border border-transparent border-b-border transition-colors duration-150',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                    on
-                      ? 'lg:rounded-row lg:bg-surface lg:border-accent lg:shadow-focus hover:rounded-md lg:hover:rounded-row'
-                      : 'hover:bg-surface hover:rounded-md'
-                  )}
-                >
-                  <span className="flex-1 min-w-0">
-                    <span className="flex flex-wrap items-baseline gap-x-3">
-                      <span className="text-[15px] font-semibold text-ink">{func.displayName || func.name}</span>
-                      <Signature func={func} />
-                    </span>
-                    {func.description && (
-                      <span className="block mt-[3px] text-[13px] text-ink-muted line-clamp-2">{func.description}</span>
-                    )}
-                  </span>
-                  <span className="font-numeric text-xs text-ink-faint whitespace-nowrap">
-                    {func.parameters.length} in · {uses > 0 ? `used ${uses}×` : 'not used'}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-          {listed.length === 0 && (
-            <li className="py-8 text-center text-sm text-ink-muted">
-              {search.trim() ? `No functions match “${search.trim()}”.` : 'No functions in this category.'}
-            </li>
-          )}
-        </ul>
-
-        <aside aria-label="Quick view" className="hidden lg:block min-h-0 bg-panel border-l border-border">
-          {selected && (
-            <FunctionQuickView
-              key={selected.id}
-              func={selected}
-              functions={functions}
-              onDuplicate={() => duplicate(selected)}
-              onEdit={() => router.push(editHref(selected.id))}
-            />
-          )}
-        </aside>
+    <BrowseLayout
+      header={header}
+      rail={{ options: list.railOptions, value: category, onChange: setCategory }}
+      side={{
+        below: 'hidden',
+        open: !!selected,
+        placeholder: 'Choose a function to try it out.',
+        content: selected && (
+          <FunctionQuickView
+            key={selected.id}
+            func={selected}
+            functions={functions}
+            onDuplicate={() => duplicate(selected)}
+            onEdit={() => router.push(editHref(selected.id))}
+            onClose={deselect}
+          />
+        ),
+      }}
+    >
+      <div role="list" aria-label="Functions">
+        {list.canReorder ? (
+          <SortableList
+            items={listed}
+            onReorder={(oldIndex, newIndex) => list.reorder(oldIndex, newIndex, reorderFunctions)}
+            renderItem={(func) => rows[listed.indexOf(func)]}
+          />
+        ) : (
+          rows
+        )}
       </div>
-    </div>
+      {listed.length === 0 && (
+        <p className="py-8 text-center text-sm text-ink-muted">
+          {search.trim() ? `No functions match “${search.trim()}”.` : 'No functions in this category.'}
+        </p>
+      )}
+    </BrowseLayout>
   );
 }
 
@@ -222,11 +206,13 @@ function FunctionQuickView({
   functions,
   onDuplicate,
   onEdit,
+  onClose,
 }: {
   func: SharedFunction;
   functions: SharedFunction[];
   onDuplicate: () => void;
   onEdit: () => void;
+  onClose: () => void;
 }) {
   const library = useCalculatorLibrary();
   const calculators = useCalculatorsStore((state) => state.calculators);
@@ -255,6 +241,14 @@ function FunctionQuickView({
             <Button variant="secondary" size="sm" onClick={onEdit}>
               Edit
             </Button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close preview"
+              className="ml-1 p-1 rounded text-ink-faint hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
         </div>
 

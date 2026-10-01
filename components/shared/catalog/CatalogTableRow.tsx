@@ -18,13 +18,13 @@ export interface CatalogCell {
   hideOnMobile?: boolean;
 }
 
-// Which widths show every column: md up, except lg–xl where the editor pane beside the table
-// leaves room only for name and price. (Literal class strings for Tailwind.)
+// Which widths show every column: md up, except lg up to 1400px where the category rail and the
+// editor pane beside the table leave room only for name and price. (Literal class strings for Tailwind.)
 const LAYOUT = {
-  grid: 'md:[grid-template-columns:var(--catalog-cols)] lg:max-xl:[grid-template-columns:20px_minmax(0,1fr)_auto]',
-  header: 'hidden md:grid lg:max-xl:hidden',
-  wideOnly: 'hidden md:block lg:max-xl:hidden',
-  narrowOnly: 'md:hidden lg:max-xl:inline',
+  grid: 'md:[grid-template-columns:var(--catalog-cols)] lg:max-[1400px]:[grid-template-columns:20px_minmax(0,1fr)_auto]',
+  header: 'hidden md:grid lg:max-[1400px]:hidden',
+  wideOnly: 'hidden md:block lg:max-[1400px]:hidden',
+  narrowOnly: 'md:hidden lg:max-[1400px]:inline',
 } as const;
 
 export const useCatalogLayout = () => LAYOUT;
@@ -73,7 +73,7 @@ export function CatalogTableRow({
         layout.grid,
         'items-center gap-3.5 p-3 border transition-colors duration-150',
         isSelected
-          ? 'mt-1 bg-surface border-border-strong rounded-row'
+          ? 'bg-surface border-accent shadow-focus rounded-row'
           : 'border-transparent border-b-border hover:bg-surface hover:rounded-md',
         isDragging && 'bg-surface rounded-row opacity-90'
       )}

@@ -10,6 +10,8 @@ export interface Calculator {
   name: string;
   description?: string;
   category?: string;
+  /** Place in the list, set by dragging; unset ones follow the default order */
+  order?: number;
   inputs: CalculatorInput[];
   parts: CalculatorPart[];
   steps: CalculatorStep[];

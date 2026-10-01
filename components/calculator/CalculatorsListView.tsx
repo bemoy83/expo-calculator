@@ -1,21 +1,25 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Calculator as CalculatorIcon } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { browseHref } from '@/components/shared/Breadcrumb';
-import { CategoryRail, ALL_CATEGORIES } from '@/components/shared/CategoryRail';
+import { BrowseActions } from '@/components/shared/browse/BrowseActions';
+import { BrowseLayout } from '@/components/shared/browse/BrowseLayout';
+import { SortableRow } from '@/components/shared/browse/SortableRow';
+import { ALL_CATEGORIES, useBrowseList } from '@/components/shared/browse/useBrowseList';
+import { SortableList } from '@/components/shared/SortableList';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import type { Calculator, CalculatorLibrary } from '@/lib/calculator/types';
 import { formatPackDate } from '@/lib/calculator/format';
 import { groupCalculatorsByCategory } from '@/lib/quotes/workspace';
+import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useDeviceStore } from '@/lib/stores/device-store';
 import { useUseOnlyMode } from '@/hooks/use-device';
 import { cn } from '@/lib/utils';
+import { useCallback } from 'react';
 import { CalculatorQuickView } from './CalculatorRunView';
 import { builderHref } from '@/components/calculator-builder/builder-href';
 
@@ -40,7 +44,7 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
   const useOnly = useUseOnlyMode();
   const loadedPack = useDeviceStore((state) => state.loadedPack);
   const lastPackExport = useDeviceStore((state) => state.lastPackExport);
-  const [search, setSearch] = useState('');
+  const reorderCalculators = useCalculatorsStore((state) => state.reorderCalculators);
 
   // Which pack this device has, so an out-of-date one is easy to spot; on the device packs
   // are made on, when the last one was exported, to compare against.
@@ -50,19 +54,21 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
       ? `Last pack exported ${formatPackDate(lastPackExport.exportedAt)}`
       : undefined;
 
-  const groups = useMemo(() => groupCalculatorsByCategory(calculators), [calculators]);
-  const listed = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return groups
-      .filter((group) => category === ALL_CATEGORIES || group.category === category)
-      .flatMap((group) => group.items)
-      .filter(
-        (calculator) =>
-          !needle ||
-          calculator.name.toLowerCase().includes(needle) ||
-          (calculator.description ?? '').toLowerCase().includes(needle)
-      );
-  }, [groups, category, search]);
+  const searchableText = useCallback((calculator: Calculator) => [calculator.name, calculator.description], []);
+  const categoryOf = useCallback((calculator: Calculator) => calculator.category ?? '', []);
+  // Until the list has been dragged, calculators are grouped by category, alphabetically.
+  const defaultOrder = useCallback((items: Calculator[]) => groupCalculatorsByCategory(items).flatMap((group) => group.items), []);
+  const list = useBrowseList({
+    items: calculators,
+    searchableText,
+    categoryOf,
+    defaultOrder,
+    category,
+    onCategoryChange: (next) => setCategory(next),
+  });
+  const { search, setSearch, listed } = list;
+  // A device that only uses calculators doesn't edit them, the order included.
+  const canReorder = list.canReorder && !useOnly;
   // The chosen calculator when it's listed, else the first one listed.
   const selected = listed.find((calculator) => calculator.id === selectedId) ?? listed[0];
 
@@ -81,23 +87,13 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
       }
       title="Calculators"
       actions={
-        calculators.length > 0 || !useOnly ? (
-          <>
-            {calculators.length > 0 && (
-              <SearchInput
-                value={search}
-                onChange={setSearch}
-                placeholder="Search calculators…"
-                className="flex-1 min-w-[10rem] sm:w-[220px] sm:flex-none"
-              />
-            )}
-            {!useOnly && (
-              <Button variant="accent" onClick={newCalculator} className="shrink-0">
-                + New calculator
-              </Button>
-            )}
-          </>
-        ) : undefined
+        <BrowseActions
+          search={calculators.length > 0 ? search : undefined}
+          onSearch={setSearch}
+          searchPlaceholder="Search calculators…"
+          addLabel={useOnly ? undefined : 'New calculator'}
+          onAdd={newCalculator}
+        />
       }
     />
   );
@@ -132,70 +128,65 @@ export function CalculatorsListView({ calculators, library }: { calculators: Cal
     );
   }
 
-  const categoryOptions = [
-    { value: ALL_CATEGORIES, label: 'All', count: calculators.length },
-    ...groups.map((group) => ({ value: group.category, label: group.category, count: group.items.length })),
-  ];
+  const rows = listed.map((calculator) => {
+    const on = calculator.id === selected?.id;
+    const partCount = calculator.parts.length;
+    return (
+      <SortableRow key={calculator.id} id={calculator.id} label={calculator.name} selected={on} disableDrag={!canReorder}>
+        <Link
+          href={runHref(calculator)}
+          aria-current={on ? 'true' : undefined}
+          onClick={(event) => {
+            // From lg the row picks the calculator for the quick view instead; a double-click
+            // edits it (or opens it, in use-only mode, where there's no builder).
+            if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+            if (window.matchMedia('(min-width: 1024px)').matches) {
+              event.preventDefault();
+              select(calculator);
+            }
+          }}
+          onDoubleClick={() => router.push(useOnly ? runHref(calculator) : builderHref(calculator.id, { category }))}
+          className="flex gap-3 py-3.5 pl-1 pr-3 rounded-row focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+        >
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] font-semibold text-ink">{calculator.name}</span>
+            {calculator.description && (
+              <span className="block mt-[3px] text-[13px] text-ink-muted line-clamp-2">{calculator.description}</span>
+            )}
+          </span>
+          <span className="font-numeric text-xs text-ink-faint whitespace-nowrap">
+            {calculator.inputs.length} in{partCount > 1 && ` · ${partCount} parts`}
+          </span>
+        </Link>
+      </SortableRow>
+    );
+  });
 
   return (
-    <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
-      {header}
-      <div className="grid grid-cols-1 md:grid-cols-[var(--category-w)_minmax(0,1fr)] lg:grid-cols-[var(--category-w)_minmax(0,1fr)_var(--quickview-w)] lg:flex-1 lg:min-h-0">
-        <CategoryRail options={categoryOptions} value={category} onChange={setCategory} />
-
-        <ul aria-label="Calculators" className="flex flex-col px-3 py-4 min-w-0 lg:overflow-y-auto">
-          {listed.map((calculator) => {
-            const on = calculator.id === selected?.id;
-            const partCount = calculator.parts.length;
-            return (
-              <li key={calculator.id}>
-                <Link
-                  href={runHref(calculator)}
-                  aria-current={on ? 'true' : undefined}
-                  onClick={(event) => {
-                    // From lg the row picks the calculator for the quick view instead; a double-click
-                    // edits it (or opens it, in use-only mode, where there's no builder).
-                    if (event.metaKey || event.ctrlKey || event.shiftKey) return;
-                    if (window.matchMedia('(min-width: 1024px)').matches) {
-                      event.preventDefault();
-                      select(calculator);
-                    }
-                  }}
-                  onDoubleClick={() => router.push(useOnly ? runHref(calculator) : builderHref(calculator.id, { category }))}
-                  className={cn(
-                    // As in the catalog lists: a hairline between rows, a surface fill on hover, and
-                    // from lg the chosen row is a surface card with the accent ring.
-                    'relative flex gap-3 px-3 py-3.5 border border-transparent border-b-border transition-colors duration-150',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                    on
-                      ? 'lg:rounded-row lg:bg-surface lg:border-accent lg:shadow-focus hover:rounded-md lg:hover:rounded-row'
-                      : 'hover:bg-surface hover:rounded-md'
-                  )}
-                >
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[15px] font-semibold text-ink">{calculator.name}</span>
-                    {calculator.description && (
-                      <span className="block mt-[3px] text-[13px] text-ink-muted line-clamp-2">{calculator.description}</span>
-                    )}
-                  </span>
-                  <span className="font-numeric text-xs text-ink-faint whitespace-nowrap">
-                    {calculator.inputs.length} in{partCount > 1 && ` · ${partCount} parts`}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-          {listed.length === 0 && (
-            <li className="py-8 text-center text-sm text-ink-muted">
-              {search.trim() ? `No calculators match “${search.trim()}”.` : 'No calculators in this category.'}
-            </li>
-          )}
-        </ul>
-
-        <aside aria-label="Quick view" className="hidden lg:block min-h-0 bg-panel border-l border-border">
-          {selected && <CalculatorQuickView key={selected.id} calculator={selected} library={library} listCategory={category} />}
-        </aside>
+    <BrowseLayout
+      header={header}
+      rail={{ options: list.railOptions, value: category, onChange: setCategory }}
+      side={{
+        below: 'hidden',
+        content: selected && <CalculatorQuickView key={selected.id} calculator={selected} library={library} listCategory={category} />,
+      }}
+    >
+      <div role="list" aria-label="Calculators">
+        {canReorder ? (
+          <SortableList
+            items={listed}
+            onReorder={(oldIndex, newIndex) => list.reorder(oldIndex, newIndex, reorderCalculators)}
+            renderItem={(calculator) => rows[listed.indexOf(calculator)]}
+          />
+        ) : (
+          rows
+        )}
       </div>
-    </div>
+      {listed.length === 0 && (
+        <p className="py-8 text-center text-sm text-ink-muted">
+          {search.trim() ? `No calculators match “${search.trim()}”.` : 'No calculators in this category.'}
+        </p>
+      )}
+    </BrowseLayout>
   );
 }

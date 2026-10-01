@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Package } from 'lucide-react';
 import { CatalogPageShell } from '@/components/shared/catalog/CatalogPageShell';
-import { useCatalogListState } from '@/components/shared/catalog/useCatalogListState';
+import { useBrowseList } from '@/components/shared/browse/useBrowseList';
 import { MaterialEditorPanel } from '@/components/materials/MaterialEditorPanel';
 import { MaterialRow } from '@/components/materials/MaterialRow';
 import { countCalculatorsUsingCatalogItem } from '@/lib/catalog/catalog-display';
@@ -18,6 +18,10 @@ const MATERIAL_COLUMNS = [
   { label: 'Unit', align: 'right' as const },
 ];
 const MATERIAL_GRID = 'minmax(0,1.6fr) minmax(0,1fr) minmax(0,1.1fr) 7.5rem 4rem';
+
+// The rail lists real categories; the generic "custom" is left out (its items show under All).
+const isCustomCategory = (category: string) => category.toLowerCase() === 'custom';
+const categoryOf = (item: { category: string }) => item.category;
 
 export default function MaterialsPage() {
   const materials = useMaterialsStore((state) => state.materials);
@@ -38,7 +42,7 @@ export default function MaterialsPage() {
     material.description,
   ], []);
 
-  const catalog = useCatalogListState({ items: materials, searchableText });
+  const catalog = useBrowseList({ items: materials, searchableText, categoryOf, hiddenCategory: isCustomCategory });
 
   const selectedMaterial = useMemo(
     () => materials.find((material) => material.id === selectedMaterialId) ?? null,
@@ -87,15 +91,14 @@ export default function MaterialsPage() {
       emptyDescription="Add your first material to start building your catalog."
       emptyFilteredDescription="Try adjusting your search or filter criteria."
       emptyIcon={Package}
-      items={catalog.filteredItems}
+      items={catalog.listed}
       totalItems={materials.length}
       isEditorOpen={isEditorOpen}
-      searchQuery={catalog.searchQuery}
-      onSearchQueryChange={catalog.setSearchQuery}
-      categories={catalog.categories}
-      categoryCounts={catalog.categoryCounts}
-      categoryFilter={catalog.categoryFilter}
-      onCategoryFilterChange={catalog.setCategoryFilter}
+      searchQuery={catalog.search}
+      onSearchQueryChange={catalog.setSearch}
+      categoryOptions={catalog.railOptions}
+      category={catalog.category}
+      onCategoryChange={catalog.setCategory}
       canReorder={catalog.canReorder}
       onAdd={() => openEditor()}
       onReorder={(oldIndex, newIndex) =>

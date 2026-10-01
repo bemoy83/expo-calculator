@@ -1,19 +1,18 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/Button';
-import { SearchInput } from '@/components/ui/SearchInput';
+import { BrowseActions } from '@/components/shared/browse/BrowseActions';
+import { BrowseLayout } from '@/components/shared/browse/BrowseLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SortableList } from '@/components/shared/SortableList';
 import { cn } from '@/lib/utils';
-import { CatalogItemBase } from './useCatalogListState';
-import { CatalogCategoryChips } from './CatalogCategoryChips';
 import { CatalogTabs, useCatalogTabItems } from './CatalogTabs';
 import { useCatalogLayout, type CatalogColumn } from './CatalogTableRow';
 
-interface CatalogPageShellProps<T extends CatalogItemBase> {
+interface CatalogPageShellProps<T extends { id: string }> {
   /** The Catalog sub-tab this page is */
   tab: 'materials' | 'labor';
   title: string;
@@ -30,10 +29,9 @@ interface CatalogPageShellProps<T extends CatalogItemBase> {
   isEditorOpen: boolean;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
-  categories: string[];
-  categoryCounts: Map<string, number>;
-  categoryFilter: string;
-  onCategoryFilterChange: (value: string) => void;
+  categoryOptions: Array<{ value: string; label: string; count: number }>;
+  category: string;
+  onCategoryChange: (value: string) => void;
   canReorder: boolean;
   onAdd: () => void;
   onReorder: (oldIndex: number, newIndex: number) => void;
@@ -47,7 +45,7 @@ interface CatalogPageShellProps<T extends CatalogItemBase> {
   editorPlaceholder: string;
 }
 
-export function CatalogPageShell<T extends CatalogItemBase>({
+export function CatalogPageShell<T extends { id: string }>({
   tab,
   title,
   addLabel,
@@ -63,10 +61,9 @@ export function CatalogPageShell<T extends CatalogItemBase>({
   isEditorOpen,
   searchQuery,
   onSearchQueryChange,
-  categories,
-  categoryCounts,
-  categoryFilter,
-  onCategoryFilterChange,
+  categoryOptions,
+  category,
+  onCategoryChange,
   canReorder,
   onAdd,
   onReorder,
@@ -77,97 +74,56 @@ export function CatalogPageShell<T extends CatalogItemBase>({
   editorPlaceholder,
 }: CatalogPageShellProps<T>) {
   const isEmptyCatalog = totalItems === 0;
-  const editorRef = useRef<HTMLDivElement>(null);
   const tabs = useCatalogTabItems();
-
-  // Below lg the panel stacks under the table, so bring it into view when it opens.
-  useEffect(() => {
-    if (isEditorOpen && window.matchMedia('(max-width: 1023px)').matches) {
-      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [isEditorOpen]);
 
   return (
     <Layout>
-      {/* From lg the page is exactly the window's height and each pane scrolls on its own. */}
-      <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
-        <PageHeader
-          eyebrow="Catalog · Prices used by every calculator"
-          title="Catalog"
-          actions={
-            <>
-              <SearchInput
-                value={searchQuery}
-                onChange={onSearchQueryChange}
-                placeholder={searchPlaceholder}
-                className="flex-1 min-w-[10rem] sm:w-[240px] sm:flex-none"
+      <BrowseLayout
+        header={
+          <PageHeader
+            eyebrow="Catalog · Prices used by every calculator"
+            title="Catalog"
+            actions={
+              <BrowseActions
+                search={searchQuery}
+                onSearch={onSearchQueryChange}
+                searchPlaceholder={searchPlaceholder}
+                addLabel={addLabel}
+                onAdd={onAdd}
               />
-              <Button variant="accent" onClick={onAdd} className="shrink-0">
-                + {addLabel}
-              </Button>
-            </>
-          }
-        >
-          <CatalogTabs items={tabs} active={tab} />
-        </PageHeader>
-
-        {/* Table, then the editor pane: beside it from lg (always there), under it below lg (when open). */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] lg:flex-1 lg:min-h-0">
-          <div className="min-w-0 flex flex-col gap-3.5 px-4 sm:px-6 py-4 pb-24 lg:overflow-y-auto">
-            <CatalogCategoryChips
-              categories={categories}
-              counts={categoryCounts}
-              total={totalItems}
-              selected={categoryFilter}
-              onSelect={onCategoryFilterChange}
-            />
-
-            {items.length === 0 ? (
-              <div className="text-center px-6 py-16">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-sunken mb-4">
-                  <EmptyIcon className="h-7 w-7 text-ink-muted" aria-hidden="true" />
-                </div>
-                <h2 className="text-base font-semibold text-ink mb-1">
-                  {isEmptyCatalog ? emptyTitle : emptyFilteredTitle}
-                </h2>
-                <p className="text-sm text-ink-muted max-w-md mx-auto mb-5">
-                  {isEmptyCatalog ? emptyDescription : emptyFilteredDescription}
-                </p>
-                {isEmptyCatalog && (
-                  <Button variant="accent" onClick={onAdd}>
-                    + {firstItemLabel}
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <CatalogTable title={title} columns={columns} gridTemplate={gridTemplate}>
-                {canReorder ? (
-                  <SortableList items={items} onReorder={onReorder} renderItem={(item) => renderRow(item, false)} />
-                ) : (
-                  items.map((item) => renderRow(item, true))
-                )}
-              </CatalogTable>
-            )}
-          </div>
-
-          <div
-            ref={editorRef}
-            className={cn(
-              'scroll-mt-20 bg-panel border-t lg:border-t-0 lg:border-l border-border',
-              'lg:min-h-0 lg:overflow-hidden',
-              !isEditorOpen && 'hidden lg:block'
-            )}
+            }
           >
-            {isEditorOpen ? (
-              editor
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center gap-2 px-8 text-center">
-                <p className="text-sm text-ink-muted">{editorPlaceholder}</p>
-              </div>
+            <CatalogTabs items={tabs} active={tab} />
+          </PageHeader>
+        }
+        rail={{ options: categoryOptions, value: category, onChange: onCategoryChange }}
+        side={{ below: 'stack', open: isEditorOpen, placeholder: editorPlaceholder, content: editor }}
+      >
+        {items.length === 0 ? (
+          <div className="text-center px-6 py-16">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-sunken mb-4">
+              <EmptyIcon className="h-7 w-7 text-ink-muted" aria-hidden="true" />
+            </div>
+            <h2 className="text-base font-semibold text-ink mb-1">{isEmptyCatalog ? emptyTitle : emptyFilteredTitle}</h2>
+            <p className="text-sm text-ink-muted max-w-md mx-auto mb-5">
+              {isEmptyCatalog ? emptyDescription : emptyFilteredDescription}
+            </p>
+            {isEmptyCatalog && (
+              <Button variant="accent" onClick={onAdd}>
+                + {firstItemLabel}
+              </Button>
             )}
           </div>
-        </div>
-      </div>
+        ) : (
+          <CatalogTable title={title} columns={columns} gridTemplate={gridTemplate}>
+            {canReorder ? (
+              <SortableList items={items} onReorder={onReorder} renderItem={(item) => renderRow(item, false)} />
+            ) : (
+              items.map((item) => renderRow(item, true))
+            )}
+          </CatalogTable>
+        )}
+      </BrowseLayout>
     </Layout>
   );
 }

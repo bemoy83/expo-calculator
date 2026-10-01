@@ -6,6 +6,7 @@ interface FunctionsStore {
   functions: SharedFunction[];
   addFunction: (func: Omit<SharedFunction, 'id' | 'createdAt' | 'updatedAt'>) => SharedFunction;
   updateFunction: (id: string, updates: Partial<SharedFunction>) => void;
+  reorderFunctions: (functions: SharedFunction[]) => void;
   deleteFunction: (id: string) => void;
   getFunction: (id: string) => SharedFunction | undefined;
   getFunctionByName: (name: string) => SharedFunction | undefined;
@@ -21,6 +22,7 @@ export const useFunctionsStore = create<FunctionsStore>()(
         const newFunction: SharedFunction = {
           ...func,
           id: crypto.randomUUID(),
+          order: func.order ?? get().functions.length,
           createdAt: now,
           updatedAt: now,
         };
@@ -44,6 +46,12 @@ export const useFunctionsStore = create<FunctionsStore>()(
               : func
           ),
         }));
+      },
+
+      reorderFunctions: (orderedFunctions) => {
+        set({
+          functions: orderedFunctions.map((func, index) => (func.order === index ? func : { ...func, order: index })),
+        });
       },
 
       deleteFunction: (id) => {
