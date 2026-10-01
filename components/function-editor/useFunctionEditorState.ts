@@ -56,9 +56,10 @@ export function useFunctionEditorState({
   const [hasManuallyEditedVariableName, setHasManuallyEditedVariableName] = useState(!!existingFunction);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [parameterErrors] = useState<Record<number, Record<string, string>>>({});
-  const [formulaValidation, setFormulaValidation] = useState<{ valid: boolean; error?: string }>({
+  const [formulaValidation, setFormulaValidation] = useState<{ valid: boolean; error?: string; /** an error is on its way, held back while the formula is still being typed */ pending?: boolean }>({
     valid: true,
   });
+  const validatedOnce = useRef(false);
 
   // A save attempt's formula error goes stale as soon as the formula is edited; from then
   // on the live check (formulaValidation) reports its state.
@@ -93,23 +94,25 @@ export function useFunctionEditorState({
     isNameInUse: (name) => countParameterUses(formData.formula, name) > 0,
   });
 
-  const validateFormulaInput = useCallback(
-    (formulaToValidate: string) => {
-      if (!formulaToValidate.trim()) {
-        setFormulaValidation({ valid: true });
-        return;
-      }
-
-      const paramNames = parameters.filter((param) => param.name.trim()).map((param) => param.name);
-      const validation = validateFormula(formulaToValidate, paramNames, [], undefined, functions);
-      setFormulaValidation(validation);
-    },
-    [parameters, functions]
-  );
-
+  // A valid formula shows at once; an error waits until it has stood for a moment, so a
+  // half-typed formula isn't flagged mid-keystroke. The first check, on opening, doesn't wait.
   useEffect(() => {
-    validateFormulaInput(formData.formula);
-  }, [formData.formula, validateFormulaInput]);
+    if (!formData.formula.trim()) {
+      setFormulaValidation({ valid: true });
+      validatedOnce.current = true;
+      return;
+    }
+    const paramNames = parameters.filter((param) => param.name.trim()).map((param) => param.name);
+    const validation = validateFormula(formData.formula, paramNames, [], undefined, functions);
+    if (validation.valid || !validatedOnce.current) {
+      validatedOnce.current = true;
+      setFormulaValidation(validation);
+      return;
+    }
+    setFormulaValidation({ valid: false, pending: true });
+    const timer = setTimeout(() => setFormulaValidation(validation), 700);
+    return () => clearTimeout(timer);
+  }, [formData.formula, parameters, functions]);
 
   const parameterSuggestions = useMemo(
     () => getParameterSuggestions(functions, calculators, existingFunction?.id),

@@ -17,6 +17,11 @@ function getErrorContext(errorMessage: string, formula: string): string {
 }
 
 export function translateParserError(errorMessage: string, formula: string): string {
+  // How the formula is written (a missing value, an open bracket): the same plain wording a
+  // calculator step uses.
+  if (/Unexpected|Parenthesis|Value expected/.test(errorMessage) && !/Function .* not found/.test(errorMessage)) {
+    return friendlyEvaluationMessage(errorMessage);
+  }
   const context = getErrorContext(errorMessage, formula);
 
   if (errorMessage.includes('Unexpected part')) {

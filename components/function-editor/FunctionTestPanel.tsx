@@ -5,6 +5,7 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { LiveLabel } from '@/components/live/LiveLabel';
+import { useSettledValue } from '@/hooks/use-settled-value';
 import { evaluateFunctionSample, getFunctionParamKinds } from '@/lib/functions/function-sample';
 import { useLaborStore } from '@/lib/stores/labor-store';
 import { useMaterialsStore } from '@/lib/stores/materials-store';
@@ -118,6 +119,10 @@ export function splitReturn(display: string, unit?: string): { value: string; un
 export function FunctionTestPanel({ draft, functions }: { draft: Draft; functions: SharedFunction[] }) {
   const { parameters, kinds, values, setValue, result } = useFunctionTryIt(draft, functions);
   const shown = result.display !== undefined ? splitReturn(result.display, draft.returnUnitSymbol) : undefined;
+  // A formula mistake is spelled out under the formula; here it's just "Error", and only once it
+  // has stood for a moment, so a half-typed formula reads as incomplete.
+  const settledMistake = useSettledValue(result.short ? result.error : undefined);
+  const mistakeShown = !!result.short && settledMistake === result.error;
 
   return (
     <section aria-labelledby="function-test-heading" className="flex flex-col">
@@ -140,6 +145,13 @@ export function FunctionTestPanel({ draft, functions }: { draft: Draft; function
             </span>
             {shown.unit && <span className="font-numeric text-sm text-ink-faint">{shown.unit}</span>}
           </div>
+        ) : result.short ? (
+          <p
+            className={cn('mt-1 text-xs', mistakeShown ? 'text-danger' : 'text-draft')}
+            title={mistakeShown ? result.error : undefined}
+          >
+            {mistakeShown ? result.short : 'Incomplete'}
+          </p>
         ) : (
           <p className={cn('mt-1 text-xs', /^(Enter|Choose) a value|^Add a formula/.test(result.error ?? '') ? 'text-ink-muted' : 'text-danger')}>
             {result.error}

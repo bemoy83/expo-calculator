@@ -175,7 +175,9 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
           formula
             ? editor.formulaValidation.valid
               ? { tone: 'ok', label: 'Formula works' }
-              : { tone: 'error', label: 'Formula has an error' }
+              : editor.formulaValidation.pending
+                ? { tone: 'draft', label: 'Formula incomplete' }
+                : { tone: 'error', label: 'Formula has an error' }
             : undefined
         }
         description={editor.errors.displayName && <span className="text-danger">{editor.errors.displayName}</span>}

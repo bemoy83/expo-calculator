@@ -1,3 +1,5 @@
+import { findSyntaxError } from '../calculator/dependencies';
+import { friendlyEvaluationMessage } from '../formula/error-messages';
 import { callFunction, type FunctionArgValue } from '../calculator/call-function';
 import type { Labor, Material, SharedFunction } from '../types';
 import { getFunctionParamKinds } from './param-kinds';
@@ -10,6 +12,8 @@ export interface FunctionSampleResult {
   /** Result in the return unit, formatted with it; undefined when it can't evaluate. */
   display?: string;
   error?: string;
+  /** For narrow places: the error is a mistake in the formula, spelled out once where it's edited. */
+  short?: string;
 }
 
 // Tries a function with typed values, through the same callFunction calculators use.
@@ -26,6 +30,9 @@ export function evaluateFunctionSample(input: {
 }): FunctionSampleResult {
   const { func } = input;
   if (!func.formula.trim()) return { error: 'Add a formula to try this function.' };
+  // How the formula is written doesn't depend on the values, so it's reported before they're asked for.
+  const syntaxError = findSyntaxError(func.formula);
+  if (syntaxError) return { error: syntaxError, short: 'Error' };
 
   const kinds = getFunctionParamKinds(func);
   const args: Record<string, FunctionArgValue> = {};
@@ -64,6 +71,8 @@ export function evaluateFunctionSample(input: {
     const formatted = formatDisplayNumber(shown);
     return { display: func.returnUnitSymbol ? `${formatted} ${func.returnUnitSymbol}` : formatted };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Could not evaluate this function.' };
+    return error instanceof Error
+      ? { error: friendlyEvaluationMessage(error.message), short: 'Error' }
+      : { error: 'Could not evaluate this function.' };
   }
 }
