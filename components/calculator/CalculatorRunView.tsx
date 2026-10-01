@@ -7,6 +7,7 @@ import { Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { HeaderDivider } from '@/components/shared/OverflowMenu';
 import type { Calculator, CalculatorLibrary } from '@/lib/calculator/types';
 import { useUseOnlyMode } from '@/hooks/use-device';
 import { CalculatorForm } from './CalculatorForm';
@@ -15,15 +16,17 @@ import { SendToQuoteDialog } from './SendToQuoteDialog';
 import { useCalculatorRun } from './useCalculatorRun';
 import { builderHref } from '@/components/calculator-builder/builder-href';
 
-
 // A calculator as staff use it, full size (mockup 4a): its sections with 46px inputs, and a
-// live pane with the results, part costs and the total to send to a quote.
+// live pane with the results, part costs and the total to send to a quote. The header follows
+// the editors': Reset · Edit │ Close, with no ⋯ and no Save, as there's nothing to save here.
 export function CalculatorRunView({ calculator, library }: { calculator: Calculator; library: CalculatorLibrary }) {
   const router = useRouter();
   const useOnly = useUseOnlyMode();
   const [sending, setSending] = useState(false);
   const run = useCalculatorRun(calculator, library, 'large');
   const category = calculator.category?.trim();
+  // The list with this calculator selected, in its category: the last crumb, and where Close goes.
+  const listHref = browseHref('/', { category, id: calculator.id });
 
   return (
     <div className="lg:h-[calc(100vh-var(--app-header-h))] lg:flex lg:flex-col">
@@ -32,7 +35,7 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
           <Breadcrumb
             items={[
               { label: 'Calculators', href: browseHref('/', { id: calculator.id }) },
-              ...(category ? [{ label: category, href: browseHref('/', { category, id: calculator.id }) }] : []),
+              ...(category ? [{ label: category, href: listHref }] : []),
             ]}
           />
         }
@@ -48,6 +51,10 @@ export function CalculatorRunView({ calculator, library }: { calculator: Calcula
                 Edit
               </Button>
             )}
+            <HeaderDivider />
+            <Button variant="secondary" onClick={() => router.push(listHref)}>
+              Close
+            </Button>
           </>
         }
       />

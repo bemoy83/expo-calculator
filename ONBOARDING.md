@@ -140,7 +140,9 @@ export can't have a page per calculator.
   stays, also on ⌘S / Ctrl+S (`useSaveShortcut`). A new item's first Save moves the
   address to its id (`router.replace`) and stays. The quote saves every change as it's
   made, so it has no Save: its eyebrow says "Saved automatically", "+ Add calculator"
-  keeps the accent, and Close goes to the board.
+  keeps the accent, and Close goes to the board. A calculator's full-size page isn't an
+  editor but follows the same order: Reset · Edit │ Close, with no ⋯ and no Save; Close goes
+  to the calculators list with the calculator selected, in its category.
 - Unsaved edits: Close, breadcrumb links and the app's own navigation (top bar tabs and
   brand, the navigation drawer) ask one question, "Save changes to {name}?" with Save,
   Discard and Keep editing (`shared/SaveChangesDialog`). Save that fails (e.g. a missing
