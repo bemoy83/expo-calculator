@@ -7,6 +7,7 @@ import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import type { FunctionParameter } from '@/hooks/use-parameter-manager';
+import type { ParameterSuggestion } from '@/lib/functions/function-editor-helpers';
 import { countParameterUses } from '@/lib/functions/function-usage';
 import { getFunctionParamKinds } from '@/lib/functions/param-kinds';
 import type { FunctionParamKind } from '@/lib/types';
@@ -19,6 +20,13 @@ const KIND_OPTIONS: Array<{ value: FunctionParamKind | ''; label: string }> = [
   { value: 'material', label: 'Material' },
   { value: 'labor', label: 'Labor' },
   { value: 'boolean', label: 'Yes/no' },
+];
+
+const GROUP_TITLES: Array<{ group: FunctionParamKind; title: string }> = [
+  { group: 'number', title: 'Numbers' },
+  { group: 'material', title: 'Materials' },
+  { group: 'labor', title: 'Labor' },
+  { group: 'boolean', title: 'Yes/no' },
 ];
 
 const KIND_NAME: Record<FunctionParamKind, string> = {
@@ -42,10 +50,10 @@ interface ParameterRailProps {
   onAdd: () => void;
   errors: Record<number, Record<string, string>>;
   /** From other functions and calculator inputs */
-  suggestions: FunctionParameter[];
+  suggestions: ParameterSuggestion[];
   /** Lower-cased names already used, so a suggestion shows as added */
   existingNames: Set<string>;
-  onReuse: (suggestion: FunctionParameter) => void;
+  onReuse: (suggestion: ParameterSuggestion) => void;
   /** A parameter just added opens with its Label field focused, ready to type. */
   focusLabelOf: number | null;
   onLabelFocused: () => void;
@@ -328,30 +336,43 @@ export function ParameterRail({
               Nothing to reuse yet. Parameters of your other functions, and calculator inputs, show here.
             </p>
           ) : (
-            suggestions.map((suggestion) => {
-              const added = existingNames.has(suggestion.name.toLowerCase());
-              const detail =
-                suggestion.kind && suggestion.kind !== 'number' ? KIND_NAME[suggestion.kind] : suggestion.unitSymbol;
-              return (
-                <button
-                  key={`${suggestion.name}|${suggestion.kind ?? ''}|${suggestion.unitSymbol ?? ''}`}
-                  type="button"
-                  onClick={() => onReuse(suggestion)}
-                  disabled={added}
-                  title={suggestion.label}
-                  aria-label={added ? `${suggestion.name} is already a parameter` : `Add ${suggestion.name} as a parameter`}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[13px] text-left enabled:hover:bg-surface-hover disabled:cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-                >
-                  {added ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-token-input" aria-hidden="true" />
-                  ) : (
-                    <Plus className="h-3.5 w-3.5 text-ink-muted" aria-hidden="true" />
-                  )}
-                  <span className={cn('font-numeric truncate', added ? 'text-ink-muted' : 'text-token-input')}>{suggestion.name}</span>
-                  {detail && <span className="ml-auto shrink-0 font-numeric text-xs text-ink-faint">{detail}</span>}
-                </button>
-              );
-            })
+            GROUP_TITLES.filter(({ group }) => suggestions.some((suggestion) => suggestion.group === group)).map(
+              ({ group, title }) => (
+                <div key={group} role="group" aria-label={title} className="flex flex-col gap-0.5">
+                  <Eyebrow as="h3" className="px-2.5 pt-1.5 pb-0.5">
+                    {title}
+                  </Eyebrow>
+                  {suggestions
+                    .filter((suggestion) => suggestion.group === group)
+                    .map((suggestion) => {
+                      const added = existingNames.has(suggestion.name.toLowerCase());
+                      return (
+                        <button
+                          key={`${suggestion.name}|${suggestion.group}|${suggestion.unitSymbol ?? ''}`}
+                          type="button"
+                          onClick={() => onReuse(suggestion)}
+                          disabled={added}
+                          title={`${suggestion.label} · in ${suggestion.uses} ${suggestion.uses === 1 ? 'place' : 'places'}`}
+                          aria-label={added ? `${suggestion.name} is already a parameter` : `Add ${suggestion.name} as a parameter`}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[13px] text-left enabled:hover:bg-surface-hover disabled:cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                        >
+                          {added ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-token-input" aria-hidden="true" />
+                          ) : (
+                            <Plus className="h-3.5 w-3.5 text-ink-muted" aria-hidden="true" />
+                          )}
+                          <span className={cn('font-numeric truncate', added ? 'text-ink-muted' : 'text-token-input')}>
+                            {suggestion.name}
+                          </span>
+                          {suggestion.unitSymbol && (
+                            <span className="ml-auto shrink-0 font-numeric text-xs text-ink-faint">{suggestion.unitSymbol}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              )
+            )
           )}
         </div>
       )}

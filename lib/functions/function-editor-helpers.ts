@@ -1,5 +1,6 @@
 import type { Calculator } from "../calculator/types";
-import type { Labor, Material, SharedFunction } from "../types";
+import type { FunctionParamKind, Labor, Material, SharedFunction } from "../types";
+import { getFunctionParamKinds } from "./param-kinds";
 import { categoryForName, editDistance, getMaterialCategories, sameCategory } from '../utils/material-category';
 import { isValidName } from '../formula/identifiers';
 
@@ -21,48 +22,86 @@ export type FunctionAutocompleteCandidate = {
 
 type FunctionParameter = SharedFunction["parameters"][number];
 
+export type ParameterSuggestion = FunctionParameter & {
+  /** What it expects, however the source left it unset: how the list is grouped */
+  group: FunctionParamKind;
+  /** How many functions and calculators have a parameter or input like it */
+  uses: number;
+};
+
+const GROUP_ORDER: FunctionParamKind[] = ["number", "material", "labor", "boolean"];
+
 /**
- * Parameters to reuse when writing a function: those of the other functions first, then
- * calculator inputs (text notes left out), each with its label, unit and kind. The same name
- * with a different unit or kind is offered separately (width in mm and width in m).
+ * Parameters to reuse when writing a function, each once: from the other functions, then
+ * calculator inputs (text notes left out), with label, unit and kind. "Left on automatic" and
+ * "number" are the same thing, and a name with no unit folds into the same name with one. The
+ * same name with different units stays separate (width in mm and width in m). Grouped by what
+ * they expect, the most used first.
  */
 export function getParameterSuggestions(
   functions: SharedFunction[],
   calculators: Calculator[],
   exceptFunctionId?: string
-): FunctionParameter[] {
-  const suggestions = new Map<string, FunctionParameter>();
-  const offer = (param: FunctionParameter) => {
+): ParameterSuggestion[] {
+  const suggestions = new Map<string, ParameterSuggestion>();
+  const offer = (param: FunctionParameter, group: FunctionParamKind) => {
     const name = param.name.trim();
     if (!name) return;
-    const key = [name.toLowerCase(), param.kind ?? '', param.unitSymbol ?? ''].join('|');
-    if (!suggestions.has(key)) suggestions.set(key, { ...param, name, label: param.label.trim() || name });
+    const key = [name.toLowerCase(), group, param.unitSymbol ?? ""].join("|");
+    const found = suggestions.get(key);
+    if (found) {
+      found.uses += 1;
+      if (!found.label.trim() || found.label === found.name) found.label = param.label.trim() || found.label;
+      return;
+    }
+    suggestions.set(key, { ...param, name, label: param.label.trim() || name, group, uses: 1 });
   };
 
   functions
     .filter((func) => func.id !== exceptFunctionId)
-    .forEach((func) => func.parameters.forEach((param) => offer({ ...param, required: true })));
+    .forEach((func) => {
+      const kinds = getFunctionParamKinds(func);
+      func.parameters.forEach((param) => offer({ ...param, required: true }, kinds[param.name] ?? "number"));
+    });
 
   calculators.forEach((calculator) => {
     calculator.inputs.forEach((input) => {
       const spec = input.value;
-      if (spec.kind === 'text') return;
-      if (spec.kind === 'number' || spec.kind === 'choice') {
-        offer({
-          name: input.key,
-          label: input.label,
-          unitSymbol: spec.unitSymbol || undefined,
-          unitCategory: spec.unitCategory,
-          required: true,
-        });
+      if (spec.kind === "text") return;
+      if (spec.kind === "number" || spec.kind === "choice") {
+        offer(
+          {
+            name: input.key,
+            label: input.label,
+            unitSymbol: spec.unitSymbol || undefined,
+            unitCategory: spec.unitCategory,
+            required: true,
+          },
+          "number"
+        );
       } else {
-        offer({ name: input.key, label: input.label, kind: spec.kind, required: true });
+        offer({ name: input.key, label: input.label, kind: spec.kind, required: true }, spec.kind);
       }
     });
   });
 
-  return Array.from(suggestions.values()).sort(
-    (a, b) => a.name.localeCompare(b.name) || (a.unitSymbol ?? '').localeCompare(b.unitSymbol ?? '')
+  // `height` with no unit is the same parameter as `height` in m; fold it into the one with a unit.
+  const list = Array.from(suggestions.values());
+  const merged = list.filter((item) => {
+    if (item.unitSymbol) return true;
+    const withUnit = list.find(
+      (other) => other.unitSymbol && other.group === item.group && other.name.toLowerCase() === item.name.toLowerCase()
+    );
+    if (withUnit) withUnit.uses += item.uses;
+    return !withUnit;
+  });
+
+  return merged.sort(
+    (a, b) =>
+      GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) ||
+      b.uses - a.uses ||
+      a.name.localeCompare(b.name) ||
+      (a.unitSymbol ?? "").localeCompare(b.unitSymbol ?? "")
   );
 }
 
@@ -83,7 +122,9 @@ export function addSuggestedParameter(
   if (!name) return parameters;
   if (parameters.some((param) => param.name.trim().toLowerCase() === name.toLowerCase())) return parameters;
 
-  const added: FunctionParameter = { ...suggestion, name, required: true };
+  // The grouping fields belong to the list, not to the parameter.
+  const { group: _group, uses: _uses, ...rest } = suggestion as FunctionParameter & Partial<ParameterSuggestion>;
+  const added: FunctionParameter = { ...rest, name, required: true };
   const blank = parameters.findIndex((param) => !param.name.trim() && !param.label.trim());
   if (blank === -1) return [...parameters, added];
   return parameters.map((param, index) => (index === blank ? added : param));

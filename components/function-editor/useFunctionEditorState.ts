@@ -12,6 +12,7 @@ import {
   getPropertyCandidatesForBase,
   FunctionFormData,
   getParameterSuggestions,
+  type ParameterSuggestion,
   getExistingParameterNames,
   getFormulaWithInsertedOperator,
   getFormulaWithInsertedToken,
@@ -131,7 +132,7 @@ export function useFunctionEditorState({
   );
 
   const addParameterFromSuggestion = useCallback(
-    (suggestion: SharedFunction['parameters'][number]) => {
+    (suggestion: ParameterSuggestion) => {
       setParameters((prev) => addSuggestedParameter(prev, suggestion));
     },
     [setParameters]

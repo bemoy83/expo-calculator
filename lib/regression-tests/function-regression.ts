@@ -39,22 +39,37 @@ const otherFunctions = [
 ] as unknown as SharedFunction[];
 const suggestions = getParameterSuggestions(otherFunctions, inputCalculators, 'self');
 assertCheck(
-  "suggests other functions' parameters, then calculator inputs, with label, unit and kind, not the function's own",
-  suggestions.map((param) => `${param.name}:${param.unitSymbol ?? param.kind ?? ''}`).join(',') ===
-    'board:material,depth:,height:m,height:mm,width:mm' &&
+  "suggests other functions' parameters, then calculator inputs, each once, grouped by kind, not the function's own",
+  suggestions.map((param) => `${param.name}:${param.group}:${param.unitSymbol ?? ''}`).join(',') ===
+    'width:number:mm,depth:number:,height:number:m,height:number:mm,board:material:' &&
     suggestions.find((param) => param.name === 'width')?.label === 'Wall width',
   JSON.stringify(suggestions)
 );
 
-const blankStart = [{ name: '', label: '', required: true }];
-const parameters = addSuggestedParameter(addSuggestedParameter(blankStart, suggestions[4]), suggestions[2]);
+const dupFunctions = [
+  { id: 'x', name: 'x', formula: 'a', parameters: [{ name: 'bredde', label: 'Bredde', unitSymbol: 'm' }, { name: 'høyde', label: 'Høyde' }] },
+  { id: 'y', name: 'y', formula: 'a', parameters: [{ name: 'bredde', label: 'Bredde', kind: 'number', unitSymbol: 'm' }, { name: 'høyde', label: 'Høyde', kind: 'number', unitSymbol: 'm' }] },
+  { id: 'z', name: 'z', formula: 'plate.width', parameters: [{ name: 'plate', label: 'Plate' }] },
+] as unknown as SharedFunction[];
+const deduped = getParameterSuggestions(dupFunctions, [], 'self');
 assertCheck(
-  'adds a suggested parameter with its unit, filling the blank one first, without duplicates',
+  'unset and number kinds are one, a unitless name folds into the one with a unit, material inferred, uses counted',
+  deduped.map((param) => `${param.name}:${param.group}:${param.unitSymbol ?? ''}:${param.uses}`).join(',') ===
+    'bredde:number:m:2,høyde:number:m:2,plate:material::1',
+  JSON.stringify(deduped)
+);
+
+const blankStart = [{ name: '', label: '', required: true }];
+const parameters = addSuggestedParameter(addSuggestedParameter(blankStart, suggestions[0]), suggestions[2]);
+assertCheck(
+  'adds a suggested parameter with its unit, filling the blank one first, without duplicates or list fields',
   parameters.length === 2 &&
     parameters[0].name === 'width' &&
     parameters[0].unitSymbol === 'mm' &&
     parameters[0].label === 'Wall width' &&
     parameters[1].unitSymbol === 'm' &&
+    !('group' in parameters[0]) &&
+    !('uses' in parameters[0]) &&
     addSuggestedParameter(parameters, { ...suggestions[3], name: 'HEIGHT' }) === parameters,
   JSON.stringify(parameters)
 );
