@@ -1,9 +1,11 @@
 'use client';
 
 import { useId, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Banknote, ChevronDown, Hash, ListOrdered, Percent, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Checkbox } from '@/components/ui/Checkbox';
+import { IconButton } from '@/components/ui/IconButton';
+import { Segmented } from '@/components/ui/Segmented';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { keyProblem, suggestKey } from '@/lib/calculator/editing';
@@ -13,18 +15,32 @@ import { callSignature, parseCalls, paramAt, type ParamSpec } from '@/lib/calcul
 import type { Calculator, CalculatorLibrary, CalculatorStep, StepFormat, StepResult } from '@/lib/calculator/types';
 import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
 import { cn } from '@/lib/utils';
-import { ConditionEditor } from './ConditionEditor';
+import { ConditionRow, NO_CONDITION_HINT, canStartCondition, startCondition } from './ConditionEditor';
 import { StepFormulaEditor } from './StepFormulaEditor';
 import { NAME } from '@/lib/formula/identifiers';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { calculatorFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
 
-const FORMAT_OPTIONS: Array<{ value: StepFormat; label: string }> = [
-  { value: 'number', label: 'Number' },
-  { value: 'money', label: 'Money' },
-  { value: 'count', label: 'Count' },
-  { value: 'percent', label: 'Percent' },
+// An icon per format; the chosen one also shows its name, so the control fits any width.
+const FORMATS: Array<{ value: StepFormat; label: string; Icon: typeof Hash }> = [
+  { value: 'number', label: 'Number', Icon: Hash },
+  { value: 'money', label: 'Money', Icon: Banknote },
+  { value: 'count', label: 'Count', Icon: ListOrdered },
+  { value: 'percent', label: 'Percent', Icon: Percent },
 ];
+
+function formatOptions(selected: StepFormat) {
+  return FORMATS.map(({ value, label, Icon }) => ({
+    value,
+    title: label,
+    label: (
+      <span className="inline-flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
+        <span className={value === selected ? undefined : 'sr-only'}>{label}</span>
+      </span>
+    ),
+  }));
+}
 
 /** Names in "Unknown name" errors that could become inputs. */
 export function unknownNameIn(message: string | undefined): string | undefined {
@@ -65,6 +81,83 @@ function parameterFor(expression: string, name: string, library: CalculatorLibra
     if (param) return param;
   }
   return undefined;
+}
+
+/** "Move to part ▾": a quiet 32px button over a transparent native select. */
+function MoveToPart({ calculator, step, onMoveToPart }: { calculator: Calculator; step: CalculatorStep; onMoveToPart: (partId: string) => void }) {
+  return (
+    <label className="relative inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-3 text-xs text-ink-muted transition-colors duration-150 hover:text-ink focus-within:ring-2 focus-within:ring-action">
+      Move to part
+      <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+      <select
+        aria-label="Move to part"
+        value=""
+        onChange={(event) => event.target.value && onMoveToPart(event.target.value)}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+      >
+        <option value="">Move to part…</option>
+        {calculator.parts
+          .filter((part) => part.id !== step.partId)
+          .map((part) => (
+            <option key={part.id} value={part.id}>
+              {part.name || 'Unnamed part'}
+            </option>
+          ))}
+      </select>
+    </label>
+  );
+}
+
+/** A switch row in the "In this part" strip: label and a one-line consequence, the whole row the hit target. */
+function StripToggle({
+  label,
+  note,
+  checked,
+  disabled,
+  title,
+  onChange,
+}: {
+  label: string;
+  note: string;
+  checked: boolean;
+  disabled?: boolean;
+  title?: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      title={title}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'step-toggle -mx-2 flex items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-surface-hover',
+        'transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
+        'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent'
+      )}
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-ink">{label}</span>
+        <span className="step-note block truncate text-xs text-ink-muted">{note}</span>
+      </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          'relative h-[22px] w-[38px] flex-none rounded-full transition-colors duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
+          checked ? 'bg-accent' : 'bg-border-strong'
+        )}
+      >
+        <span
+          className={cn(
+            'absolute top-[3px] h-4 w-4 rounded-full transition-[left] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
+            checked ? 'left-[19px] bg-accent-ink' : 'left-[3px] bg-surface'
+          )}
+        />
+      </span>
+    </button>
+  );
 }
 
 // One step in a part: collapsed it shows its label, formula and live value; expanded it
@@ -131,24 +224,24 @@ export function StepRow({
   return (
     <li
       className={cn(
-        'border transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
+        'step-card border transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
         // A closed step is a list row (hairline, surface fill on hover); the open one is a card
         // with the accent ring; a real error keeps its red border either way.
         expanded
-          ? cn('my-1 rounded-row bg-surface shadow-focus', isError ? 'border-danger' : 'border-accent')
+          ? cn('my-1 overflow-hidden rounded-row bg-surface shadow-focus', isError ? 'border-danger' : 'border-accent')
           : isError
             ? 'my-0.5 rounded-row border-danger-border'
             : 'border-transparent border-b-border hover:bg-surface hover:rounded-md'
       )}
     >
       {/* Closed (mockup 4b): index · label · formula · value. Open, the formula column says how it's used. */}
-      <div className="flex items-start gap-3 px-3.5 py-3">
+      <div className="flex items-baseline gap-3 px-4 py-3">
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={expanded}
           aria-controls={`${id}-editor`}
-          className="flex-1 min-w-0 grid grid-cols-[24px_minmax(0,1fr)] md:grid-cols-[24px_150px_minmax(0,1fr)] gap-x-3 gap-y-1 items-baseline text-left text-sm rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+          className="flex-1 min-w-0 grid step-summary grid-cols-[24px_150px_minmax(0,1fr)] gap-x-3 gap-y-1 items-baseline text-left text-sm rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           <span className={cn('font-numeric text-xs', expanded ? 'text-accent font-semibold' : 'text-ink-faint')}>{index}</span>
           <span className="flex items-center gap-2 min-w-0">
@@ -159,15 +252,11 @@ export function StepRow({
               </span>
             )}
           </span>
-          <span className="col-start-2 md:col-start-auto min-w-0">
-            {expanded ? (
-              <span className="text-xs text-ink-muted">{isShown ? 'Shown to staff' : 'Not shown to staff'}</span>
-            ) : (
-              <span className="block font-numeric text-[13px] text-ink-muted line-clamp-2 break-all">
-                <span className="text-token-result">{step.key}</span> ={' '}
-                {expression ? <FormulaText expression={expression} names={formulaNames} /> : '…'}
-              </span>
-            )}
+          <span className="min-w-0">
+            <span className={cn('block font-numeric text-[13px] text-ink-muted', expanded ? 'step-formula truncate' : 'line-clamp-2 break-all')}>
+              <span className="text-token-result">{step.key}</span> ={' '}
+              {expression ? <FormulaText expression={expression} names={formulaNames} /> : '…'}
+            </span>
             {!expanded && step.enabledWhen && (
               <span className="block mt-0.5 text-[11px] text-ink-muted truncate">
                 Only when {describeCondition(step.enabledWhen, calculator, library)}
@@ -175,11 +264,11 @@ export function StepRow({
             )}
           </span>
         </button>
-        <div className="shrink-0 w-[90px] max-w-[40%] text-right">{value}</div>
+        <div className="min-w-[90px] flex-none whitespace-nowrap text-right">{value}</div>
       </div>
 
       {unknownNames.length > 0 && !expanded && (
-        <div className="px-3.5 md:pl-[50px] pb-2 -mt-1.5 flex flex-wrap gap-x-2">
+        <div className="px-4 md:pl-[52px] pb-2 -mt-1.5 flex flex-wrap gap-x-2">
           {unknownNames.map((name) => (
             <Button key={name} variant="ghost" size="sm" onClick={() => onCreateInput(name, parameterFor(expression, name, library))}>
               <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
@@ -190,125 +279,122 @@ export function StepRow({
       )}
 
       {expanded && (
-        <div id={`${id}-editor`} className="pl-3.5 md:pl-[50px] pr-3.5 pb-4 pt-0.5 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="Label"
-              value={step.label}
-              placeholder="e.g. Stud count"
-              onChange={(event) => {
-                const label = event.target.value;
-                onChange(keyTouched ? { ...step, label } : { ...step, label, key: suggestKey(calculator, label, step.id, 'step') });
-              }}
-            />
-            <Input
-              label="Name in formulas"
-              value={step.key}
-              className="font-numeric"
-              error={nameProblem}
-              onChange={(event) => {
-                setKeyTouched(true);
-                onChange({ ...step, key: event.target.value.trim() });
-              }}
-            />
-          </div>
-
-          <div>
-            <StepFormulaEditor
-              id={`${id}-formula`}
-              label="Formula"
-              calculator={calculator}
-              step={step}
-              library={library}
-              value={expression}
-              onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
-            />
-            {isError && <p className="mt-1 text-xs text-danger">{result?.message}</p>}
-            {isIncomplete && result?.message && <p className="mt-1 text-xs text-ink-muted">{result.message}</p>}
-            {unknownNames.map((name) => (
-              <Button key={name} variant="ghost" size="sm" className="mt-1 mr-2" onClick={() => onCreateInput(name, parameterFor(expression, name, library))}>
-                <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-                Create input “{name}”
-              </Button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select
-              label="Shows as"
-              value={step.format ?? 'number'}
-              options={FORMAT_OPTIONS}
-              onChange={(event) => onChange({ ...step, format: event.target.value as StepFormat })}
-            />
-            {step.format !== 'money' && (
-              <Select
-                label="Unit"
-                value={step.unitSymbol ?? ''}
-                options={[
-                  { value: '', label: 'No unit' },
-                  ...getAllUnitSymbols().map((symbol) => ({ value: symbol, label: displayUnit(symbol) ?? symbol })),
-                  ...(step.unitSymbol && !getAllUnitSymbols().includes(step.unitSymbol)
-                    ? [{ value: step.unitSymbol, label: `${step.unitSymbol} (label only)` }]
-                    : []),
-                ]}
-                onChange={(event) => {
-                  const unitSymbol = event.target.value || undefined;
-                  onChange({
-                    ...step,
-                    unitSymbol,
-                    unitCategory: unitSymbol ? getUnitCategory(unitSymbol) : undefined,
-                    unitIsLabel: undefined,
-                  });
-                }}
-              />
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            <Checkbox label="This is the part's cost" checked={isCost} onChange={(event) => onSetCost(event.target.checked)} />
-            <Checkbox label="Show to staff" checked={isShown} onChange={(event) => onSetShown(event.target.checked)} />
-          </div>
-
-          <div>
-            <ConditionEditor
-              label="Only calculate when…"
-              calculator={calculator}
-              condition={step.enabledWhen}
-              library={library}
-              onChange={(enabledWhen) => onChange({ ...step, enabledWhen })}
-            />
-            {step.enabledWhen && (
-              <p className="mt-1 pl-6 text-xs text-ink-muted">Otherwise this step counts as 0, and so do totals that use it.</p>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <Button variant="ghost" size="sm" onClick={() => onMove(-1)} disabled={isFirst} aria-label="Move step up">
-              <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => onMove(1)} disabled={isLast} aria-label="Move step down">
-              <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
-            </Button>
-            {calculator.parts.length > 1 && (
-              <div className="w-44">
-                <Select
-                  aria-label="Move to part"
-                  value=""
-                  options={[
-                    { value: '', label: 'Move to part…' },
-                    ...calculator.parts
-                      .filter((part) => part.id !== step.partId)
-                      .map((part) => ({ value: part.id, label: part.name || 'Unnamed part' })),
-                  ]}
-                  onChange={(event) => event.target.value && onMoveToPart(event.target.value)}
+        <div id={`${id}-editor`} className="border-t border-border">
+          <div className="step-body">
+            <div className="flex min-w-0 flex-col gap-3.5 p-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="Label"
+                  value={step.label}
+                  placeholder="e.g. Stud count"
+                  onChange={(event) => {
+                    const label = event.target.value;
+                    onChange(keyTouched ? { ...step, label } : { ...step, label, key: suggestKey(calculator, label, step.id, 'step') });
+                  }}
+                />
+                <Input
+                  label="Name in formulas"
+                  value={step.key}
+                  className="font-numeric text-token-result"
+                  error={nameProblem}
+                  onChange={(event) => {
+                    setKeyTouched(true);
+                    onChange({ ...step, key: event.target.value.trim() });
+                  }}
                 />
               </div>
-            )}
-            <Button variant="ghost" size="sm" className="ml-auto text-danger" onClick={onRemove}>
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-              Delete step
-            </Button>
+
+              <div>
+                <StepFormulaEditor
+                  id={`${id}-formula`}
+                  label="Formula"
+                  calculator={calculator}
+                  step={step}
+                  library={library}
+                  value={expression}
+                  onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
+                />
+                {isError && <p className="mt-1 text-xs text-danger">{result?.message}</p>}
+                {isIncomplete && result?.message && <p className="mt-1 text-xs text-ink-muted">{result.message}</p>}
+                {unknownNames.map((name) => (
+                  <Button key={name} variant="ghost" size="sm" className="mt-1 mr-2" onClick={() => onCreateInput(name, parameterFor(expression, name, library))}>
+                    <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                    Create input “{name}”
+                  </Button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-[minmax(0,1fr)_110px] gap-3">
+                <div>
+                  <span id={`${id}-format`} className="mb-1.5 block text-xs text-ink-muted">
+                    Shows as
+                  </span>
+                  <Segmented
+                    block
+                    aria-labelledby={`${id}-format`}
+                    className="!h-[42px]"
+                    options={formatOptions(step.format ?? 'number')}
+                    value={step.format ?? 'number'}
+                    onChange={(format) => onChange({ ...step, format })}
+                  />
+                </div>
+                {/* Money and percent fix the unit; the field stays so the row keeps its shape. */}
+                {step.format === 'money' || step.format === 'percent' ? (
+                  <Select label="Unit" disabled value="" options={[{ value: '', label: step.format === 'money' ? 'kr' : '%' }]} />
+                ) : (
+                  <Select
+                    label="Unit"
+                    value={step.unitSymbol ?? ''}
+                    options={[
+                      { value: '', label: 'No unit' },
+                      ...getAllUnitSymbols().map((symbol) => ({ value: symbol, label: displayUnit(symbol) ?? symbol })),
+                      ...(step.unitSymbol && !getAllUnitSymbols().includes(step.unitSymbol)
+                        ? [{ value: step.unitSymbol, label: `${step.unitSymbol} (label only)` }]
+                        : []),
+                    ]}
+                    onChange={(event) => {
+                      const unitSymbol = event.target.value || undefined;
+                      onChange({
+                        ...step,
+                        unitSymbol,
+                        unitCategory: unitSymbol ? getUnitCategory(unitSymbol) : undefined,
+                        unitIsLabel: undefined,
+                      });
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="step-strip bg-panel">
+              <Eyebrow className="step-eyebrow mb-1 !text-[11px]">In this part</Eyebrow>
+              <div className="step-toggles">
+                <StripToggle label="Part's cost" note="Adds to the total" checked={isCost} onChange={onSetCost} />
+                <StripToggle label="Show to staff" note="A result row on the form" checked={isShown} onChange={onSetShown} />
+                <StripToggle
+                  label="Only when…"
+                  note={step.enabledWhen ? describeCondition(step.enabledWhen, calculator, library) : 'Always'}
+                  checked={!!step.enabledWhen}
+                  disabled={!step.enabledWhen && !canStartCondition(calculator)}
+                  title={!step.enabledWhen && !canStartCondition(calculator) ? NO_CONDITION_HINT : undefined}
+                  onChange={(on) => onChange({ ...step, enabledWhen: on ? startCondition(calculator, library) : undefined })}
+                />
+              </div>
+              <div className="step-foot">
+                <IconButton label="Move step up" icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />} onClick={() => onMove(-1)} disabled={isFirst} />
+                <IconButton label="Move step down" icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />} onClick={() => onMove(1)} disabled={isLast} />
+                {calculator.parts.length > 1 && <MoveToPart calculator={calculator} step={step} onMoveToPart={onMoveToPart} />}
+                <Button variant="danger" size="sm" className="ml-auto" onClick={onRemove}>
+                  <span className="step-wide-only">Delete</span>
+                  <span className="step-narrow-only">Delete step</span>
+                </Button>
+              </div>
+            </div>
           </div>
+
+          {step.enabledWhen && (
+            <ConditionRow calculator={calculator} condition={step.enabledWhen} library={library} onChange={(enabledWhen) => onChange({ ...step, enabledWhen })} />
+          )}
         </div>
       )}
     </li>

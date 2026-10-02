@@ -350,3 +350,32 @@
     border-color: rgb(var(--border-strong));
   }
 }
+
+/* Builder step card (BUILDER-STEP.md 2a): layout follows the card's own width, not the window,
+   since the pane depends on whether the rail and live pane are open. Wide: fields left, an
+   "In this part" strip right. Below 640px: one column, the strip becomes a band at the bottom. */
+.step-card { container-type: inline-size; container-name: step; }
+.step-body { display: grid; grid-template-columns: minmax(0, 720px) minmax(260px, 1fr); }
+.step-strip { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-left: 1px solid rgb(var(--border)); }
+.step-toggles { display: flex; flex-direction: column; gap: 2px; }
+.step-foot { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid rgb(var(--border)); }
+.step-cond { display: grid; grid-template-columns: 110px minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) 80px; gap: 10px; align-items: center; }
+.step-cond-test { display: contents; }
+.step-narrow-only { display: none; }
+@container step (max-width: 640px) {
+  .step-body { grid-template-columns: minmax(0, 1fr); }
+  .step-strip { border-left: 0; border-top: 1px solid rgb(var(--border)); padding: 14px 16px; }
+  .step-eyebrow, .step-note, .step-wide-only, .step-formula { display: none; }
+  .step-narrow-only { display: inline; }
+  .step-toggles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-bottom: 12px; }
+  .step-toggle { flex-direction: row-reverse; justify-content: flex-end; }
+  .step-cond { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  /* A closed step stacks its formula under the label; an open one drops it. */
+  .step-summary { grid-template-columns: 24px minmax(0, 1fr); }
+  .step-summary > :nth-child(3) { grid-column: 2; }
+  .step-cond > * { grid-column: 1 / -1; }
+  .step-cond-test { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .step-cond-test > * { grid-column: auto; }
+}
+.step-cond-note { grid-column: 2 / -1; }
+@container step (max-width: 640px) { .step-cond-note { grid-column: 1 / -1; } }

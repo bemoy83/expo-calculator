@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { ArrowDown, ArrowUp, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
 import { DashedAdd } from '@/components/ui/DashedAdd';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import type { FieldSize } from '@/components/ui/field-styles';
@@ -151,14 +152,10 @@ export const PartSteps = memo(function PartSteps({
           placeholder="Part name"
           className="flex-1 min-w-[160px] bg-transparent text-xl font-bold tracking-[-.02em] text-ink border-b border-transparent hover:border-border-strong focus:border-accent focus:outline-none transition-colors"
         />
-        <div className="flex items-center">
-          <Button variant="ghost" size="sm" className="px-2" onClick={() => onMove(-1)} disabled={isFirst} aria-label={`Move ${part.name || 'part'} up`}>
-            <ArrowUp className="h-4 w-4" aria-hidden="true" />
-          </Button>
-          <Button variant="ghost" size="sm" className="px-2" onClick={() => onMove(1)} disabled={isLast} aria-label={`Move ${part.name || 'part'} down`}>
-            <ArrowDown className="h-4 w-4" aria-hidden="true" />
-          </Button>
-          <Button variant="danger" size="sm" className="px-2.5" onClick={onRemove}>
+        <div className="flex items-center gap-2">
+          <IconButton label={`Move ${part.name || 'part'} up`} icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />} onClick={() => onMove(-1)} disabled={isFirst} />
+          <IconButton label={`Move ${part.name || 'part'} down`} icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />} onClick={() => onMove(1)} disabled={isLast} />
+          <Button variant="danger" size="sm" onClick={onRemove}>
             Delete part
           </Button>
         </div>

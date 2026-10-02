@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface SegmentedProps<T extends string> {
-  options: { value: T; label: React.ReactNode }[];
+  options: { value: T; label: React.ReactNode; /** Tooltip, for icon-only options */ title?: string }[];
   value: T;
   onChange?: (value: T) => void;
   /** Stretch the segments to fill the width */
@@ -52,6 +52,7 @@ export function Segmented<T extends string>({
             type="button"
             role="radio"
             aria-checked={on}
+            title={option.title}
             onClick={() => onChange?.(option.value)}
             className={cn(
               'px-3.5 rounded-sm border whitespace-nowrap',
