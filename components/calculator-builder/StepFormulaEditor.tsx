@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
 import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
+import { propertyNamesFor } from '@/lib/calculator/call-context';
+import { CallProblems, useCallProblems } from './CallProblems';
 
 const MATH_FUNCTIONS = [
   { name: 'ceil', description: 'Round up' },
@@ -28,13 +30,7 @@ function useCandidates(calculator: Calculator, step: CalculatorStep, library: Ca
       if (input.value.kind === 'text') continue;
       candidates.push({ name: input.key, displayName: input.key, type: 'field', description: input.label });
       if (input.value.kind === 'material' || input.value.kind === 'labor') {
-        const category = input.value.category;
-        const items: Array<{ category: string; properties?: Array<{ name: string }> }> =
-          input.value.kind === 'material' ? library.materials : library.labor;
-        const properties = new Set<string>();
-        items
-          .filter((item) => !category || item.category === category)
-          .forEach((item) => item.properties?.forEach((property) => properties.add(property.name)));
+        const properties = propertyNamesFor(input, library);
         properties.forEach((property) =>
           candidates.push({
             name: `${input.key}.${property}`,
@@ -71,6 +67,7 @@ function useCandidates(calculator: Calculator, step: CalculatorStep, library: Ca
 // arrows and Enter or Tab.
 export function StepFormulaEditor({
   id,
+  label,
   calculator,
   step,
   library,
@@ -79,6 +76,7 @@ export function StepFormulaEditor({
   onChange,
 }: {
   id: string;
+  label?: string;
   calculator: Calculator;
   step: CalculatorStep;
   library: CalculatorLibrary;
@@ -87,6 +85,7 @@ export function StepFormulaEditor({
   onChange: (value: string) => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const problems = useCallProblems(value, calculator, library);
   const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
   const candidates = useCandidates(calculator, step, library);
   const stepKeys = useMemo(() => new Set(calculator.steps.map((other) => other.key)), [calculator.steps]);
@@ -113,6 +112,7 @@ export function StepFormulaEditor({
       <Textarea
         ref={textareaRef}
         id={id}
+        label={label}
         autoGrow
         rows={2}
         value={value}
@@ -137,6 +137,7 @@ export function StepFormulaEditor({
           tidyFormulaAfterBlur(textareaRef.current, onChange);
         }}
       />
+      <CallProblems problems={problems} />
       {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
         <div
           role="listbox"

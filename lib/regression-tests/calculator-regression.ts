@@ -5,7 +5,6 @@ import {
   addPart,
   addSection,
   addStep,
-  bindCallParameters,
   costedParts,
   showsStaffResults,
   conditionInputs,
@@ -45,7 +44,8 @@ import { copyName, duplicateLine, groupCalculatorsByCategory, insertLine, lineCa
 import { roundMoney } from '../calculations/money';
 import { calculatorFromModule } from '../calculator/from-module';
 import { calculatorFromTemplate, calculatorsFromTemplates } from '../calculator/from-template';
-import { callToExpression, expressionToCall } from '../calculator/step-source';
+import { callStepsToFormulas, callToExpression } from '../calculator/step-source';
+import { findCallProblems, parseCalls } from '../calculator/call-context';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import { describeFunctionUsage, findFunctionUsage } from '../functions/function-usage';
 import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues } from '../calculator/types';
@@ -664,41 +664,31 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
     [expressionStep('p', 'cols', 'sheets_width(width, sheets)'), expressionStep('p', 'twice', 'cols * 2')]
   );
 
-  const call = expressionToCall('sheets_width(width, sheets)', calc, functions);
-  const withProperty = expressionToCall('area_rectangle(cols, sheets.width)', calc, functions);
-  const constant = expressionToCall('spill(15)', calc, functions);
-  assertCheck(
-    'turns a formula that is one function call into a function-call step',
-    call?.functionName === 'sheets_width' &&
-      call.args.width.type === 'input' &&
-      call.args.material.type === 'input' &&
-      withProperty?.args.width.type === 'step' &&
-      withProperty.args.height.type === 'property' &&
-      constant?.args.spill.type === 'constant',
-    JSON.stringify({ call, withProperty, constant })
-  );
-  assertCheck(
-    "leaves formulas that aren't a single plain call as formulas",
-    expressionToCall('sheets_width(width, sheets) * 2', calc, functions) === undefined &&
-      expressionToCall('spill(width * 2)', calc, functions) === undefined &&
-      expressionToCall('nope(width)', calc, functions) === undefined &&
-      expressionToCall('area_rectangle(width)', calc, functions) === undefined
-  );
+  const call = {
+    type: 'call' as const,
+    functionName: 'sheets_width',
+    args: { width: { type: 'input' as const, key: 'width' }, material: { type: 'input' as const, key: 'sheets' } },
+  };
+  const withProperty = {
+    type: 'call' as const,
+    functionName: 'area_rectangle',
+    args: { width: { type: 'step' as const, key: 'cols' }, height: { type: 'property' as const, inputKey: 'sheets', property: 'width' } },
+  };
   assertCheck(
     'writes a function-call step back as a formula, numbers in base units',
-    callToExpression(withProperty!, functions) === 'area_rectangle(cols, sheets.width)' &&
+    callToExpression(withProperty, functions) === 'area_rectangle(cols, sheets.width)' &&
       callToExpression({ type: 'call', functionName: 'spill', args: { spill: { type: 'constant', value: 60, unitSymbol: 'cm' } } }, functions) ===
         'spill(0.6)' &&
       callToExpression({ type: 'call', functionName: 'area_rectangle', args: { width: { type: 'input', key: 'width' } } }, functions) ===
         'area_rectangle(width, ?)'
   );
 
-  const asCall = { ...calc, steps: calc.steps.map((step) => (step.key === 'cols' ? { ...step, source: call! } : step)) };
+  const asCall = { ...calc, steps: calc.steps.map((step) => (step.key === 'cols' ? { ...step, source: call } : step)) };
   const numberForMaterial = {
     ...calc,
     steps: calc.steps.map((step) =>
       step.key === 'cols'
-        ? { ...step, source: { ...call!, args: { ...call!.args, material: { type: 'input' as const, key: 'width' } } } }
+        ? { ...step, source: { ...call, args: { ...call.args, material: { type: 'input' as const, key: 'width' } } } }
         : step
     ),
   };
@@ -1095,78 +1085,6 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
   );
 }
 
-// ---- Inputs from function parameters ----
-
-{
-  const area = {
-    ...fn('area_of', ['width', 'height', 'board'], 'width * height * board.price'),
-    parameters: [
-      { name: 'width', label: 'Width', unitSymbol: 'mm' },
-      { name: 'height', label: 'Height', unitSymbol: 'mm' },
-      { name: 'board', label: 'Board', kind: 'material' as const },
-    ],
-  };
-  const pick = (calc: Calculator) =>
-    bindCallParameters(
-      updateStep(calc, { ...calc.steps[0], source: { type: 'call', functionName: 'area_of', args: {} } }),
-      calc.steps[0].id,
-      [area],
-      createId
-    );
-
-  const fresh = pick(build([], [{ id: 'p', name: 'P' }], [expressionStep('p', 'cost', '')], {
-    layout: [{ id: 'inputs', items: [] }],
-  }));
-  const args = fresh.calculator.steps[0].source.type === 'call' ? fresh.calculator.steps[0].source.args : {};
-  const width = fresh.calculator.inputs.find((input) => input.key === 'width');
-  assertCheck(
-    'picking a function makes an input per parameter, with its label, unit and kind, and links them',
-    fresh.created.map((input) => input.key).join() === 'width,height,board' &&
-      width?.label === 'Width' &&
-      width.value.kind === 'number' &&
-      width.value.unitSymbol === 'mm' &&
-      width.value.unitCategory === 'length' &&
-      fresh.calculator.inputs.find((input) => input.key === 'board')?.value.kind === 'material' &&
-      (args.width as { key: string }).key === 'width' &&
-      (args.board as { key: string }).key === 'board' &&
-      fresh.calculator.layout[0].items.length === 3,
-    JSON.stringify(fresh.calculator)
-  );
-
-  const existing = pick(
-    build(
-      [numberInput('width', 4), { ...numberInput('board'), label: 'Board number' }],
-      [{ id: 'p', name: 'P' }],
-      [expressionStep('p', 'cost', ''), expressionStep('p', 'height', '2')]
-    )
-  );
-  const linked = existing.calculator.steps[0].source.type === 'call' ? existing.calculator.steps[0].source.args : {};
-  assertCheck(
-    'reuses an input or result of the same name, and makes a new name when the one in use is the wrong kind',
-    existing.created.map((input) => input.key).join() === 'board_2' &&
-      linked.width.type === 'input' &&
-      linked.height.type === 'step' &&
-      (linked.board as { key: string }).key === 'board_2' &&
-      existing.calculator.inputs.length === 3,
-    JSON.stringify(linked)
-  );
-
-  const kept = bindCallParameters(
-    updateStep(fresh.calculator, {
-      ...fresh.calculator.steps[0],
-      source: { type: 'call', functionName: 'area_of', args: { width: { type: 'constant', value: 2 } } },
-    }),
-    fresh.calculator.steps[0].id,
-    [area],
-    createId
-  );
-  const keptArgs = kept.calculator.steps[0].source.type === 'call' ? kept.calculator.steps[0].source.args : {};
-  assertCheck(
-    'leaves parameters that already have a value alone and adds nothing twice',
-    kept.created.length === 0 && keptArgs.width.type === 'constant' && kept.calculator.inputs.length === 3
-  );
-}
-
 // ---- Results staff see ----
 
 {
@@ -1344,5 +1262,118 @@ assertCheck(
       kinds('sum(lumber_count) + 2e3 * pi + nope + missing(1) + other.x') ===
         'sum:function lumber_count:result nope:unknown missing:unknown other.x:unknown' &&
       pieces.map((segment) => segment.text).join('') === 'lumber_count * material.price'
+  );
+}
+
+// ---- Call problems ----
+
+{
+  const multi = 'round(\n  area_rectangle(a, b) / (c + d),\n  2\n)';
+  const calls = parseCalls(multi);
+  assertCheck(
+    'reads calls across lines; grouping parentheses and board.width( are not calls',
+    calls.map((call) => call.name).join(',') === 'round,area_rectangle' &&
+      calls[0].args.map((arg) => arg.text).join('|') === 'area_rectangle(a, b) / (c + d)|2' &&
+      parseCalls('(a + b) * 2').length === 0 &&
+      parseCalls('board.width(1)').length === 0
+  );
+
+  const calc = build(
+    [
+      { id: 'in-w', key: 'wall_width', label: 'Wall width', widget: 'number', value: { kind: 'number', unitSymbol: 'm', unitCategory: 'length' } },
+      { id: 'in-a', key: 'wall_area', label: 'Wall area', widget: 'number', value: { kind: 'number', unitSymbol: 'm2', unitCategory: 'area' } },
+      { id: 'in-s', key: 'sheets', label: 'Sheets', widget: 'picker', value: { kind: 'material', category: 'Sheets' } },
+    ],
+    [{ id: 'p', name: 'P' }],
+    [expressionStep('p', 'cols', 'sheets_width(wall_width, sheets)')]
+  );
+  const sizedFunctions: SharedFunction[] = functions.map((func) =>
+    func.name === 'area_rectangle'
+      ? { ...func, parameters: func.parameters.map((param) => ({ ...param, unitSymbol: 'm', unitCategory: 'length' as const })) }
+      : func
+  );
+  const sized = { ...library, functions: sizedFunctions };
+  const problems = (expression: string) => findCallProblems(expression, calc, sized).map((problem) => problem.message);
+  assertCheck(
+    'flags a wrong argument count, a material for a number, and a unit of the wrong kind',
+    problems('area_rectangle(wall_width)').length === 1 &&
+      problems('area_rectangle(wall_width)')[0].includes('takes 2 arguments') &&
+      problems('area_rectangle(wall_width, sheets)')[0].includes('expects a number') &&
+      problems('area_rectangle(wall_width, wall_area)')[0].includes('expects a length') &&
+      problems('sheets_width(wall_width, wall_width)')[0].includes('expects a material'),
+    JSON.stringify([problems('area_rectangle(wall_width)'), problems('area_rectangle(wall_width, sheets)')])
+  );
+  assertCheck(
+    'leaves alone arguments it cannot judge: arithmetic, nested calls, unknown names, unclosed calls, math functions',
+    problems('area_rectangle(wall_width * 2, wall_width)').length === 0 &&
+      problems('area_rectangle(ceil(wall_width), wall_width)').length === 0 &&
+      problems('area_rectangle(nope, wall_width)').length === 0 &&
+      problems('area_rectangle(wall_width,').length === 0 &&
+      problems('max(wall_width, wall_area, 3)').length === 0 &&
+      problems('unknown_fn(1, 2, 3)').length === 0 &&
+      problems('ceil(wall_width)').length === 0 &&
+      problems('round(wall_width, 2)').length === 0
+  );
+}
+
+// ---- Function arguments that are formulas ----
+
+{
+  const calc = build(
+    [numberInput('width', 3.6), { id: 'input-sheets', key: 'sheets', label: 'Sheets', widget: 'picker', value: { kind: 'material', default: 'mdf_6mm' } }],
+    [{ id: 'p', name: 'P' }],
+    [
+      expressionStep('p', 'doubled', 'area_rectangle(width * 2, 3)'),
+      expressionStep('p', 'sheet', 'area_rectangle(width, sheets.width)'),
+      expressionStep('p', 'price', 'area_rectangle(2, sheets.price_per_sheet)'),
+      expressionStep('p', 'nested', 'area_rectangle(ceil(sheets_width(width, sheets) * 1.1), (width))'),
+      expressionStep('p', 'unknown', 'area_rectangle(nope, 1)'),
+    ]
+  );
+  const result = evaluateCalculator(calc, {}, library);
+  const value = (key: string) => result.steps[`step-${key}`].value;
+  assertCheck(
+    'function arguments may be arithmetic, material properties or nested calls',
+    close(value('doubled'), 3.6 * 2 * 3) &&
+      close(value('sheet'), 3.6 * 1.2) &&
+      close(value('price'), 2 * 312.56) &&
+      close(value('nested'), 4 * 3.6) &&
+      result.steps['step-unknown'].status === 'error' &&
+      (result.steps['step-unknown'].message ?? '').includes('nope'),
+    JSON.stringify(result.steps)
+  );
+}
+
+// ---- Function-call steps written as formulas ----
+
+{
+  const converted = callStepsToFormulas(called, functions);
+  const before = evaluateCalculator(called, {}, library);
+  const after = evaluateCalculator(converted, {}, library);
+  const expressionOf = (key: string) => {
+    const source = converted.steps.find((step) => step.key === key)!.source;
+    return source.type === 'expression' ? source.expression : '';
+  };
+  assertCheck(
+    'function-call steps become formulas that calculate the same',
+    converted.steps.every((step) => step.source.type === 'expression') &&
+      expressionOf('columns') === 'sheets_width(width, sheets)' &&
+      close(after.steps['step-columns'].value, before.steps['step-columns'].value ?? NaN) &&
+      close(after.steps['step-cost'].value, before.steps['step-cost'].value ?? NaN) &&
+      close(after.steps['step-spilled'].value, 1.15) &&
+      close(after.total, before.total ?? NaN),
+    JSON.stringify({ converted: converted.steps.map((step) => step.source), after: after.steps })
+  );
+  assertCheck(
+    'a call with a missing value is written with the parameter name, which then reads as an unknown name',
+    expressionOf('unbound') === 'area_rectangle(width, height)' &&
+      after.steps['step-unbound'].status === 'error' &&
+      (after.steps['step-unbound'].message ?? '').includes('Unknown name "height"'),
+    JSON.stringify(after.steps['step-unbound'])
+  );
+  assertCheck(
+    'a calculator with no function-call steps is returned as it is',
+    callStepsToFormulas(converted, functions) === converted &&
+      expressionOf('columns') === 'sheets_width(width, sheets)'
   );
 }

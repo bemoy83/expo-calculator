@@ -5,6 +5,22 @@ import { FunctionCall, MATH_FUNCTIONS, getOutermostFunctionCalls, parseFieldProp
 import { createFormulaResolver } from './resolver';
 import { findStandalone, isValidName, NAME_WITH_PROPERTY } from './identifiers';
 
+// An argument that isn't a name the formula knows or a number: a material or labor property
+// (`sheets.width`) or arithmetic (`width * 2`), worked out as a formula of its own. A single
+// name nothing matches is reported as such.
+function evaluateOtherArgument(
+  argument: string,
+  functionName: string,
+  paramName: string,
+  context: EvaluationContext,
+  functions: SharedFunction[]
+): number {
+  if (isValidName(argument)) {
+    throw new Error(`Variable '${argument}' not found for function '${functionName}' parameter '${paramName}'`);
+  }
+  return evaluateFormula(argument, { ...context, functions });
+}
+
 function evaluateFunctionCall(
   call: FunctionCall,
   context: EvaluationContext,
@@ -70,7 +86,7 @@ function evaluateFunctionCall(
             if (!isNaN(numValue) && isFinite(numValue)) {
               argValue = numValue;
             } else {
-              throw new Error(`Variable '${argVarName}' not found for function '${call.functionName}' parameter '${paramName}'`);
+              argValue = evaluateOtherArgument(argVarName, call.functionName, paramName, context, functions);
             }
           }
         }
@@ -88,7 +104,7 @@ function evaluateFunctionCall(
         if (!isNaN(numValue) && isFinite(numValue)) {
           argValue = numValue;
         } else {
-          throw new Error(`Variable '${argVarName}' not found for function '${call.functionName}' parameter '${paramName}'`);
+          argValue = evaluateOtherArgument(argVarName, call.functionName, paramName, context, functions);
         }
       }
     }
@@ -211,6 +227,9 @@ export function evaluateFormula(
       for (const arg of call.arguments) {
         if (isValidName(arg.trim()) && isNaN(Number(arg.trim()))) {
           functionCallArgs.add(arg.trim());
+        } else {
+          // An argument that is a formula of its own (`width * 2`) is worked out when the call is.
+          findStandalone(arg, NAME_WITH_PROPERTY)?.forEach((name) => functionCallArgs.add(name));
         }
       }
     }

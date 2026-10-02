@@ -1,9 +1,7 @@
-import { getOutermostFunctionCalls, parseFunctionCalls } from '../formula/parser';
 import type { SharedFunction } from '../types';
 import { normalizeToBase } from '../units';
 import { formatDisplayNumber } from '../utils';
 import type { Binding, Calculator, StepSource } from './types';
-import { NAME } from '../formula/identifiers';
 
 type CallSource = Extract<StepSource, { type: 'call' }>;
 
@@ -28,39 +26,30 @@ export function callToExpression(source: CallSource, functions: SharedFunction[]
   return `${source.functionName}(${names.map((name) => bindingToText(source.args[name])).join(', ')})`;
 }
 
-/**
- * A formula that is exactly one call of a shared function, with each argument an input, a
- * step, a number, or a property of a picked material/labor, as a function-call step.
- * Anything else (arithmetic around the call, nested calls, unknown names) gives undefined.
- */
-export function expressionToCall(
-  expression: string,
-  calculator: Calculator,
-  functions: SharedFunction[]
-): CallSource | undefined {
-  const trimmed = expression.trim();
-  const calls = getOutermostFunctionCalls(parseFunctionCalls(trimmed));
-  if (calls.length !== 1 || calls[0].startIndex !== 0 || calls[0].endIndex !== trimmed.length) return undefined;
-  const call = calls[0];
-  const fn = functions.find((candidate) => candidate.name === call.functionName);
-  if (!fn || call.arguments.length !== fn.parameters.length) return undefined;
-
-  const inputs = new Map(calculator.inputs.map((input) => [input.key, input]));
-  const stepKeys = new Set(calculator.steps.map((step) => step.key));
-  const args: Record<string, Binding> = {};
-  for (let i = 0; i < fn.parameters.length; i += 1) {
-    const text = call.arguments[i].trim();
-    const name = fn.parameters[i].name;
-    const property = text.match(new RegExp(`^(${NAME})\\.(${NAME})$`));
-    if (inputs.has(text)) args[name] = { type: 'input', key: text };
-    else if (stepKeys.has(text)) args[name] = { type: 'step', key: text };
-    else if (text !== '' && Number.isFinite(Number(text))) args[name] = { type: 'constant', value: Number(text) };
-    else if (
-      property &&
-      (inputs.get(property[1])?.value.kind === 'material' || inputs.get(property[1])?.value.kind === 'labor')
-    ) {
-      args[name] = { type: 'property', inputKey: property[1], property: property[2] };
-    } else return undefined;
+function callStepFormula(source: CallSource, functions: SharedFunction[]): string {
+  if (!source.functionName) return '';
+  const fn = functions.find((candidate) => candidate.name === source.functionName);
+  const args = { ...source.args };
+  for (const param of fn?.parameters ?? []) {
+    if (param.name && !args[param.name]) args[param.name] = { type: 'input', key: param.name };
   }
-  return { type: 'call', functionName: fn.name, args };
+  return callToExpression({ ...source, args }, functions);
+}
+
+/**
+ * The calculator with every function-call step written as the formula it stands for, so a
+ * step is only ever edited as a formula. A parameter with no value is written by its own
+ * name, which the formula then flags as unknown (and offers to make an input); a call with
+ * no function yet becomes an empty formula.
+ */
+export function callStepsToFormulas(calculator: Calculator, functions: SharedFunction[]): Calculator {
+  if (!calculator.steps.some((step) => step.source.type === 'call')) return calculator;
+  return {
+    ...calculator,
+    steps: calculator.steps.map((step) =>
+      step.source.type === 'call'
+        ? { ...step, source: { type: 'expression', expression: callStepFormula(step.source, functions) } }
+        : step
+    ),
+  };
 }

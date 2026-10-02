@@ -20,7 +20,7 @@ import type {
   CalculatorValue,
   CalculatorValues,
 } from '@/lib/calculator/types';
-import type { FunctionParamKind } from '@/lib/types';
+import type { ParamSpec } from '@/lib/calculator/call-context';
 import { cn } from '@/lib/utils';
 import { StepRow } from './StepRow';
 
@@ -100,8 +100,8 @@ interface PartStepsProps extends PartViewProps {
   onMoveStep: (stepId: string, direction: -1 | 1) => void;
   onMoveStepToPart: (stepId: string, partId: string) => void;
   onRemoveStep: (step: CalculatorStep) => void;
-  onCreateInput: (key?: string) => void;
-  onCreateInputFor: (stepId: string, paramName: string, kind: FunctionParamKind) => void;
+  /** A new input, named `key` and shaped like the parameter it fills, if it fills one. */
+  onCreateInput: (key?: string, param?: ParamSpec) => void;
 }
 
 // The chosen part's steps (mockup 4b, centre pane): its name, its steps as rows that open to
@@ -132,7 +132,6 @@ export const PartSteps = memo(function PartSteps({
   onMoveStepToPart,
   onRemoveStep,
   onCreateInput,
-  onCreateInputFor,
 }: PartStepsProps) {
   const partResult = result.parts[part.id];
   const steps = calculator.steps.filter((step) => step.partId === part.id);
@@ -193,7 +192,6 @@ export const PartSteps = memo(function PartSteps({
               onMoveToPart={(partId) => onMoveStepToPart(step.id, partId)}
               onRemove={() => onRemoveStep(step)}
               onCreateInput={onCreateInput}
-              onCreateInputFor={(paramName, kind) => onCreateInputFor(step.id, paramName, kind)}
             />
           ))}
         </ul>

@@ -24,7 +24,6 @@ import {
   addPart,
   addSection,
   addStep,
-  bindCallParameters,
   ensureLayoutIds,
   findLayoutItem,
   insertLayoutItem,
@@ -51,6 +50,7 @@ import {
   updateStep,
   unplacedInputs,
 } from '@/lib/calculator/editing';
+import { callStepsToFormulas } from '@/lib/calculator/step-source';
 import { useSettledErrors } from '@/hooks/use-settled-errors';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
 import { displayUnit, isStepError, stepDisplayLabel } from '@/lib/calculator/format';
@@ -110,7 +110,7 @@ interface CalculatorBuilderProps {
 export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, fromList, initialView = 'parts' }: CalculatorBuilderProps) {
   const router = useRouter();
   // Layout items get ids up front so a selection survives moving them.
-  const [calculator, setCalculator] = useState(() => ensureLayoutIds(initial, generateId));
+  const [calculator, setCalculator] = useState(() => ensureLayoutIds(callStepsToFormulas(initial, library.functions), generateId));
   // Name/category/description are edited here, separately from `calculator`, so typing in them
   // doesn't change `calculator`'s identity — which would otherwise re-run evaluation and
   // re-render the whole parts/layout tree on every keystroke for fields that don't affect either.
@@ -133,8 +133,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
     suggestedLabel?: string;
     suggestedUnitSymbol?: string;
     sectionId?: string;
-    /** A function-call step parameter to link the new input to. */
-    bindTo?: { stepId: string; paramName: string };
   } | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
 
@@ -173,24 +171,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
     setExpandedStepId(step.id);
   };
 
-  // Picking a function links its parameters to inputs of the same name, making the missing ones.
-  const changeStep = (step: CalculatorStep) => {
-    const previous = calculator.steps.find((candidate) => candidate.id === step.id);
-    const picked =
-      step.source.type === 'call' &&
-      !!step.source.functionName &&
-      (previous?.source.type !== 'call' || previous.source.functionName !== step.source.functionName);
-    if (!picked) {
-      edit((current) => updateStep(current, step));
-      return;
-    }
-    const { calculator: next, created } = bindCallParameters(updateStep(calculator, step), step.id, library.functions, generateId);
-    edit(() => next);
-    if (created.length > 0) {
-      notify({ message: `Added ${created.length === 1 ? 'an input' : `${created.length} inputs`}: ${created.map((input) => input.label).join(', ')}.` });
-    }
-  };
-
   const addNewPart = () => {
     const part = { id: generateId(), name: `Part ${calculator.parts.length + 1}` };
     edit((current) => addPart(current, part));
@@ -210,17 +190,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
         ? updateInput(current, input)
         : addInput(current, input, generateId, sectionId)
     );
-    const bindTo = inputDialog?.bindTo;
-    if (bindTo) {
-      edit((current) => {
-        const step = current.steps.find((candidate) => candidate.id === bindTo.stepId);
-        if (!step || step.source.type !== 'call') return current;
-        return updateStep(current, {
-          ...step,
-          source: { ...step.source, args: { ...step.source.args, [bindTo.paramName]: { type: 'input', key: input.key } } },
-        });
-      });
-    }
     if (sectionId) setSelection({ type: 'item', key: `input:${input.id}` });
     setInputDialog(null);
   };
@@ -591,7 +560,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
                 : edit((current) => removePart(current, part.id))
             }
             onAddStep={() => addStepTo(part.id)}
-            onStepChange={changeStep}
+            onStepChange={(step) => edit((current) => updateStep(current, step))}
             onSetCost={(stepId) => edit((current) => setPartCost(current, part.id, stepId))}
             onSetShown={(stepId, shown) => edit((current) => setStepShown(current, stepId, shown, generateId))}
             onMoveStep={(stepId, direction) => edit((current) => reorderStep(current, stepId, direction))}
@@ -600,23 +569,12 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
               edit((current) => removeStep(current, step.id));
               if (expandedStepId === step.id) setExpandedStepId(null);
             }}
-            onCreateInput={(key) => setInputDialog({ suggestedKey: key })}
-            onCreateInputFor={(stepId, paramName, kind) => {
-              const step = calculator.steps.find((candidate) => candidate.id === stepId);
-              const fn =
-                step?.source.type === 'call'
-                  ? library.functions.find((candidate) => candidate.name === (step.source as { functionName: string }).functionName)
-                  : undefined;
-              const param = fn?.parameters.find((candidate) => candidate.name === paramName);
-              const label = param?.label || paramName;
+            onCreateInput={(key, param) =>
               setInputDialog({
-                suggestedKey: suggestKey(calculator, label, undefined, 'value'),
-                suggestedKind: kind,
-                suggestedLabel: label,
-                suggestedUnitSymbol: param?.unitSymbol,
-                bindTo: { stepId, paramName },
-              });
-            }}
+                suggestedKey: key,
+                ...(param && { suggestedKind: param.kind, suggestedLabel: param.label, suggestedUnitSymbol: param.unitSymbol }),
+              })
+            }
           />
         ) : (
           <div className="rounded-row border border-dashed border-border-strong px-4 py-10 text-center">

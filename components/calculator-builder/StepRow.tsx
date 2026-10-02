@@ -8,17 +8,16 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { keyProblem, suggestKey } from '@/lib/calculator/editing';
 import { describeCondition, describeStepProblem, describeStepProblemShort, displayUnit, isStepError, formatStepValue } from '@/lib/calculator/format';
-import { callToExpression, expressionToCall } from '@/lib/calculator/step-source';
-import type { Calculator, CalculatorLibrary, CalculatorStep, StepFormat, StepResult, StepSource } from '@/lib/calculator/types';
-import type { FunctionParamKind } from '@/lib/types';
+import { callToExpression } from '@/lib/calculator/step-source';
+import { callSignature, parseCalls, paramAt, type ParamSpec } from '@/lib/calculator/call-context';
+import type { Calculator, CalculatorLibrary, CalculatorStep, StepFormat, StepResult } from '@/lib/calculator/types';
 import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
 import { cn } from '@/lib/utils';
 import { ConditionEditor } from './ConditionEditor';
-import { FunctionCallEditor } from './FunctionCallEditor';
 import { StepFormulaEditor } from './StepFormulaEditor';
 import { NAME } from '@/lib/formula/identifiers';
 import { FormulaText } from '@/components/formula/FormulaText';
-import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
+import { calculatorFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
 
 const FORMAT_OPTIONS: Array<{ value: StepFormat; label: string }> = [
   { value: 'number', label: 'Number' },
@@ -52,9 +51,20 @@ interface StepRowProps {
   onMove: (direction: -1 | 1) => void;
   onMoveToPart: (partId: string) => void;
   onRemove: () => void;
-  onCreateInput: (key: string) => void;
-  /** A new input bound to a parameter of this function-call step. */
-  onCreateInputFor: (paramName: string, kind: FunctionParamKind) => void;
+  /** A new input named `key`, shaped like the function parameter it's passed for, if any. */
+  onCreateInput: (key: string, param?: ParamSpec) => void;
+}
+
+/** The parameter of a shared function that `name` is passed as, to shape an input made for it. */
+function parameterFor(expression: string, name: string, library: CalculatorLibrary): ParamSpec | undefined {
+  for (const call of parseCalls(expression)) {
+    const signature = callSignature(call.name, library);
+    if (!signature || signature.builtIn) continue;
+    const index = call.args.findIndex((arg) => arg.text === name);
+    const param = index >= 0 ? paramAt(signature, index) : undefined;
+    if (param) return param;
+  }
+  return undefined;
 }
 
 // One step in a part: collapsed it shows its label, formula and live value; expanded it
@@ -79,7 +89,6 @@ export function StepRow({
   onMoveToPart,
   onRemove,
   onCreateInput,
-  onCreateInputFor,
 }: StepRowProps) {
   const id = useId();
   // The name follows the label until it's edited, or once the step has a real name.
@@ -90,30 +99,15 @@ export function StepRow({
   const unknown = unknownNameIn(result?.message);
   const nameProblem = keyProblem(calculator, step.key, step.id);
   const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
-  const expression = step.source.type === 'expression' ? step.source.expression : '';
-  const shownFormula =
-    step.source.type === 'expression'
-      ? expression
-      : step.source.functionName
-        ? callToExpression(step.source, library.functions)
-        : '';
-  // What the step was before switching, for when the other form can't be carried over (a
-  // formula that isn't one plain call, or a call without a function yet).
-  const [other, setOther] = useState<StepSource | null>(null);
-
-  const switchTo = (mode: StepSource['type']) => {
-    if (mode === step.source.type) return;
-    let next: StepSource;
-    if (mode === 'expression') {
-      next = shownFormula ? { type: 'expression', expression: shownFormula } : other?.type === 'expression' ? other : { type: 'expression', expression: '' };
-    } else {
-      next =
-        expressionToCall(expression, calculator, library.functions) ??
-        (other?.type === 'call' ? other : { type: 'call', functionName: '', args: {} });
-    }
-    setOther(step.source);
-    onChange({ ...step, source: next });
-  };
+  // Steps are edited as formulas; a call step that hasn't been converted yet reads as its formula.
+  const expression =
+    step.source.type === 'expression' ? step.source.expression : step.source.functionName ? callToExpression(step.source, library.functions) : '';
+  // Names the formula uses that nothing matches, once the error has settled, each offered as a new input.
+  const unknownNames = useMemo(() => {
+    if (!unknown) return [];
+    const names = unknownValueNames(expression, formulaNames);
+    return names.length > 0 ? names : [unknown];
+  }, [unknown, expression, formulaNames]);
 
   const value =
     result?.status === 'disabled' ? (
@@ -171,7 +165,7 @@ export function StepRow({
             ) : (
               <span className="block font-numeric text-[13px] text-ink-muted line-clamp-2 break-all">
                 <span className="text-token-result">{step.key}</span> ={' '}
-                {shownFormula ? <FormulaText expression={shownFormula} names={formulaNames} /> : '…'}
+                {expression ? <FormulaText expression={expression} names={formulaNames} /> : '…'}
               </span>
             )}
             {!expanded && step.enabledWhen && (
@@ -184,12 +178,14 @@ export function StepRow({
         <div className="shrink-0 w-[90px] max-w-[40%] text-right">{value}</div>
       </div>
 
-      {unknown && !expanded && (
-        <div className="px-3.5 md:pl-[50px] pb-2 -mt-1.5">
-          <Button variant="ghost" size="sm" onClick={() => onCreateInput(unknown)}>
-            <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-            Create input “{unknown}”
-          </Button>
+      {unknownNames.length > 0 && !expanded && (
+        <div className="px-3.5 md:pl-[50px] pb-2 -mt-1.5 flex flex-wrap gap-x-2">
+          {unknownNames.map((name) => (
+            <Button key={name} variant="ghost" size="sm" onClick={() => onCreateInput(name, parameterFor(expression, name, library))}>
+              <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              Create input “{name}”
+            </Button>
+          ))}
         </div>
       )}
 
@@ -218,60 +214,23 @@ export function StepRow({
           </div>
 
           <div>
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <span id={`${id}-mode`} className="text-xs font-medium text-ink-muted">
-                Calculate with
-              </span>
-              <div role="radiogroup" aria-labelledby={`${id}-mode`} className="flex gap-0.5 p-0.5 rounded-md bg-field">
-                {(
-                  [
-                    ['call', 'Function'],
-                    ['expression', 'Formula'],
-                  ] as const
-                ).map(([mode, label]) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    role="radio"
-                    aria-checked={step.source.type === mode}
-                    onClick={() => switchTo(mode)}
-                    className={cn(
-                      'h-6 px-2.5 rounded text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                      step.source.type === mode ? 'bg-field-raised text-ink' : 'text-ink-muted hover:text-ink'
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {step.source.type === 'call' ? (
-              <FunctionCallEditor
-                calculator={calculator}
-                step={step}
-                source={step.source}
-                library={library}
-                onChange={(source) => onChange({ ...step, source })}
-                onCreateInputFor={onCreateInputFor}
-              />
-            ) : (
-              <StepFormulaEditor
-                id={`${id}-formula`}
-                calculator={calculator}
-                step={step}
-                library={library}
-                value={expression}
-                onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
-              />
-            )}
+            <StepFormulaEditor
+              id={`${id}-formula`}
+              label="Formula"
+              calculator={calculator}
+              step={step}
+              library={library}
+              value={expression}
+              onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
+            />
             {isError && <p className="mt-1 text-xs text-danger">{result?.message}</p>}
             {isIncomplete && result?.message && <p className="mt-1 text-xs text-ink-muted">{result.message}</p>}
-            {unknown && (
-              <Button variant="ghost" size="sm" className="mt-1" onClick={() => onCreateInput(unknown)}>
+            {unknownNames.map((name) => (
+              <Button key={name} variant="ghost" size="sm" className="mt-1 mr-2" onClick={() => onCreateInput(name, parameterFor(expression, name, library))}>
                 <Plus className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-                Create input “{unknown}”
+                Create input “{name}”
               </Button>
-            )}
+            ))}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
