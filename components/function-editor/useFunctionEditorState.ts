@@ -4,20 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParameterManager } from '@/hooks/use-parameter-manager';
 import { validateFormula } from '@/lib/formula-evaluator';
 import type { FormulaErrorKind } from '@/lib/formula/validator';
-import {
-  addSuggestedParameter,
-  buildFunctionSaveData,
-  collectFunctionAutocompleteCandidates,
-  findUnknownMaterialProperties,
-  getPropertyCandidatesForBase,
-  FunctionFormData,
-  getParameterSuggestions,
-  storedParameterKey,
-  type ParameterSuggestion,
-  getExistingParameterNames,
-  isFunctionEditorFormSubmittable,
-  validateFunctionEditorForm,
-} from '@/lib/functions/function-editor-helpers';
+import { addSuggestedParameter, getParameterSuggestions, storedParameterKey, type ParameterSuggestion, getExistingParameterNames } from '@/lib/functions/parameter-suggestions';
+import { buildFunctionSaveData, FunctionFormData, isFunctionEditorFormSubmittable, validateFunctionEditorForm } from '@/lib/functions/function-form';
+import { collectFunctionAutocompleteCandidates, getPropertyCandidatesForBase } from '@/lib/functions/autocomplete-candidates';
+import { findUnknownMaterialProperties } from '@/lib/functions/material-properties';
 import type { Calculator } from '@/lib/calculator/types';
 import type { Labor, Material, SharedFunction } from '@/lib/types';
 

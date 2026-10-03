@@ -8,7 +8,7 @@ import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import type { FunctionParameter } from '@/hooks/use-parameter-manager';
-import type { ParameterSuggestion } from '@/lib/functions/function-editor-helpers';
+import type { ParameterSuggestion } from '@/lib/functions/parameter-suggestions';
 import { countParameterUses } from '@/lib/functions/function-usage';
 import { getFunctionParamKinds } from '@/lib/functions/param-kinds';
 import type { FunctionParamKind } from '@/lib/types';

@@ -29,7 +29,7 @@ import { getMaterialCategories } from '@/lib/utils/material-category';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
-import { parameterNeedsDefinition } from '@/lib/functions/function-editor-helpers';
+import { parameterNeedsDefinition } from '@/lib/functions/parameter-suggestions';
 import { analyzeUnits, declaredUnitProblem, describeNameUnit } from '@/lib/formula/unit-analysis';
 import { declaredCategory, functionUnitResolver } from '@/lib/formula/unit-resolvers';
 import { classifyFormulaIssues, formulaStatus } from '@/lib/functions/formula-issues';

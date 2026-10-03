@@ -103,6 +103,9 @@ export interface SharedFunction {
   updatedAt: string;
 }
 
+/** One parameter of a shared function. */
+export type SharedFunctionParameter = SharedFunction['parameters'][number];
+
 /**
  * A committed line item in the quote (added via "Add to Quote")
  * This represents a snapshot of a module configuration at the time it was added

@@ -28,7 +28,7 @@ import { renderHover, renderProblems, renderSignature, renderSuggestionRow, sugg
 import { minimalChange } from '@/lib/formula/minimal-change';
 import type { FormulaDiagnostic, FormulaNote } from '@/lib/formula/issue-levels';
 import { filterSuggestions, getWordAtCursor, type AutocompleteSuggestion } from '@/lib/formula/suggestions';
-import { getFormulaWithInsertedOperator, getFormulaWithInsertedToken } from '@/lib/functions/function-editor-helpers';
+import { getFormulaWithInsertedOperator, getFormulaWithInsertedToken } from '@/lib/formula/edits';
 import { caretAfterTidy, prettifyFormula } from '@/lib/formula/prettify';
 import { callAtCaret, callSignature, type CallSignature } from '@/lib/calculator/call-context';
 import { foldName, isNameChar } from '@/lib/formula/identifiers';

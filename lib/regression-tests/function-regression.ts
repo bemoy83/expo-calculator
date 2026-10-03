@@ -4,21 +4,11 @@ import { findFormulaErrorRange, findSyntaxProblem } from '../formula/error-locat
 import { foldName } from '../formula/identifiers';
 import { caretAfterTidy } from '../formula/prettify';
 import { classifyFormulaIssues, formulaStatus } from '../functions/formula-issues';
-import {
-  addSuggestedParameter,
-  buildFunctionSaveData,
-  collectFunctionAutocompleteCandidates,
-  findUnknownMaterialProperties,
-  getPropertyCandidatesForBase,
-  getParameterSuggestions,
-  findStoredParametersNamed,
-  getFormulaWithInsertedOperator,
-  parameterNeedsDefinition,
-  planUnknownNames,
-  renameFormulaName,
-  getFormulaWithInsertedToken,
-  validateFunctionEditorForm,
-} from '../functions/function-editor-helpers';
+import { addSuggestedParameter, getParameterSuggestions, findStoredParametersNamed, parameterNeedsDefinition, planUnknownNames } from '../functions/parameter-suggestions';
+import { buildFunctionSaveData, validateFunctionEditorForm } from '../functions/function-form';
+import { collectFunctionAutocompleteCandidates, getPropertyCandidatesForBase } from '../functions/autocomplete-candidates';
+import { findUnknownMaterialProperties } from '../functions/material-properties';
+import { getFormulaWithInsertedOperator, renameFormulaName, getFormulaWithInsertedToken } from '../formula/edits';
 import { categoryForName, resolveMaterialCategory } from '../utils/material-category';
 import type { Calculator } from '../calculator/types';
 import type { Labor, SharedFunction } from '../types';

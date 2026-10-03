@@ -14,12 +14,8 @@ import { unknownNameRanges, type FormulaNames } from '@/lib/calculator/formula-t
 import { collectDiagnostics, plainSyntaxMessage } from '@/lib/formula/diagnostics';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
 import type { FormulaDiagnostic, FormulaIssue, FormulaIssueLevel, FormulaNote } from '@/lib/formula/issue-levels';
-import {
-  findStoredParametersNamed,
-  planUnknownNames,
-  renameFormulaName,
-  type ParameterSuggestion,
-} from '@/lib/functions/function-editor-helpers';
+import { findStoredParametersNamed, planUnknownNames, type ParameterSuggestion } from '@/lib/functions/parameter-suggestions';
+import { renameFormulaName } from '@/lib/formula/edits';
 
 interface ParameterInfo {
   name: string;
