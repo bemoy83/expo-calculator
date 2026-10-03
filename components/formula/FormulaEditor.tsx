@@ -1,10 +1,9 @@
 'use client';
 
-// SPIKE: the function editor's formula surface on CodeMirror 6 instead of a textarea with a
-// coloured copy drawn behind it. Same props the card already has, plus an imperative handle for
-// the palette. What it replaces: the overlay (names are coloured by decorations on the real
-// text), the caret-mirror popup (CodeMirror positions its own tooltip), and the execCommand tidy
-// (a transaction, one undo step, caret mapped).
+// The formula editor both the function editor and the calculator builder's step editor use:
+// CodeMirror 6 with names coloured by decorations on the real text, suggestions through
+// CodeMirror's list (ranked by lib/formula/suggestions), and the palette and the tidy as
+// transactions, so each is one undo step and the caret and selection stay put.
 
 import { useEffect, useRef, type MutableRefObject } from 'react';
 import { Compartment, EditorState, StateEffect, StateField, Transaction, Annotation, Prec, type Extension } from '@codemirror/state';
@@ -20,9 +19,9 @@ import {
 } from '@codemirror/autocomplete';
 import { classifyFormula, type FormulaNames } from '@/lib/calculator/formula-tokens';
 import { UNRESOLVED, WAVY_UNDERLINE, TOKEN_TEXT, suggestionToken } from '@/components/formula/FormulaText';
-import { filterSuggestions, getWordAtCursor, type AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
+import { filterSuggestions, getWordAtCursor, type AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import { getFormulaWithInsertedOperator, getFormulaWithInsertedToken } from '@/lib/functions/function-editor-helpers';
-import { caretAfterTidy } from '@/lib/formula/prettify';
+import { caretAfterTidy, prettifyFormula } from '@/lib/formula/prettify';
 import { isNameChar } from '@/lib/formula/identifiers';
 
 export interface FormulaEditorHandle {
@@ -42,14 +41,26 @@ interface Props {
   names?: FormulaNames;
   errorRange?: { start: number; end: number } | null;
   fontSize: number;
+  lineHeight?: number;
   placeholderText: string;
+  /** What the textbox is called to assistive technology */
+  ariaLabel?: string;
+  /** The text's colour and the like for the host element */
+  className?: string;
   invalid?: boolean;
   candidates: AutocompleteSuggestion[];
   candidatesForBase?: (base: string) => AutocompleteSuggestion[];
   onSuggestionInserted?: (suggestion: AutocompleteSuggestion) => void;
   onSelectionChange?: (selection: { from: number; to: number } | null) => void;
-  onFocusChange?: (focused: boolean, relatedTarget: EventTarget | null) => void;
+  onFocusChange?: (focused: boolean) => void;
   onCompletionOpenChange?: (open: boolean) => void;
+  /** What a field-type suggestion is called in its tag (a function's "parameter"); unset, it's called what its colour says ("input", "result") */
+  fieldTagLabel?: string;
+  /** A name that's another step's result is coloured as one in the suggestions */
+  isStepKey?: (name: string) => boolean;
+  /** Tidy the spacing of a formula that reads fine once the editor is left (as one undo step). `canTidy` can hold it back. */
+  tidyOnBlur?: boolean;
+  canTidy?: () => boolean;
   handleRef: MutableRefObject<FormulaEditorHandle | null>;
 }
 
@@ -101,7 +112,7 @@ const decorationsField = StateField.define<DecorationSet>({
 const theme = EditorView.theme({
   '&': { backgroundColor: 'transparent', color: 'rgb(var(--ink))' },
   '&.cm-focused': { outline: 'none' },
-  '.cm-scroller': { fontFamily: 'inherit', lineHeight: '1.5', overflow: 'visible' },
+  '.cm-scroller': { fontFamily: 'inherit', lineHeight: 'inherit', overflow: 'visible' },
   '.cm-content': { padding: '0', caretColor: 'rgb(var(--accent))', fontFamily: 'inherit' },
   '.cm-line': { padding: '0' },
   // The browser draws the selection; tinted like the textarea's.
@@ -131,10 +142,15 @@ const invalidAttributes = (invalid?: boolean) => EditorView.contentAttributes.of
 const suggestionOf = new WeakMap<Completion, AutocompleteSuggestion>();
 
 /** One suggestion row: the name in its kind's colour, the description under it, the kind tag at the right. */
-function renderSuggestionRow(completion: Completion, recent: string[]): Node | null {
+function renderSuggestionRow(
+  completion: Completion,
+  recent: string[],
+  isStepKey?: (name: string) => boolean,
+  fieldTagLabel?: string
+): Node | null {
   const suggestion = suggestionOf.get(completion);
   if (!suggestion) return null;
-  const token = suggestionToken(suggestion.type);
+  const token = suggestionToken(suggestion.type, suggestion.type === 'field' && !!isStepKey?.(suggestion.name));
   const make = (tag: string, className: string, text?: string) => {
     const el = document.createElement(tag);
     el.className = className;
@@ -155,7 +171,7 @@ function renderSuggestionRow(completion: Completion, recent: string[]): Node | n
     make(
       'span',
       `flex-none font-numeric text-[10.5px] uppercase tracking-wide font-medium ${TOKEN_TEXT[token.kind] || 'text-ink-faint'}`,
-      suggestion.storedKey ? 'stored' : suggestion.type === 'field' ? 'parameter' : token.label
+      suggestion.storedKey ? 'stored' : suggestion.type === 'field' && fieldTagLabel ? fieldTagLabel : token.label
     )
   );
   return row;
@@ -248,23 +264,37 @@ export default function FormulaEditorCM(props: Props) {
         override: [completionSource],
         icons: false,
         activateOnTyping: true,
-        addToOptions: [{ render: (completion) => renderSuggestionRow(completion, recent.current), position: 20 }],
+        addToOptions: [
+          {
+            render: (completion) => renderSuggestionRow(completion, recent.current, latest.current.isStepKey, latest.current.fieldTagLabel),
+            position: 20,
+          },
+        ],
       }),
       EditorView.lineWrapping,
       placeholder(latest.current.placeholderText),
       theme,
       EditorView.contentAttributes.of({
-        'aria-label': 'Formula',
+        'aria-label': latest.current.ariaLabel ?? 'Formula',
         spellcheck: 'false',
         autocorrect: 'off',
         autocapitalize: 'off',
       }),
       EditorView.domEventHandlers({
         focus: () => {
-          latest.current.onFocusChange?.(true, null);
+          latest.current.onFocusChange?.(true);
         },
-        blur: (event) => {
-          latest.current.onFocusChange?.(false, (event as FocusEvent).relatedTarget);
+        blur: (event, view) => {
+          latest.current.onFocusChange?.(false);
+          // Tabbing into the palette: leave the text as it is, so the selection still points at what it did.
+          if ((event.relatedTarget as HTMLElement | null)?.closest?.('[role="toolbar"]')) return;
+          if (!latest.current.tidyOnBlur) return;
+          setTimeout(() => {
+            if (view.hasFocus || (latest.current.canTidy && !latest.current.canTidy())) return;
+            const before = view.state.doc.toString();
+            const tidied = prettifyFormula(before);
+            if (tidied !== before) tidy(view, tidied, false);
+          }, 300);
         },
       }),
       EditorView.updateListener.of((update) => {
@@ -291,7 +321,20 @@ export default function FormulaEditorCM(props: Props) {
     });
     viewRef.current = view;
 
-    // ---- What the card's palette and tidy line drive ----
+    // The formula replaced by its tidied version: one undo step, the caret kept by the same characters.
+    const tidy = (view: EditorView, tidied: string, focus: boolean) => {
+      const before = view.state.doc.toString();
+      const caret = caretAfterTidy(before, view.state.selection.main.head, tidied);
+      view.dispatch({
+        changes: minimalChange(before, tidied),
+        selection: { anchor: caret },
+        userEvent: 'input.tidy',
+        annotations: isolateHistory.of('full'),
+      });
+      if (focus) view.focus();
+    };
+
+    // ---- What the palette and the tidy line drive ----
     const run = (result: { value: string; cursorPosition: number }, from: number, to: number) => {
       // The helpers return the whole new text; the change is what lands between the two ends.
       const after = view.state.doc.sliceString(to);
@@ -312,17 +355,7 @@ export default function FormulaEditorCM(props: Props) {
         const { from, to } = view.state.selection.main;
         run(getFormulaWithInsertedOperator({ currentValue: view.state.doc.toString(), start: from, end: to, operator }), from, to);
       },
-      applyTidy: (tidied, focus = true) => {
-        const before = view.state.doc.toString();
-        const caret = caretAfterTidy(before, view.state.selection.main.head, tidied);
-        view.dispatch({
-          changes: minimalChange(before, tidied),
-          selection: { anchor: caret },
-          userEvent: 'input.tidy',
-          annotations: isolateHistory.of('full'),
-        });
-        if (focus) view.focus();
-      },
+      applyTidy: (tidied, focus = true) => tidy(view, tidied, focus),
     };
 
     return () => {
@@ -355,5 +388,11 @@ export default function FormulaEditorCM(props: Props) {
     viewRef.current?.dispatch({ effects: setInputs.of({ names: props.names, errorRange: props.errorRange }) });
   }, [props.names, props.errorRange, props.value]);
 
-  return <div ref={hostRef} className="font-numeric text-ink" style={{ fontSize: props.fontSize }} />;
+  return (
+    <div
+      ref={hostRef}
+      className={`font-numeric text-ink ${props.className ?? ''}`}
+      style={{ fontSize: props.fontSize, lineHeight: props.lineHeight ?? 1.5 }}
+    />
+  );
 }

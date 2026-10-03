@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
 import { useParameterManager } from '@/hooks/use-parameter-manager';
 import { validateFormula } from '@/lib/formula-evaluator';
 import type { FormulaErrorKind } from '@/lib/formula/validator';
@@ -16,8 +15,6 @@ import {
   storedParameterKey,
   type ParameterSuggestion,
   getExistingParameterNames,
-  getFormulaWithInsertedOperator,
-  getFormulaWithInsertedToken,
   isFunctionEditorFormSubmittable,
   validateFunctionEditorForm,
 } from '@/lib/functions/function-editor-helpers';
@@ -54,7 +51,6 @@ export function useFunctionEditorState({
   updateFunction,
 }: UseFunctionEditorStateOptions) {
   const isNew = functionId === 'new';
-  const formulaTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [formData, setFormData] = useState<FunctionFormData>({
     displayName: existingFunction?.displayName || existingFunction?.name || '',
     name: existingFunction?.name || '',
@@ -192,14 +188,6 @@ export function useFunctionEditorState({
     [parameterSuggestions, setParameters]
   );
 
-  const autocomplete = useFormulaAutocomplete({
-    formula: formData.formula,
-    formulaTextareaRef,
-    collectAutocompleteCandidates,
-    candidatesForBase,
-    onFormulaChange: (formula) => setFormData((prev) => ({ ...prev, formula })),
-    onSuggestionInserted: handleSuggestionInserted,
-  });
 
   const handleVariableNameChange = useCallback((newName: string) => {
     setHasManuallyEditedVariableName(true);
@@ -208,42 +196,6 @@ export function useFunctionEditorState({
 
   const handleFormDataChange = useCallback((updates: Partial<FunctionFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
-  }, []);
-
-  const insertParameterAtCursor = useCallback((variableName: string) => {
-    const textarea = formulaTextareaRef.current;
-    if (!textarea) return;
-
-    const result = getFormulaWithInsertedToken({
-      currentValue: textarea.value,
-      start: textarea.selectionStart,
-      end: textarea.selectionEnd,
-      token: variableName,
-    });
-
-    setFormData((prev) => ({ ...prev, formula: result.value }));
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(result.cursorPosition, result.cursorPosition);
-    }, 0);
-  }, []);
-
-  const insertOperatorAtCursor = useCallback((operator: string) => {
-    const textarea = formulaTextareaRef.current;
-    if (!textarea) return;
-
-    const result = getFormulaWithInsertedOperator({
-      currentValue: textarea.value,
-      start: textarea.selectionStart,
-      end: textarea.selectionEnd,
-      operator,
-    });
-
-    setFormData((prev) => ({ ...prev, formula: result.value }));
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(result.cursorPosition, result.cursorPosition);
-    }, 0);
   }, []);
 
   // What a parameter made from a name in the formula starts as.
@@ -356,8 +308,6 @@ export function useFunctionEditorState({
     expandedParameters,
     parameterSuggestions,
     existingParameterNames,
-    formulaTextareaRef,
-    autocomplete,
     autocompleteCandidates: collectAutocompleteCandidates,
     candidatesForBase,
     handleSuggestionInserted,
@@ -368,8 +318,6 @@ export function useFunctionEditorState({
     updateParameter,
     removeParameter,
     toggleParameterExpanded,
-    insertParameterAtCursor,
-    insertOperatorAtCursor,
     moveParameter,
     addParameterNamed,
     addParametersNamed,

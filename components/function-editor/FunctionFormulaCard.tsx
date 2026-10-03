@@ -1,19 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { FormulaPalette } from '@/components/formula/FormulaPalette';
+import { FormulaEditor, type FormulaEditorHandle } from '@/components/formula/FormulaEditorLazy';
 import { cn } from '@/lib/utils';
-import { AutocompleteSuggestion, clampSuggestionLeft } from '@/hooks/use-formula-autocomplete';
-import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
+import type { AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import { useTidyOffer } from '@/hooks/use-tidy-offer';
 import { ISSUE_LEVELS, IssueLine, IssueMarker } from '@/components/formula/IssueMarker';
 import { TidyOffer } from '@/components/formula/TidyOffer';
-import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import type { FormulaNames } from '@/lib/calculator/formula-tokens';
-import type { FormulaEditorHandle } from './FormulaEditorCM';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
 import type { FormulaIssue, FormulaIssueLevel } from '@/lib/formula/issue-levels';
 import {
@@ -23,29 +20,12 @@ import {
   type ParameterSuggestion,
 } from '@/lib/functions/function-editor-helpers';
 
-// SPIKE: the CodeMirror surface, loaded only when asked for, so it adds nothing to the page's own bundle.
-const FormulaEditorCM = dynamic(() => import('./FormulaEditorCM'), { ssr: false });
-
-interface WordInfo {
-  word: string;
-  start: number;
-  end: number;
-  hasDot: boolean;
-  baseWord: string;
-}
-
 interface ParameterInfo {
   name: string;
   label?: string;
 }
 
 interface FunctionFormulaCardProps {
-  /** SPIKE: draw the formula with CodeMirror instead of a textarea; what it needs for suggestions */
-  cm?: {
-    candidates: AutocompleteSuggestion[];
-    candidatesForBase?: (base: string) => AutocompleteSuggestion[];
-    onSuggestionInserted?: (suggestion: AutocompleteSuggestion) => void;
-  };
   /** Names the formula uses that aren't parameters yet, each offered as "+ Create parameter" */
   unknownNames?: string[];
   onCreateParameter?: (name: string) => void;
@@ -59,26 +39,15 @@ interface FunctionFormulaCardProps {
   formulaNames?: FormulaNames;
   formula: string;
   onFormulaChange: (formula: string) => void;
-  formulaTextareaRef: React.RefObject<HTMLTextAreaElement>;
   formulaValidation: { valid: boolean; error?: string; pending?: boolean };
   formulaError?: string;
-  /** A likely misspelt material property, a hint rather than an error */
   /** What the formula has to say about itself, by level (see classifyFormulaIssues) */
   issues?: FormulaIssue[];
   parameters: ParameterInfo[];
-  onInsertParameter: (variableName: string) => void;
-  onInsertOperator: (operator: string) => void;
-  autocompleteSuggestions: AutocompleteSuggestion[];
-  selectedSuggestionIndex: number;
-  isAutocompleteOpen: boolean;
-  autocompletePosition: { top: number; left: number };
-  currentWord: WordInfo;
-  recentlyUsedVariables: string[];
-  insertSuggestion: (suggestion: AutocompleteSuggestion, wordInfo: WordInfo) => void;
-  handleAutocompleteKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => boolean;
-  updateAutocompleteSuggestionsFinal: () => void;
-  setSelectedSuggestionIndex: (index: number) => void;
-  setIsAutocompleteOpen: (open: boolean) => void;
+  /** What the editor suggests as a name is typed, and what follows `name.` */
+  candidates: AutocompleteSuggestion[];
+  candidatesForBase?: (base: string) => AutocompleteSuggestion[];
+  onSuggestionInserted?: (suggestion: AutocompleteSuggestion) => void;
 }
 
 // The formula's type steps down as it gets longer, and to 80% in a narrow pane (mockup 2a).
@@ -91,7 +60,6 @@ function formulaFontSize(length: number, narrow: boolean): number {
 const NARROW_BELOW = 640;
 
 export function FunctionFormulaCard({
-  cm,
   unknownNames = [],
   onCreateParameter,
   storedParameters = [],
@@ -101,24 +69,13 @@ export function FunctionFormulaCard({
   formulaNames,
   formula,
   onFormulaChange,
-  formulaTextareaRef,
   formulaValidation,
   formulaError,
   issues = [],
   parameters,
-  onInsertParameter,
-  onInsertOperator,
-  autocompleteSuggestions,
-  selectedSuggestionIndex,
-  isAutocompleteOpen,
-  autocompletePosition,
-  currentWord,
-  recentlyUsedVariables,
-  insertSuggestion,
-  handleAutocompleteKeyDown,
-  updateAutocompleteSuggestionsFinal,
-  setSelectedSuggestionIndex,
-  setIsAutocompleteOpen,
+  candidates,
+  candidatesForBase,
+  onSuggestionInserted,
 }: FunctionFormulaCardProps) {
   const visibleParameters = parameters
     .map((param, index) => ({
@@ -128,9 +85,8 @@ export function FunctionFormulaCard({
     .filter((param) => param.name);
 
   const rootRef = useRef<HTMLElement>(null);
-  const cmHandle = useRef<FormulaEditorHandle | null>(null);
-  const [cmCompletionOpen, setCmCompletionOpen] = useState(false);
-  const regionRef = useRef<HTMLDivElement>(null);
+  const editor = useRef<FormulaEditorHandle | null>(null);
+  const [completionOpen, setCompletionOpen] = useState(false);
   const [width, setWidth] = useState(0);
   const [focused, setFocused] = useState(false);
   const narrow = width > 0 && width < NARROW_BELOW;
@@ -168,22 +124,8 @@ export function FunctionFormulaCard({
     onReuseParameters?.(plan.reuse.map(({ stored }) => stored));
   };
   // Spacing that could be tidied is offered after a moment of rest, not applied under the cursor.
-  const tidy = useTidyOffer({
-    formula,
-    textareaRef: formulaTextareaRef,
-    onFormulaChange,
-    onApplied: () => setIsAutocompleteOpen(false),
-    applyWith: cm ? (tidied) => cmHandle.current?.applyTidy(tidied) : undefined,
-  });
+  const tidy = useTidyOffer({ formula, apply: (tidied) => editor.current?.applyTidy(tidied) });
   const isEmpty = formula.trim() === '';
-
-  // The text area grows with its text, so the pane's scroll region does the scrolling.
-  useLayoutEffect(() => {
-    const el = formulaTextareaRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [formula, fontSize, width, formulaTextareaRef]);
 
   // The selected part of the formula, so the palette can say what it would do with it. The browser
   // draws the selection itself: palette clicks don't take focus, so it stays on screen.
@@ -193,16 +135,9 @@ export function FunctionFormulaCard({
   const selectedText = selection ? formula.slice(selection.start, selection.end) : '';
   const hasSelection = selectedText.trim() !== '';
 
-  const syncSelection = useCallback(() => {
-    const el = formulaTextareaRef.current;
-    if (!el) return;
-    setSelection(el.selectionStart !== el.selectionEnd ? { start: el.selectionStart, end: el.selectionEnd } : null);
-  }, [formulaTextareaRef]);
-
   const insertParameter = (name: string) => {
     if (hasSelection) setStatus('Replaced the selection');
-    if (cm) cmHandle.current?.insertToken(name);
-    else onInsertParameter(name);
+    editor.current?.insertToken(name);
     setSelection(null);
   };
 
@@ -220,29 +155,21 @@ export function FunctionFormulaCard({
               : 'Replaced the selection'
       );
     }
-    if (cm) cmHandle.current?.insertOperator(operator);
-    else onInsertOperator(operator);
+    editor.current?.insertOperator(operator);
     setSelection(null);
   };
 
   // Esc in the palette: back to the formula, with the selection that was drawn.
   const returnToFormula = () => {
-    if (cm) {
-      cmHandle.current?.focus();
-      if (selection) cmHandle.current?.setSelection(selection.start, selection.end);
-      return;
-    }
-    const el = formulaTextareaRef.current;
-    if (!el) return;
-    el.focus();
-    if (selection) el.setSelectionRange(selection.start, selection.end);
+    editor.current?.focus();
+    if (selection) editor.current?.setSelection(selection.start, selection.end);
   };
 
   const hint =
     status ??
     (hasSelection
       ? `“${selectedText.trim().replace(/\s+/g, ' ')}” stays selected while you use the palette.`
-      : (cm ? cmCompletionOpen : isAutocompleteOpen && autocompleteSuggestions.length > 0)
+      : completionOpen
         ? '↑↓ to choose · ↵ or Tab to insert · esc to close'
         : focused && !hasError
           ? isEmpty
@@ -250,31 +177,18 @@ export function FunctionFormulaCard({
             : 'Type for suggestions, or use the palette. Select part of the formula to wrap it.'
           : null);
 
-  const textStyle = { fontSize, lineHeight: 1.5 } as const;
-  const textClasses = 'font-numeric whitespace-pre-wrap break-words';
-
   // The formula has no box: the pane is the input (mockup 2a). A bar on its left carries the
   // state, the text is drawn in type that steps down with length, and the palette is below.
   return (
     <section ref={rootRef} aria-label="Formula" className="flex flex-col flex-1 min-h-0 gap-4">
       <div className="flex-1 min-h-0 overflow-auto">
         <div
-          ref={regionRef}
           onMouseDown={(e) => {
             // Clicking anywhere in the region focuses the formula, caret at the end.
-            if (cm) {
-              if ((e.target as HTMLElement).closest('.cm-editor')) return;
-              e.preventDefault();
-              cmHandle.current?.setSelection(formula.length, formula.length);
-              cmHandle.current?.focus();
-              return;
-            }
-            if (e.target === formulaTextareaRef.current) return;
+            if ((e.target as HTMLElement).closest('.cm-editor')) return;
             e.preventDefault();
-            const el = formulaTextareaRef.current;
-            if (!el) return;
-            el.focus();
-            el.setSelectionRange(el.value.length, el.value.length);
+            editor.current?.setSelection(formula.length, formula.length);
+            editor.current?.focus();
           }}
           className={cn(
             'grid grid-cols-[3px_minmax(0,1fr)] rounded-md cursor-text transition-colors duration-150',
@@ -291,139 +205,29 @@ export function FunctionFormulaCard({
             )}
           />
           <div className="relative min-w-0 py-1.5">
-            {cm ? (
-              <FormulaEditorCM
-                value={formula}
-                onChange={(next) => {
-                  setStatus(null);
-                  setSelection(null);
-                  onFormulaChange(next);
-                }}
-                names={formulaNames}
-                errorRange={errorRange}
-                fontSize={fontSize}
-                placeholderText="ceil(width / spacing) + 1"
-                invalid={hasError}
-                candidates={cm.candidates}
-                candidatesForBase={cm.candidatesForBase}
-                onSuggestionInserted={cm.onSuggestionInserted}
-                onSelectionChange={(sel) => setSelection(sel ? { start: sel.from, end: sel.to } : null)}
-                onCompletionOpenChange={setCmCompletionOpen}
-                onFocusChange={(isFocused, related) => {
-                  setFocused(isFocused);
-                  if (isFocused) return;
-                  // Tabbing into the palette: leave the text as it is, so the selection still points at what it did.
-                  if ((related as HTMLElement | null)?.closest?.('[role="toolbar"]')) return;
-                  // Tidy the spacing of a valid formula once the box is left, as one undo step.
-                  const tidiedNow = tidy.tidied;
-                  setTimeout(() => {
-                    if (cmHandle.current && !cmHandle.current.hasFocus() && formulaValidation.valid && tidiedNow !== formula) {
-                      cmHandle.current.applyTidy(tidiedNow, false);
-                    }
-                  }, 300);
-                }}
-                handleRef={cmHandle}
-              />
-            ) : (
-              <>
-                {formulaNames && (
-                  <div
-                    aria-hidden="true"
-                    className={cn('absolute inset-x-0 top-1.5 text-ink pointer-events-none', textClasses)}
-                    style={textStyle}
-                  >
-                    <FormulaText expression={formula} names={formulaNames} markUnresolved errorRange={errorRange} />
-                    {/* Keeps a trailing line break's height, as the textarea does. */}
-                    {'\u200b'}
-                  </div>
-                )}
-                <textarea
-                  ref={formulaTextareaRef}
-                  aria-label="Formula"
-                  aria-invalid={hasError ? 'true' : undefined}
-                  value={formula}
-                  rows={1}
-                  spellCheck={false}
-                  onFocus={() => setFocused(true)}
-                  placeholder="ceil(width / spacing) + 1"
-                  style={textStyle}
-                  className={cn(
-                    'relative block w-full resize-none overflow-hidden bg-transparent p-0 border-0 outline-none',
-                    'caret-accent placeholder:text-ink-faint',
-                    'selection:bg-accent/30',
-                    formulaNames ? 'text-transparent' : 'text-ink',
-                    textClasses
-                  )}
-                  onSelect={syncSelection}
-                  onKeyUp={syncSelection}
-                  onMouseUp={syncSelection}
-                  onChange={(e) => {
-                    setStatus(null);
-                    setSelection(null);
-                    onFormulaChange(e.target.value);
-                    if (tidy.tidying.current) return;
-                    // Update autocomplete immediately with the new value
-                    requestAnimationFrame(() => {
-                      updateAutocompleteSuggestionsFinal();
-                    });
-                  }}
-                  onKeyDown={(e) => {
-                    // Filter out modifier keys and non-character inputs
-                    const isModifierKey = e.ctrlKey || e.metaKey || e.altKey;
-                    const isNonCharacterKey = [
-                      'Backspace',
-                      'Delete',
-                      'ArrowLeft',
-                      'ArrowRight',
-                      'ArrowUp',
-                      'ArrowDown',
-                      'Home',
-                      'End',
-                      'PageUp',
-                      'PageDown',
-                      'Tab',
-                      'Enter',
-                      'Escape',
-                      'Shift',
-                      'Control',
-                      'Alt',
-                      'Meta',
-                      'CapsLock',
-                      'NumLock',
-                      'ScrollLock',
-                    ].includes(e.key);
-
-                    // Handle autocomplete navigation first
-                    const handled = handleAutocompleteKeyDown(e);
-                    if (handled) {
-                      return; // Autocomplete handled the key
-                    }
-
-                    // Only update suggestions for character input (not modifiers or navigation)
-                    if (!isModifierKey && !isNonCharacterKey && e.key.length === 1) {
-                      // Character input - update suggestions after the character is inserted
-                      requestAnimationFrame(() => {
-                        updateAutocompleteSuggestionsFinal();
-                      });
-                    } else if (isNonCharacterKey && ['Backspace', 'Delete'].includes(e.key)) {
-                      // Backspace/Delete - update suggestions after deletion
-                      requestAnimationFrame(() => {
-                        updateAutocompleteSuggestionsFinal();
-                      });
-                    }
-                  }}
-                  onBlur={(e) => {
-                    setFocused(false);
-                    // Delay closing to allow clicks on suggestions
-                    setTimeout(() => setIsAutocompleteOpen(false), 200);
-                    // Tabbing into the palette: leave the text as it is, so the selection still points at what it did.
-                    if ((e.relatedTarget as HTMLElement | null)?.closest('[role="toolbar"]')) return;
-                    // Tidy the spacing of a valid formula once the box is left.
-                    tidyFormulaAfterBlur(formulaTextareaRef.current, onFormulaChange, () => formulaValidation.valid);
-                  }}
-                />
-              </>
-            )}
+            <FormulaEditor
+              value={formula}
+              onChange={(next) => {
+                setStatus(null);
+                setSelection(null);
+                onFormulaChange(next);
+              }}
+              names={formulaNames}
+              errorRange={errorRange}
+              fontSize={fontSize}
+              placeholderText="ceil(width / spacing) + 1"
+              invalid={hasError}
+              fieldTagLabel="parameter"
+              candidates={candidates}
+              candidatesForBase={candidatesForBase}
+              onSuggestionInserted={onSuggestionInserted}
+              onSelectionChange={(sel) => setSelection(sel ? { start: sel.from, end: sel.to } : null)}
+              onCompletionOpenChange={setCompletionOpen}
+              onFocusChange={setFocused}
+              tidyOnBlur
+              canTidy={() => formulaValidation.valid}
+              handleRef={editor}
+            />
           </div>
         </div>
         <div className="mt-2.5 pl-[23px] flex flex-col gap-1.5 text-xs">
@@ -493,58 +297,6 @@ export function FunctionFormulaCard({
             ))}
         </div>
       </div>
-      {/* Autocomplete Dropdown */}
-      {!cm && isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
-        <div
-          className="fixed z-50 bg-surface border border-border-strong rounded-row shadow-panel max-h-64 overflow-y-auto py-1"
-          style={{
-            top: `${autocompletePosition.top}px`,
-            left: `${clampSuggestionLeft(autocompletePosition.left)}px`,
-            minWidth: '280px',
-          }}
-          onMouseDown={(e) => e.preventDefault()} // Prevent blur
-        >
-          {autocompleteSuggestions.slice(0, 8).map((suggestion, index) => {
-            const isSelected = index === selectedSuggestionIndex;
-            const isRecent = recentlyUsedVariables.includes(suggestion.name);
-
-            return (
-              <button
-                key={`${suggestion.name}-${index}`}
-                type="button"
-                onClick={() => {
-                  insertSuggestion(suggestion, currentWord);
-                }}
-                onMouseEnter={() => setSelectedSuggestionIndex(index)}
-                className={cn(
-                  'w-full px-3 py-1.5 text-left flex items-center gap-3 transition-colors',
-                  isSelected ? 'bg-accent-soft text-ink' : 'text-ink-body hover:bg-surface-hover'
-                )}
-              >
-                <span className="flex-1 min-w-0 flex flex-col">
-                  <code className={cn('text-xs font-numeric', TOKEN_TEXT[suggestionToken(suggestion.type).kind])}>
-                    {suggestion.displayName}
-                  </code>
-                  {suggestion.description && <span className="text-[11.5px] text-ink-muted truncate">{suggestion.description}</span>}
-                </span>
-                {isRecent && (
-                  <span className="text-xs text-ink-faint" title="Recently used">
-                    ●
-                  </span>
-                )}
-                <span
-                  className={cn(
-                    'flex-none font-numeric text-[10.5px] uppercase tracking-wide font-medium',
-                    TOKEN_TEXT[suggestionToken(suggestion.type).kind] || 'text-ink-faint'
-                  )}
-                >
-                  {suggestion.storedKey ? 'stored' : suggestion.type === 'field' ? 'parameter' : suggestionToken(suggestion.type).label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
       <div className="flex-none">
         <FormulaPalette
           parameters={visibleParameters.map((param) => param.name)}

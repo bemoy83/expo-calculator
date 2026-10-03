@@ -9,7 +9,14 @@ import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { keyProblem, suggestKey } from '@/lib/calculator/editing';
-import { describeCondition, describeStepProblem, describeStepProblemShort, displayUnit, isStepError, formatStepValue } from '@/lib/calculator/format';
+import {
+  describeCondition,
+  describeStepProblem,
+  describeStepProblemShort,
+  displayUnit,
+  isStepError,
+  formatStepValue,
+} from '@/lib/calculator/format';
 import { callToExpression } from '@/lib/calculator/step-source';
 import { callSignature, parseCalls, paramAt, type ParamSpec } from '@/lib/calculator/call-context';
 import type { Calculator, CalculatorLibrary, CalculatorStep, StepFormat, StepResult } from '@/lib/calculator/types';
@@ -19,6 +26,7 @@ import { ConditionRow, NO_CONDITION_HINT, canStartCondition, startCondition } fr
 import { StepFormulaEditor } from './StepFormulaEditor';
 import { useCallProblems } from './CallProblems';
 import { classifyStepIssues, unknownNameIn } from '@/lib/calculator/step-issues';
+import { findFormulaErrorRange } from '@/lib/formula/error-location';
 import { IssueLine } from '@/components/formula/IssueMarker';
 import { NAME } from '@/lib/formula/identifiers';
 import { FormulaText } from '@/components/formula/FormulaText';
@@ -82,7 +90,15 @@ function parameterFor(expression: string, name: string, library: CalculatorLibra
 }
 
 /** "Move to part ▾": a quiet 32px button over a transparent native select. */
-function MoveToPart({ calculator, step, onMoveToPart }: { calculator: Calculator; step: CalculatorStep; onMoveToPart: (partId: string) => void }) {
+function MoveToPart({
+  calculator,
+  step,
+  onMoveToPart,
+}: {
+  calculator: Calculator;
+  step: CalculatorStep;
+  onMoveToPart: (partId: string) => void;
+}) {
   return (
     <label className="relative inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-3 text-xs text-ink-muted transition-colors duration-150 hover:text-ink focus-within:ring-2 focus-within:ring-action">
       Move to part
@@ -192,7 +208,11 @@ export function StepRow({
   const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
   // Steps are edited as formulas; a call step that hasn't been converted yet reads as its formula.
   const expression =
-    step.source.type === 'expression' ? step.source.expression : step.source.functionName ? callToExpression(step.source, library.functions) : '';
+    step.source.type === 'expression'
+      ? step.source.expression
+      : step.source.functionName
+        ? callToExpression(step.source, library.functions)
+        : '';
   // Names the formula uses that nothing matches, once the error has settled, each offered as a new input.
   const unknownNames = useMemo(() => {
     if (!unknown) return [];
@@ -205,6 +225,12 @@ export function StepRow({
   const issues = classifyStepIssues({ result, unknownNames, callProblems });
   // An error that is only a name nothing matches yet is "unresolved" (amber), not a mistake (red).
   const unresolvedOnly = isError && !issues.some((issue) => issue.level === 'broken');
+  // Where the formula's syntax breaks, underlined in the editor.
+  const syntaxRange = useMemo(
+    () => (issues.some((issue) => issue.level === 'broken') ? findFormulaErrorRange(expression) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [expression, result?.message]
+  );
 
   const value =
     result?.status === 'disabled' ? (
@@ -222,7 +248,10 @@ export function StepRow({
     ) : (
       <span
         title={isError ? result?.message : undefined}
-        className={cn('text-xs text-right', unresolvedOnly ? 'text-draft' : isError ? 'text-danger' : isIncomplete ? 'text-draft' : 'text-ink-muted')}
+        className={cn(
+          'text-xs text-right',
+          unresolvedOnly ? 'text-draft' : isError ? 'text-danger' : isIncomplete ? 'text-draft' : 'text-ink-muted'
+        )}
       >
         {unresolvedOnly ? 'Unresolved' : describeStepProblemShort(result, calculator)}
       </span>
@@ -235,7 +264,10 @@ export function StepRow({
         // A closed step is a list row (hairline, surface fill on hover); the open one is a card
         // with the accent ring; a real error keeps its red border either way.
         expanded
-          ? cn('my-1 overflow-hidden rounded-row bg-surface shadow-focus', unresolvedOnly ? 'border-draft' : isError ? 'border-danger' : 'border-accent')
+          ? cn(
+              'my-1 overflow-hidden rounded-row bg-surface shadow-focus',
+              unresolvedOnly ? 'border-draft' : isError ? 'border-danger' : 'border-accent'
+            )
           : isError
             ? cn('my-0.5 rounded-row', unresolvedOnly ? 'border-draft-border' : 'border-danger-border')
             : 'border-transparent border-b-border hover:bg-surface hover:rounded-md'
@@ -260,9 +292,11 @@ export function StepRow({
             )}
           </span>
           <span className="min-w-0">
-            <span className={cn('block font-numeric text-[13px] text-ink-muted', expanded ? 'step-formula truncate' : 'line-clamp-2 break-all')}>
+            <span
+              className={cn('block font-numeric text-[13px] text-ink-muted', expanded ? 'step-formula truncate' : 'line-clamp-2 break-all')}
+            >
               <span className="text-token-result">{step.key}</span> ={' '}
-              {expression ? <FormulaText expression={expression} names={formulaNames} /> : '…'}
+              {expression ? <FormulaText expression={expression} names={formulaNames} markUnresolved /> : '…'}
             </span>
             {!expanded && step.enabledWhen && (
               <span className="block mt-0.5 text-[11px] text-ink-muted truncate">
@@ -319,20 +353,25 @@ export function StepRow({
                   step={step}
                   library={library}
                   value={expression}
+                  errorRange={syntaxRange}
                   onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
                 />
                 {issues.map((issue) =>
                   issue.name ? (
                     <div key={`name-${issue.name}`} className="mt-1 flex flex-wrap items-center gap-x-2">
                       <IssueLine level="unresolved">{issue.message}</IssueLine>
-                      <Button variant="ghost" size="sm" onClick={() => onCreateInput(issue.name!, parameterFor(expression, issue.name!, library))}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onCreateInput(issue.name!, parameterFor(expression, issue.name!, library))}
+                      >
                         <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                         Create input “{issue.name}”
                       </Button>
                     </div>
                   ) : (
                     <IssueLine key={`${issue.level}-${issue.message}`} level={issue.level} className="mt-1">
-                      {issue.message}
+                      {issue.level === 'broken' && syntaxRange ? issue.message.replace(/\s*\(character \d+\)$/, '') : issue.message}
                     </IssueLine>
                   )
                 )}
@@ -396,8 +435,18 @@ export function StepRow({
                 />
               </div>
               <div className="step-foot">
-                <IconButton label="Move step up" icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />} onClick={() => onMove(-1)} disabled={isFirst} />
-                <IconButton label="Move step down" icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />} onClick={() => onMove(1)} disabled={isLast} />
+                <IconButton
+                  label="Move step up"
+                  icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />}
+                  onClick={() => onMove(-1)}
+                  disabled={isFirst}
+                />
+                <IconButton
+                  label="Move step down"
+                  icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />}
+                  onClick={() => onMove(1)}
+                  disabled={isLast}
+                />
                 {calculator.parts.length > 1 && <MoveToPart calculator={calculator} step={step} onMoveToPart={onMoveToPart} />}
                 <Button variant="danger" size="sm" className="ml-auto" onClick={onRemove}>
                   <span className="step-wide-only">Delete</span>
@@ -408,7 +457,12 @@ export function StepRow({
           </div>
 
           {step.enabledWhen && (
-            <ConditionRow calculator={calculator} condition={step.enabledWhen} library={library} onChange={(enabledWhen) => onChange({ ...step, enabledWhen })} />
+            <ConditionRow
+              calculator={calculator}
+              condition={step.enabledWhen}
+              library={library}
+              onChange={(enabledWhen) => onChange({ ...step, enabledWhen })}
+            />
           )}
         </div>
       )}

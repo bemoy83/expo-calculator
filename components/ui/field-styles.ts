@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 // Shared by Input, Select, and Textarea: borderless filled well, 8px radius. The fill steps up on
 // hover; focus = inset accent ring + 3px accent-soft halo; error = inset danger ring (always on,
 // since there's no border to recolour); disabled = lighter fill with faint text. The border is
-// kept transparent so box sizes and the Textarea highlight overlay line up.
+// kept transparent so box sizes don't change between states.
 export function fieldClasses(hasError: boolean, className?: string) {
   return cn(
     'w-full rounded-md border border-transparent bg-field text-sm text-ink placeholder:text-ink-subtle caret-accent',

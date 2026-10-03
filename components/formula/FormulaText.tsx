@@ -34,7 +34,6 @@ export function FormulaText({
   className,
   block = false,
   markUnresolved = false,
-  errorRange,
 }: {
   expression: string;
   names: FormulaNames;
@@ -43,38 +42,22 @@ export function FormulaText({
   block?: boolean;
   /** Draw names nothing matches as unresolved (amber, dotted) instead of the plain red dotted */
   markUnresolved?: boolean;
-  /** Part of the text to underline as a syntax error, [start, end) */
-  errorRange?: { start: number; end: number } | null;
 }) {
-  // Each coloured piece is cut at the error's edges, so the broken part gets its underline and
-  // every piece keeps its colour.
-  let offset = 0;
-  const pieces = classifyFormula(expression, names).flatMap((segment, index) => {
-    const from = offset;
-    offset += segment.text.length;
-    const cuts = errorRange ? [errorRange.start - from, errorRange.end - from].filter((cut) => cut > 0 && cut < segment.text.length) : [];
-    const bounds = [0, ...cuts, segment.text.length];
-    return bounds.slice(0, -1).map((cut, part) => {
-      const text = segment.text.slice(cut, bounds[part + 1]);
-      const broken = Boolean(errorRange) && from + cut >= errorRange!.start && from + cut + text.length <= errorRange!.end;
-      return { key: `${index}-${part}`, text, kind: segment.kind, broken };
-    });
-  });
   return (
     <code className={cn('font-numeric', block && 'block whitespace-pre-wrap', className)}>
-      {pieces.map((piece) => {
-        const colour =
-          piece.kind === 'plain' ? undefined : markUnresolved && piece.kind === 'unknown' ? UNRESOLVED : TOKEN_TEXT[piece.kind];
-        return (
+      {classifyFormula(expression, names).map((segment, index) =>
+        segment.kind === 'plain' ? (
+          <span key={index}>{segment.text}</span>
+        ) : (
           <span
-            key={piece.key}
-            className={cn(colour, piece.broken && `${WAVY_UNDERLINE} decoration-danger`)}
-            title={piece.kind === 'plain' ? undefined : TOKEN_TITLE[piece.kind]}
+            key={index}
+            className={markUnresolved && segment.kind === 'unknown' ? UNRESOLVED : TOKEN_TEXT[segment.kind]}
+            title={TOKEN_TITLE[segment.kind]}
           >
-            {piece.text}
+            {segment.text}
           </span>
-        );
-      })}
+        )
+      )}
     </code>
   );
 }

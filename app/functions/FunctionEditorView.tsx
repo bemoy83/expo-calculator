@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FunctionDetailsCard } from '@/components/function-editor/FunctionDetailsCard';
 import { FunctionFormulaCard } from '@/components/function-editor/FunctionFormulaCard';
@@ -149,9 +149,6 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
     router.push(`/functions/edit?id=${encodeURIComponent(copy.id)}`);
   };
 
-  // SPIKE: ?cm=1 draws the formula with CodeMirror instead of a textarea.
-  const [useCodeMirror, setUseCodeMirror] = useState(false);
-  useEffect(() => setUseCodeMirror(new URLSearchParams(window.location.search).has('cm')), []);
   const formula = editor.formData.formula.trim();
   // What the formula has to say about itself, by what it means (broken, unresolved, a heads-up).
   const unknownNames = unknownValueNames(editor.formData.formula, formulaNames);
@@ -326,15 +323,6 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
           </div>
           <div className="mt-3.5 flex flex-col flex-1 min-h-0">
             <FunctionFormulaCard
-              cm={
-                useCodeMirror
-                  ? {
-                      candidates: editor.autocompleteCandidates,
-                      candidatesForBase: editor.candidatesForBase,
-                      onSuggestionInserted: editor.handleSuggestionInserted,
-                    }
-                  : undefined
-              }
               formula={editor.formData.formula}
               formulaNames={formulaNames}
               unknownNames={unknownNames}
@@ -354,23 +342,12 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               }}
               onReuseParameters={editor.addParametersFromSuggestions}
               onFormulaChange={(next) => editor.handleFormDataChange({ formula: next })}
-              formulaTextareaRef={editor.formulaTextareaRef}
               formulaValidation={editor.formulaValidation}
               formulaError={editor.errors.formula}
               parameters={editor.parameters}
-              onInsertParameter={editor.insertParameterAtCursor}
-              onInsertOperator={editor.insertOperatorAtCursor}
-              autocompleteSuggestions={editor.autocomplete.autocompleteSuggestions}
-              selectedSuggestionIndex={editor.autocomplete.selectedSuggestionIndex}
-              isAutocompleteOpen={editor.autocomplete.isAutocompleteOpen}
-              autocompletePosition={editor.autocomplete.autocompletePosition}
-              currentWord={editor.autocomplete.currentWord}
-              recentlyUsedVariables={editor.autocomplete.recentlyUsedVariables}
-              insertSuggestion={editor.autocomplete.insertSuggestion}
-              handleAutocompleteKeyDown={editor.autocomplete.handleAutocompleteKeyDown}
-              updateAutocompleteSuggestionsFinal={editor.autocomplete.updateAutocompleteSuggestionsFinal}
-              setSelectedSuggestionIndex={editor.autocomplete.setSelectedSuggestionIndex}
-              setIsAutocompleteOpen={editor.autocomplete.setIsAutocompleteOpen}
+              candidates={editor.autocompleteCandidates}
+              candidatesForBase={editor.candidatesForBase}
+              onSuggestionInserted={editor.handleSuggestionInserted}
             />
           </div>
         </div>

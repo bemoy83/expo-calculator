@@ -1,16 +1,15 @@
 'use client';
 
 import { useMemo, useRef } from 'react';
-import { Textarea } from '@/components/ui/Textarea';
-import { clampSuggestionLeft, useFormulaAutocomplete, type AutocompleteSuggestion } from '@/hooks/use-formula-autocomplete';
+import { FormulaEditor, type FormulaEditorHandle } from '@/components/formula/FormulaEditorLazy';
+import { TidyOffer } from '@/components/formula/TidyOffer';
+import { FIELD_ERROR, FIELD_LABEL } from '@/components/ui/field-styles';
+import { useTidyOffer } from '@/hooks/use-tidy-offer';
+import type { AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import type { Calculator, CalculatorLibrary, CalculatorStep } from '@/lib/calculator/types';
 import { cn } from '@/lib/utils';
-import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
-import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
 import { propertyNamesFor } from '@/lib/calculator/call-context';
-import { useTidyOffer } from '@/hooks/use-tidy-offer';
-import { TidyOffer } from '@/components/formula/TidyOffer';
 
 const MATH_FUNCTIONS = [
   { name: 'ceil', description: 'Round up' },
@@ -64,121 +63,80 @@ function useCandidates(calculator: Calculator, step: CalculatorStep, library: Ca
   }, [calculator.inputs, calculator.steps, step.id, library]);
 }
 
-// A step's formula with the same autocomplete as module formulas: type a name, pick with
-// arrows and Enter or Tab.
+// A step's formula, in the boxed field the builder's other inputs use, with the same editor as a
+// function's formula: names coloured by what they are, suggestions as you type (arrows and Enter
+// or Tab), and a tidy-up offered once it has rested.
 export function StepFormulaEditor({
-  id,
   label,
   calculator,
   step,
   library,
   value,
   error,
+  errorRange,
   onChange,
 }: {
-  id: string;
+  id?: string;
   label?: string;
   calculator: Calculator;
   step: CalculatorStep;
   library: CalculatorLibrary;
   value: string;
   error?: string;
+  /** Where the formula's syntax breaks, to underline it */
+  errorRange?: { start: number; end: number } | null;
   onChange: (value: string) => void;
 }) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editor = useRef<FormulaEditorHandle | null>(null);
   const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
   const candidates = useCandidates(calculator, step, library);
   const stepKeys = useMemo(() => new Set(calculator.steps.map((other) => other.key)), [calculator.steps]);
-  const {
-    autocompleteSuggestions,
-    selectedSuggestionIndex,
-    isAutocompleteOpen,
-    autocompletePosition,
-    currentWord,
-    insertSuggestion,
-    handleAutocompleteKeyDown,
-    updateAutocompleteSuggestionsFinal,
-    setSelectedSuggestionIndex,
-    setIsAutocompleteOpen,
-  } = useFormulaAutocomplete({
-    formula: value,
-    formulaTextareaRef: textareaRef,
-    collectAutocompleteCandidates: candidates,
-    onFormulaChange: onChange,
-  });
-
-  // Spacing that could be tidied is offered after a moment of rest; the tidy itself isn't "typing".
-  const tidy = useTidyOffer({ formula: value, textareaRef, onFormulaChange: onChange, onApplied: () => setIsAutocompleteOpen(false) });
+  const tidy = useTidyOffer({ formula: value, apply: (tidied) => editor.current?.applyTidy(tidied) });
 
   return (
-    <div className="relative">
-      <Textarea
-        ref={textareaRef}
-        id={id}
-        label={label}
-        autoGrow
-        rows={2}
-        value={value}
-        error={error}
-        spellCheck={false}
-        placeholder="e.g. area_rectangle(width, height)"
-        className="font-numeric text-[13px] leading-relaxed"
-        highlight={<FormulaText expression={value} names={formulaNames} />}
-        onChange={(event) => {
-          onChange(event.target.value);
-          if (tidy.tidying.current) return;
-          requestAnimationFrame(() => updateAutocompleteSuggestionsFinal());
+    <div>
+      {label && <span className={FIELD_LABEL}>{label}</span>}
+      <div
+        onMouseDown={(event) => {
+          // The box is the field: a click below the text puts the caret at the end.
+          if ((event.target as HTMLElement).closest('.cm-editor')) return;
+          event.preventDefault();
+          editor.current?.setSelection(value.length, value.length);
+          editor.current?.focus();
         }}
-        onKeyDown={(event) => {
-          if (handleAutocompleteKeyDown(event)) return;
-          if (event.key.length === 1 || event.key === 'Backspace' || event.key === 'Delete') {
-            requestAnimationFrame(() => updateAutocompleteSuggestionsFinal());
-          }
-        }}
-        onBlur={() => {
-          setTimeout(() => setIsAutocompleteOpen(false), 200);
-          // Tidy the spacing once the box is left; a formula that doesn't parse stays as typed.
-          tidyFormulaAfterBlur(textareaRef.current, onChange);
-        }}
-      />
+        className={cn(
+          'min-h-[62px] w-full cursor-text rounded-md border border-transparent bg-field px-3 py-2.5',
+          'transition-[background-color,box-shadow] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
+          'hover:bg-field-hover focus-within:bg-field-hover',
+          error
+            ? '[box-shadow:var(--field-error)] focus-within:[box-shadow:var(--field-error-focus)]'
+            : 'focus-within:[box-shadow:var(--field-focus)]'
+        )}
+      >
+        <FormulaEditor
+          value={value}
+          onChange={onChange}
+          names={formulaNames}
+          errorRange={errorRange}
+          fontSize={13}
+          lineHeight={1.625}
+          placeholderText="e.g. area_rectangle(width, height)"
+          ariaLabel={label ?? 'Formula'}
+          invalid={!!error}
+          candidates={candidates}
+          isStepKey={(name) => stepKeys.has(name)}
+          tidyOnBlur
+          handleRef={editor}
+        />
+      </div>
+      {error && (
+        <p className={FIELD_ERROR} role="alert">
+          {error}
+        </p>
+      )}
       {tidy.show && (
         <div className="mt-1">
           <TidyOffer tidied={tidy.tidied} onApply={tidy.apply} />
-        </div>
-      )}
-      {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
-        <div
-          role="listbox"
-          aria-label="Suggestions"
-          className="fixed z-50 min-w-[280px] max-h-64 overflow-y-auto py-1 rounded-lg border border-border-strong bg-surface shadow-panel"
-          style={{ top: autocompletePosition.top, left: clampSuggestionLeft(autocompletePosition.left) }}
-          onMouseDown={(event) => event.preventDefault()}
-        >
-          {autocompleteSuggestions.slice(0, 8).map((suggestion, index) => {
-            const token = suggestionToken(suggestion.type, suggestion.type === 'field' && stepKeys.has(suggestion.name));
-            return (
-            <button
-              key={`${suggestion.name}-${index}`}
-              type="button"
-              role="option"
-              aria-selected={index === selectedSuggestionIndex}
-              onClick={() => insertSuggestion(suggestion, currentWord)}
-              onMouseEnter={() => setSelectedSuggestionIndex(index)}
-              className={cn(
-                'w-full px-3 py-1.5 text-left flex items-center gap-2 transition-colors',
-                index === selectedSuggestionIndex ? 'bg-action-bg text-ink' : 'text-ink-body hover:bg-surface-hover'
-              )}
-            >
-              <code className={cn('flex-1 text-xs font-numeric', TOKEN_TEXT[token.kind])}>{suggestion.displayName}</code>
-              {suggestion.description && (
-                <span className="max-w-[160px] truncate text-[11px] text-ink-muted">{suggestion.description}</span>
-              )}
-              <span className={cn('text-[10px] uppercase tracking-wide font-medium', TOKEN_TEXT[token.kind] || 'text-ink-faint')}>
-                {token.label}
-              </span>
-            </button>
-            );
-          })}
         </div>
       )}
     </div>

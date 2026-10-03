@@ -103,22 +103,6 @@ export function prettifyFormula(formula: string): string {
 }
 
 /**
- * Tidies a formula box a moment after it loses focus, unless focus came back (an operator
- * button or a suggestion puts it back after inserting), so the text never shifts under a click.
- */
-export function tidyFormulaAfterBlur(
-  textarea: HTMLTextAreaElement | null,
-  apply: (formula: string) => void,
-  when: () => boolean = () => true
-) {
-  setTimeout(() => {
-    if (!textarea || document.activeElement === textarea || !when()) return;
-    const tidied = prettifyFormula(textarea.value);
-    if (tidied !== textarea.value) apply(tidied);
-  }, 300);
-}
-
-/**
  * Where a caret at `caret` in `before` belongs in `after`, when the two differ only in
  * whitespace (as a tidied formula does): after the same number of non-space characters.
  */
