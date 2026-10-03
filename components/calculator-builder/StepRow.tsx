@@ -1,59 +1,22 @@
 'use client';
 
 import { useId, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Banknote, ChevronDown, Hash, ListOrdered, Percent, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { IconButton } from '@/components/ui/IconButton';
-import { Segmented } from '@/components/ui/Segmented';
-import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
 import { keyProblem, suggestKey } from '@/lib/calculator/editing';
-import {
-  describeCondition,
-  describeStepProblem,
-  describeStepProblemShort,
-  displayUnit,
-  isStepError,
-  formatStepValue,
-} from '@/lib/calculator/format';
-import { callToExpression } from '@/lib/calculator/step-source';
-import { callSignature, parseCalls, paramAt, type ParamSpec } from '@/lib/calculator/call-context';
-import type { Calculator, CalculatorLibrary, CalculatorStep, StepFormat, StepResult } from '@/lib/calculator/types';
-import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
-import { cn } from '@/lib/utils';
-import { ConditionRow, NO_CONDITION_HINT, canStartCondition, startCondition } from './ConditionEditor';
-import { StepFormulaEditor } from './StepFormulaEditor';
-import { useCallProblems } from './CallProblems';
-import { classifyStepIssues, unknownNameIn } from '@/lib/calculator/step-issues';
-import { findFormulaErrorRange } from '@/lib/formula/error-location';
+import { describeCondition, describeStepProblem, describeStepProblemShort, isStepError, formatStepValue } from '@/lib/calculator/format';
+import { parameterFor, type ParamSpec } from '@/lib/calculator/call-context';
+import { analyzeStepFormula, stepDiagnostics } from '@/lib/calculator/step-analysis';
+import type { Calculator, CalculatorLibrary, CalculatorStep, StepResult } from '@/lib/calculator/types';
+import { plainSyntaxMessage } from '@/lib/formula/diagnostics';
 import { IssueLine, PinnedNotes } from '@/components/formula/IssueMarker';
 import { FormulaText } from '@/components/formula/FormulaText';
-import { calculatorFormulaNames, unknownNameRanges, unknownValueNames } from '@/lib/calculator/formula-tokens';
-import { collectDiagnostics, plainSyntaxMessage } from '@/lib/formula/diagnostics';
-import { analyzeUnits, declaredUnitProblem } from '@/lib/formula/unit-analysis';
-import { calculatorUnitResolver, declaredCategory } from '@/lib/formula/unit-resolvers';
-
-// An icon per format; the chosen one also shows its name, so the control fits any width.
-const FORMATS: Array<{ value: StepFormat; label: string; Icon: typeof Hash }> = [
-  { value: 'number', label: 'Number', Icon: Hash },
-  { value: 'money', label: 'Money', Icon: Banknote },
-  { value: 'count', label: 'Count', Icon: ListOrdered },
-  { value: 'percent', label: 'Percent', Icon: Percent },
-];
-
-function formatOptions(selected: StepFormat) {
-  return FORMATS.map(({ value, label, Icon }) => ({
-    value,
-    title: label,
-    label: (
-      <span className="inline-flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5 flex-none" aria-hidden="true" />
-        <span className={value === selected ? undefined : 'sr-only'}>{label}</span>
-      </span>
-    ),
-  }));
-}
+import { cn } from '@/lib/utils';
+import { ConditionRow } from './ConditionEditor';
+import { StepFormatControls } from './StepFormatControls';
+import { StepFormulaEditor } from './StepFormulaEditor';
+import { StepStrip } from './StepStrip';
 
 interface StepRowProps {
   calculator: Calculator;
@@ -79,103 +42,6 @@ interface StepRowProps {
   onRemove: () => void;
   /** A new input named `key`, shaped like the function parameter it's passed for, if any. */
   onCreateInput: (key: string, param?: ParamSpec) => void;
-}
-
-/** The parameter of a shared function that `name` is passed as, to shape an input made for it. */
-function parameterFor(expression: string, name: string, library: CalculatorLibrary): ParamSpec | undefined {
-  for (const call of parseCalls(expression)) {
-    const signature = callSignature(call.name, library);
-    if (!signature || signature.builtIn) continue;
-    const index = call.args.findIndex((arg) => arg.text === name);
-    const param = index >= 0 ? paramAt(signature, index) : undefined;
-    if (param) return param;
-  }
-  return undefined;
-}
-
-/** "Move to part ▾": a quiet 32px button over a transparent native select. */
-function MoveToPart({
-  calculator,
-  step,
-  onMoveToPart,
-}: {
-  calculator: Calculator;
-  step: CalculatorStep;
-  onMoveToPart: (partId: string) => void;
-}) {
-  return (
-    <label className="relative inline-flex h-8 cursor-pointer items-center gap-1 rounded-md px-3 text-xs text-ink-muted transition-colors duration-150 hover:text-ink focus-within:ring-2 focus-within:ring-action">
-      Move to part
-      <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-      <select
-        aria-label="Move to part"
-        value=""
-        onChange={(event) => event.target.value && onMoveToPart(event.target.value)}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-      >
-        <option value="">Move to part…</option>
-        {calculator.parts
-          .filter((part) => part.id !== step.partId)
-          .map((part) => (
-            <option key={part.id} value={part.id}>
-              {part.name || 'Unnamed part'}
-            </option>
-          ))}
-      </select>
-    </label>
-  );
-}
-
-/** A switch row in the "In this part" strip: label and a one-line consequence, the whole row the hit target. */
-function StripToggle({
-  label,
-  note,
-  checked,
-  disabled,
-  title,
-  onChange,
-}: {
-  label: string;
-  note: string;
-  checked: boolean;
-  disabled?: boolean;
-  title?: string;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      title={title}
-      onClick={() => onChange(!checked)}
-      className={cn(
-        'step-toggle -mx-2 flex items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-surface-hover',
-        'transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-        'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent'
-      )}
-    >
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-ink">{label}</span>
-        <span className="step-note block truncate text-xs text-ink-muted">{note}</span>
-      </span>
-      <span
-        aria-hidden="true"
-        className={cn(
-          'relative h-[22px] w-[38px] flex-none rounded-full transition-colors duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
-          checked ? 'bg-accent' : 'bg-border-strong'
-        )}
-      >
-        <span
-          className={cn(
-            'absolute top-[3px] h-4 w-4 rounded-full transition-[left] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
-            checked ? 'left-[19px] bg-accent-ink' : 'left-[3px] bg-surface'
-          )}
-        />
-      </span>
-    </button>
-  );
 }
 
 // One step in a part: collapsed it shows its label, formula and live value; expanded it
@@ -208,65 +74,14 @@ export function StepRow({
   const problem = describeStepProblem(result, calculator);
   const isError = isStepError(result);
   const isIncomplete = result?.status === 'error' && !!result.incomplete;
-  const unknown = unknownNameIn(result?.message);
   const nameProblem = keyProblem(calculator, step.key, step.id);
-  const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
-  // Steps are edited as formulas; a call step that hasn't been converted yet reads as its formula.
-  const expression =
-    step.source.type === 'expression'
-      ? step.source.expression
-      : step.source.functionName
-        ? callToExpression(step.source, library.functions)
-        : '';
-  // Names the formula uses that nothing matches, once the error has settled, each offered as a new input.
-  const unknownNames = useMemo(() => {
-    if (!unknown) return [];
-    const names = unknownValueNames(expression, formulaNames);
-    return names.length > 0 ? names : [unknown];
-  }, [unknown, expression, formulaNames]);
-
-  // What the formula has to say about itself, in the same levels as a function's formula.
-  const argumentProblems = useCallProblems(expression, calculator, library);
-  // What the parts of the formula are measured in: unlike units put together, or a result of another kind than the step is set to.
-  const unitAnalysis = useMemo(
-    () => analyzeUnits(expression, calculatorUnitResolver(calculator, library)),
-    [expression, calculator, library]
-  );
-  const callProblems = useMemo(() => {
-    const unitProblems = unitAnalysis.problems.map((problem) => ({ message: problem.message, kind: 'mismatch' as const, start: problem.from, end: problem.to }));
-    const declared =
-      step.format === 'number' && (step.unitCategory || step.unitSymbol)
-        ? declaredUnitProblem(expression, unitAnalysis, { category: declaredCategory(step), symbol: step.unitSymbol }, 'the step is set to')
-        : null;
-    if (declared) unitProblems.push({ message: declared.message, kind: 'mismatch', start: declared.from, end: declared.to });
-    return [...argumentProblems, ...unitProblems];
-  }, [argumentProblems, unitAnalysis, expression, step]);
-  const issues = classifyStepIssues({ result, unknownNames, callProblems });
+  // What the formula has to say about itself (see lib/calculator/step-analysis).
+  const analysis = useMemo(() => analyzeStepFormula({ step, result, calculator, library }), [step, result, calculator, library]);
+  const { expression, formulaNames, unknownNames, issues, syntaxRange, unitAnalysis } = analysis;
   // An error that is only a name nothing matches yet is "unresolved" (amber), not a mistake (red).
   const unresolvedOnly = isError && !issues.some((issue) => issue.level === 'broken');
-  // Where the formula's syntax breaks, underlined in the editor.
-  const syntaxRange = useMemo(
-    () => (issues.some((issue) => issue.level === 'broken') ? findFormulaErrorRange(expression) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [expression, result?.message]
-  );
-
-  // The same problems as the lines below the editor, pinned to the text they're about: hover one for its message and fix.
-  const diagnostics = collectDiagnostics({
-    syntax: { range: syntaxRange, message: issues.find((issue) => issue.level === 'broken' && !issue.name)?.message },
-    unknownNames: {
-      ranges: unknownNameRanges(expression, formulaNames),
-      names: unknownNames,
-      message: (name) => `${name} isn’t an input or step yet.`,
-      fixes: (name) => [{ label: `Create input “${name}”`, run: () => onCreateInput(name, parameterFor(expression, name, library)) }],
-    },
-    problems: callProblems.map((problem) => ({
-      from: problem.start,
-      to: problem.end,
-      level: problem.kind === 'arguments' ? ('broken' as const) : ('heads-up' as const),
-      message: problem.message,
-    })),
-  });
+  // The same problems, pinned to the text they're about: hover one for its message and fix.
+  const diagnostics = stepDiagnostics(analysis, library, onCreateInput);
 
   const value =
     result?.status === 'disabled' ? (
@@ -419,82 +234,24 @@ export function StepRow({
                 {isIncomplete && result?.message && <p className="mt-1 text-xs text-ink-muted">{result.message}</p>}
               </div>
 
-              <div className="grid grid-cols-[minmax(0,1fr)_110px] gap-3">
-                <div>
-                  <span id={`${id}-format`} className="mb-1.5 block text-xs text-ink-muted">
-                    Shows as
-                  </span>
-                  <Segmented
-                    block
-                    aria-labelledby={`${id}-format`}
-                    className="!h-[42px]"
-                    options={formatOptions(step.format ?? 'number')}
-                    value={step.format ?? 'number'}
-                    onChange={(format) => onChange({ ...step, format })}
-                  />
-                </div>
-                {/* Money and percent fix the unit; the field stays so the row keeps its shape. */}
-                {step.format === 'money' || step.format === 'percent' ? (
-                  <Select label="Unit" disabled value="" options={[{ value: '', label: step.format === 'money' ? 'kr' : '%' }]} />
-                ) : (
-                  <Select
-                    label="Unit"
-                    value={step.unitSymbol ?? ''}
-                    options={[
-                      { value: '', label: 'No unit' },
-                      ...getAllUnitSymbols().map((symbol) => ({ value: symbol, label: displayUnit(symbol) ?? symbol })),
-                      ...(step.unitSymbol && !getAllUnitSymbols().includes(step.unitSymbol)
-                        ? [{ value: step.unitSymbol, label: `${step.unitSymbol} (label only)` }]
-                        : []),
-                    ]}
-                    onChange={(event) => {
-                      const unitSymbol = event.target.value || undefined;
-                      onChange({
-                        ...step,
-                        unitSymbol,
-                        unitCategory: unitSymbol ? getUnitCategory(unitSymbol) : undefined,
-                        unitIsLabel: undefined,
-                      });
-                    }}
-                  />
-                )}
-              </div>
+              <StepFormatControls id={id} step={step} onChange={onChange} />
             </div>
 
-            <div className="step-strip bg-panel">
-              <Eyebrow className="step-eyebrow mb-1 !text-[11px]">In this part</Eyebrow>
-              <div className="step-toggles">
-                <StripToggle label="Part's cost" note="Adds to the total" checked={isCost} onChange={onSetCost} />
-                <StripToggle label="Show to staff" note="A result row on the form" checked={isShown} onChange={onSetShown} />
-                <StripToggle
-                  label="Only when…"
-                  note={step.enabledWhen ? describeCondition(step.enabledWhen, calculator, library) : 'Always'}
-                  checked={!!step.enabledWhen}
-                  disabled={!step.enabledWhen && !canStartCondition(calculator)}
-                  title={!step.enabledWhen && !canStartCondition(calculator) ? NO_CONDITION_HINT : undefined}
-                  onChange={(on) => onChange({ ...step, enabledWhen: on ? startCondition(calculator, library) : undefined })}
-                />
-              </div>
-              <div className="step-foot">
-                <IconButton
-                  label="Move step up"
-                  icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />}
-                  onClick={() => onMove(-1)}
-                  disabled={isFirst}
-                />
-                <IconButton
-                  label="Move step down"
-                  icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />}
-                  onClick={() => onMove(1)}
-                  disabled={isLast}
-                />
-                {calculator.parts.length > 1 && <MoveToPart calculator={calculator} step={step} onMoveToPart={onMoveToPart} />}
-                <Button variant="danger" size="sm" className="ml-auto" onClick={onRemove}>
-                  <span className="step-wide-only">Delete</span>
-                  <span className="step-narrow-only">Delete step</span>
-                </Button>
-              </div>
-            </div>
+            <StepStrip
+              calculator={calculator}
+              library={library}
+              step={step}
+              isCost={isCost}
+              isShown={isShown}
+              isFirst={isFirst}
+              isLast={isLast}
+              onChange={onChange}
+              onSetCost={onSetCost}
+              onSetShown={onSetShown}
+              onMove={onMove}
+              onMoveToPart={onMoveToPart}
+              onRemove={onRemove}
+            />
           </div>
 
           {step.enabledWhen && (

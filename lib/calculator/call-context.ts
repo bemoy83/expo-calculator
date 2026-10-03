@@ -295,6 +295,18 @@ export function findCallProblems(expression: string, calculator: Calculator, lib
   return problems;
 }
 
+/** The parameter of a shared function that `name` is passed as, to shape an input made for it. */
+export function parameterFor(expression: string, name: string, library: Pick<CalculatorLibrary, 'functions'>): ParamSpec | undefined {
+  for (const call of parseCalls(expression)) {
+    const signature = callSignature(call.name, library);
+    if (!signature || signature.builtIn) continue;
+    const index = call.args.findIndex((arg) => arg.text === name);
+    const param = index >= 0 ? paramAt(signature, index) : undefined;
+    if (param) return param;
+  }
+  return undefined;
+}
+
 // ---- Catalog properties ----
 
 /** Distinct property names of the materials or labor an input can pick, sorted. */

@@ -1,6 +1,7 @@
 import { callAtCaret, parseCalls } from '../calculator/call-context';
 import { scanExpression } from '../calculator/dependencies';
 import { tokenize } from '../formula/tokens';
+import { analyzeStepFormula, stepDiagnostics, stepExpression } from '../calculator/step-analysis';
 import { collectDiagnostics, plainSyntaxMessage } from '../formula/diagnostics';
 import { minimalChange } from '../formula/minimal-change';
 import { assertCheck } from './test-helpers';
@@ -70,3 +71,48 @@ assertCheck('each token knows where it sits', JSON.stringify(tokenize('ab + 1').
 assertCheck('a number is not read as a call, nor its exponent as a name', parseCalls('1e5(2)').length === 0 && scanExpression('2.5e3 + k').map((token) => token.text).join(',') === 'k');
 assertCheck('a call needs a plain name before its bracket', parseCalls('f(a) + board.width(b) + a.b.c(d)').map((call) => call.name).join(',') === 'f');
 assertCheck('names are scanned with whether they are called', JSON.stringify(scanExpression('f(x) + y').map((token) => [token.text, token.isCall])) === JSON.stringify([['f', true], ['x', false], ['y', false]]));
+
+// What a step's formula says about itself.
+{
+  const metres = (key: string) => ({ id: key, key, label: key, widget: 'number', value: { kind: 'number', unitSymbol: 'm' } });
+  const calculator = {
+    id: 'c', name: 'C', parts: [{ id: 'p', name: 'P' }], layout: [], createdAt: '', updatedAt: '',
+    inputs: [metres('bredde'), metres('høyde')],
+    steps: [],
+  } as unknown as import('../calculator/types').Calculator;
+  const library = { materials: [], labor: [], functions: [] };
+  const stepOf = (expression: string, extra: Record<string, unknown> = {}) =>
+    ({ id: 's', partId: 'p', key: 'sum', label: 'Sum', format: 'number', source: { type: 'expression', expression }, ...extra }) as unknown as import('../calculator/types').CalculatorStep;
+  const analyze = (expression: string, result?: Partial<import('../calculator/types').StepResult>, extra: Record<string, unknown> = {}) =>
+    analyzeStepFormula({ step: stepOf(expression, extra), result: result as import('../calculator/types').StepResult | undefined, calculator, library });
+
+  assertCheck('a call step reads as its formula', stepExpression({ ...stepOf(''), source: { type: 'expression', expression: 'a + b' } }, library) === 'a + b');
+  assertCheck('a sound formula has nothing to say', (() => {
+    const found = analyze('bredde * høyde', { status: 'ok', value: 6 });
+    return found.issues.length === 0 && found.unknownNames.length === 0 && found.syntaxRange === null && stepDiagnostics(found, library, () => undefined).length === 0;
+  })());
+  assertCheck('unlike units are a heads-up pinned to the sum, with the operator noted', (() => {
+    const found = analyze('bredde * høyde + bredde', { status: 'ok', value: 8 });
+    const diagnostics = stepDiagnostics(found, library, () => undefined);
+    return found.issues.some((issue) => issue.level === 'heads-up' && /is an area but bredde is a length/.test(issue.message)) &&
+      diagnostics.length === 1 && diagnostics[0].level === 'heads-up' && diagnostics[0].from === 0 && diagnostics[0].to === 23 &&
+      found.unitAnalysis.notes.some((note) => note.text === 'length × length → area');
+  })());
+  assertCheck('a result of another kind than the step is set to is a heads-up on the whole formula', (() => {
+    const found = analyze('bredde + høyde', { status: 'ok', value: 5 }, { unitSymbol: 'm2', unitCategory: 'area' });
+    return found.callProblems.some((problem) => /works out to a length, but the step is set to m² \(area\)/.test(problem.message));
+  })());
+  assertCheck('a name nothing matches is offered as a new input, with the call parameter it stands for', (() => {
+    const created: Array<[string, unknown]> = [];
+    const found = analyze('bredde + foo', { status: 'error', message: 'Unknown name "foo"' });
+    const diagnostics = stepDiagnostics(found, library, (name, param) => created.push([name, param]));
+    diagnostics[0]?.fixes?.[0].run();
+    return found.unknownNames.join() === 'foo' && diagnostics.length === 1 && diagnostics[0].level === 'unresolved' && diagnostics[0].from === 9 && diagnostics[0].to === 12 &&
+      diagnostics[0].fixes?.[0].label === 'Create input “foo”' && created.length === 1 && created[0][0] === 'foo';
+  })());
+  assertCheck('a syntax error is underlined where it breaks, in plain words', (() => {
+    const found = analyze('bredde +', { status: 'error', message: 'The formula stops too early. A value is missing after the last operator. (character 9)' });
+    const diagnostics = stepDiagnostics(found, library, () => undefined);
+    return found.syntaxRange !== null && diagnostics.length === 1 && diagnostics[0].level === 'broken' && diagnostics[0].message === 'The formula stops too early. A value is missing after the last operator.';
+  })());
+}
