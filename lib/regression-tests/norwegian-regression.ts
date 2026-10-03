@@ -60,7 +60,7 @@ testFormula('areal_på_vegg(bredde, høyde) + plater(høyde, valgt_plate) + valg
 
 assertCheck(
   'a formula with æøå names validates',
-  validateFormula('areal_på_vegg(bredde, høyde) * gipsplate_på_lager.lengde_på_plate', ['bredde', 'høyde'], [gips], undefined, [areal]).valid
+  validateFormula('areal_på_vegg(bredde, høyde) * gipsplate_på_lager.lengde_på_plate', ['bredde', 'høyde'], [gips], [areal]).valid
 );
 assertCheck(
   'an unknown æøå name is reported whole',

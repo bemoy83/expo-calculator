@@ -188,53 +188,12 @@ assertCheck(
     nestedCalls.some((call) => call.fullMatch === 'add(width, height)')
 );
 
-const missingValidation = validateFormula('width + missing', ['width'], [], []);
+const missingValidation = validateFormula('width + missing', ['width'], []);
 assertCheck(
   'validates missing variables',
   !missingValidation.valid && missingValidation.error === 'Undefined variable: missing',
   missingValidation.error
 );
-
-const materialFieldValidation = validateFormula(
-  'material.width',
-  ['material'],
-  [
-    {
-      id: 'mat-field',
-      name: 'Board',
-      category: 'wood',
-      unit: 'ea',
-      price: 5,
-      variableName: 'mat_board',
-      properties: [{ id: 'width', name: 'width', type: 'number', value: 2 }],
-      createdAt: '',
-      updatedAt: '',
-    },
-  ],
-  [{ variableName: 'material', type: 'material' }]
-);
-assertCheck('validates material field properties', materialFieldValidation.valid, materialFieldValidation.error);
-
-const laborFieldValidation = validateFormula(
-  'installer.m2_per_hr',
-  ['installer'],
-  [],
-  [{ variableName: 'installer', type: 'labor' }],
-  [],
-  [
-    {
-      id: 'labor-field',
-      name: 'Installer',
-      category: 'install',
-      cost: 500,
-      variableName: 'installer_rate',
-      properties: [{ id: 'm2-rate', name: 'm2_per_hr', type: 'number', value: 10 }],
-      createdAt: '',
-      updatedAt: '',
-    },
-  ]
-);
-assertCheck('validates labor field properties', laborFieldValidation.valid, laborFieldValidation.error);
 
 console.log('\n=== Functions Taking Labor Regression ===');
 {
@@ -255,7 +214,6 @@ console.log('\n=== Functions Taking Labor Regression ===');
     fieldValues: { crew: 'crew' },
     materials: [],
     labor: [crew],
-    fields: [{ variableName: 'crew', type: 'labor' }],
     functions: [takingLabor('inner', 'x.rate * 2', 'x'), takingLabor('outer', 'inner(y) + 1', 'y')],
   };
   assertCheck('a function called from a formula can read its labor parameter', evaluateFormula('inner(crew)', context) === 8);

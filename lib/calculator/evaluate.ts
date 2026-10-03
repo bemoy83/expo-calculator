@@ -81,9 +81,6 @@ export function evaluateCalculator(
   const resolved = resolveInputValues(calculator, values, library);
   const inputsByKey = new Map<string, CalculatorInput>(calculator.inputs.map((input) => [input.key, input]));
   const scope = createDependencyScope(calculator, library);
-  const pickerFields = calculator.inputs
-    .filter((input) => input.value.kind === 'material' || input.value.kind === 'labor')
-    .map((input) => ({ variableName: input.key, type: input.value.kind }));
 
   // A key must name one thing: steps sharing a key with another step or an input can't be
   // told apart, so they don't calculate and steps reading them wait.
@@ -162,7 +159,6 @@ export function evaluateCalculator(
       fieldValues: { ...resolved, ...stepValues },
       materials: library.materials,
       labor: library.labor,
-      fields: pickerFields,
       functions: library.functions,
     });
   };

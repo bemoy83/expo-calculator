@@ -1,13 +1,8 @@
-import { Labor, Material, SharedFunction } from '../types';
+import { Material, SharedFunction } from '../types';
 import { mathInstance } from './math-runtime';
 import { parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
 import { messageOf, translateParserError } from './error-messages';
-import { FormulaField } from './validation-types';
 import { findStandalone, NAME_WITH_PROPERTY, replaceStandalone } from './identifiers';
-
-function hasProperty(items: Array<{ properties?: Array<{ name: string }> }>, propertyName: string): boolean {
-  return items.some(item => item.properties?.some(property => property.name === propertyName));
-}
 
 /**
  * What kind of problem an invalid formula has, for telling them apart on screen: "broken" can't be
@@ -29,14 +24,11 @@ export function validateFormula(
   formula: string,
   availableVariables: string[],
   materials: Material[],
-  fields?: FormulaField[],
-  functions?: SharedFunction[],
-  labor?: Labor[]
+  functions?: SharedFunction[]
 ): FormulaValidation {
   try {
     const availableFunctions = functions || [];
     const materialsByVariableName = new Map(materials.map(material => [material.variableName, material]));
-    const fieldsByVariableName = new Map((fields ?? []).map(field => [field.variableName, field]));
 
     const functionCalls = parseFunctionCalls(formula);
     const functionNames = new Set<string>();
@@ -64,86 +56,11 @@ export function validateFormula(
       }
     }
 
-    // Check field property references (e.g., wallboard.width)
-    // Include field variable names from fields array, not just availableVariables
-    // This ensures field property references are recognized even if the field doesn't have a value yet
-    const allFieldVariableNames = [
-      ...availableVariables,
-      ...(fields?.map(f => f.variableName) || [])
-    ];
-    // Remove duplicates
-    const uniqueFieldVariableNames = Array.from(new Set(allFieldVariableNames));
-    const fieldPropertyRefs = parseFieldPropertyReferences(formula, uniqueFieldVariableNames);
-    for (const ref of fieldPropertyRefs) {
-      const field = fieldsByVariableName.get(ref.fieldVar);
-      if (!field) {
-        // Field not found in definitions - might be a regular variable, skip for now
-        continue;
-      }
+    // A reference to a property of one of the available variables (a material parameter's `plate.width`)
+    // is checked where it's used, not here.
+    const fieldPropertyRefs = parseFieldPropertyReferences(formula, availableVariables);
 
-      // Check if field is a material or labor field
-      if (field.type !== 'material' && field.type !== 'labor') {
-        return {
-          valid: false,
-          error: `Field "${ref.fieldVar}" is not a material or labor field, cannot access properties`,
-          errorKind: 'broken'
-        };
-      }
-
-      // Handle material fields
-      if (field.type === 'material') {
-        // Check if property exists on at least one material in the allowed category
-        let candidateMaterials = materials;
-        if (field.materialCategory && field.materialCategory.trim()) {
-          candidateMaterials = materials.filter(m => m.category === field.materialCategory);
-        }
-
-        const propertyExists = hasProperty(candidateMaterials, ref.propertyName);
-
-        if (!propertyExists) {
-          const categoryMsg = field.materialCategory
-            ? ` in category "${field.materialCategory}"`
-            : '';
-          return {
-            valid: false,
-            error: `Property "${ref.propertyName}" not found on any material${categoryMsg} for field "${ref.fieldVar}"`,
-            errorKind: 'unresolved'
-          };
-        }
-      }
-
-      // Handle labor fields
-      if (field.type === 'labor') {
-        if (!labor || labor.length === 0) {
-          return {
-            valid: false,
-            error: `No labor items available to check property "${ref.propertyName}" for field "${ref.fieldVar}"`,
-            errorKind: 'unresolved'
-          };
-        }
-
-        // Check if property exists on at least one labor item in the allowed category
-        let candidateLabor = labor;
-        if (field.laborCategory && field.laborCategory.trim()) {
-          candidateLabor = labor.filter(l => l.category === field.laborCategory);
-        }
-
-        const propertyExists = hasProperty(candidateLabor, ref.propertyName);
-
-        if (!propertyExists) {
-          const categoryMsg = field.laborCategory
-            ? ` in category "${field.laborCategory}"`
-            : '';
-          return {
-            valid: false,
-            error: `Property "${ref.propertyName}" not found on any labor item${categoryMsg} for field "${ref.fieldVar}"`,
-            errorKind: 'unresolved'
-          };
-        }
-      }
-    }
-
-    // Then, check material property references (e.g., mat_mdf.width)
+    // Check material property references (e.g., mat_mdf.width)
     const materialPropertyRefs = parseMaterialPropertyReferences(formula);
     for (const ref of materialPropertyRefs) {
       // Skip if this was already handled as a field property reference
@@ -194,8 +111,6 @@ export function validateFormula(
       const allAvailableVars = [
         ...availableVariables,
         ...materials.map(m => m.variableName),
-        // Include field variable names - they're valid variables even if not in availableVariables
-        ...(fields?.map(f => f.variableName) || []),
         // Math functions and constants
         'sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e',
         // Rounding functions

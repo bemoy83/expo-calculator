@@ -43,7 +43,6 @@ function evaluateFunctionCall(
     fieldValues: {},
     materials: context.materials,
     labor: context.labor,
-    fields: context.fields,
     functions: functions,
   };
 
@@ -59,7 +58,6 @@ function evaluateFunctionCall(
         fieldValues: context.fieldValues,
         materials: context.materials,
         labor: context.labor,
-        fields: context.fields,
         functions: functions,
       };
       try {
@@ -71,24 +69,6 @@ function evaluateFunctionCall(
     else if (argVarName in context.fieldValues) {
       argValue = context.fieldValues[argVarName];
     } 
-    else if (context.fields) {
-      const field = context.fields.find(f => f.variableName === argVarName);
-      if (field && field.defaultValue !== undefined) {
-        argValue = field.defaultValue;
-      } else {
-        const material = resolver.materialsByVariableName.get(argVarName);
-        if (material) {
-          argValue = material.price;
-        } else {
-          const numValue = Number(argVarName);
-          if (!isNaN(numValue) && isFinite(numValue)) {
-            argValue = numValue;
-          } else {
-            argValue = evaluateOtherArgument(argVarName, call.functionName, paramName, context, functions);
-          }
-        }
-      }
-    }
     else {
       const material = resolver.materialsByVariableName.get(argVarName);
       if (material) {
@@ -119,14 +99,18 @@ export function evaluateFormula(
     const resolver = createFormulaResolver(context);
 
     let functionCalls = parseFunctionCalls(processedFormula);
-    
+    let functionNames = new Set(functionCalls.map(call => call.functionName));
+    // Each pass rewrites the text, so the calls in it are read again.
+    const readCalls = () => {
+      functionCalls = parseFunctionCalls(processedFormula);
+      functionNames = new Set(functionCalls.map(call => call.functionName));
+    };
+
     const updateExclusionRanges = (): Array<[number, number]> => {
       return functionCalls.map(call => {
         return [call.startIndex, call.endIndex];
       });
     };
-    
-    let functionNames = new Set(functionCalls.map(call => call.functionName));
 
     const fieldVariableNames = Object.keys(context.fieldValues);
     const fieldPropertyRefs = parseFieldPropertyReferences(processedFormula, fieldVariableNames);
@@ -142,8 +126,7 @@ export function evaluateFormula(
       return null;
     }, updateExclusionRanges());
     
-    functionCalls = parseFunctionCalls(processedFormula);
-    functionNames = new Set(functionCalls.map(call => call.functionName));
+    readCalls();
 
     const fieldValueMap = new Map<string, number>();
     for (const [varName, value] of Object.entries(context.fieldValues)) {
@@ -164,8 +147,7 @@ export function evaluateFormula(
       return null;
     }, updateExclusionRanges());
     
-    functionCalls = parseFunctionCalls(processedFormula);
-    functionNames = new Set(functionCalls.map(call => call.functionName));
+    readCalls();
 
     const materialPropertyRefs = parseMaterialPropertyReferences(processedFormula);
     const fieldPropertyFullMatches = new Set(fieldPropertyRefs.map(ref => ref.fullMatch));
@@ -186,8 +168,7 @@ export function evaluateFormula(
       return null;
     }, updateExclusionRanges());
     
-    functionCalls = parseFunctionCalls(processedFormula);
-    functionNames = new Set(functionCalls.map(call => call.functionName));
+    readCalls();
 
     processedFormula = replaceIdentifiers(processedFormula, (token) => {
       if (functionNames.has(token.text)) return null;
@@ -201,8 +182,7 @@ export function evaluateFormula(
       return null;
     }, updateExclusionRanges());
     
-    functionCalls = parseFunctionCalls(processedFormula);
-    functionNames = new Set(functionCalls.map(call => call.functionName));
+    readCalls();
 
     const matches = findStandalone(processedFormula, NAME_WITH_PROPERTY);
     const unreplacedVars: string[] = [];

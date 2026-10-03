@@ -7,9 +7,6 @@ export interface FormulaResolver {
   materialsByVariableName: Map<string, Material>;
   laborByVariableName: Map<string, Labor>;
   resolveNumericValue: (value: string | number | boolean | undefined) => number | null;
-  resolveVariable: (name: string) => number | null;
-  resolveMaterialProperty: (materialVar: string, propertyName: string) => number | null;
-  resolveLaborProperty: (laborVar: string, propertyName: string) => number | null;
   resolveMaterialPropertyOrPrice: (materialVar: string, propertyName: string) => number | null;
   resolveFieldProperty: (fieldVar: string, propertyName: string) => number;
 }
@@ -42,26 +39,8 @@ export function createFormulaResolver(context: EvaluationContext): FormulaResolv
     return getMaterialPropertyValueFromMaterial(material, propertyName);
   };
 
-  const resolveLaborPropertyForMap = (laborVar: string, propertyName: string): number | null => {
-    const laborItem = laborByVariableName.get(laborVar);
-    if (!laborItem || !laborItem.properties) {
-      return null;
-    }
-
-    return getLaborPropertyValueFromLabor(laborItem, propertyName);
-  };
-
   const resolveFieldPropertyForContext = (fieldVar: string, propertyName: string): number => {
-    let fieldValue = context.fieldValues[fieldVar];
-
-    if (!fieldValue || (typeof fieldValue === 'string' && fieldValue.trim() === '')) {
-      if (context.fields) {
-        const field = context.fields.find(f => f.variableName === fieldVar);
-        if (field && field.defaultValue !== undefined) {
-          fieldValue = field.defaultValue;
-        }
-      }
-    }
+    const fieldValue = context.fieldValues[fieldVar];
 
     if (typeof fieldValue !== 'string' || fieldValue.trim() === '') {
       throw new Error(`Field "${fieldVar}" is not a material/labor field or no item is selected`);
@@ -92,15 +71,6 @@ export function createFormulaResolver(context: EvaluationContext): FormulaResolv
     materialsByVariableName,
     laborByVariableName,
     resolveNumericValue,
-    resolveVariable(name) {
-      if (name in context.fieldValues) {
-        return resolveNumericValue(context.fieldValues[name]);
-      }
-
-      return resolveNumericValue(name);
-    },
-    resolveMaterialProperty: resolveMaterialPropertyForMap,
-    resolveLaborProperty: resolveLaborPropertyForMap,
     resolveMaterialPropertyOrPrice(materialVar, propertyName) {
       const propertyValue = resolveMaterialPropertyForMap(materialVar, propertyName);
       if (propertyValue !== null) {

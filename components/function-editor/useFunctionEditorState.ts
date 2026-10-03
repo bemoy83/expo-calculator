@@ -110,7 +110,7 @@ export function useFunctionEditorState({
       return;
     }
     const paramNames = parameters.filter((param) => param.name.trim()).map((param) => param.name);
-    const validation = validateFormula(formData.formula, paramNames, [], undefined, functions);
+    const validation = validateFormula(formData.formula, paramNames, [], functions);
     if (validation.valid || !validatedOnce.current) {
       validatedOnce.current = true;
       setFormulaValidation(validation);
