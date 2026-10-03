@@ -218,35 +218,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:flex-1 lg:min-h-0">
         <div className="flex flex-col px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
-          <ParameterRail
-            parameters={editor.parameters}
-            materialCategories={materialCategories}
-            formula={editor.formData.formula}
-            openIndex={openIndex}
-            onToggle={(index) => setOpenIndex((open) => (open === index ? null : index))}
-            onUpdate={editor.updateParameter}
-            onRemove={(index) => {
-              editor.removeParameter(index);
-              setOpenIndex(null);
-            }}
-            onMove={(index, direction) => {
-              editor.moveParameter(index, direction);
-              setOpenIndex((open) => (open === index ? index + direction : open));
-            }}
-            onAdd={() => {
-              editor.addParameter();
-              openNewParameter(editor.parameters.length);
-            }}
-            focusLabelOf={focusLabelOf}
-            onLabelFocused={() => setFocusLabelOf(null)}
-            errors={editor.parameterErrors}
-            suggestions={editor.parameterSuggestions}
-            existingNames={editor.existingParameterNames}
-            onReuse={editor.addParameterFromSuggestion}
-          />
-          {editor.errors.parameters && <p className="px-2.5 pt-2 text-xs text-danger">{editor.errors.parameters}</p>}
-
-          <section aria-labelledby="function-details-heading" className="mt-[22px]">
+          <section aria-labelledby="function-details-heading" className="mb-[22px]">
             <div className="flex justify-between items-baseline px-2.5 pb-2">
               <Eyebrow as="h2" id="function-details-heading">
                 Details
@@ -293,6 +265,34 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               </dl>
             )}
           </section>
+
+          <ParameterRail
+            parameters={editor.parameters}
+            materialCategories={materialCategories}
+            formula={editor.formData.formula}
+            openIndex={openIndex}
+            onToggle={(index) => setOpenIndex((open) => (open === index ? null : index))}
+            onUpdate={editor.updateParameter}
+            onRemove={(index) => {
+              editor.removeParameter(index);
+              setOpenIndex(null);
+            }}
+            onMove={(index, direction) => {
+              editor.moveParameter(index, direction);
+              setOpenIndex((open) => (open === index ? index + direction : open));
+            }}
+            onAdd={() => {
+              editor.addParameter();
+              openNewParameter(editor.parameters.length);
+            }}
+            focusLabelOf={focusLabelOf}
+            onLabelFocused={() => setFocusLabelOf(null)}
+            errors={editor.parameterErrors}
+            suggestions={editor.parameterSuggestions}
+            existingNames={editor.existingParameterNames}
+            onReuse={editor.addParameterFromSuggestion}
+          />
+          {editor.errors.parameters && <p className="px-2.5 pt-2 text-xs text-danger">{editor.errors.parameters}</p>}
         </div>
 
         <div className="min-w-0 flex flex-col px-4 sm:px-7 py-5 lg:overflow-hidden">
