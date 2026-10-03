@@ -314,6 +314,14 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               }}
               storedParameters={editor.parameterSuggestions}
               onReuseParameter={editor.addParameterFromSuggestion}
+              onCreateParameters={(names) => {
+                // The first of them that still needs defining opens, ready to fill in.
+                const start = editor.parameters.length;
+                const created = editor.addParametersNamed(names);
+                const first = created.findIndex(parameterNeedsDefinition);
+                if (first !== -1) openNewParameter(start + first);
+              }}
+              onReuseParameters={editor.addParametersFromSuggestions}
               onFormulaChange={(next) => editor.handleFormDataChange({ formula: next })}
               formulaTextareaRef={editor.formulaTextareaRef}
               formulaValidation={editor.formulaValidation}

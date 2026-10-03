@@ -12,6 +12,7 @@ import {
   findStoredParametersNamed,
   getFormulaWithInsertedOperator,
   parameterNeedsDefinition,
+  planUnknownNames,
   renameFormulaName,
   getFormulaWithInsertedToken,
   validateFunctionEditorForm,
@@ -327,6 +328,22 @@ assertCheck(
     parameterNeedsDefinition({ name: 'plate', label: 'Plate', required: true, kind: 'material' }) &&
     !parameterNeedsDefinition({ name: 'plate', label: 'Plate', required: true, kind: 'material', materialCategory: 'Gips' }) &&
     !parameterNeedsDefinition({ name: 'crew', label: 'Crew', required: true, kind: 'labor' })
+);
+
+const twoUnits = getParameterSuggestions(
+  [
+    { id: 'u1', name: 'a', displayName: 'A', formula: 'x', category: 'x', parameters: [{ name: 'lengde', label: 'Lengde', unitSymbol: 'mm', required: true }] } as unknown as SharedFunction,
+    { id: 'u2', name: 'b', displayName: 'B', formula: 'x', category: 'x', parameters: [{ name: 'lengde', label: 'Lengde', unitSymbol: 'm', required: true }, { name: 'høyde', label: 'Høyde', required: true }] } as unknown as SharedFunction,
+  ],
+  []
+);
+const bulkPlan = planUnknownNames(['hoyde', 'lengde', 'dybde', 'tykkelse'], 'hoyde + lengde + dybde + tykkelse', twoUnits);
+assertCheck(
+  'a bulk plan reuses names with one stored match, creates ones with none, and leaves ambiguous ones to choose',
+  bulkPlan.reuse.map((item) => `${item.name}>${item.stored.name}`).join(',') === 'hoyde>høyde' &&
+    bulkPlan.create.join(',') === 'dybde,tykkelse' &&
+    bulkPlan.choose.join(',') === 'lengde',
+  JSON.stringify({ reuse: bulkPlan.reuse.map((item) => item.name), create: bulkPlan.create, choose: bulkPlan.choose })
 );
 
 const validation = validateFunctionEditorForm({

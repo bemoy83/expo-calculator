@@ -169,6 +169,27 @@ export function findStoredParametersNamed(
     .slice(0, limit);
 }
 
+/**
+ * What a bulk action does with the names a formula uses that aren't parameters yet. A name with
+ * exactly one stored parameter of that name is reused; a name with none is created; a name with
+ * several (the same name in other units) is left for the person to choose, so a click never
+ * guesses a unit.
+ */
+export function planUnknownNames(
+  names: string[],
+  formula: string,
+  stored: ParameterSuggestion[]
+): { reuse: Array<{ name: string; stored: ParameterSuggestion }>; create: string[]; choose: string[] } {
+  const plan = { reuse: [] as Array<{ name: string; stored: ParameterSuggestion }>, create: [] as string[], choose: [] as string[] };
+  names.forEach((name) => {
+    const matches = findStoredParametersNamed(name, stored, formula.includes(`${name}.`), 2);
+    if (matches.length === 1) plan.reuse.push({ name, stored: matches[0] });
+    else if (matches.length === 0) plan.create.push(name);
+    else plan.choose.push(name);
+  });
+  return plan;
+}
+
 /** The formula with a name replaced wherever it stands alone: not inside a longer name, nor as a `.property`. */
 export function renameFormulaName(formula: string, from: string, to: string): string {
   if (!from || from === to) return formula;

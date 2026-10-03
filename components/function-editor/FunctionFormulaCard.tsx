@@ -10,7 +10,12 @@ import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
 import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import type { FormulaNames } from '@/lib/calculator/formula-tokens';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
-import { findStoredParametersNamed, renameFormulaName, type ParameterSuggestion } from '@/lib/functions/function-editor-helpers';
+import {
+  findStoredParametersNamed,
+  planUnknownNames,
+  renameFormulaName,
+  type ParameterSuggestion,
+} from '@/lib/functions/function-editor-helpers';
 
 interface WordInfo {
   word: string;
@@ -32,6 +37,9 @@ interface FunctionFormulaCardProps {
   /** Parameters other functions and calculators already have, offered for a name the formula uses */
   storedParameters?: ParameterSuggestion[];
   onReuseParameter?: (suggestion: ParameterSuggestion) => void;
+  /** The same for every name at once: made as new, or reused from storage */
+  onCreateParameters?: (names: string[]) => void;
+  onReuseParameters?: (suggestions: ParameterSuggestion[]) => void;
   /** Names the formula can use, to colour it as it's typed. */
   formulaNames?: FormulaNames;
   formula: string;
@@ -71,6 +79,8 @@ export function FunctionFormulaCard({
   onCreateParameter,
   storedParameters = [],
   onReuseParameter,
+  onCreateParameters,
+  onReuseParameters,
   formulaNames,
   formula,
   onFormulaChange,
@@ -125,6 +135,16 @@ export function FunctionFormulaCard({
     () => (!formulaValidation.valid && !formulaValidation.pending && formula.trim() ? findFormulaErrorRange(formula) : null),
     [formula, formulaValidation.valid, formulaValidation.pending]
   );
+  // With several unknown names, one line can add them all: reuse the ones with a single stored match,
+  // create the ones with none. A name with several stored matches is left to its own line.
+  const plan = planUnknownNames(unknownNames, formula, storedParameters);
+  const showBulk = unknownNames.length >= 2 && plan.reuse.length + plan.create.length >= 2;
+  const reuseAll = () => {
+    // A name spelt differently (hoyde for høyde) is renamed in the formula to the stored spelling.
+    const renamed = plan.reuse.reduce((text, { name, stored }) => renameFormulaName(text, name, stored.name), formula);
+    if (renamed !== formula) onFormulaChange(renamed);
+    onReuseParameters?.(plan.reuse.map(({ stored }) => stored));
+  };
   const isEmpty = formula.trim() === '';
 
   // The text area grows with its text, so the pane's scroll region does the scrolling.
@@ -330,6 +350,23 @@ export function FunctionFormulaCard({
             <p className="text-danger">● {errorRange ? validationError.replace(/\s*\(character \d+\)$/, '') : validationError}</p>
           )}
           {!validationError && propertyHint && <p className="text-ink-faint">{propertyHint}</p>}
+          {showBulk && onCreateParameters && onReuseParameters && (
+            <div className="flex flex-wrap items-center gap-x-2">
+              <span className="text-danger">● {unknownNames.length} names aren’t parameters yet.</span>
+              {plan.reuse.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={reuseAll} className="px-2">
+                  <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Reuse {plan.reuse.length} stored</span>
+                </Button>
+              )}
+              {plan.create.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={() => onCreateParameters(plan.create)} className="px-2">
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Create {plan.create.length} new</span>
+                </Button>
+              )}
+            </div>
+          )}
           {onCreateParameter &&
             unknownNames.slice(0, 6).map((name) => (
               <div key={name} className="flex flex-wrap items-center gap-x-2">

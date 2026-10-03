@@ -234,26 +234,54 @@ export function useFunctionEditorState({
     }, 0);
   }, []);
 
-  // "+ Create parameter" for a name the formula uses but no parameter has yet.
-  // Returns the parameter it added, or null if there already is one by that name.
-  const addParameterNamed = useCallback(
-    (name: string): FunctionParameter | null => {
-      if (parameters.some((param) => param.name === name)) return null;
+  // What a parameter made from a name in the formula starts as.
+  const buildNamedParameter = useCallback(
+    (name: string): FunctionParameter => {
       // A name the formula reads properties from (`board.width`) can only be a material.
       const isMaterial = formData.formula.includes(`${name}.`);
       // and a name that is a category (`sheets`) starts out limited to it.
       const materialCategory = isMaterial ? categoryForName(name, getMaterialCategories(materials)) : undefined;
-      const added: FunctionParameter = {
+      return {
         name,
         label: labelFromName(name),
         required: true,
         ...(isMaterial ? { kind: 'material' as const, ...(materialCategory ? { materialCategory } : {}) } : {}),
       };
+    },
+    [formData.formula, materials]
+  );
+
+  // "+ Create parameter" for a name the formula uses but no parameter has yet.
+  // Returns the parameter it added, or null if there already is one by that name.
+  const addParameterNamed = useCallback(
+    (name: string): FunctionParameter | null => {
+      if (parameters.some((param) => param.name === name)) return null;
+      const added = buildNamedParameter(name);
       setParameters((prev) => (prev.some((param) => param.name === name) ? prev : [...prev, added]));
       return added;
     },
-    [setParameters, parameters, formData.formula, materials]
+    [setParameters, parameters, buildNamedParameter]
   );
+
+  // The same for several names at once, in the order given. Returns what it added.
+  const addParametersNamed = useCallback(
+    (names: string[]): FunctionParameter[] => {
+      const added = names.filter((name) => !parameters.some((param) => param.name === name)).map(buildNamedParameter);
+      if (added.length === 0) return [];
+      setParameters((prev) => [...prev, ...added.filter((param) => !prev.some((existing) => existing.name === param.name))]);
+      return added;
+    },
+    [setParameters, parameters, buildNamedParameter]
+  );
+
+  // Several stored parameters at once.
+  const addParametersFromSuggestions = useCallback(
+    (suggestions: ParameterSuggestion[]) => {
+      setParameters((prev) => suggestions.reduce((list, suggestion) => addSuggestedParameter(list, suggestion), prev));
+    },
+    [setParameters]
+  );
+
 
   // Calls pass values by position, so the order is part of the function.
   const moveParameter = useCallback(
@@ -329,6 +357,8 @@ export function useFunctionEditorState({
     insertOperatorAtCursor,
     moveParameter,
     addParameterNamed,
+    addParametersNamed,
+    addParametersFromSuggestions,
     handleSave,
     isValid,
   };
