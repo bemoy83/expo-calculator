@@ -2,6 +2,7 @@ import { labelFromName, nameAfterLabelChange } from '../utils/function-parameter
 import { unknownValueNames } from '../calculator/formula-tokens';
 import { findFormulaErrorRange } from '../formula/error-location';
 import { foldName } from '../formula/identifiers';
+import { caretAfterTidy } from '../formula/prettify';
 import {
   addSuggestedParameter,
   buildFunctionSaveData,
@@ -344,6 +345,15 @@ assertCheck(
     bulkPlan.create.join(',') === 'dybde,tykkelse' &&
     bulkPlan.choose.join(',') === 'lengde',
   JSON.stringify({ reuse: bulkPlan.reuse.map((item) => item.name), create: bulkPlan.create, choose: bulkPlan.choose })
+);
+
+assertCheck(
+  'a caret keeps its place among the characters when a formula is tidied',
+  caretAfterTidy('a+b', 2, 'a + b') === 3 &&
+    caretAfterTidy('ceil(a/b)+1', 5, 'ceil(a / b) + 1') === 5 &&
+    caretAfterTidy('a+b', 0, 'a + b') === 0 &&
+    caretAfterTidy('a+b', 3, 'a + b') === 5,
+  [caretAfterTidy('a+b', 2, 'a + b'), caretAfterTidy('ceil(a/b)+1', 5, 'ceil(a / b) + 1'), caretAfterTidy('a+b', 3, 'a + b')].join(',')
 );
 
 const validation = validateFunctionEditorForm({

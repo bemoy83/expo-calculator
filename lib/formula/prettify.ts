@@ -117,3 +117,17 @@ export function tidyFormulaAfterBlur(
     if (tidied !== textarea.value) apply(tidied);
   }, 300);
 }
+
+/**
+ * Where a caret at `caret` in `before` belongs in `after`, when the two differ only in
+ * whitespace (as a tidied formula does): after the same number of non-space characters.
+ */
+export function caretAfterTidy(before: string, caret: number, after: string): number {
+  const count = before.slice(0, caret).replace(/\s/g, '').length;
+  let seen = 0;
+  for (let i = 0; i < after.length; i += 1) {
+    if (seen === count) return i;
+    if (!/\s/.test(after[i])) seen += 1;
+  }
+  return after.length;
+}
