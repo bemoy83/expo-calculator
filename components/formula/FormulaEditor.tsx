@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, type MutableRefObject } from 'react';
 import { Compartment, EditorState, StateEffect, StateField, Transaction, Annotation, Prec, type Extension } from '@codemirror/state';
-import { Decoration, EditorView, hoverTooltip, keymap, placeholder, showTooltip, type DecorationSet, type Tooltip } from '@codemirror/view';
+import { Decoration, EditorView, closeHoverTooltips, hoverTooltip, keymap, placeholder, showTooltip, type DecorationSet, type Tooltip } from '@codemirror/view';
 import { bracketMatching } from '@codemirror/language';
 import { defaultKeymap, history, historyKeymap, isolateHistory } from '@codemirror/commands';
 import {
@@ -22,6 +22,8 @@ import {
   snippet,
 } from '@codemirror/autocomplete';
 import { classifyFormula, type FormulaNames } from '@/lib/calculator/formula-tokens';
+import { ISSUE_LEVELS } from '@/components/formula/IssueMarker';
+import type { FormulaDiagnostic } from '@/lib/formula/issue-levels';
 import { UNRESOLVED, WAVY_UNDERLINE, TOKEN_TEXT, suggestionToken } from '@/components/formula/FormulaText';
 import { filterSuggestions, getWordAtCursor, type AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import { getFormulaWithInsertedOperator, getFormulaWithInsertedToken } from '@/lib/functions/function-editor-helpers';
@@ -45,7 +47,8 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   names?: FormulaNames;
-  errorRange?: { start: number; end: number } | null;
+  /** Problems pinned to the text they're about: underlined, and explained (with their fixes) on hover */
+  diagnostics?: FormulaDiagnostic[];
   fontSize: number;
   lineHeight?: number;
   placeholderText: string;
@@ -78,7 +81,7 @@ interface Props {
 
 interface DecorationInputs {
   names?: FormulaNames;
-  errorRange?: { start: number; end: number } | null;
+  diagnostics?: FormulaDiagnostic[];
 }
 const setInputs = StateEffect.define<DecorationInputs>();
 const inputsField = StateField.define<DecorationInputs>({
@@ -89,7 +92,10 @@ const inputsField = StateField.define<DecorationInputs>({
   },
 });
 
-function buildDecorations(text: string, { names, errorRange }: DecorationInputs): DecorationSet {
+// A heads-up is a quieter dotted line; a broken formula is red and wavy; an unresolved name already has its amber dots from the colouring.
+const HEADS_UP_UNDERLINE = 'underline decoration-dotted decoration-ink-muted underline-offset-[5px]';
+
+function buildDecorations(text: string, { names, diagnostics }: DecorationInputs): DecorationSet {
   const ranges = [];
   if (names) {
     let offset = 0;
@@ -102,8 +108,13 @@ function buildDecorations(text: string, { names, errorRange }: DecorationInputs)
       if (className) ranges.push(Decoration.mark({ class: className }).range(from, offset));
     }
   }
-  if (errorRange && errorRange.end > errorRange.start && errorRange.end <= text.length) {
-    ranges.push(Decoration.mark({ class: `${WAVY_UNDERLINE} decoration-danger` }).range(errorRange.start, errorRange.end));
+  for (const diagnostic of diagnostics ?? []) {
+    if (diagnostic.to <= diagnostic.from || diagnostic.to > text.length) continue;
+    if (diagnostic.level === 'broken') {
+      ranges.push(Decoration.mark({ class: `${WAVY_UNDERLINE} decoration-danger` }).range(diagnostic.from, diagnostic.to));
+    } else if (diagnostic.level === 'heads-up') {
+      ranges.push(Decoration.mark({ class: HEADS_UP_UNDERLINE }).range(diagnostic.from, diagnostic.to));
+    }
   }
   return Decoration.set(ranges, true);
 }
@@ -212,6 +223,43 @@ function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: stri
   if (suggestion.description) card.append(make('span', 'text-[11.5px] text-ink-muted', suggestion.description));
   if (value) card.append(make('span', 'font-numeric text-[11.5px] text-ink', `Now ${value}`));
   return card;
+}
+
+/** The problems under the pointer: each one's marker and message, then the buttons that fix it. */
+function renderProblems(view: EditorView, problems: FormulaDiagnostic[], withDivider: boolean): HTMLElement {
+  const list = document.createElement('div');
+  list.className = `flex max-w-[320px] flex-col gap-2 px-3 py-2 ${withDivider ? 'border-t border-border-strong' : ''}`;
+  for (const problem of problems) {
+    const level = ISSUE_LEVELS[problem.level];
+    const row = document.createElement('div');
+    row.className = 'flex flex-col gap-1';
+    const message = document.createElement('p');
+    message.className = `text-[11.5px] ${level.text}`;
+    message.textContent = `${level.glyph} ${problem.message}`;
+    message.title = level.label;
+    row.append(message);
+    if (problem.fixes?.length) {
+      const buttons = document.createElement('div');
+      buttons.className = 'flex flex-wrap gap-1.5';
+      for (const fix of problem.fixes) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'rounded-md border border-border-strong px-2 py-0.5 text-[11.5px] text-ink hover:bg-sunken-2';
+        button.textContent = fix.label;
+        if (fix.title) button.title = fix.title;
+        // Keep the editor's focus and caret; the fix may change the formula under them.
+        button.addEventListener('mousedown', (event) => event.preventDefault());
+        button.addEventListener('click', () => {
+          view.dispatch({ effects: closeHoverTooltips });
+          fix.run();
+        });
+        buttons.append(button);
+      }
+      row.append(buttons);
+    }
+    list.append(row);
+  }
+  return list;
 }
 
 const NO_FUNCTIONS = { functions: [] };
@@ -345,18 +393,32 @@ export default function FormulaEditorCM(props: Props) {
     const hover = hoverTooltip(
       (view, pos, side) => {
         const doc = view.state.doc.toString();
+        const { candidates, candidatesForBase, isStepKey, fieldTagLabel, describeValue, diagnostics } = latest.current;
+        // The problems under the pointer (the end of a range counts only from its left).
+        const problems = (diagnostics ?? []).filter((d) => d.from <= pos && (pos < d.to || (pos === d.to && side < 0)));
+        let found: AutocompleteSuggestion | undefined;
+        const spans = problems.map((problem) => ({ from: problem.from, to: problem.to }));
         const info = getWordAtCursor(doc, pos);
-        if (!info.word || (pos === info.start && side < 0) || (pos === info.end && side > 0)) return null;
-        const { candidates, candidatesForBase, isStepKey, fieldTagLabel, describeValue } = latest.current;
-        const wanted = foldName(info.word);
-        const pool = info.hasDot && info.baseWord && candidatesForBase ? [...candidates, ...candidatesForBase(info.baseWord)] : candidates;
-        const found = pool.find((candidate) => foldName(candidate.name) === wanted);
-        if (!found) return null;
+        if (info.word && !((pos === info.start && side < 0) || (pos === info.end && side > 0))) {
+          const wanted = foldName(info.word);
+          const pool = info.hasDot && info.baseWord && candidatesForBase ? [...candidates, ...candidatesForBase(info.baseWord)] : candidates;
+          found = pool.find((candidate) => foldName(candidate.name) === wanted);
+          if (found) spans.push({ from: info.start, to: info.end });
+        }
+        if (spans.length === 0) return null;
+        const from = Math.min(...spans.map((span) => span.from));
+        const to = Math.max(...spans.map((span) => span.to));
+        const shown = found;
         return {
-          pos: info.start,
-          end: info.end,
+          pos: from,
+          end: to,
           above: true,
-          create: () => ({ dom: renderHover(found, isStepKey, fieldTagLabel, describeValue?.(found.name)) }),
+          create: () => {
+            const dom = document.createElement('div');
+            if (shown) dom.append(renderHover(shown, isStepKey, fieldTagLabel, describeValue?.(shown.name)));
+            if (problems.length > 0) dom.append(renderProblems(view, problems, !!shown));
+            return { dom };
+          },
         };
       },
       { hoverTime: 300 }
@@ -514,8 +576,8 @@ export default function FormulaEditorCM(props: Props) {
 
   // Colouring and the error underline follow what the card knows.
   useEffect(() => {
-    viewRef.current?.dispatch({ effects: setInputs.of({ names: props.names, errorRange: props.errorRange }) });
-  }, [props.names, props.errorRange, props.value]);
+    viewRef.current?.dispatch({ effects: setInputs.of({ names: props.names, diagnostics: props.diagnostics }) });
+  }, [props.names, props.diagnostics, props.value]);
 
   return (
     <div

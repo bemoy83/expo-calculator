@@ -10,9 +10,9 @@ import type { AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import { useTidyOffer } from '@/hooks/use-tidy-offer';
 import { ISSUE_LEVELS, IssueLine, IssueMarker } from '@/components/formula/IssueMarker';
 import { TidyOffer } from '@/components/formula/TidyOffer';
-import type { FormulaNames } from '@/lib/calculator/formula-tokens';
+import { unknownNameRanges, type FormulaNames } from '@/lib/calculator/formula-tokens';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
-import type { FormulaIssue, FormulaIssueLevel } from '@/lib/formula/issue-levels';
+import type { FormulaDiagnostic, FormulaIssue, FormulaIssueLevel } from '@/lib/formula/issue-levels';
 import {
   findStoredParametersNamed,
   planUnknownNames,
@@ -113,6 +113,37 @@ export function FunctionFormulaCard({
     () => (!formulaValidation.valid && !formulaValidation.pending && formula.trim() ? findFormulaErrorRange(formula) : null),
     [formula, formulaValidation.valid, formulaValidation.pending]
   );
+  // The same problems as the lines below, pinned to the text they're about: hover one for its message and fixes.
+  const diagnostics: FormulaDiagnostic[] = [];
+  if (errorRange) {
+    const broken = issues.find((issue) => issue.level === 'broken' && !issue.name);
+    const message = (broken?.message ?? formulaError ?? '').replace(/\s*\(character \d+\)$/, '');
+    if (message) diagnostics.push({ from: errorRange.start, to: errorRange.end, level: 'broken', message });
+  }
+  if (formulaNames && onCreateParameter) {
+    for (const range of unknownNameRanges(formula, formulaNames)) {
+      if (!unknownNames.includes(range.name)) continue;
+      const name = range.name;
+      const fixes: NonNullable<FormulaDiagnostic['fixes']> = [];
+      if (onReuseParameter) {
+        for (const stored of findStoredParametersNamed(name, storedParameters, formula.includes(`${name}.`))) {
+          fixes.push({
+            label: `Reuse “${stored.name}”${stored.unitSymbol ? ` · ${stored.unitSymbol}` : ''}`,
+            title: `${stored.label} · in ${stored.uses} ${stored.uses === 1 ? 'place' : 'places'}`,
+            run: () => {
+              if (stored.name !== name) onFormulaChange(renameFormulaName(formula, name, stored.name));
+              onReuseParameter(stored);
+            },
+          });
+        }
+      }
+      fixes.push({
+        label: `${formula.includes(`${name}.`) ? 'Create material parameter' : 'Create parameter'} “${name}”`,
+        run: () => onCreateParameter(name),
+      });
+      diagnostics.push({ from: range.from, to: range.to, level: 'unresolved', message: `${name} isn’t a parameter yet.`, fixes });
+    }
+  }
   // With several unknown names, one line can add them all: reuse the ones with a single stored match,
   // create the ones with none. A name with several stored matches is left to its own line.
   const plan = planUnknownNames(unknownNames, formula, storedParameters);
@@ -213,7 +244,7 @@ export function FunctionFormulaCard({
                 onFormulaChange(next);
               }}
               names={formulaNames}
-              errorRange={errorRange}
+              diagnostics={diagnostics}
               fontSize={fontSize}
               placeholderText="ceil(width / spacing) + 1"
               invalid={hasError}

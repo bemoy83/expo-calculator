@@ -70,6 +70,20 @@ export function unknownValueNames(expression: string, names: FormulaNames): stri
   return found;
 }
 
+/** Where each use of a name nothing matches sits, `board.width` as a whole; the same names `unknownValueNames` finds. */
+export function unknownNameRanges(expression: string, names: FormulaNames): Array<{ name: string; from: number; to: number }> {
+  const ranges: Array<{ name: string; from: number; to: number }> = [];
+  for (const token of scanExpression(expression)) {
+    if (token.isCall) continue;
+    const known =
+      names.inputs.has(token.base) ||
+      names.catalog.has(token.base) ||
+      (token.property === undefined && (names.results.has(token.base) || CONSTANTS.has(token.base)));
+    if (!known) ranges.push({ name: token.base, from: token.start, to: token.end });
+  }
+  return ranges;
+}
+
 function catalogNames(library: Pick<CalculatorLibrary, 'materials' | 'labor'>): Set<string> {
   return new Set([...library.materials, ...library.labor].map((item) => item.variableName));
 }

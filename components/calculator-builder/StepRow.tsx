@@ -30,7 +30,8 @@ import { findFormulaErrorRange } from '@/lib/formula/error-location';
 import { IssueLine } from '@/components/formula/IssueMarker';
 import { NAME } from '@/lib/formula/identifiers';
 import { FormulaText } from '@/components/formula/FormulaText';
-import { calculatorFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
+import { calculatorFormulaNames, unknownNameRanges, unknownValueNames } from '@/lib/calculator/formula-tokens';
+import type { FormulaDiagnostic } from '@/lib/formula/issue-levels';
 
 // An icon per format; the chosen one also shows its name, so the control fits any width.
 const FORMATS: Array<{ value: StepFormat; label: string; Icon: typeof Hash }> = [
@@ -235,6 +236,40 @@ export function StepRow({
     [expression, result?.message]
   );
 
+  // The same problems as the lines below the editor, pinned to the text they're about: hover one for its message and fix.
+  const diagnostics: FormulaDiagnostic[] = [];
+  if (syntaxRange) {
+    const broken = issues.find((issue) => issue.level === 'broken' && !issue.name);
+    if (broken) {
+      diagnostics.push({
+        from: syntaxRange.start,
+        to: syntaxRange.end,
+        level: 'broken',
+        message: broken.message.replace(/\s*\(character \d+\)$/, ''),
+      });
+    }
+  }
+  for (const range of unknownNameRanges(expression, formulaNames)) {
+    if (!unknownNames.includes(range.name)) continue;
+    diagnostics.push({
+      from: range.from,
+      to: range.to,
+      level: 'unresolved',
+      message: `${range.name} isn’t an input or step yet.`,
+      fixes: [
+        { label: `Create input “${range.name}”`, run: () => onCreateInput(range.name, parameterFor(expression, range.name, library)) },
+      ],
+    });
+  }
+  for (const problem of callProblems) {
+    diagnostics.push({
+      from: problem.start,
+      to: problem.end,
+      level: problem.kind === 'arguments' ? 'broken' : 'heads-up',
+      message: problem.message,
+    });
+  }
+
   const value =
     result?.status === 'disabled' ? (
       <span className="text-xs text-ink-muted">Off (0)</span>
@@ -356,7 +391,7 @@ export function StepRow({
                   step={step}
                   library={library}
                   value={expression}
-                  errorRange={syntaxRange}
+                  diagnostics={diagnostics}
                   results={stepResults}
                   formatMoney={formatMoney}
                   onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}

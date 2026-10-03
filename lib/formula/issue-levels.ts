@@ -14,3 +14,14 @@ export interface FormulaIssue {
   /** For an unresolved name: the name, so it can be offered "Create" or "Reuse" */
   name?: string;
 }
+
+/** An issue pinned to the text it's about, for the editor to underline and explain on hover. */
+export interface FormulaDiagnostic {
+  /** [from, to) in the formula as written */
+  from: number;
+  to: number;
+  level: FormulaIssueLevel;
+  message: string;
+  /** What fixes it (Create, Reuse), offered as buttons on the hover card */
+  fixes?: Array<{ label: string; title?: string; run: () => void }>;
+}
