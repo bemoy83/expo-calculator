@@ -110,7 +110,9 @@ export function FormulaPalette({
     return () => observer.disconnect();
   }, [parameters, narrow]);
 
-  // Roving tab stop: Tab enters the palette once, arrows move between its buttons.
+  // Roving tab stop: Tab enters the palette once, arrows move between its buttons. Only ← → are
+  // meant to be relied on: ↑ ↓ step through the same reading order rather than moving between rows,
+  // so the footer lists ← → alone until row-to-row movement is built.
   useEffect(() => {
     const items = rootRef.current?.querySelectorAll<HTMLElement>('[data-palette-item]');
     items?.forEach((item, index) => {
@@ -302,7 +304,7 @@ export function FormulaPalette({
         <p>
           Yes/no counts as 1 or 0, so <code className="font-numeric text-ink-muted">price * (tax == 1)</code> works as a condition.
         </p>
-        {!narrow && <p className="font-numeric">←→↑↓ move · ↵ insert · esc back to formula</p>}
+        {!narrow && <p className="font-numeric">← → move · ↵ insert · esc back to formula</p>}
       </div>
     </div>
   );
