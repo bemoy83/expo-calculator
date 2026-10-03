@@ -48,6 +48,7 @@ import { classifyStepIssues } from '../calculator/step-issues';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import { describeFunctionUsage, findFunctionUsage } from '../functions/function-usage';
 import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues, StepResult } from '../calculator/types';
+import { builderStatus } from '../calculator/builder-status';
 import { partitionWall } from './calculator-fixtures';
 import type { Material, MaterialProperty, Quote, SharedFunction } from '../types';
 import { normalizeToBase } from '../units';
@@ -793,6 +794,22 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
       close(replaced.subtotal, 100) &&
       appended.lineItems.length === 2
   );
+}
+
+// ---- Builder header status ----
+
+{
+  const none = { broken: 0, unresolved: 0, incomplete: 0 };
+  assertCheck('a calculator with no steps says nothing', builderStatus(0, none) === undefined);
+  assertCheck('steps in order go: errors, unknown names, incomplete, then fine',
+    builderStatus(3, { broken: 2, unresolved: 1, incomplete: 1 })?.label === '2 steps have errors' &&
+      builderStatus(3, { broken: 2, unresolved: 1, incomplete: 1 })?.tone === 'error' &&
+      builderStatus(3, { broken: 0, unresolved: 2, incomplete: 1 })?.label === '2 steps have unknown names' &&
+      builderStatus(3, { broken: 0, unresolved: 0, incomplete: 1 })?.label === '1 step incomplete' &&
+      builderStatus(3, { broken: 0, unresolved: 0, incomplete: 3 })?.tone === 'draft' &&
+      builderStatus(3, none)?.label === 'No errors' &&
+      builderStatus(3, none)?.tone === 'ok');
+  assertCheck('one step is singular', builderStatus(1, { broken: 1, unresolved: 0, incomplete: 0 })?.label === '1 step has an error' && builderStatus(1, { broken: 0, unresolved: 1, incomplete: 0 })?.label === '1 step has an unknown name');
 }
 
 // ---- Results staff see ----

@@ -2,21 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, Eye, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { DashedAdd } from '@/components/ui/DashedAdd';
-import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Input } from '@/components/ui/Input';
-import { RailRow } from '@/components/ui/RailRow';
-import { Segmented } from '@/components/ui/Segmented';
 import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { Breadcrumb, browseHref, withSelected } from '@/components/shared/Breadcrumb';
-import { PageHeader } from '@/components/shared/PageHeader';
+import { withSelected } from '@/components/shared/Breadcrumb';
 import { useLeaveEditor } from '@/components/shared/NavigationGuard';
-import { HeaderDivider } from '@/components/shared/HeaderDivider';
-import { SaveButton } from '@/components/shared/SaveButton';
-import { IconButton } from '@/components/ui/IconButton';
 import { SaveChangesDialog } from '@/components/shared/SaveChangesDialog';
 import { useSaveShortcut } from '@/hooks/use-save-shortcut';
 import {
@@ -43,17 +34,14 @@ import {
   setInputCondition,
   setPartCost,
   setStepShown,
-  showsStaffResults,
   suggestKey,
   updateInput,
   updatePart,
   updateStep,
-  unplacedInputs,
 } from '@/lib/calculator/editing';
 import { callStepsToFormulas } from '@/lib/calculator/step-source';
 import { useSettledErrors } from '@/hooks/use-settled-errors';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
-import { displayUnit, stepDisplayLabel } from '@/lib/calculator/format';
 import { stepErrorLevel } from '@/lib/calculator/step-issues';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type {
@@ -66,7 +54,6 @@ import type {
   LayoutItem,
 } from '@/lib/calculator/types';
 import type { LayoutRenderContext } from '@/components/calculator/CalculatorLayoutItem';
-import { cn } from '@/lib/utils';
 import { useCalculatorSessionStore } from '@/lib/stores/calculator-session-store';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCurrencyStore } from '@/lib/stores/currency-store';
@@ -77,18 +64,14 @@ import { InputEditorDialog } from './InputEditorDialog';
 import { LayoutCanvas, type LayoutSelection } from './LayoutCanvas';
 import { LayoutInspector, type LayoutInspectorActions } from './LayoutInspector';
 import { PartLivePane, PartSteps } from './PartCard';
+import { BuilderHeader } from './BuilderHeader';
+import { BuilderWarnings } from './BuilderWarnings';
+import { LayoutPalette } from './LayoutPalette';
+import { PartsRail } from './PartsRail';
+import { builderStatus } from '@/lib/calculator/builder-status';
 import { FormulaLegend } from '@/components/formula/FormulaText';
 
 const EMPTY_VALUES: CalculatorValues = {};
-
-/** What an input is, in the inputs list: its unit, or its kind. */
-function inputDetail(input: CalculatorInput): string {
-  const spec = input.value;
-  if ('unitSymbol' in spec && spec.unitSymbol) return displayUnit(spec.unitSymbol) ?? spec.unitSymbol;
-  if (spec.kind === 'material' || spec.kind === 'labor') return spec.category || spec.kind;
-  if (spec.kind === 'boolean') return 'yes/no';
-  return spec.kind;
-}
 
 type Pending =
   | { kind: 'delete-calculator' }
@@ -151,8 +134,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   const brokenCount = Object.values(result.steps).filter((step) => stepErrorLevel(step) === 'broken').length;
   const unresolvedCount = Object.values(result.steps).filter((step) => stepErrorLevel(step) === 'unresolved').length;
   const incompleteCount = Object.values(result.steps).filter((step) => step.status === 'error' && step.incomplete).length;
-  const showsNothing = calculator.steps.length > 0 && !showsStaffResults(calculator);
-  const unnamedShown = calculator.steps.filter((step) => !step.label.trim() && isStepShown(calculator, step.id));
   const usedInputs = new Set(Object.values(result.parts).flatMap((part) => part.inputKeys));
 
   const edit = (change: (current: Calculator) => Calculator) => {
@@ -341,211 +322,53 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
 
   const part = calculator.parts.find((candidate) => candidate.id === chosenPartId) ?? calculator.parts[0];
   const partIndex = part ? calculator.parts.indexOf(part) : -1;
-  const partStatus = (partId: string) =>
-    calculator.steps.some((step) => step.partId === partId && stepErrorLevel(result.steps[step.id]) === 'broken')
-      ? ('error' as const)
-      : calculator.steps.some(
-            (step) => step.partId === partId && (stepErrorLevel(result.steps[step.id]) === 'unresolved' || result.steps[step.id]?.incomplete)
-          )
-        ? ('draft' as const)
-        : undefined;
-
   // Where palette items go: the selected section, the selected item's section, else the first.
   const targetSectionId = selectedSection?.id ?? selectedPosition?.sectionId ?? calculator.layout[0]?.id;
   const placeInTarget = (item: LayoutItem) =>
     targetSectionId ? layoutActions.onInsertItem(targetSectionId, item) : addLayoutSection();
-  const unplaced = unplacedInputs(calculator);
-  const unshownSteps = calculator.steps.filter((step) => !isStepShown(calculator, step.id));
 
-  const category = categoryDraft.trim();
   const header = (
-    <PageHeader
-      eyebrow={
-        <Breadcrumb
-          items={[
-            { label: 'Calculators', href: browseHref('/', { id: isSaved ? calculator.id : undefined }) },
-            ...(category
-              ? [{ label: category, href: browseHref('/', { category, id: isSaved ? calculator.id : undefined }) }]
-              : []),
-            ...(isSaved
-              ? [{ label: nameDraft.trim() || 'Calculator', href: `/calculator?id=${encodeURIComponent(calculator.id)}` }]
-              : []),
-          ]}
-          meta={`Editing${dirty ? ' · Unsaved' : ''}`}
-        />
+    <BuilderHeader
+      calculatorId={calculator.id}
+      isSaved={isSaved}
+      dirty={dirty}
+      nameDraft={nameDraft}
+      nameError={nameError}
+      category={categoryDraft.trim()}
+      view={view}
+      status={builderStatus(calculator.steps.length, { broken: brokenCount, unresolved: unresolvedCount, incomplete: incompleteCount })}
+      onNameChange={(name) => {
+        setNameError(undefined);
+        setNameDraft(name);
+        setDirty(true);
+      }}
+      onViewChange={setView}
+      // `back` is where the preview's Close returns to: this builder, on the Layout tab.
+      onPreview={() =>
+        leave(`/calculator?id=${encodeURIComponent(calculator.id)}&back=${encodeURIComponent(builderHref(calculator.id, fromList, 'layout'))}`)
       }
-      editing
-      title={
-        <input
-          id="calculator-name"
-          value={nameDraft}
-          placeholder="New calculator"
-          aria-label="Calculator name"
-          aria-invalid={nameError ? 'true' : undefined}
-          size={Math.max(nameDraft.length, 14)}
-          onChange={(event) => {
-            setNameError(undefined);
-            setNameDraft(event.target.value);
-            setDirty(true);
-          }}
-          className="w-full min-w-0 bg-transparent placeholder:text-ink-faint focus:outline-none"
-        />
-      }
-      status={
-        calculator.steps.length > 0
-          ? {
-              tone: brokenCount > 0 ? 'error' : unresolvedCount > 0 || incompleteCount > 0 ? 'draft' : 'ok',
-              label:
-                brokenCount > 0
-                  ? brokenCount === 1
-                    ? '1 step has an error'
-                    : `${brokenCount} steps have errors`
-                  : unresolvedCount > 0
-                    ? unresolvedCount === 1
-                      ? '1 step has an unknown name'
-                      : `${unresolvedCount} steps have unknown names`
-                    : incompleteCount > 0
-                      ? incompleteCount === 1
-                        ? '1 step incomplete'
-                        : `${incompleteCount} steps incomplete`
-                      : 'No errors',
-            }
-          : undefined
-      }
-      description={nameError && <span className="text-danger">{nameError}</span>}
-      actions={
-        <>
-          {/* The preview is the staff view itself, the calculator's full-size page; with unsaved edits it asks to save first. */}
-          {view === 'layout' && isSaved && (
-            <IconButton
-              label="Preview as staff see it"
-              size="lg"
-              icon={<Eye className="h-4 w-4" aria-hidden="true" />}
-              // `back` is where the preview's Close returns to: this builder, on the Layout tab.
-              onClick={() =>
-                leave(
-                  `/calculator?id=${encodeURIComponent(calculator.id)}&back=${encodeURIComponent(builderHref(calculator.id, fromList, 'layout'))}`
-                )
-              }
-            />
-          )}
-          <Segmented
-            aria-label="Builder view"
-            options={[
-              { value: 'parts', label: 'Parts' },
-              { value: 'layout', label: 'Layout' },
-            ]}
-            value={view}
-            onChange={setView}
-          />
-          <HeaderDivider />
-          {isSaved && (
-            <IconButton
-              label="Delete calculator"
-              size="lg"
-              variant="danger"
-              icon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
-              onClick={() => setPending({ kind: 'delete-calculator' })}
-            />
-          )}
-          <IconButton label="Close" size="lg" icon={<X className="h-4 w-4" aria-hidden="true" />} onClick={() => leave(closeHref)} />
-          <SaveButton dirty={dirty} onClick={() => save()} />
-        </>
-      }
+      onDelete={() => setPending({ kind: 'delete-calculator' })}
+      onClose={() => leave(closeHref)}
+      onSave={() => save()}
     />
-  );
-
-  const warnings = (
-    <>
-      {showsNothing && (
-        <div role="status" className="mb-4 flex items-start gap-2.5 p-3 bg-draft-bg border border-draft-border rounded-row">
-          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-draft" aria-hidden="true" />
-          <p className="text-sm text-ink-body">
-            <span className="font-medium text-ink">Staff won&apos;t see any results.</span> Tick &ldquo;Show to staff&rdquo; on a
-            step, or make a step a part&apos;s cost, so the calculator shows what it works out.
-          </p>
-        </div>
-      )}
-      {!showsNothing && unnamedShown.length > 0 && (
-        <div role="status" className="mb-4 flex items-start gap-2.5 p-3 bg-draft-bg border border-draft-border rounded-row">
-          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-draft" aria-hidden="true" />
-          <p className="text-sm text-ink-body">
-            <span className="font-medium text-ink">
-              {unnamedShown.length === 1 ? 'A step shown to staff has no label.' : `${unnamedShown.length} steps shown to staff have no label.`}
-            </span>{' '}
-            Staff see {unnamedShown.map((step) => `“${stepDisplayLabel(step)}”`).join(', ')} instead; give{' '}
-            {unnamedShown.length === 1 ? 'it a label' : 'them labels'} that say what they are.
-          </p>
-        </div>
-      )}
-    </>
   );
 
   const partsView = (
     <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_340px] lg:flex-1 lg:min-h-0">
-      <nav aria-label="Parts and inputs" className="flex flex-col gap-1 px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
-        <div className="flex justify-between px-2.5 pb-2">
-          <Eyebrow>Parts</Eyebrow>
-          <span className="font-numeric text-xs text-ink-faint">{calculator.parts.length}</span>
-        </div>
-        {calculator.parts.map((candidate, index) => {
-          const cost = result.parts[candidate.id]?.cost;
-          return (
-            <RailRow
-              key={candidate.id}
-              index={index + 1}
-              title={candidate.name || 'Unnamed part'}
-              stacked
-              value={cost !== undefined ? formatMoney(cost) : partStatus(candidate.id) ? undefined : '—'}
-              status={partStatus(candidate.id)}
-              selected={candidate.id === part?.id}
-              onClick={() => setChosenPartId(candidate.id)}
-            />
-          );
-        })}
-        <DashedAdd onClick={addNewPart} className="mt-1 p-2.5">
-          + Add part
-        </DashedAdd>
-
-        <div className="flex justify-between items-baseline px-2.5 pt-[22px] pb-2">
-          <Eyebrow>Inputs</Eyebrow>
-          <button
-            type="button"
-            onClick={() => setInputDialog({})}
-            className="font-numeric text-xs tracking-[.06em] text-ink hover:text-ink-muted rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-          >
-            + New
-          </button>
-        </div>
-        {calculator.inputs.length === 0 && (
-          <p className="px-2.5 text-xs text-ink-muted">No inputs yet. A formula naming one that doesn&apos;t exist offers to create it.</p>
-        )}
-        {calculator.inputs.map((input) => {
-          const used = usedInputs.has(input.key);
-          return (
-            <button
-              key={input.id}
-              type="button"
-              onClick={() => setInputDialog({ input })}
-              title={`${input.label}${used ? '' : ' · not used by any step yet'}`}
-              aria-label={`Edit input ${input.label}${used ? '' : ', not used yet'}`}
-              className={cn(
-                'flex justify-between gap-2 px-2.5 py-[7px] rounded-md text-[13px] text-left transition-colors hover:bg-surface-hover',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-                !used && 'bg-sunken'
-              )}
-            >
-              <span className={cn('font-numeric truncate', used ? 'text-token-input' : 'text-ink-muted')}>{input.key}</span>
-              <span className={cn('shrink-0 text-xs', used ? 'font-numeric text-ink-faint' : 'text-ink-faint')}>
-                {used ? inputDetail(input) : 'not used'}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+      <PartsRail
+        calculator={calculator}
+        result={result}
+        formatMoney={formatMoney}
+        selectedPartId={part?.id}
+        usedInputs={usedInputs}
+        onSelectPart={setChosenPartId}
+        onAddPart={addNewPart}
+        onNewInput={() => setInputDialog({})}
+        onEditInput={(input) => setInputDialog({ input })}
+      />
 
       <div className="min-w-0 flex flex-col px-4 sm:px-7 py-5 lg:overflow-y-auto">
-        {warnings}
+        <BuilderWarnings calculator={calculator} />
         {part ? (
           <PartSteps
             key={part.id}
@@ -648,75 +471,18 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
     </div>
   );
 
-  const paletteRow =
-    'w-full flex justify-between gap-2 px-2.5 py-[9px] rounded-md border border-dashed border-border-strong text-[13px] text-left text-ink transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
-  const addRow =
-    'w-full px-2.5 py-[9px] rounded-md text-[13px] text-left text-ink-muted transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
-
   const layoutView = (
     <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_320px] lg:flex-1 lg:min-h-0">
-      <nav aria-label="Add to the form" className="flex flex-col gap-1 px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
-        <Eyebrow className="px-2.5 pb-2">Not placed</Eyebrow>
-        {unplaced.length === 0 && unshownSteps.length === 0 && (
-          <p className="px-2.5 text-xs text-ink-muted">Every input and result is on the form.</p>
-        )}
-        {unplaced.map((input) => (
-          <button
-            key={input.id}
-            type="button"
-            className={paletteRow}
-            onClick={() => placeInTarget({ type: 'input', inputId: input.id })}
-            aria-label={`Place input ${input.label} on the form`}
-          >
-            <span className="truncate">{input.label}</span>
-            <span className="font-numeric text-token-input truncate">{input.key}</span>
-          </button>
-        ))}
-        {unshownSteps.map((step) => (
-          <button
-            key={step.id}
-            type="button"
-            className={paletteRow}
-            onClick={() => placeInTarget({ type: 'result', stepId: step.id, style: 'row' })}
-            aria-label={`Place result ${step.label || step.key} on the form`}
-          >
-            <span className="truncate">{step.label || step.key}</span>
-            <span className="font-numeric text-token-result truncate">{step.key}</span>
-          </button>
-        ))}
-
-        <Eyebrow className="px-2.5 pt-[22px] pb-2">Add</Eyebrow>
-        <button type="button" className={addRow} onClick={() => addLayoutSection(targetSectionId)}>
-          + Section
-        </button>
-        <button type="button" className={addRow} onClick={() => placeInTarget({ type: 'text', text: '' })}>
-          + Text
-        </button>
-        <button type="button" className={addRow} onClick={() => placeInTarget({ type: 'divider' })}>
-          + Divider
-        </button>
-        <button
-          type="button"
-          className={addRow}
-          onClick={() => placeInTarget({ type: 'breakdown', partIds: calculator.parts.map((candidate) => candidate.id) })}
-        >
-          + Breakdown
-        </button>
-        <button
-          type="button"
-          className={addRow}
-          onClick={() => (targetSectionId ? layoutActions.onNewInput(targetSectionId) : addLayoutSection())}
-        >
-          + New input
-        </button>
-        <p className="mt-auto pt-4 px-2.5 text-xs leading-[1.5] text-ink-faint">
-          Select a section, then click to add to it. Drag items on the form by their handle to move them.
-        </p>
-      </nav>
+      <LayoutPalette
+        calculator={calculator}
+        onPlace={placeInTarget}
+        onAddSection={() => addLayoutSection(targetSectionId)}
+        onNewInput={() => (targetSectionId ? layoutActions.onNewInput(targetSectionId) : addLayoutSection())}
+      />
 
       <div className="min-w-0 bg-sunken px-4 sm:px-8 py-6 lg:overflow-y-auto">
         <div className="mx-auto max-w-[800px]">
-          {warnings}
+          <BuilderWarnings calculator={calculator} />
           <LayoutCanvas
             context={layoutContext}
             selection={selection}
