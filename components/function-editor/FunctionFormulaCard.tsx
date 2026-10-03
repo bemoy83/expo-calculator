@@ -350,7 +350,6 @@ export function FunctionFormulaCard({
           onInsertParameter={insertParameter}
           onInsertOperator={insertOperator}
           onReturnToFormula={returnToFormula}
-          editor={editor}
         />
       </div>
     </section>
