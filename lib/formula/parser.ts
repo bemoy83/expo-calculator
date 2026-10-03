@@ -1,4 +1,4 @@
-import { matchStandalone, NAME, NAME_WITH_PROPERTY } from './identifiers';
+import { matchStandalone, NAME } from './identifiers';
 
 export type IdentifierToken = {
   text: string;
@@ -7,7 +7,6 @@ export type IdentifierToken = {
   hasDot: boolean;
 };
 
-const IDENTIFIER_REGEX = new RegExp(NAME_WITH_PROPERTY, 'g');
 export const MATH_FUNCTIONS = new Set(['sin', 'cos', 'tan', 'sqrt', 'abs', 'max', 'min', 'log', 'exp', 'pi', 'e', 'round', 'ceil', 'floor']);
 
 /**
@@ -109,67 +108,6 @@ export function parseFunctionCalls(formula: string): FunctionCall[] {
   }
 
   return calls;
-}
-
-export function getOutermostFunctionCalls(calls: FunctionCall[]): FunctionCall[] {
-  return calls.filter((call) => {
-    return !calls.some((candidateParent) => {
-      if (candidateParent === call) return false;
-      return (
-        candidateParent.startIndex < call.startIndex &&
-        candidateParent.endIndex >= call.endIndex
-      );
-    });
-  });
-}
-
-export function replaceIdentifiers(
-  input: string,
-  handler: (token: IdentifierToken) => string | null | undefined,
-  excludeRanges?: Array<[number, number]>
-): string {
-  let result = '';
-  let lastIndex = 0;
-  IDENTIFIER_REGEX.lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  const isExcluded = (index: number, length: number): boolean => {
-    if (!excludeRanges) return false;
-    const endIndex = index + length;
-    return excludeRanges.some(([start, end]) => {
-      return (index >= start && index < end) || (endIndex > start && endIndex <= end) || (index < start && endIndex > end);
-    });
-  };
-
-  while ((match = IDENTIFIER_REGEX.exec(input)) !== null) {
-    const tokenText = match[0];
-    const matchIndex = match.index;
-
-    if (isExcluded(matchIndex, tokenText.length)) {
-      result += input.slice(lastIndex, matchIndex + tokenText.length);
-      lastIndex = matchIndex + tokenText.length;
-      continue;
-    }
-
-    const hasDot = tokenText.includes('.');
-    const [base, property] = tokenText.split('.');
-    const token: IdentifierToken = {
-      text: tokenText,
-      base,
-      property,
-      hasDot,
-    };
-
-    result += input.slice(lastIndex, matchIndex);
-
-    const replacement = handler(token);
-    result += replacement !== null && replacement !== undefined ? replacement : tokenText;
-
-    lastIndex = IDENTIFIER_REGEX.lastIndex;
-  }
-
-  result += input.slice(lastIndex);
-  return result;
 }
 
 export function parsePropertyReferences(formula: string): Array<{ baseVar: string; propertyName: string; fullMatch: string; isFieldProperty?: boolean }> {

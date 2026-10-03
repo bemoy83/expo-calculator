@@ -195,6 +195,37 @@ assertCheck(
   missingValidation.error
 );
 
+console.log('\n=== Evaluator Regression ===');
+{
+  const board = { id: 'b', name: 'Board', category: 'c', unit: 'ea', price: 100, variableName: 'board', properties: [{ id: 'w', name: 'width', type: 'number', value: 2 }], createdAt: '', updatedAt: '' } as unknown as import('../types').Material;
+  const withFunctions = {
+    fieldValues: { width: 4, height: 3, pick: 'board', flag: true },
+    materials: [board],
+    functions: [
+      { id: 'a', displayName: 'add', name: 'add', formula: 'a + b', parameters: [{ name: 'a', label: 'a' }, { name: 'b', label: 'b' }], createdAt: '', updatedAt: '' },
+      { id: 'd', displayName: 'double', name: 'double', formula: 'x * 2', parameters: [{ name: 'x', label: 'x' }], createdAt: '', updatedAt: '' },
+      { id: 'w', displayName: 'wide', name: 'wide', formula: 'm.width * 10', parameters: [{ name: 'm', label: 'm', kind: 'material' }], createdAt: '', updatedAt: '' },
+    ] as unknown as SharedFunction[],
+  };
+  const value = (formula: string) => evaluateFormula(formula, withFunctions);
+  const failure = (formula: string) => {
+    try {
+      evaluateFormula(formula, withFunctions);
+      return '';
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  };
+  assertCheck('names, properties and a bare material price all take their values', value('width * 2 + pick.width + board') === 110 && value('board.width + board.nothing') === 102);
+  assertCheck('and, or and not work in a formula', value('(width > 2 and height > 2) * 10') === 10 && value('(width > 9 or flag) * 5') === 5 && value('(not flag) * 5') === 0);
+  assertCheck('calls take arithmetic, nested calls and a picked material as arguments', value('add(width * 2, double(height))') === 14 && value('wide(pick) + 1') === 21 && value('double(add(1, 2)) * 2') === 12);
+  assertCheck('a call that is wrong says which function and why', /Error evaluating function 'add': Function 'add' expects 2 argument\(s\), but got 1/.test(failure('add(1)')) && /Function 'nope' not found/.test(failure('nope(1)')));
+  assertCheck('names without a value are listed before any function is worked out', failure('missing + other + add(1)') === 'Missing values for variables: missing, other');
+  assertCheck('a name missing inside an argument is reported with the function it was passed to', failure('double(nothing * 2)') === "Error evaluating function 'double': Missing values for variables: nothing");
+  assertCheck('a bad result is named', /infinity/.test(failure('1 / 0')) && /non-numeric/.test(failure('width > 2')));
+  assertCheck('a formula that cannot be read says so with mathjs\'s own wording', /^Formula evaluation failed: .*(Unexpected|Value expected)/.test(failure('width *')));
+}
+
 console.log('\n=== Functions Taking Labor Regression ===');
 {
   // A function called from a formula, or by another function, still sees the labor it was handed.
