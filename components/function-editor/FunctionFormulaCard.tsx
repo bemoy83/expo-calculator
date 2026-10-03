@@ -11,6 +11,7 @@ import { useTidyOffer } from '@/hooks/use-tidy-offer';
 import { ISSUE_LEVELS, IssueLine, IssueMarker, PinnedNotes } from '@/components/formula/IssueMarker';
 import { TidyOffer } from '@/components/formula/TidyOffer';
 import { unknownNameRanges, type FormulaNames } from '@/lib/calculator/formula-tokens';
+import { collectDiagnostics, plainSyntaxMessage } from '@/lib/formula/diagnostics';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
 import type { FormulaDiagnostic, FormulaIssue, FormulaIssueLevel, FormulaNote } from '@/lib/formula/issue-levels';
 import {
@@ -124,37 +125,38 @@ export function FunctionFormulaCard({
   // Heads-ups that are pinned to the text show as one quiet line where there's a pointer (see PinnedNotes).
   const pinnedNotes = unitProblems.map((problem) => problem.message).filter((message) => issues.some((issue) => issue.level === 'heads-up' && issue.message === message));
   // The same problems as the lines below, pinned to the text they're about: hover one for its message and fixes.
-  const diagnostics: FormulaDiagnostic[] = [];
-  if (errorRange) {
-    const broken = issues.find((issue) => issue.level === 'broken' && !issue.name);
-    const message = (broken?.message ?? formulaError ?? '').replace(/\s*\(character \d+\)$/, '');
-    if (message) diagnostics.push({ from: errorRange.start, to: errorRange.end, level: 'broken', message });
-  }
-  unitProblems.forEach((problem) => diagnostics.push({ from: problem.from, to: problem.to, level: 'heads-up', message: problem.message }));
-  if (formulaNames && onCreateParameter) {
-    for (const range of unknownNameRanges(formula, formulaNames)) {
-      if (!unknownNames.includes(range.name)) continue;
-      const name = range.name;
-      const fixes: NonNullable<FormulaDiagnostic['fixes']> = [];
-      if (onReuseParameter) {
-        for (const stored of findStoredParametersNamed(name, storedParameters, formula.includes(`${name}.`))) {
-          fixes.push({
-            label: `Reuse “${stored.name}”${stored.unitSymbol ? ` · ${stored.unitSymbol}` : ''}`,
-            title: `${stored.label} · in ${stored.uses} ${stored.uses === 1 ? 'place' : 'places'}`,
-            run: () => {
-              if (stored.name !== name) onFormulaChange(renameFormulaName(formula, name, stored.name));
-              onReuseParameter(stored);
+  const diagnostics = collectDiagnostics({
+    syntax: { range: errorRange, message: issues.find((issue) => issue.level === 'broken' && !issue.name)?.message ?? formulaError },
+    unknownNames:
+      formulaNames && onCreateParameter
+        ? {
+            ranges: unknownNameRanges(formula, formulaNames),
+            names: unknownNames,
+            message: (name) => `${name} isn’t a parameter yet.`,
+            fixes: (name) => {
+              const fixes: NonNullable<FormulaDiagnostic['fixes']> = [];
+              if (onReuseParameter) {
+                for (const stored of findStoredParametersNamed(name, storedParameters, formula.includes(`${name}.`))) {
+                  fixes.push({
+                    label: `Reuse “${stored.name}”${stored.unitSymbol ? ` · ${stored.unitSymbol}` : ''}`,
+                    title: `${stored.label} · in ${stored.uses} ${stored.uses === 1 ? 'place' : 'places'}`,
+                    run: () => {
+                      if (stored.name !== name) onFormulaChange(renameFormulaName(formula, name, stored.name));
+                      onReuseParameter(stored);
+                    },
+                  });
+                }
+              }
+              fixes.push({
+                label: `${formula.includes(`${name}.`) ? 'Create material parameter' : 'Create parameter'} “${name}”`,
+                run: () => onCreateParameter(name),
+              });
+              return fixes;
             },
-          });
-        }
-      }
-      fixes.push({
-        label: `${formula.includes(`${name}.`) ? 'Create material parameter' : 'Create parameter'} “${name}”`,
-        run: () => onCreateParameter(name),
-      });
-      diagnostics.push({ from: range.from, to: range.to, level: 'unresolved', message: `${name} isn’t a parameter yet.`, fixes });
-    }
-  }
+          }
+        : undefined,
+    problems: unitProblems.map((problem) => ({ from: problem.from, to: problem.to, level: 'heads-up' as const, message: problem.message })),
+  });
   // With several unknown names, one line can add them all: reuse the ones with a single stored match,
   // create the ones with none. A name with several stored matches is left to its own line.
   const plan = planUnknownNames(unknownNames, formula, storedParameters);
@@ -280,7 +282,7 @@ export function FunctionFormulaCard({
             .filter((issue) => !issue.name && !pinnedNotes.includes(issue.message))
             .map((issue) => (
               <IssueLine key={`${issue.level}-${issue.message}`} level={issue.level}>
-                {issue.level === 'broken' && errorRange ? issue.message.replace(/\s*\(character \d+\)$/, '') : issue.message}
+                {issue.level === 'broken' && errorRange ? plainSyntaxMessage(issue.message) : issue.message}
               </IssueLine>
             ))}
           <PinnedNotes messages={pinnedNotes} />

@@ -30,7 +30,7 @@ import { findFormulaErrorRange } from '@/lib/formula/error-location';
 import { IssueLine, PinnedNotes } from '@/components/formula/IssueMarker';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { calculatorFormulaNames, unknownNameRanges, unknownValueNames } from '@/lib/calculator/formula-tokens';
-import type { FormulaDiagnostic } from '@/lib/formula/issue-levels';
+import { collectDiagnostics, plainSyntaxMessage } from '@/lib/formula/diagnostics';
 import { analyzeUnits, declaredUnitProblem } from '@/lib/formula/unit-analysis';
 import { calculatorUnitResolver, declaredCategory } from '@/lib/formula/unit-resolvers';
 
@@ -252,38 +252,21 @@ export function StepRow({
   );
 
   // The same problems as the lines below the editor, pinned to the text they're about: hover one for its message and fix.
-  const diagnostics: FormulaDiagnostic[] = [];
-  if (syntaxRange) {
-    const broken = issues.find((issue) => issue.level === 'broken' && !issue.name);
-    if (broken) {
-      diagnostics.push({
-        from: syntaxRange.start,
-        to: syntaxRange.end,
-        level: 'broken',
-        message: broken.message.replace(/\s*\(character \d+\)$/, ''),
-      });
-    }
-  }
-  for (const range of unknownNameRanges(expression, formulaNames)) {
-    if (!unknownNames.includes(range.name)) continue;
-    diagnostics.push({
-      from: range.from,
-      to: range.to,
-      level: 'unresolved',
-      message: `${range.name} isn’t an input or step yet.`,
-      fixes: [
-        { label: `Create input “${range.name}”`, run: () => onCreateInput(range.name, parameterFor(expression, range.name, library)) },
-      ],
-    });
-  }
-  for (const problem of callProblems) {
-    diagnostics.push({
+  const diagnostics = collectDiagnostics({
+    syntax: { range: syntaxRange, message: issues.find((issue) => issue.level === 'broken' && !issue.name)?.message },
+    unknownNames: {
+      ranges: unknownNameRanges(expression, formulaNames),
+      names: unknownNames,
+      message: (name) => `${name} isn’t an input or step yet.`,
+      fixes: (name) => [{ label: `Create input “${name}”`, run: () => onCreateInput(name, parameterFor(expression, name, library)) }],
+    },
+    problems: callProblems.map((problem) => ({
       from: problem.start,
       to: problem.end,
-      level: problem.kind === 'arguments' ? 'broken' : 'heads-up',
+      level: problem.kind === 'arguments' ? ('broken' as const) : ('heads-up' as const),
       message: problem.message,
-    });
-  }
+    })),
+  });
 
   const value =
     result?.status === 'disabled' ? (
@@ -429,7 +412,7 @@ export function StepRow({
                     </div>
                   ) : (
                     <IssueLine key={`${issue.level}-${issue.message}`} level={issue.level} className="mt-1">
-                      {issue.level === 'broken' && syntaxRange ? issue.message.replace(/\s*\(character \d+\)$/, '') : issue.message}
+                      {issue.level === 'broken' && syntaxRange ? plainSyntaxMessage(issue.message) : issue.message}
                     </IssueLine>
                   )
                 )}
