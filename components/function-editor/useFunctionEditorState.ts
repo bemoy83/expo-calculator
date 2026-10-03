@@ -177,17 +177,28 @@ export function useFunctionEditorState({
     return () => clearTimeout(timer);
   }, [formData.formula, parameters, materials]);
 
+  // What follows `base.`, asked for as it is typed, so a name that isn't declared yet can still offer its properties.
+  const candidatesForBase = useCallback(
+    (base: string) => getPropertyCandidatesForBase({ base, parameters, materials, labor, functions }),
+    [parameters, materials, labor, functions]
+  );
+
+  // Picking a stored parameter from the suggestions adds it, with its unit and label.
+  const handleSuggestionInserted = useCallback(
+    (suggestion: { storedKey?: string }) => {
+      const stored = suggestion.storedKey ? parameterSuggestions.find((item) => storedParameterKey(item) === suggestion.storedKey) : undefined;
+      if (stored) setParameters((prev) => addSuggestedParameter(prev, stored));
+    },
+    [parameterSuggestions, setParameters]
+  );
+
   const autocomplete = useFormulaAutocomplete({
     formula: formData.formula,
     formulaTextareaRef,
     collectAutocompleteCandidates,
-    candidatesForBase: (base) => getPropertyCandidatesForBase({ base, parameters, materials, labor, functions }),
+    candidatesForBase,
     onFormulaChange: (formula) => setFormData((prev) => ({ ...prev, formula })),
-    // Picking a stored parameter from the suggestions adds it, with its unit and label.
-    onSuggestionInserted: (suggestion) => {
-      const stored = suggestion.storedKey ? parameterSuggestions.find((item) => storedParameterKey(item) === suggestion.storedKey) : undefined;
-      if (stored) setParameters((prev) => addSuggestedParameter(prev, stored));
-    },
+    onSuggestionInserted: handleSuggestionInserted,
   });
 
   const handleVariableNameChange = useCallback((newName: string) => {
@@ -347,6 +358,9 @@ export function useFunctionEditorState({
     existingParameterNames,
     formulaTextareaRef,
     autocomplete,
+    autocompleteCandidates: collectAutocompleteCandidates,
+    candidatesForBase,
+    handleSuggestionInserted,
     handleFormDataChange,
     handleVariableNameChange,
     addParameterFromSuggestion,

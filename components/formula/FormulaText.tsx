@@ -22,9 +22,9 @@ const TOKEN_TITLE: Record<FormulaTokenKind, string | undefined> = {
   plain: undefined,
 };
 
-const WAVY_UNDERLINE = 'underline decoration-wavy underline-offset-[5px]';
+export const WAVY_UNDERLINE = 'underline decoration-wavy underline-offset-[5px]';
 // A name nothing matches yet is "unresolved", not wrong: amber and dotted, where a syntax error is red and wavy.
-const UNRESOLVED = 'text-draft underline decoration-dotted decoration-draft underline-offset-[5px]';
+export const UNRESOLVED = 'text-draft underline decoration-dotted decoration-draft underline-offset-[5px]';
 
 // A formula with its names coloured by kind: inputs, results of other steps, functions,
 // material/labor properties, and names nothing matches. Hovering a name says what it is.

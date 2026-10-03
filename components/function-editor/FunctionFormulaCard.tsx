@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Link2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { FormulaPalette } from '@/components/formula/FormulaPalette';
@@ -12,6 +13,7 @@ import { ISSUE_LEVELS, IssueLine, IssueMarker } from '@/components/formula/Issue
 import { TidyOffer } from '@/components/formula/TidyOffer';
 import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import type { FormulaNames } from '@/lib/calculator/formula-tokens';
+import type { FormulaEditorHandle } from './FormulaEditorCM';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
 import type { FormulaIssue, FormulaIssueLevel } from '@/lib/formula/issue-levels';
 import {
@@ -20,6 +22,9 @@ import {
   renameFormulaName,
   type ParameterSuggestion,
 } from '@/lib/functions/function-editor-helpers';
+
+// SPIKE: the CodeMirror surface, loaded only when asked for, so it adds nothing to the page's own bundle.
+const FormulaEditorCM = dynamic(() => import('./FormulaEditorCM'), { ssr: false });
 
 interface WordInfo {
   word: string;
@@ -35,6 +40,12 @@ interface ParameterInfo {
 }
 
 interface FunctionFormulaCardProps {
+  /** SPIKE: draw the formula with CodeMirror instead of a textarea; what it needs for suggestions */
+  cm?: {
+    candidates: AutocompleteSuggestion[];
+    candidatesForBase?: (base: string) => AutocompleteSuggestion[];
+    onSuggestionInserted?: (suggestion: AutocompleteSuggestion) => void;
+  };
   /** Names the formula uses that aren't parameters yet, each offered as "+ Create parameter" */
   unknownNames?: string[];
   onCreateParameter?: (name: string) => void;
@@ -80,6 +91,7 @@ function formulaFontSize(length: number, narrow: boolean): number {
 const NARROW_BELOW = 640;
 
 export function FunctionFormulaCard({
+  cm,
   unknownNames = [],
   onCreateParameter,
   storedParameters = [],
@@ -116,6 +128,8 @@ export function FunctionFormulaCard({
     .filter((param) => param.name);
 
   const rootRef = useRef<HTMLElement>(null);
+  const cmHandle = useRef<FormulaEditorHandle | null>(null);
+  const [cmCompletionOpen, setCmCompletionOpen] = useState(false);
   const regionRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [focused, setFocused] = useState(false);
@@ -159,6 +173,7 @@ export function FunctionFormulaCard({
     textareaRef: formulaTextareaRef,
     onFormulaChange,
     onApplied: () => setIsAutocompleteOpen(false),
+    applyWith: cm ? (tidied) => cmHandle.current?.applyTidy(tidied) : undefined,
   });
   const isEmpty = formula.trim() === '';
 
@@ -186,7 +201,8 @@ export function FunctionFormulaCard({
 
   const insertParameter = (name: string) => {
     if (hasSelection) setStatus('Replaced the selection');
-    onInsertParameter(name);
+    if (cm) cmHandle.current?.insertToken(name);
+    else onInsertParameter(name);
     setSelection(null);
   };
 
@@ -204,12 +220,18 @@ export function FunctionFormulaCard({
               : 'Replaced the selection'
       );
     }
-    onInsertOperator(operator);
+    if (cm) cmHandle.current?.insertOperator(operator);
+    else onInsertOperator(operator);
     setSelection(null);
   };
 
   // Esc in the palette: back to the formula, with the selection that was drawn.
   const returnToFormula = () => {
+    if (cm) {
+      cmHandle.current?.focus();
+      if (selection) cmHandle.current?.setSelection(selection.start, selection.end);
+      return;
+    }
     const el = formulaTextareaRef.current;
     if (!el) return;
     el.focus();
@@ -220,7 +242,7 @@ export function FunctionFormulaCard({
     status ??
     (hasSelection
       ? `“${selectedText.trim().replace(/\s+/g, ' ')}” stays selected while you use the palette.`
-      : isAutocompleteOpen && autocompleteSuggestions.length > 0
+      : (cm ? cmCompletionOpen : isAutocompleteOpen && autocompleteSuggestions.length > 0)
         ? '↑↓ to choose · ↵ or Tab to insert · esc to close'
         : focused && !hasError
           ? isEmpty
@@ -240,6 +262,13 @@ export function FunctionFormulaCard({
           ref={regionRef}
           onMouseDown={(e) => {
             // Clicking anywhere in the region focuses the formula, caret at the end.
+            if (cm) {
+              if ((e.target as HTMLElement).closest('.cm-editor')) return;
+              e.preventDefault();
+              cmHandle.current?.setSelection(formula.length, formula.length);
+              cmHandle.current?.focus();
+              return;
+            }
             if (e.target === formulaTextareaRef.current) return;
             e.preventDefault();
             const el = formulaTextareaRef.current;
@@ -262,102 +291,139 @@ export function FunctionFormulaCard({
             )}
           />
           <div className="relative min-w-0 py-1.5">
-            {formulaNames && (
-              <div
-                aria-hidden="true"
-                className={cn('absolute inset-x-0 top-1.5 text-ink pointer-events-none', textClasses)}
-                style={textStyle}
-              >
-                <FormulaText expression={formula} names={formulaNames} markUnresolved errorRange={errorRange} />
-                {/* Keeps a trailing line break's height, as the textarea does. */}
-                {'\u200b'}
-              </div>
+            {cm ? (
+              <FormulaEditorCM
+                value={formula}
+                onChange={(next) => {
+                  setStatus(null);
+                  setSelection(null);
+                  onFormulaChange(next);
+                }}
+                names={formulaNames}
+                errorRange={errorRange}
+                fontSize={fontSize}
+                placeholderText="ceil(width / spacing) + 1"
+                invalid={hasError}
+                candidates={cm.candidates}
+                candidatesForBase={cm.candidatesForBase}
+                onSuggestionInserted={cm.onSuggestionInserted}
+                onSelectionChange={(sel) => setSelection(sel ? { start: sel.from, end: sel.to } : null)}
+                onCompletionOpenChange={setCmCompletionOpen}
+                onFocusChange={(isFocused, related) => {
+                  setFocused(isFocused);
+                  if (isFocused) return;
+                  // Tabbing into the palette: leave the text as it is, so the selection still points at what it did.
+                  if ((related as HTMLElement | null)?.closest?.('[role="toolbar"]')) return;
+                  // Tidy the spacing of a valid formula once the box is left, as one undo step.
+                  const tidiedNow = tidy.tidied;
+                  setTimeout(() => {
+                    if (cmHandle.current && !cmHandle.current.hasFocus() && formulaValidation.valid && tidiedNow !== formula) {
+                      cmHandle.current.applyTidy(tidiedNow, false);
+                    }
+                  }, 300);
+                }}
+                handleRef={cmHandle}
+              />
+            ) : (
+              <>
+                {formulaNames && (
+                  <div
+                    aria-hidden="true"
+                    className={cn('absolute inset-x-0 top-1.5 text-ink pointer-events-none', textClasses)}
+                    style={textStyle}
+                  >
+                    <FormulaText expression={formula} names={formulaNames} markUnresolved errorRange={errorRange} />
+                    {/* Keeps a trailing line break's height, as the textarea does. */}
+                    {'\u200b'}
+                  </div>
+                )}
+                <textarea
+                  ref={formulaTextareaRef}
+                  aria-label="Formula"
+                  aria-invalid={hasError ? 'true' : undefined}
+                  value={formula}
+                  rows={1}
+                  spellCheck={false}
+                  onFocus={() => setFocused(true)}
+                  placeholder="ceil(width / spacing) + 1"
+                  style={textStyle}
+                  className={cn(
+                    'relative block w-full resize-none overflow-hidden bg-transparent p-0 border-0 outline-none',
+                    'caret-accent placeholder:text-ink-faint',
+                    'selection:bg-accent/30',
+                    formulaNames ? 'text-transparent' : 'text-ink',
+                    textClasses
+                  )}
+                  onSelect={syncSelection}
+                  onKeyUp={syncSelection}
+                  onMouseUp={syncSelection}
+                  onChange={(e) => {
+                    setStatus(null);
+                    setSelection(null);
+                    onFormulaChange(e.target.value);
+                    if (tidy.tidying.current) return;
+                    // Update autocomplete immediately with the new value
+                    requestAnimationFrame(() => {
+                      updateAutocompleteSuggestionsFinal();
+                    });
+                  }}
+                  onKeyDown={(e) => {
+                    // Filter out modifier keys and non-character inputs
+                    const isModifierKey = e.ctrlKey || e.metaKey || e.altKey;
+                    const isNonCharacterKey = [
+                      'Backspace',
+                      'Delete',
+                      'ArrowLeft',
+                      'ArrowRight',
+                      'ArrowUp',
+                      'ArrowDown',
+                      'Home',
+                      'End',
+                      'PageUp',
+                      'PageDown',
+                      'Tab',
+                      'Enter',
+                      'Escape',
+                      'Shift',
+                      'Control',
+                      'Alt',
+                      'Meta',
+                      'CapsLock',
+                      'NumLock',
+                      'ScrollLock',
+                    ].includes(e.key);
+
+                    // Handle autocomplete navigation first
+                    const handled = handleAutocompleteKeyDown(e);
+                    if (handled) {
+                      return; // Autocomplete handled the key
+                    }
+
+                    // Only update suggestions for character input (not modifiers or navigation)
+                    if (!isModifierKey && !isNonCharacterKey && e.key.length === 1) {
+                      // Character input - update suggestions after the character is inserted
+                      requestAnimationFrame(() => {
+                        updateAutocompleteSuggestionsFinal();
+                      });
+                    } else if (isNonCharacterKey && ['Backspace', 'Delete'].includes(e.key)) {
+                      // Backspace/Delete - update suggestions after deletion
+                      requestAnimationFrame(() => {
+                        updateAutocompleteSuggestionsFinal();
+                      });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    setFocused(false);
+                    // Delay closing to allow clicks on suggestions
+                    setTimeout(() => setIsAutocompleteOpen(false), 200);
+                    // Tabbing into the palette: leave the text as it is, so the selection still points at what it did.
+                    if ((e.relatedTarget as HTMLElement | null)?.closest('[role="toolbar"]')) return;
+                    // Tidy the spacing of a valid formula once the box is left.
+                    tidyFormulaAfterBlur(formulaTextareaRef.current, onFormulaChange, () => formulaValidation.valid);
+                  }}
+                />
+              </>
             )}
-            <textarea
-              ref={formulaTextareaRef}
-              aria-label="Formula"
-              aria-invalid={hasError ? 'true' : undefined}
-              value={formula}
-              rows={1}
-              spellCheck={false}
-              onFocus={() => setFocused(true)}
-              placeholder="ceil(width / spacing) + 1"
-              style={textStyle}
-              className={cn(
-                'relative block w-full resize-none overflow-hidden bg-transparent p-0 border-0 outline-none',
-                'caret-accent placeholder:text-ink-faint',
-                'selection:bg-accent/30',
-                formulaNames ? 'text-transparent' : 'text-ink',
-                textClasses
-              )}
-              onSelect={syncSelection}
-              onKeyUp={syncSelection}
-              onMouseUp={syncSelection}
-              onChange={(e) => {
-                setStatus(null);
-                setSelection(null);
-                onFormulaChange(e.target.value);
-                if (tidy.tidying.current) return;
-                // Update autocomplete immediately with the new value
-                requestAnimationFrame(() => {
-                  updateAutocompleteSuggestionsFinal();
-                });
-              }}
-              onKeyDown={(e) => {
-                // Filter out modifier keys and non-character inputs
-                const isModifierKey = e.ctrlKey || e.metaKey || e.altKey;
-                const isNonCharacterKey = [
-                  'Backspace',
-                  'Delete',
-                  'ArrowLeft',
-                  'ArrowRight',
-                  'ArrowUp',
-                  'ArrowDown',
-                  'Home',
-                  'End',
-                  'PageUp',
-                  'PageDown',
-                  'Tab',
-                  'Enter',
-                  'Escape',
-                  'Shift',
-                  'Control',
-                  'Alt',
-                  'Meta',
-                  'CapsLock',
-                  'NumLock',
-                  'ScrollLock',
-                ].includes(e.key);
-
-                // Handle autocomplete navigation first
-                const handled = handleAutocompleteKeyDown(e);
-                if (handled) {
-                  return; // Autocomplete handled the key
-                }
-
-                // Only update suggestions for character input (not modifiers or navigation)
-                if (!isModifierKey && !isNonCharacterKey && e.key.length === 1) {
-                  // Character input - update suggestions after the character is inserted
-                  requestAnimationFrame(() => {
-                    updateAutocompleteSuggestionsFinal();
-                  });
-                } else if (isNonCharacterKey && ['Backspace', 'Delete'].includes(e.key)) {
-                  // Backspace/Delete - update suggestions after deletion
-                  requestAnimationFrame(() => {
-                    updateAutocompleteSuggestionsFinal();
-                  });
-                }
-              }}
-              onBlur={(e) => {
-                setFocused(false);
-                // Delay closing to allow clicks on suggestions
-                setTimeout(() => setIsAutocompleteOpen(false), 200);
-                // Tabbing into the palette: leave the text as it is, so the selection still points at what it did.
-                if ((e.relatedTarget as HTMLElement | null)?.closest('[role="toolbar"]')) return;
-                // Tidy the spacing of a valid formula once the box is left.
-                tidyFormulaAfterBlur(formulaTextareaRef.current, onFormulaChange, () => formulaValidation.valid);
-              }}
-            />
           </div>
         </div>
         <div className="mt-2.5 pl-[23px] flex flex-col gap-1.5 text-xs">
@@ -428,7 +494,7 @@ export function FunctionFormulaCard({
         </div>
       </div>
       {/* Autocomplete Dropdown */}
-      {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
+      {!cm && isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
         <div
           className="fixed z-50 bg-surface border border-border-strong rounded-row shadow-panel max-h-64 overflow-y-auto py-1"
           style={{

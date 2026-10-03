@@ -15,12 +15,15 @@ export function useTidyOffer({
   textareaRef,
   onFormulaChange,
   onApplied,
+  applyWith,
 }: {
   formula: string;
   textareaRef: RefObject<HTMLTextAreaElement>;
   onFormulaChange: (formula: string) => void;
   /** After the tidy has gone in, e.g. to close a suggestion list */
   onApplied?: () => void;
+  /** A different way to put the tidied text in (an editor that isn't a textarea, with its own undo) */
+  applyWith?: (tidied: string) => void;
 }) {
   const tidied = useMemo(() => prettifyFormula(formula), [formula]);
   const [offered, setOffered] = useState(false);
@@ -34,6 +37,11 @@ export function useTidyOffer({
   }, [formula, tidied]);
 
   const apply = useCallback(() => {
+    if (applyWith) {
+      applyWith(tidied);
+      onApplied?.();
+      return;
+    }
     const el = textareaRef.current;
     if (!el) return;
     const caret = caretAfterTidy(formula, el.selectionStart, tidied);
@@ -44,7 +52,7 @@ export function useTidyOffer({
     tidying.current = false;
     el.setSelectionRange(caret, caret);
     onApplied?.();
-  }, [formula, tidied, textareaRef, onFormulaChange, onApplied]);
+  }, [formula, tidied, textareaRef, onFormulaChange, onApplied, applyWith]);
 
   return { tidied, show: offered && tidied !== formula, apply, tidying };
 }
