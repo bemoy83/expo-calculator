@@ -277,8 +277,8 @@ export default function FormulaEditorCM(props: Props) {
           ? suggestion.functionSignature.split(',').map((arg) => arg.trim()).filter(Boolean)
           : null;
       let template = suggestion.name;
-      if (args?.length) template = `${suggestion.name}(${args.map((arg, i) => `\${${i + 1}:${arg}}`).join(', ')})`;
-      else if (suggestion.type === 'function' && suggestion.displayName.includes('()')) template = `${suggestion.name}(\${})`;
+      if (args?.length) template = `${suggestion.name}(${args.map((arg, i) => `\${${i + 1}:${arg}}`).join(', ')})\${}`;
+      else if (suggestion.type === 'function' && suggestion.displayName.includes('()')) template = `${suggestion.name}(\${1})\${}`;
       const charBefore = from > 0 ? doc[from - 1] : '';
       const spaceBefore = from > 0 && charBefore !== ' ' && charBefore !== '\t' && !/[+\-*/(]/.test(charBefore) ? ' ' : '';
       const charAfter = end < doc.length ? doc[end] : '';
