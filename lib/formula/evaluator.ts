@@ -42,6 +42,7 @@ function evaluateFunctionCall(
   const functionContext: EvaluationContext = {
     fieldValues: {},
     materials: context.materials,
+    labor: context.labor,
     fields: context.fields,
     functions: functions,
   };
@@ -57,6 +58,7 @@ function evaluateFunctionCall(
       const nestedContext: EvaluationContext = {
         fieldValues: context.fieldValues,
         materials: context.materials,
+        labor: context.labor,
         fields: context.fields,
         functions: functions,
       };

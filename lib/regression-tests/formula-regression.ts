@@ -1,7 +1,9 @@
 import {
+  evaluateFormula,
   parseFunctionCalls,
   validateFormula,
 } from '../formula-evaluator';
+import type { Labor, SharedFunction } from '../types';
 import { prettifyFormula } from '../formula/prettify';
 import { sharedFunctions } from './fixtures';
 import { assertCheck, assertThrowsFormula, testFormula } from './test-helpers';
@@ -233,6 +235,33 @@ const laborFieldValidation = validateFormula(
   ]
 );
 assertCheck('validates labor field properties', laborFieldValidation.valid, laborFieldValidation.error);
+
+console.log('\n=== Functions Taking Labor Regression ===');
+{
+  // A function called from a formula, or by another function, still sees the labor it was handed.
+  const crew = {
+    id: 'crew',
+    name: 'Crew',
+    category: 'Work',
+    cost: 500,
+    variableName: 'crew',
+    properties: [{ id: 'rate', name: 'rate', type: 'number', value: 4 }],
+    createdAt: '',
+    updatedAt: '',
+  } as unknown as Labor;
+  const takingLabor = (name: string, formula: string, parameter: string) =>
+    ({ id: name, displayName: name, name, formula, parameters: [{ name: parameter, label: parameter, kind: 'labor' }], createdAt: '', updatedAt: '' }) as unknown as SharedFunction;
+  const context = {
+    fieldValues: { crew: 'crew' },
+    materials: [],
+    labor: [crew],
+    fields: [{ variableName: 'crew', type: 'labor' }],
+    functions: [takingLabor('inner', 'x.rate * 2', 'x'), takingLabor('outer', 'inner(y) + 1', 'y')],
+  };
+  assertCheck('a function called from a formula can read its labor parameter', evaluateFormula('inner(crew)', context) === 8);
+  assertCheck('so can one called by another function', evaluateFormula('outer(crew)', context) === 9);
+  assertCheck('and one called with the labor inside an argument formula', evaluateFormula('inner(crew) * 2', context) === 16);
+}
 
 console.log('\n=== Formula Tidying Regression ===');
 {
