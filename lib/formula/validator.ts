@@ -2,7 +2,6 @@ import { Labor, Material, SharedFunction } from '../types';
 import { mathInstance } from './math-runtime';
 import { parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
 import { translateParserError } from './error-messages';
-import { validateUnitCompatibility } from './unit-validation';
 import { FormulaField } from './validation-types';
 import { findStandalone, NAME, NAME_WITH_PROPERTY, replaceStandalone } from './identifiers';
 
@@ -15,9 +14,9 @@ function hasProperty(items: Array<{ properties?: Array<{ name: string }> }>, pro
 /**
  * What kind of problem an invalid formula has, for telling them apart on screen: "broken" can't be
  * read or called as written; "unresolved" is well formed but names something that doesn't exist
- * (yet); "units" mixes units that don't add up.
+ * (yet). (Units that don't add up are a heads-up from lib/formula/unit-analysis, not a validation error.)
  */
-export type FormulaErrorKind = 'broken' | 'unresolved' | 'units';
+export type FormulaErrorKind = 'broken' | 'unresolved';
 
 export interface FormulaValidation {
   valid: boolean;
@@ -337,23 +336,6 @@ export function validateFormula(
       // - We already replaced full property refs like "wallboard.width" above.
       // - A standalone match won't touch "wallboard" inside "wallboard_2"; property refs are gone.
       testFormula = replaceStandalone(testFormula, varName, '1');
-    }
-
-    // Phase 1: Unit compatibility validation
-    const unitValidationError = validateUnitCompatibility(
-      formula,
-      fieldPropertyRefs,
-      materialPropertyRefs,
-      availableVariables,
-      materials,
-      fields
-    );
-    if (unitValidationError) {
-      return {
-        valid: false,
-        error: unitValidationError,
-        errorKind: 'units'
-      };
     }
 
     // Use our custom math instance for validation

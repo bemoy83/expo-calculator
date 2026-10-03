@@ -123,35 +123,6 @@ export function getUnitCategory(symbol: string): UnitCategory | undefined {
 }
 
 /**
- * Divide two unit categories and return the result category
- * 
- * Rules:
- * - Same dimension ÷ same dimension → unitless (count)
- * - Unit ÷ unitless → keep original unit
- * - Unitless ÷ unit → disallow (return null)
- * - Different dimensional units → disallow (return null)
- */
-export function divideUnits(cat1: UnitCategory, cat2: UnitCategory): UnitCategory | null {
-  // Same dimension ÷ same dimension → unitless
-  if (cat1 === cat2 && cat1 !== 'count' && cat1 !== 'percentage') {
-    return 'count'; // unitless
-  }
-  
-  // Unit ÷ unitless → keep original unit
-  if (cat2 === 'count' || cat2 === 'percentage') {
-    return cat1;
-  }
-  
-  // Unitless ÷ unit → disallow
-  if (cat1 === 'count' || cat1 === 'percentage') {
-    return null; // Error
-  }
-  
-  // Different dimensional units → disallow
-  return null; // Error
-}
-
-/**
  * Get all available unit symbols
  */
 export function getAllUnitSymbols(): string[] {

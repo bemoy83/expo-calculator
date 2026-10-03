@@ -293,21 +293,6 @@ assertCheck('validates labor field properties', laborFieldValidation.valid, labo
 const computedOutputValidation = validateFormula('out.area * 2', ['out.area'], [], []);
 assertCheck('validates computed output references', computedOutputValidation.valid, computedOutputValidation.error);
 
-const unitMismatchValidation = validateFormula(
-  'width + weight',
-  ['width', 'weight'],
-  [],
-  [
-    { variableName: 'width', type: 'number', unitCategory: 'length', unitSymbol: 'm' },
-    { variableName: 'weight', type: 'number', unitCategory: 'weight', unitSymbol: 'kg' },
-  ]
-);
-assertCheck(
-  'validates unit mismatch',
-  !unitMismatchValidation.valid && !!unitMismatchValidation.error?.includes('Cannot add length'),
-  unitMismatchValidation.error
-);
-
 console.log('\n=== Formula Tidying Regression ===');
 {
   const cases: Array<[string, string]> = [
