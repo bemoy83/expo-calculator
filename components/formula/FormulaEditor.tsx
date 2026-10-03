@@ -7,22 +7,26 @@
 
 import { useEffect, useRef, type MutableRefObject } from 'react';
 import { Compartment, EditorState, StateEffect, StateField, Transaction, Annotation, Prec, type Extension } from '@codemirror/state';
-import { Decoration, EditorView, keymap, placeholder, type DecorationSet } from '@codemirror/view';
+import { Decoration, EditorView, hoverTooltip, keymap, placeholder, type DecorationSet } from '@codemirror/view';
+import { bracketMatching } from '@codemirror/language';
 import { defaultKeymap, history, historyKeymap, isolateHistory } from '@codemirror/commands';
 import {
   acceptCompletion,
   autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
   completionStatus,
   type Completion,
   type CompletionContext,
   type CompletionResult,
+  snippet,
 } from '@codemirror/autocomplete';
 import { classifyFormula, type FormulaNames } from '@/lib/calculator/formula-tokens';
 import { UNRESOLVED, WAVY_UNDERLINE, TOKEN_TEXT, suggestionToken } from '@/components/formula/FormulaText';
 import { filterSuggestions, getWordAtCursor, type AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import { getFormulaWithInsertedOperator, getFormulaWithInsertedToken } from '@/lib/functions/function-editor-helpers';
 import { caretAfterTidy, prettifyFormula } from '@/lib/formula/prettify';
-import { isNameChar } from '@/lib/formula/identifiers';
+import { foldName, isNameChar } from '@/lib/formula/identifiers';
 
 export interface FormulaEditorHandle {
   focus(): void;
@@ -177,6 +181,32 @@ function renderSuggestionRow(
   return row;
 }
 
+/** The hover card for a name: how it's written (a call with its arguments), what it is, and its description. */
+function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: string) => boolean, fieldTagLabel?: string): HTMLElement {
+  const token = suggestionToken(suggestion.type, suggestion.type === 'field' && !!isStepKey?.(suggestion.name));
+  const make = (tag: string, className: string, text: string) => {
+    const el = document.createElement(tag);
+    el.className = className;
+    el.textContent = text;
+    return el;
+  };
+  const card = document.createElement('div');
+  card.className = 'flex max-w-[280px] flex-col gap-0.5 px-3 py-2';
+  const head = document.createElement('div');
+  head.className = 'flex items-baseline gap-3';
+  head.append(
+    make('code', `flex-1 text-xs font-numeric ${TOKEN_TEXT[token.kind]}`, suggestion.displayName),
+    make(
+      'span',
+      `flex-none font-numeric text-[10.5px] uppercase tracking-wide font-medium ${TOKEN_TEXT[token.kind] || 'text-ink-faint'}`,
+      suggestion.storedKey ? 'stored' : suggestion.type === 'field' && fieldTagLabel ? fieldTagLabel : token.label
+    )
+  );
+  card.append(head);
+  if (suggestion.description) card.append(make('span', 'text-[11.5px] text-ink-muted', suggestion.description));
+  return card;
+}
+
 /** The smallest single change turning `from` into `to`, so a rename in the middle keeps the caret where it was. */
 function minimalChange(from: string, to: string) {
   let start = 0;
@@ -238,28 +268,54 @@ export default function FormulaEditorCM(props: Props) {
       // The word being replaced runs to the end of the name, not just to the caret.
       let end = to;
       while (end < doc.length && (isNameChar(doc[end]) || doc[end] === '.')) end += 1;
-      let toInsert = suggestion.name;
-      if (suggestion.type === 'function' && suggestion.functionSignature) toInsert = `${suggestion.name}(${suggestion.functionSignature})`;
-      else if (suggestion.type === 'function' && suggestion.displayName.includes('()')) toInsert = suggestion.displayName;
+      // A call goes in as a snippet: each argument a stop to Tab through, the caret ending after the ")".
+      const args =
+        suggestion.type === 'function' && suggestion.functionSignature
+          ? suggestion.functionSignature.split(',').map((arg) => arg.trim()).filter(Boolean)
+          : null;
+      let template = suggestion.name;
+      if (args?.length) template = `${suggestion.name}(${args.map((arg, i) => `\${${i + 1}:${arg}}`).join(', ')})`;
+      else if (suggestion.type === 'function' && suggestion.displayName.includes('()')) template = `${suggestion.name}(\${})`;
       const charBefore = from > 0 ? doc[from - 1] : '';
       const spaceBefore = from > 0 && charBefore !== ' ' && charBefore !== '\t' && !/[+\-*/(]/.test(charBefore) ? ' ' : '';
       const charAfter = end < doc.length ? doc[end] : '';
       const spaceAfter = end < doc.length && charAfter !== ' ' && charAfter !== '\t' && !/[+\-*/)]/.test(charAfter) ? ' ' : '';
-      const inserted = `${spaceBefore}${toInsert}${spaceAfter}`;
-      let cursor = from + inserted.length;
-      if (suggestion.type === 'function' && suggestion.functionSignature) cursor = from + inserted.indexOf('(') + 1;
-      view.dispatch({ changes: { from, to: end, insert: inserted }, selection: { anchor: cursor }, userEvent: 'input.complete' });
+      snippet(`${spaceBefore}${template}${spaceAfter}`)(view, null, from, end);
       recent.current = [suggestion.name, ...recent.current.filter((name) => name !== suggestion.name)].slice(0, 15);
       latest.current.onSuggestionInserted?.(suggestion);
     };
+
+    // ---- Hover: what a name is, from the same candidates the suggestions use ----
+    const hover = hoverTooltip(
+      (view, pos, side) => {
+        const doc = view.state.doc.toString();
+        const info = getWordAtCursor(doc, pos);
+        if (!info.word || (pos === info.start && side < 0) || (pos === info.end && side > 0)) return null;
+        const { candidates, candidatesForBase, isStepKey, fieldTagLabel } = latest.current;
+        const wanted = foldName(info.word);
+        const pool = info.hasDot && info.baseWord && candidatesForBase ? [...candidates, ...candidatesForBase(info.baseWord)] : candidates;
+        const found = pool.find((candidate) => foldName(candidate.name) === wanted);
+        if (!found) return null;
+        return {
+          pos: info.start,
+          end: info.end,
+          above: true,
+          create: () => ({ dom: renderHover(found, isStepKey, fieldTagLabel) }),
+        };
+      },
+      { hoverTime: 300 }
+    );
 
     const extensions: Extension[] = [
       invalidCompartment.of(invalidAttributes(latest.current.invalid)),
       inputsField,
       decorationsField,
       history(),
+      closeBrackets(),
+      bracketMatching(),
+      hover,
       Prec.highest(keymap.of([{ key: 'Tab', run: acceptCompletion }])),
-      keymap.of([...historyKeymap, ...defaultKeymap]),
+      keymap.of([...closeBracketsKeymap, ...historyKeymap, ...defaultKeymap]),
       autocompletion({
         override: [completionSource],
         icons: false,
