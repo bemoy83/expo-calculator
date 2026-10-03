@@ -1,5 +1,4 @@
 import {
-  analyzeFormulaVariables,
   parseFunctionCalls,
   validateFormula,
 } from '../formula-evaluator';
@@ -187,30 +186,6 @@ assertCheck(
     nestedCalls.some((call) => call.fullMatch === 'add(width, height)')
 );
 
-const debugInfo = analyzeFormulaVariables(
-  'wallboard.width + out.area + mat_board.length',
-  ['wallboard', 'out.area'],
-  [
-    {
-      id: 'mat-board',
-      name: 'Board',
-      category: 'wood',
-      unit: 'ea',
-      price: 10,
-      variableName: 'mat_board',
-      properties: [{ id: 'mat-length', name: 'length', type: 'number', value: 2 }],
-      createdAt: '',
-      updatedAt: '',
-    },
-  ]
-);
-assertCheck(
-  'analyzes field/material/computed references',
-  debugInfo.fieldPropertyRefs.some((ref) => ref.full === 'wallboard.width') &&
-    debugInfo.materialPropertyRefs.some((ref) => ref.full === 'mat_board.length') &&
-    debugInfo.computedOutputs.includes('out.area')
-);
-
 const missingValidation = validateFormula('width + missing', ['width'], [], []);
 assertCheck(
   'validates missing variables',
@@ -258,9 +233,6 @@ const laborFieldValidation = validateFormula(
   ]
 );
 assertCheck('validates labor field properties', laborFieldValidation.valid, laborFieldValidation.error);
-
-const computedOutputValidation = validateFormula('out.area * 2', ['out.area'], [], []);
-assertCheck('validates computed output references', computedOutputValidation.valid, computedOutputValidation.error);
 
 console.log('\n=== Formula Tidying Regression ===');
 {

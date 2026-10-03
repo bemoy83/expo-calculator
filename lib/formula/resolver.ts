@@ -97,11 +97,6 @@ export function createFormulaResolver(context: EvaluationContext): FormulaResolv
         return resolveNumericValue(context.fieldValues[name]);
       }
 
-      const outputValue = context.functionOutputs?.[name];
-      if (outputValue !== undefined) {
-        return Number.isFinite(outputValue) ? outputValue : null;
-      }
-
       return resolveNumericValue(name);
     },
     resolveMaterialProperty: resolveMaterialPropertyForMap,

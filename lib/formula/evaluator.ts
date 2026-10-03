@@ -58,7 +58,6 @@ function evaluateFunctionCall(
         fieldValues: context.fieldValues,
         materials: context.materials,
         fields: context.fields,
-        functionOutputs: context.functionOutputs,
         functions: functions,
       };
       try {
@@ -75,26 +74,18 @@ function evaluateFunctionCall(
       if (field && field.defaultValue !== undefined) {
         argValue = field.defaultValue;
       } else {
-        if (context.functionOutputs && argVarName in context.functionOutputs) {
-          argValue = context.functionOutputs[argVarName];
-        }
-        else {
-          const material = resolver.materialsByVariableName.get(argVarName);
-          if (material) {
-            argValue = material.price;
+        const material = resolver.materialsByVariableName.get(argVarName);
+        if (material) {
+          argValue = material.price;
+        } else {
+          const numValue = Number(argVarName);
+          if (!isNaN(numValue) && isFinite(numValue)) {
+            argValue = numValue;
           } else {
-            const numValue = Number(argVarName);
-            if (!isNaN(numValue) && isFinite(numValue)) {
-              argValue = numValue;
-            } else {
-              argValue = evaluateOtherArgument(argVarName, call.functionName, paramName, context, functions);
-            }
+            argValue = evaluateOtherArgument(argVarName, call.functionName, paramName, context, functions);
           }
         }
       }
-    }
-    else if (context.functionOutputs && argVarName in context.functionOutputs) {
-      argValue = context.functionOutputs[argVarName];
     }
     else {
       const material = resolver.materialsByVariableName.get(argVarName);
@@ -163,12 +154,6 @@ export function evaluateFormula(
     processedFormula = replaceIdentifiers(processedFormula, (token) => {
       if (functionNames.has(token.text)) return null;
       
-      if (token.hasDot && token.text.startsWith('out.')) {
-        if (fieldValueMap.has(token.text)) {
-          return fieldValueMap.get(token.text)?.toString();
-        }
-        return null;
-      }
       if (token.hasDot) return null;
       if (MATH_FUNCTIONS.has(token.text)) return null;
       if (fieldValueMap.has(token.text)) {

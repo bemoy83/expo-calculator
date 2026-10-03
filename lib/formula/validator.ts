@@ -3,9 +3,7 @@ import { mathInstance } from './math-runtime';
 import { parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
 import { messageOf, translateParserError } from './error-messages';
 import { FormulaField } from './validation-types';
-import { findStandalone, NAME, NAME_WITH_PROPERTY, replaceStandalone } from './identifiers';
-
-export { analyzeFormulaVariables } from './debug-analysis';
+import { findStandalone, NAME_WITH_PROPERTY, replaceStandalone } from './identifiers';
 
 function hasProperty(items: Array<{ properties?: Array<{ name: string }> }>, propertyName: string): boolean {
   return items.some(item => item.properties?.some(property => property.name === propertyName));
@@ -66,20 +64,7 @@ export function validateFormula(
       }
     }
 
-    // First, check computed output references (out.variableName) - these must be checked BEFORE property references
-    const computedOutputMatches = findStandalone(formula, `out\\.${NAME}`);
-    for (const match of computedOutputMatches) {
-      if (!availableVariables.includes(match)) {
-        const outputName = match.replace('out.', '');
-        return {
-          valid: false,
-          error: `Computed output '${outputName}' not found. Available computed outputs: ${availableVariables.filter(v => v.startsWith('out.')).map(v => v.replace('out.', '')).join(', ') || 'none'}`,
-          errorKind: 'unresolved'
-        };
-      }
-    }
-
-    // Then, check field property references (e.g., wallboard.width)
+    // Check field property references (e.g., wallboard.width)
     // Include field variable names from fields array, not just availableVariables
     // This ensures field property references are recognized even if the field doesn't have a value yet
     const allFieldVariableNames = [
@@ -203,11 +188,7 @@ export function validateFormula(
     }
 
     // Now parse identifiers, excluding those that are property parts
-    // Also parse computed output references (out.variableName) as single tokens
     const matches = findStandalone(formula, NAME_WITH_PROPERTY);
-    
-    // Separate computed output references from regular identifiers
-    const regularMatches = matches.filter(m => !m.startsWith('out.'));
 
     if (matches.length > 0) {
       const allAvailableVars = [
@@ -234,11 +215,7 @@ export function validateFormula(
         ...availableFunctions.map(f => f.name) // All available function names from store
       ]);
 
-      // Skip computed output references - they're already validated earlier in the function
-      // Filter them out from regularMatches to avoid duplicate checks
-      const regularMatchesWithoutComputedOutputs = regularMatches.filter(m => !m.startsWith('out.'));
-
-      for (const match of regularMatchesWithoutComputedOutputs) {
+      for (const match of matches) {
         // Skip if it's a number
         if (!isNaN(Number(match))) continue;
 
@@ -250,16 +227,6 @@ export function validateFormula(
         // Skip if it's ANY user-defined function name (not just ones in calls)
         if (allFunctionNames.has(match)) {
           continue;
-        }
-
-        // Skip if this identifier is part of a computed output reference (out.variableName)
-        // Computed outputs are stored in fieldValues with 'out.' prefix
-        if (match === 'out') {
-          // Check if 'out' is followed by a dot and variable name (e.g., "out.area")
-          if (findStandalone(formula, `out\\.${NAME}`).length > 0) {
-            // 'out' is part of a computed output reference, skip it
-            continue;
-          }
         }
 
         // Skip if this identifier is a full property reference (e.g., "material.width")

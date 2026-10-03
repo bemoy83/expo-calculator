@@ -184,7 +184,6 @@ export function parseMaterialPropertyReferences(formula: string): Array<{ materi
   const propertyRefs = parsePropertyReferences(formula);
   return propertyRefs
     .filter(ref => !ref.isFieldProperty)
-    .filter(ref => !ref.fullMatch.startsWith('out.'))
     .map(ref => ({
       materialVar: ref.baseVar,
       propertyName: ref.propertyName,
@@ -198,7 +197,6 @@ export function parseFieldPropertyReferences(
 ): Array<{ fieldVar: string; propertyName: string; fullMatch: string }> {
   const propertyRefs = parsePropertyReferences(formula);
   return propertyRefs
-    .filter(ref => !ref.fullMatch.startsWith('out.'))
     .filter(ref => fieldVariableNames.includes(ref.baseVar))
     .map(ref => ({
       fieldVar: ref.baseVar,
