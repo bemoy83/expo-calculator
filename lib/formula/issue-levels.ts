@@ -25,3 +25,10 @@ export interface FormulaDiagnostic {
   /** What fixes it (Create, Reuse), offered as buttons on the hover card */
   fixes?: Array<{ label: string; title?: string; run: () => void }>;
 }
+
+/** A line of explanation for a stretch of the formula, shown when it's hovered (what an operator works out to). */
+export interface FormulaNote {
+  from: number;
+  to: number;
+  text: string;
+}

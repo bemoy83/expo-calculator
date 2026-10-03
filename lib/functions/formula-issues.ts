@@ -15,6 +15,8 @@ export interface FormulaIssueInput {
   propertyHint?: string;
   /** Parameters the formula never reads */
   unusedParameters: string[];
+  /** Units put together that don't match, already worded */
+  unitProblems?: string[];
 }
 
 const list = (names: string[]) => (names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} and ${names.length - 3} more`);
@@ -25,6 +27,7 @@ export function classifyFormulaIssues({
   syntaxProblem,
   propertyHint,
   unusedParameters,
+  unitProblems = [],
 }: FormulaIssueInput): FormulaIssue[] {
   const issues: FormulaIssue[] = [];
 
@@ -46,6 +49,8 @@ export function classifyFormulaIssues({
   unknownNames.forEach((name) => issues.push({ level: 'unresolved', name, message: `${name} isn’t a parameter yet.` }));
 
   if (propertyHint) issues.push({ level: 'heads-up', message: propertyHint });
+
+  unitProblems.forEach((message) => issues.push({ level: 'heads-up', message }));
 
   if (unusedParameters.length > 0) {
     issues.push({

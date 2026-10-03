@@ -7,7 +7,7 @@ import { FIELD_ERROR, FIELD_LABEL } from '@/components/ui/field-styles';
 import { useTidyOffer } from '@/hooks/use-tidy-offer';
 import type { AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import type { Calculator, CalculatorLibrary, CalculatorStep, StepResult } from '@/lib/calculator/types';
-import type { FormulaDiagnostic } from '@/lib/formula/issue-levels';
+import type { FormulaDiagnostic, FormulaNote } from '@/lib/formula/issue-levels';
 import { cn } from '@/lib/utils';
 import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
 import { describeStepProblem, formatStepValue } from '@/lib/calculator/format';
@@ -76,6 +76,7 @@ export function StepFormulaEditor({
   value,
   error,
   diagnostics,
+  notes,
   results,
   formatMoney,
   onChange,
@@ -89,6 +90,8 @@ export function StepFormulaEditor({
   error?: string;
   /** What's wrong, pinned to the text it's about */
   diagnostics?: FormulaDiagnostic[];
+  /** What an operator works out to, shown on hover */
+  notes?: FormulaNote[];
   /** Each step's current result, to say what a step's name is worth on hover */
   results?: Record<string, StepResult>;
   formatMoney?: (amount: number) => string;
@@ -136,6 +139,7 @@ export function StepFormulaEditor({
           onChange={onChange}
           names={formulaNames}
           diagnostics={diagnostics}
+          notes={notes}
           fontSize={13}
           lineHeight={1.625}
           placeholderText="e.g. area_rectangle(width, height)"

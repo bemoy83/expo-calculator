@@ -12,7 +12,7 @@ import { ISSUE_LEVELS, IssueLine, IssueMarker } from '@/components/formula/Issue
 import { TidyOffer } from '@/components/formula/TidyOffer';
 import { unknownNameRanges, type FormulaNames } from '@/lib/calculator/formula-tokens';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
-import type { FormulaDiagnostic, FormulaIssue, FormulaIssueLevel } from '@/lib/formula/issue-levels';
+import type { FormulaDiagnostic, FormulaIssue, FormulaIssueLevel, FormulaNote } from '@/lib/formula/issue-levels';
 import {
   findStoredParametersNamed,
   planUnknownNames,
@@ -43,6 +43,9 @@ interface FunctionFormulaCardProps {
   formulaError?: string;
   /** What the formula has to say about itself, by level (see classifyFormulaIssues) */
   issues?: FormulaIssue[];
+  /** Units put together that don't match, pinned to the text, and what each operator works out to */
+  unitProblems?: Array<{ message: string; from: number; to: number }>;
+  unitNotes?: FormulaNote[];
   parameters: ParameterInfo[];
   /** What the editor suggests as a name is typed, and what follows `name.` */
   candidates: AutocompleteSuggestion[];
@@ -72,6 +75,8 @@ export function FunctionFormulaCard({
   formulaValidation,
   formulaError,
   issues = [],
+  unitProblems = [],
+  unitNotes,
   parameters,
   candidates,
   candidatesForBase,
@@ -120,6 +125,7 @@ export function FunctionFormulaCard({
     const message = (broken?.message ?? formulaError ?? '').replace(/\s*\(character \d+\)$/, '');
     if (message) diagnostics.push({ from: errorRange.start, to: errorRange.end, level: 'broken', message });
   }
+  unitProblems.forEach((problem) => diagnostics.push({ from: problem.from, to: problem.to, level: 'heads-up', message: problem.message }));
   if (formulaNames && onCreateParameter) {
     for (const range of unknownNameRanges(formula, formulaNames)) {
       if (!unknownNames.includes(range.name)) continue;
@@ -245,6 +251,7 @@ export function FunctionFormulaCard({
               }}
               names={formulaNames}
               diagnostics={diagnostics}
+              notes={unitNotes}
               fontSize={fontSize}
               placeholderText="ceil(width / spacing) + 1"
               invalid={hasError}

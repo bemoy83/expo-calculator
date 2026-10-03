@@ -32,6 +32,8 @@ import { NAME } from '@/lib/formula/identifiers';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { calculatorFormulaNames, unknownNameRanges, unknownValueNames } from '@/lib/calculator/formula-tokens';
 import type { FormulaDiagnostic } from '@/lib/formula/issue-levels';
+import { analyzeUnits, declaredUnitProblem } from '@/lib/formula/unit-analysis';
+import { calculatorUnitResolver, declaredCategory } from '@/lib/formula/unit-resolvers';
 
 // An icon per format; the chosen one also shows its name, so the control fits any width.
 const FORMATS: Array<{ value: StepFormat; label: string; Icon: typeof Hash }> = [
@@ -225,7 +227,21 @@ export function StepRow({
   }, [unknown, expression, formulaNames]);
 
   // What the formula has to say about itself, in the same levels as a function's formula.
-  const callProblems = useCallProblems(expression, calculator, library);
+  const argumentProblems = useCallProblems(expression, calculator, library);
+  // What the parts of the formula are measured in: unlike units put together, or a result of another kind than the step is set to.
+  const unitAnalysis = useMemo(
+    () => analyzeUnits(expression, calculatorUnitResolver(calculator, library)),
+    [expression, calculator, library]
+  );
+  const callProblems = useMemo(() => {
+    const unitProblems = unitAnalysis.problems.map((problem) => ({ message: problem.message, kind: 'mismatch' as const, start: problem.from, end: problem.to }));
+    const declared =
+      step.format === 'number' && (step.unitCategory || step.unitSymbol)
+        ? declaredUnitProblem(expression, unitAnalysis, { category: declaredCategory(step), symbol: step.unitSymbol }, 'the step is set to')
+        : null;
+    if (declared) unitProblems.push({ message: declared.message, kind: 'mismatch', start: declared.from, end: declared.to });
+    return [...argumentProblems, ...unitProblems];
+  }, [argumentProblems, unitAnalysis, expression, step]);
   const issues = classifyStepIssues({ result, unknownNames, callProblems });
   // An error that is only a name nothing matches yet is "unresolved" (amber), not a mistake (red).
   const unresolvedOnly = isError && !issues.some((issue) => issue.level === 'broken');
@@ -392,6 +408,7 @@ export function StepRow({
                   library={library}
                   value={expression}
                   diagnostics={diagnostics}
+                  notes={unitAnalysis.notes}
                   results={stepResults}
                   formatMoney={formatMoney}
                   onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}

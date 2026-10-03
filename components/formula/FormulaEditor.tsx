@@ -23,7 +23,7 @@ import {
 } from '@codemirror/autocomplete';
 import { classifyFormula, type FormulaNames } from '@/lib/calculator/formula-tokens';
 import { ISSUE_LEVELS } from '@/components/formula/IssueMarker';
-import type { FormulaDiagnostic } from '@/lib/formula/issue-levels';
+import type { FormulaDiagnostic, FormulaNote } from '@/lib/formula/issue-levels';
 import { UNRESOLVED, WAVY_UNDERLINE, TOKEN_TEXT, suggestionToken } from '@/components/formula/FormulaText';
 import { filterSuggestions, getWordAtCursor, type AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import { getFormulaWithInsertedOperator, getFormulaWithInsertedToken } from '@/lib/functions/function-editor-helpers';
@@ -49,6 +49,8 @@ interface Props {
   names?: FormulaNames;
   /** Problems pinned to the text they're about: underlined, and explained (with their fixes) on hover */
   diagnostics?: FormulaDiagnostic[];
+  /** A line of explanation for a stretch of the formula (what an operator works out to), shown on hover */
+  notes?: FormulaNote[];
   fontSize: number;
   lineHeight?: number;
   placeholderText: string;
@@ -393,11 +395,12 @@ export default function FormulaEditorCM(props: Props) {
     const hover = hoverTooltip(
       (view, pos, side) => {
         const doc = view.state.doc.toString();
-        const { candidates, candidatesForBase, isStepKey, fieldTagLabel, describeValue, diagnostics } = latest.current;
+        const { candidates, candidatesForBase, isStepKey, fieldTagLabel, describeValue, diagnostics, notes } = latest.current;
+        const notesHere = (notes ?? []).filter((note) => note.from <= pos && (pos < note.to || (pos === note.to && side < 0)));
         // The problems under the pointer (the end of a range counts only from its left).
         const problems = (diagnostics ?? []).filter((d) => d.from <= pos && (pos < d.to || (pos === d.to && side < 0)));
         let found: AutocompleteSuggestion | undefined;
-        const spans = problems.map((problem) => ({ from: problem.from, to: problem.to }));
+        const spans = [...problems, ...notesHere].map((entry) => ({ from: entry.from, to: entry.to }));
         const info = getWordAtCursor(doc, pos);
         if (info.word && !((pos === info.start && side < 0) || (pos === info.end && side > 0))) {
           const wanted = foldName(info.word);
@@ -416,12 +419,19 @@ export default function FormulaEditorCM(props: Props) {
           create: () => {
             const dom = document.createElement('div');
             if (shown) dom.append(renderHover(shown, isStepKey, fieldTagLabel, describeValue?.(shown.name)));
-            if (problems.length > 0) dom.append(renderProblems(view, problems, !!shown));
+            for (const note of notesHere) {
+              const line = document.createElement('div');
+              line.className = 'max-w-[320px] px-3 py-2 font-numeric text-[11.5px] text-ink-muted';
+              line.textContent = note.text;
+              dom.append(line);
+            }
+            if (problems.length > 0) dom.append(renderProblems(view, problems, !!shown || notesHere.length > 0));
             return { dom };
           },
         };
       },
-      { hoverTime: 300 }
+      // An edit changes what's under the pointer: the card is closed rather than left saying what it did.
+      { hoverTime: 300, hideOnChange: true }
     );
 
     // ---- Signature: while the caret is inside a call's brackets, what the call takes and which argument it's on ----

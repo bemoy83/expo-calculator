@@ -30,6 +30,8 @@ import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
 import { parameterNeedsDefinition } from '@/lib/functions/function-editor-helpers';
+import { analyzeUnits, declaredUnitProblem } from '@/lib/formula/unit-analysis';
+import { declaredCategory, functionUnitResolver } from '@/lib/formula/unit-resolvers';
 import { classifyFormulaIssues, formulaStatus } from '@/lib/functions/formula-issues';
 import { findSyntaxProblem } from '@/lib/formula/error-location';
 import { countParameterUses } from '@/lib/functions/function-usage';
@@ -155,7 +157,26 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
   const unusedParameters = editor.parameters
     .map((parameter) => parameter.name.trim())
     .filter((name) => name && countParameterUses(editor.formData.formula, name) === 0);
+  // What the formula's parts are measured in: unlike units put together, or a result of another kind than the function returns.
+  const unitAnalysis = useMemo(
+    () => analyzeUnits(editor.formData.formula, functionUnitResolver(editor.parameters, library)),
+    [editor.formData.formula, editor.parameters, library]
+  );
+  const unitProblems = useMemo(() => {
+    const found = [...unitAnalysis.problems];
+    const declared = existingFunction
+      ? declaredUnitProblem(
+          editor.formData.formula,
+          unitAnalysis,
+          { category: declaredCategory({ unitCategory: existingFunction.returnUnitCategory, unitSymbol: existingFunction.returnUnitSymbol }), symbol: existingFunction.returnUnitSymbol },
+          'the function returns'
+        )
+      : null;
+    if (declared) found.push(declared);
+    return found;
+  }, [unitAnalysis, existingFunction, editor.formData.formula]);
   const issues = classifyFormulaIssues({
+    unitProblems: unitProblems.map((problem) => problem.message),
     validation: editor.formulaValidation,
     unknownNames,
     syntaxProblem: useMemo(() => findSyntaxProblem(editor.formData.formula), [editor.formData.formula]),
@@ -327,6 +348,8 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               formulaNames={formulaNames}
               unknownNames={unknownNames}
               issues={issues}
+              unitProblems={unitProblems}
+              unitNotes={unitAnalysis.notes}
               onCreateParameter={(name) => {
                 const created = editor.addParameterNamed(name);
                 if (created && parameterNeedsDefinition(created)) openNewParameter(editor.parameters.length);
