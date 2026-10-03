@@ -1,4 +1,4 @@
-import { NAME_WITH_PROPERTY } from './identifiers';
+import { WORD_OPERATORS, tokenize, type Token, type TokenType } from './tokens';
 
 // A formula read into a tree whose every node knows where it sits in the text, which is what the
 // parser behind `mathInstance.parse` doesn't tell. For analysis that points at the formula (see
@@ -19,48 +19,6 @@ export type ExprNode =
   | (Span & { type: 'paren'; inner: ExprNode })
   | (Span & { type: 'cond'; test: ExprNode; yes: ExprNode; no: ExprNode });
 
-type TokenType = 'num' | 'name' | 'op' | 'open' | 'close' | 'comma';
-interface Token extends Span {
-  type: TokenType;
-  text: string;
-}
-
-const NUMBER = /(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y;
-const NAME = new RegExp(NAME_WITH_PROPERTY, 'y');
-const TWO_CHAR = ['==', '!=', '>=', '<='];
-const ONE_CHAR = new Set(['+', '-', '*', '/', '^', '%', '<', '>', '?', ':']);
-const WORD_OPERATORS = new Set(['and', 'or', 'not']);
-
-function tokenize(text: string): Token[] | null {
-  const tokens: Token[] = [];
-  let i = 0;
-  while (i < text.length) {
-    const char = text[i];
-    if (/\s/.test(char)) {
-      i += 1;
-      continue;
-    }
-    const sticky = (regex: RegExp) => {
-      regex.lastIndex = i;
-      return regex.exec(text)?.[0];
-    };
-    const number = /[\d.]/.test(char) ? sticky(NUMBER) : undefined;
-    const name = number ? undefined : sticky(NAME);
-    let token: Token;
-    if (number) token = { type: 'num', text: number, from: i, to: i + number.length };
-    else if (name) token = { type: WORD_OPERATORS.has(name) ? 'op' : 'name', text: name, from: i, to: i + name.length };
-    else if (TWO_CHAR.includes(text.slice(i, i + 2))) token = { type: 'op', text: text.slice(i, i + 2), from: i, to: i + 2 };
-    else if (ONE_CHAR.has(char)) token = { type: 'op', text: char, from: i, to: i + 1 };
-    else if (char === '(') token = { type: 'open', text: char, from: i, to: i + 1 };
-    else if (char === ')') token = { type: 'close', text: char, from: i, to: i + 1 };
-    else if (char === ',') token = { type: 'comma', text: char, from: i, to: i + 1 };
-    else return null;
-    tokens.push(token);
-    i = token.to;
-  }
-  return tokens;
-}
-
 class Unreadable extends Error {}
 
 class Reader {
@@ -75,7 +33,9 @@ class Reader {
   }
   private isOp(...ops: string[]) {
     const token = this.peek();
-    return token?.type === 'op' && ops.includes(token.text) ? token : undefined;
+    // and, or and not are names to the tokenizer; here they're the operators they stand for.
+    const isOperator = token?.type === 'op' || (token?.type === 'name' && WORD_OPERATORS.has(token.text));
+    return token && isOperator && ops.includes(token.text) ? token : undefined;
   }
   private take(): Token {
     const token = this.tokens[this.at];
@@ -139,13 +99,15 @@ class Reader {
 
   private primary(): ExprNode {
     const token = this.take();
-    if (token.type === 'num') return { type: 'num', from: token.from, to: token.to };
+    if (token.type === 'number') return { type: 'num', from: token.from, to: token.to };
     if (token.type === 'open') {
       const inner = this.expression();
       const close = this.expect('close');
       return { type: 'paren', inner, from: token.from, to: close.to };
     }
     if (token.type === 'name') {
+      // A bare and / or / not has no value to give.
+      if (WORD_OPERATORS.has(token.text)) throw new Unreadable();
       const next = this.peek();
       if (next?.type === 'open' && !token.text.includes('.')) {
         this.take();
@@ -171,7 +133,8 @@ class Reader {
 /** The formula as a tree with positions, or null if it isn't one this reads. */
 export function parseExpression(text: string): ExprNode | null {
   const tokens = tokenize(text);
-  if (!tokens || tokens.length === 0) return null;
+  // A character the language doesn't have (a quote, a bracket of another kind) isn't read.
+  if (tokens.length === 0 || tokens.some((token) => token.type === 'other')) return null;
   const reader = new Reader(tokens);
   try {
     const tree = reader.expression();

@@ -4,7 +4,7 @@ import { mathInstance } from '../formula/math-runtime';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import type { SharedFunction } from '../types';
 import type { Calculator, CalculatorStep, Condition, InputKind } from './types';
-import { NAME_WITH_PROPERTY } from '../formula/identifiers';
+import { tokenize } from '../formula/tokens';
 
 export interface ExpressionToken {
   text: string;
@@ -16,30 +16,26 @@ export interface ExpressionToken {
   isCall: boolean;
 }
 
-const IDENTIFIER = new RegExp(NAME_WITH_PROPERTY, 'g');
-
-// Identifiers in an expression with their positions. Skips the letters of a number such as
-// 1e5 or 2.5e3, which the pattern would otherwise read as a name.
+// Names in an expression with their positions, from the shared tokenizer. A name glued to the end of a
+// number or a dot (the "x" of 2x, the "c" of a.b.c) is skipped, as it always was.
 export function scanExpression(expression: string): ExpressionToken[] {
-  const tokens: ExpressionToken[] = [];
-  IDENTIFIER.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = IDENTIFIER.exec(expression)) !== null) {
-    const start = match.index;
-    const end = start + match[0].length;
-    const previous = expression[start - 1];
-    if (previous !== undefined && /[0-9.]/.test(previous)) continue;
-    const [base, property] = match[0].split('.');
-    tokens.push({
-      text: match[0],
+  const tokens = tokenize(expression);
+  const names: ExpressionToken[] = [];
+  tokens.forEach((token, index) => {
+    if (token.type !== 'name') return;
+    const previous = expression[token.from - 1];
+    if (previous !== undefined && /[0-9.]/.test(previous)) return;
+    const [base, property] = token.text.split('.');
+    names.push({
+      text: token.text,
       base,
       property,
-      start,
-      end,
-      isCall: !property && /^\s*\(/.test(expression.slice(end)),
+      start: token.from,
+      end: token.to,
+      isCall: !property && tokens[index + 1]?.type === 'open',
     });
-  }
-  return tokens;
+  });
+  return names;
 }
 
 /**

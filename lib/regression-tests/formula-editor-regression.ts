@@ -1,4 +1,6 @@
-import { callAtCaret } from '../calculator/call-context';
+import { callAtCaret, parseCalls } from '../calculator/call-context';
+import { scanExpression } from '../calculator/dependencies';
+import { tokenize } from '../formula/tokens';
 import { collectDiagnostics, plainSyntaxMessage } from '../formula/diagnostics';
 import { minimalChange } from '../formula/minimal-change';
 import { assertCheck } from './test-helpers';
@@ -57,3 +59,14 @@ assertCheck('problems with their own range are passed on after the rest', (() =>
   });
   return found.length === 2 && found[0].level === 'broken' && found[1].level === 'heads-up';
 })());
+
+// The shared tokenizer, and what is built on it.
+const kinds = (text: string) => tokenize(text).map((token) => `${token.type}:${token.text}`).join(' ');
+assertCheck('numbers keep their exponent and names keep their property', kinds('2.5e3 + board.width') === 'number:2.5e3 op:+ name:board.width');
+assertCheck('two-character operators, brackets and commas', kinds('a>=b?(c,d):e') === 'name:a op:>= name:b op:? open:( name:c comma:, name:d close:) op:: name:e');
+assertCheck('words that are operators stay names; characters it does not know are "other"', kinds('a and "b"') === 'name:a name:and other:" name:b other:"');
+assertCheck('Norwegian letters are part of a name', kinds('høyde * åpen') === 'name:høyde op:* name:åpen');
+assertCheck('each token knows where it sits', JSON.stringify(tokenize('ab + 1').map((token) => [token.from, token.to])) === JSON.stringify([[0, 2], [3, 4], [5, 6]]));
+assertCheck('a number is not read as a call, nor its exponent as a name', parseCalls('1e5(2)').length === 0 && scanExpression('2.5e3 + k').map((token) => token.text).join(',') === 'k');
+assertCheck('a call needs a plain name before its bracket', parseCalls('f(a) + board.width(b) + a.b.c(d)').map((call) => call.name).join(',') === 'f');
+assertCheck('names are scanned with whether they are called', JSON.stringify(scanExpression('f(x) + y').map((token) => [token.text, token.isCall])) === JSON.stringify([['f', true], ['x', false], ['y', false]]));

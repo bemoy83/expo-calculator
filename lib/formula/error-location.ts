@@ -1,6 +1,7 @@
 import { friendlyEvaluationMessage } from './error-messages';
 import { isNameChar } from './identifiers';
 import { mathInstance } from './math-runtime';
+import { tokenize, type Token } from './tokens';
 
 /** The part of a formula a syntax error points at: [start, end) in the formula as written. */
 export interface FormulaErrorRange {
@@ -23,11 +24,13 @@ export function findFormulaErrorRange(formula: string): FormulaErrorRange | null
 
     // A bracket that's never closed: the unmatched "(" and the function name in front of it.
     if (/^Parenthesis \) expected/.test(message)) {
-      const open = lastUnmatchedOpen(formula);
+      const tokens = tokenize(formula);
+      const open = lastUnmatchedOpen(tokens);
       if (open === -1) return null;
-      let start = open;
-      while (start > 0 && isNameChar(formula[start - 1])) start -= 1;
-      return { start, end: open + 1 };
+      // Only a name right against the bracket belongs to it, and for `board.width(` only the part after the dot.
+      const before = tokens[open - 1];
+      const start = before?.type === 'name' && before.to === tokens[open].from ? before.from + before.text.lastIndexOf('.') + 1 : tokens[open].from;
+      return { start, end: tokens[open].to };
     }
 
     const lastUsed = formula.search(/\S\s*$/);
@@ -47,12 +50,13 @@ export function findFormulaErrorRange(formula: string): FormulaErrorRange | null
   }
 }
 
-function lastUnmatchedOpen(formula: string): number {
+/** Index (into the tokens) of the last "(" that is never closed, or -1. */
+function lastUnmatchedOpen(tokens: Token[]): number {
   const opens: number[] = [];
-  for (let i = 0; i < formula.length; i += 1) {
-    if (formula[i] === '(') opens.push(i);
-    else if (formula[i] === ')') opens.pop();
-  }
+  tokens.forEach((token, index) => {
+    if (token.type === 'open') opens.push(index);
+    else if (token.type === 'close') opens.pop();
+  });
   return opens.length ? opens[opens.length - 1] : -1;
 }
 

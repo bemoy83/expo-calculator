@@ -1,4 +1,5 @@
 import { isValidName, NAME } from '../formula/identifiers';
+import { tokenize } from '../formula/tokens';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import type { FunctionParamKind } from '../types';
 import type { UnitCategory } from '../units';
@@ -34,8 +35,6 @@ interface OpenFrame {
   open: number;
   commas: number[];
 }
-
-const NAME_BEFORE_PAREN = new RegExp(`(${NAME})\\s*$`);
 
 function buildArgs(expression: string, frame: OpenFrame, end: number): CallArg[] {
   const bounds = [frame.open, ...frame.commas, end];
@@ -73,29 +72,27 @@ export function parseCalls(expression: string): CallFrame[] {
     calls[place.get(frame)!] = call;
   };
 
-  for (let i = 0; i < expression.length; i += 1) {
-    const char = expression[i];
-    if (char === '(') {
-      const found = NAME_BEFORE_PAREN.exec(expression.slice(0, i));
-      // `board.width(` isn't a call.
-      const start = found ? found.index : -1;
-      const precededByDot = start > 0 && expression[start - 1] === '.';
-      if (found && !precededByDot && isValidName(found[1])) {
-        const frame: OpenFrame = { name: found[1], nameStart: start, open: i, commas: [] };
+  const tokens = tokenize(expression);
+  tokens.forEach((token, index) => {
+    if (token.type === 'open') {
+      // A name right before the bracket makes it a call; `board.width(` and `a.b.c(` aren't.
+      const before = tokens[index - 1];
+      if (before?.type === 'name' && !before.text.includes('.') && expression[before.from - 1] !== '.' && isValidName(before.text)) {
+        const frame: OpenFrame = { name: before.text, nameStart: before.from, open: token.from, commas: [] };
         place.set(frame, calls.length);
         calls.push(undefined as unknown as CallFrame);
         stack.push(frame);
       } else {
         stack.push(null);
       }
-    } else if (char === ',') {
+    } else if (token.type === 'comma') {
       const top = stack[stack.length - 1];
-      if (top) top.commas.push(i);
-    } else if (char === ')') {
+      if (top) top.commas.push(token.from);
+    } else if (token.type === 'close') {
       const top = stack.pop();
-      if (top) finish(top, i);
+      if (top) finish(top, token.from);
     }
-  }
+  });
   for (const frame of stack) if (frame) finish(frame, undefined);
   return calls;
 }
