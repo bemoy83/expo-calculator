@@ -3,8 +3,6 @@ import {
   parseFunctionCalls,
   validateFormula,
 } from '../formula-evaluator';
-import { calculateModuleInstance } from '../calculations/module-calculator';
-import type { CalculationModule } from '../types';
 import { prettifyFormula } from '../formula/prettify';
 import { sharedFunctions } from './fixtures';
 import { assertCheck, assertThrowsFormula, testFormula } from './test-helpers';
@@ -171,34 +169,6 @@ testFormula('double(add(width, height))', 10, {
   materials: [],
   functions: sharedFunctions,
 });
-
-console.log('\n=== Computed Output Failure Regression ===');
-const moduleWithBadOutput: CalculationModule = {
-  id: 'bad-module',
-  name: 'Bad Module',
-  fields: [],
-  formula: 'out.area * 2',
-  computedOutputs: [
-    {
-      id: 'out-area',
-      label: 'Area',
-      variableName: 'area',
-      expression: 'missing_width * 2',
-    },
-  ],
-  createdAt: '',
-  updatedAt: '',
-};
-const calculation = calculateModuleInstance({
-  moduleDef: moduleWithBadOutput,
-  fieldValues: {},
-  materials: [],
-  functions: [],
-});
-assertCheck(
-  'computed output failure is reported without zero fallback',
-  calculation.errors.length > 0 && calculation.computedValues['out.area'] === undefined
-);
 
 console.log('\n=== Parser and Validation Regression ===');
 const siblingCalls = parseFunctionCalls('add(width, height) + double(depth)');

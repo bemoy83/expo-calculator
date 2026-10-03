@@ -139,7 +139,7 @@ assertCheck(
 
 // ---- Exporting and loading on a device ----
 
-useCalculatorsStore.setState({ calculators: [wall, loop, draft], legacyImported: true });
+useCalculatorsStore.setState({ calculators: [wall, loop, draft] });
 useFunctionsStore.setState({ functions });
 useMaterialsStore.setState({ materials: templateMaterials });
 useLaborStore.setState({ labor: templateLabor });

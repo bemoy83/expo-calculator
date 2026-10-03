@@ -1,6 +1,6 @@
 import { buildCalculatorPack } from '../calculator/pack';
 import type { Calculator } from '../calculator/types';
-import { CalculationModule, Material, ModuleTemplate, SharedFunction, Labor } from '../types';
+import { Material, SharedFunction, Labor } from '../types';
 import { useCalculatorsStore } from '../stores/calculators-store';
 import { useMaterialsStore } from '../stores/materials-store';
 import { useCategoriesStore } from '../stores/categories-store';
@@ -22,14 +22,10 @@ export interface ExportedData {
   functions?: SharedFunction[];
   /** Since 2.0.0. */
   calculators?: Calculator[];
-  /** Files before 2.0.0: turned into calculators on import. */
-  modules?: CalculationModule[];
-  /** Files 1.1.0: turned into calculators on import. */
-  templates?: ModuleTemplate[];
 }
 
-// 2.0.0: calculators replace modules and templates (older files still import; their modules
-// and templates become calculators).
+// 2.0.0: calculators replace modules and templates. Older files (which carry modules and
+// templates, no calculators) no longer import their calculators; see importData.
 export const EXPORT_VERSION = '2.0.0';
 
 /**

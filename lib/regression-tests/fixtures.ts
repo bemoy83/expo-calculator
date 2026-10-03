@@ -1,5 +1,4 @@
 import type {
-  CalculationModule,
   Labor,
   Material,
   SharedFunction,
@@ -28,63 +27,6 @@ export const sharedFunctions: SharedFunction[] = [
     updatedAt: '',
   },
 ];
-
-export const quoteModules: CalculationModule[] = [
-  {
-    id: 'source-module',
-    name: 'Source',
-    fields: [
-      {
-        id: 'source-width',
-        label: 'Width',
-        type: 'number',
-        variableName: 'width',
-        unitCategory: 'length',
-        unitSymbol: 'm',
-      },
-    ],
-    formula: 'width * 2',
-    computedOutputs: [
-      {
-        id: 'source-area',
-        label: 'Area',
-        variableName: 'area',
-        expression: 'width * 3',
-        unitCategory: 'length',
-        unitSymbol: 'm',
-        showInQuote: true,
-      },
-    ],
-    createdAt: '',
-    updatedAt: '',
-  },
-  {
-    id: 'target-module',
-    name: 'Target',
-    fields: [
-      {
-        id: 'target-width',
-        label: 'Linked Width',
-        type: 'number',
-        variableName: 'linked_width',
-        unitCategory: 'length',
-        unitSymbol: 'm',
-      },
-      {
-        id: 'target-weight',
-        label: 'Weight',
-        type: 'number',
-        variableName: 'weight',
-        unitCategory: 'weight',
-        unitSymbol: 'kg',
-      },
-    ],
-    formula: 'linked_width + 1',
-    createdAt: '',
-    updatedAt: '',
-  },
-];
-
 
 export const templateMaterials: Material[] = [
   {

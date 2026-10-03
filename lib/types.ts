@@ -1,5 +1,3 @@
-export type FieldType = 'number' | 'dropdown' | 'text' | 'boolean' | 'material' | 'labor';
-
 export type MaterialPropertyType = 'number' | 'string' | 'boolean' | 'price';
 
 export interface MaterialProperty {
@@ -46,52 +44,7 @@ export interface LaborProperty {
   storedValue?: number; // Canonical base-normalized value (always use this for evaluation)
 }
 
-export interface Field {
-  id: string;
-  label: string;
-  type: FieldType;
-  variableName: string;
-  required?: boolean;
-  options?: string[]; // For dropdown type
-  dropdownMode?: 'numeric' | 'string'; // For dropdown type: numeric mode enables unit awareness
-  defaultValue?: string | number | boolean;
-  unit?: string; // Legacy unit of measurement (e.g., "ft", "sq ft", "hours")
-  unitCategory?: 'length' | 'area' | 'volume' | 'weight' | 'percentage' | 'count'; // Auto-inferred from unitSymbol
-  unitSymbol?: string; // Normalized symbol (e.g., "mm", "m2", "m3")
-  description?: string; // Help text for the field
-  materialCategory?: string; // For material type fields: limit materials to this category (empty = all categories)
-  laborCategory?: string; // For labor type fields: limit labor items to this category (empty = all categories)
-}
-
-import type { UnitCategory } from './units';
 export type { UnitCategory } from './units';
-
-export interface ComputedOutput {
-  id: string;
-  label: string; // Display name (e.g., "Paint Area")
-  variableName: string; // Variable name WITHOUT out. prefix (e.g., "paint_area_m2")
-  expression: string; // Formula expression (e.g., "area(width, height)" or "width * height")
-  unitSymbol?: string; // Optional unit symbol (e.g., "m2")
-  unitCategory?: UnitCategory; // Optional unit category
-  description?: string; // Optional help text
-  showInQuote?: boolean; // Whether to display in quote summary
-}
-
-/**
- * A module, from before calculators. Modules and templates are retired: they're only read to
- * turn them into calculators (from stored data once, and from old export files).
- */
-export interface CalculationModule {
-  id: string;
-  name: string;
-  description?: string;
-  category?: string;
-  fields: Field[];
-  formula: string; // Formula using variable names
-  computedOutputs?: ComputedOutput[]; // NEW: Array of computed outputs
-  createdAt: string;
-  updatedAt: string;
-}
 
 export interface Material {
   id: string;
@@ -120,11 +73,6 @@ export interface Labor {
   properties?: LaborProperty[]; // Labor properties (productivity rates like m²/hour, pcs/hour, etc.)
   createdAt: string;
   updatedAt: string;
-}
-
-export interface FieldLink {
-  moduleInstanceId: string;
-  fieldVariableName: string;
 }
 
 export type FunctionParamKind = 'number' | 'material' | 'labor' | 'boolean';
@@ -199,40 +147,3 @@ export interface Quote {
   updatedAt: string;
 }
 
-export type CalculationErrorCode =
-  | 'missing_value'
-  | 'invalid_formula'
-  | 'missing_property'
-  | 'computed_output_failed';
-
-export interface CalculationError {
-  code: CalculationErrorCode;
-  message: string;
-  source?: string;
-}
-
-export interface CalculationResult {
-  cost: number;
-  computedValues: Record<string, number>;
-  fieldValues: Record<string, string | number | boolean>;
-  errors: CalculationError[];
-}
-
-/** A template (a chain of linked modules), from before calculators; see CalculationModule. */
-export interface ModuleTemplate {
-  id: string;
-  name: string;
-  description?: string;
-  moduleInstances: Array<{
-    id?: string; // Instance ID (new format, optional for legacy compatibility)
-    moduleId: string;
-    fieldValues?: Record<string, string | number | boolean>; // Field values (new format, optional for legacy compatibility)
-    fieldLinks?: Record<string, FieldLink>; // Preserved field links
-  }>;
-  categories: string[]; // Derived from module categories
-  // Future-safe fields (not used in MVP but stored for schema evolution)
-  moduleVersion?: string; // For future version tracking
-  createdFromQuoteId?: string; // For future reference tracking
-  createdAt: string;
-  updatedAt: string;
-}

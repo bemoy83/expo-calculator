@@ -18,10 +18,6 @@ export interface Calculator {
   layout: LayoutSection[];
   /** Step whose value goes to a quote; the calculator total when unset. */
   quoteCostStepId?: string;
-  /** The module this calculator was converted from, if any. */
-  sourceModuleId?: string;
-  /** The template this calculator was converted from, if any. */
-  sourceTemplateId?: string;
   createdAt: string;
   updatedAt: string;
 }

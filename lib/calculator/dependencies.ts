@@ -64,7 +64,7 @@ export function findSyntaxError(expression: string): string | undefined {
 }
 
 /** A name passed whole as a function argument, as in `sheets_width(width, sheets)`. */
-export function isWholeArgument(expression: string, token: ExpressionToken): boolean {
+function isWholeArgument(expression: string, token: ExpressionToken): boolean {
   const before = expression.slice(0, token.start).trimEnd().slice(-1);
   const after = expression.slice(token.end).trimStart().charAt(0);
   return (before === '(' || before === ',') && (after === ')' || after === ',');

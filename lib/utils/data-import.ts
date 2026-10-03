@@ -1,6 +1,5 @@
-import { calculatorsFromLegacy } from '../calculator/legacy';
 import type { Calculator } from '../calculator/types';
-import { CalculationModule, Material, ModuleTemplate, SharedFunction, Labor } from '../types';
+import { Material, SharedFunction, Labor } from '../types';
 import { useCalculatorsStore } from '../stores/calculators-store';
 import { useMaterialsStore } from '../stores/materials-store';
 import { fixPricePropertyStorage } from '../catalog/prices';
@@ -26,18 +25,15 @@ export interface ImportResult {
   warnings?: string[];
 }
 
-/**
- * The calculators a file brings: its own (2.0.0 and later), then its modules and templates
- * (older files) converted the way the app converted them when they were retired.
- */
-export function calculatorsInFile(data: ExportedData): Calculator[] {
-  const own = data.calculators ?? [];
-  return [...own, ...calculatorsFromLegacy(data.modules ?? [], data.templates ?? [], own)];
+/** Whether the file carries calculators at all. */
+function hasCalculators(data: ExportedData): boolean {
+  return data.calculators !== undefined;
 }
 
-/** Whether the file carries calculators at all (as calculators, or as modules/templates). */
-function hasCalculators(data: ExportedData): boolean {
-  return data.calculators !== undefined || data.modules !== undefined || data.templates !== undefined;
+/** A file from before 2.0.0: it has modules or templates, which calculators replaced, and no calculators. */
+function isFromBeforeCalculators(data: ExportedData): boolean {
+  const old = data as unknown as Record<string, unknown>;
+  return data.calculators === undefined && (old.modules !== undefined || old.templates !== undefined);
 }
 
 function isCalculator(value: unknown): value is Calculator {
@@ -64,8 +60,7 @@ export function validateImportedData(json: unknown): json is ExportedData {
 
   const data = json as Record<string, unknown>;
 
-  // Required top-level keys. Calculators (2.0.0), modules and templates (older files) are
-  // each optional.
+  // Required top-level keys. Calculators (2.0.0 and later) are optional.
   if (
     typeof data.version !== 'string' ||
     typeof data.exportedAt !== 'string' ||
@@ -83,38 +78,6 @@ export function validateImportedData(json: unknown): json is ExportedData {
 
   if (data.calculators !== undefined) {
     if (!Array.isArray(data.calculators) || !data.calculators.every(isCalculator)) return false;
-  }
-
-  if (data.modules !== undefined && !Array.isArray(data.modules)) return false;
-
-  // Validate modules structure (older files)
-  for (const mod of (data.modules as unknown[] | undefined) ?? []) {
-    if (
-      typeof mod !== 'object' ||
-      typeof (mod as CalculationModule).id !== 'string' ||
-      typeof (mod as CalculationModule).name !== 'string' ||
-      !Array.isArray((mod as CalculationModule).fields) ||
-      typeof (mod as CalculationModule).formula !== 'string'
-    ) {
-      return false;
-    }
-    // Validate computedOutputs if present
-    if ((mod as CalculationModule).computedOutputs !== undefined) {
-      if (!Array.isArray((mod as CalculationModule).computedOutputs)) {
-        return false;
-      }
-      for (const output of (mod as CalculationModule).computedOutputs || []) {
-        if (
-          typeof output !== 'object' ||
-          typeof output.id !== 'string' ||
-          typeof output.label !== 'string' ||
-          typeof output.variableName !== 'string' ||
-          typeof output.expression !== 'string'
-        ) {
-          return false;
-        }
-      }
-    }
   }
 
   // Validate materials structure
@@ -173,29 +136,6 @@ export function validateImportedData(json: unknown): json is ExportedData {
       // displayName is optional for backward compatibility
       if ((func as SharedFunction).displayName !== undefined && typeof (func as SharedFunction).displayName !== 'string') {
         return false;
-      }
-    }
-  }
-
-  // Validate templates structure (if present; files before 1.1.0 have none)
-  if (data.templates !== undefined) {
-    if (!Array.isArray(data.templates)) {
-      return false;
-    }
-    for (const template of data.templates) {
-      if (
-        !template ||
-        typeof template !== 'object' ||
-        typeof (template as ModuleTemplate).id !== 'string' ||
-        typeof (template as ModuleTemplate).name !== 'string' ||
-        !Array.isArray((template as ModuleTemplate).moduleInstances)
-      ) {
-        return false;
-      }
-      for (const instance of (template as ModuleTemplate).moduleInstances) {
-        if (!instance || typeof instance !== 'object' || typeof instance.moduleId !== 'string') {
-          return false;
-        }
       }
     }
   }
@@ -277,7 +217,7 @@ export function importData(data: ExportedData, options: ImportOptions): ImportRe
   };
 
   try {
-    const incomingCalculators = calculatorsInFile(data);
+    const incomingCalculators = data.calculators ?? [];
 
     if (isReplace) {
       useMaterialsStore.setState({ materials: [] });
@@ -325,13 +265,11 @@ export function importData(data: ExportedData, options: ImportOptions): ImportRe
       names.add(calculator.name.toLowerCase());
       added.push(calculator);
     }
-    useCalculatorsStore.setState({ calculators: [...useCalculatorsStore.getState().calculators, ...added], legacyImported: true });
+    useCalculatorsStore.setState({ calculators: [...useCalculatorsStore.getState().calculators, ...added] });
     calculatorsAdded = added.length;
 
-    if (!data.calculators && (data.modules?.length || data.templates?.length)) {
-      warnings.push(
-        `This file is from before calculators, so its ${data.modules?.length ?? 0} modules and ${data.templates?.length ?? 0} templates were turned into calculators.`
-      );
+    if (isFromBeforeCalculators(data)) {
+      warnings.push('This file is from before calculators: its modules and templates can no longer be imported, so only its materials, labor, functions and categories were.');
     }
     if (isReplace && hasCalculators(data)) {
       useDeviceStore.getState().setLoadedPack(

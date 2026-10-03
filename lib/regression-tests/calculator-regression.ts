@@ -42,25 +42,20 @@ import { getMaterialValue } from '../formula/resolver';
 import { buildCalculatorLineItem, lineWouldChange, putLineItem, rebuildCalculatorLine } from '../quotes/calculator-line-item';
 import { copyName, duplicateLine, groupCalculatorsByCategory, insertLine, lineCalculatorName, lineTitle, moveLine, newCalculatorLine, removeLine } from '../quotes/workspace';
 import { roundMoney } from '../calculations/money';
-import { calculatorFromModule } from '../calculator/from-module';
-import { calculatorFromTemplate, calculatorsFromTemplates } from '../calculator/from-template';
 import { callStepsToFormulas, callToExpression } from '../calculator/step-source';
 import { findCallProblems, parseCalls } from '../calculator/call-context';
 import { classifyStepIssues } from '../calculator/step-issues';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import { describeFunctionUsage, findFunctionUsage } from '../functions/function-usage';
 import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues, StepResult } from '../calculator/types';
-import { calculateModuleInstance } from '../calculations/module-calculator';
-import type { CalculationModule, Material, MaterialProperty, ModuleTemplate, Quote, SharedFunction } from '../types';
+import { partitionWall } from './calculator-fixtures';
+import type { Material, MaterialProperty, Quote, SharedFunction } from '../types';
 import { normalizeToBase } from '../units';
 import { assertCheck } from './test-helpers';
 
 console.log('\n=== Calculator Regression ===');
 
 const close = (a: number | undefined, b: number) => a !== undefined && Math.abs(a - b) < 1e-6;
-
-let ids = 0;
-const createId = () => `id-${++ids}`;
 
 function fn(name: string, parameters: string[], formula: string): SharedFunction {
   return {
@@ -116,49 +111,7 @@ const materials: Material[] = [
 
 const library: CalculatorLibrary = { materials, labor: [], functions };
 
-const partitionWall: CalculationModule = {
-  id: 'partition-wall',
-  name: 'Partition wall',
-  fields: [
-    { id: 'f1', label: 'Width', type: 'number', variableName: 'width', unitSymbol: 'm', unitCategory: 'length' },
-    { id: 'f2', label: 'Height', type: 'number', variableName: 'height', unitSymbol: 'm', unitCategory: 'length' },
-    { id: 'f3', label: 'Stud spacing', type: 'dropdown', variableName: 'stud_spacing', options: ['40', '60'], dropdownMode: 'numeric', unitSymbol: 'cm', unitCategory: 'length', defaultValue: 0.6 },
-    { id: 'f4', label: 'Lumber', type: 'material', variableName: 'lumber', materialCategory: 'Lumber' },
-    { id: 'f5', label: 'Spill', type: 'dropdown', variableName: 'spill', options: ['0', '10', '15'], unitSymbol: '%' },
-    { id: 'f6', label: 'Sheets', type: 'material', variableName: 'sheets', materialCategory: 'Sheets' },
-    { id: 'f7', label: 'Sheeting on both sides', type: 'boolean', variableName: 'sheeting_on_both_sides' },
-    { id: 'f8', label: 'Paint', type: 'material', variableName: 'paint', materialCategory: 'Paint' },
-    { id: 'f9', label: 'Paint layers', type: 'number', variableName: 'paint_layers', defaultValue: 2 },
-    { id: 'f10', label: 'Painted on both sides', type: 'boolean', variableName: 'painted_on_both_sides' },
-    { id: 'f11', label: 'Quantity', type: 'number', variableName: 'quantity', unitSymbol: 'pcs', defaultValue: 1 },
-  ],
-  formula:
-    '(((out.framing*spill(spill))*lumber.price) + (out.sheet_count * sheets.price_per_sheet) + ((ceil(out.paint_volume/paint.volume))*paint.price_per_bucket))*quantity',
-  computedOutputs: [
-    { id: 'o1', label: 'Paint area', variableName: 'paint_area', expression: 'area_rectangle(width, height)', unitSymbol: 'm2' },
-    { id: 'o2', label: 'Framing', variableName: 'framing', expression: 'perimeter_rectangle(width, height)+ height * stud_count(width, stud_spacing)', unitSymbol: 'm' },
-    { id: 'o3', label: 'Sheet count', variableName: 'sheet_count', expression: 'sheets_height(height, sheets) * sheets_width(width, sheets) * ((sheeting_on_both_sides ==1) + 1)', unitSymbol: 'pcs' },
-    { id: 'o4', label: 'Paint volume', variableName: 'paint_volume', expression: 'area_rectangle(width, height) * paint_layers * ((painted_on_both_sides ==1) + 1) / paint.coverage', unitSymbol: 'l' },
-  ],
-  createdAt: '',
-  updatedAt: '',
-};
-
-const moduleValues = {
-  width: 4,
-  height: 2.5,
-  stud_spacing: 0.6,
-  lumber: 'lumber_48x98',
-  spill: '10',
-  sheets: 'mdf_6mm',
-  sheeting_on_both_sides: false,
-  paint: 'paint_2_7',
-  paint_layers: 2,
-  painted_on_both_sides: false,
-  quantity: 1,
-};
-
-const { calculator: wall, warnings: wallWarnings } = calculatorFromModule(partitionWall, { createId, now: 'now' });
+const wall = partitionWall;
 const inputByKey = (calculator: Calculator, key: string) => calculator.inputs.find((input) => input.key === key)!;
 const stepByKey = (calculator: Calculator, key: string) => calculator.steps.find((step) => step.key === key)!;
 const optionId = (input: CalculatorInput, label: string) =>
@@ -168,36 +121,9 @@ const optionId = (input: CalculatorInput, label: string) =>
 
 const studSpacing = inputByKey(wall, 'stud_spacing');
 const spillInput = inputByKey(wall, 'spill');
-assertCheck(
-  'converts fields to inputs of the right kind, keeping choice values in base units',
-  wall.inputs.length === 11 &&
-    inputByKey(wall, 'width').value.kind === 'number' &&
-    inputByKey(wall, 'lumber').value.kind === 'material' &&
-    inputByKey(wall, 'sheeting_on_both_sides').value.kind === 'boolean' &&
-    studSpacing.value.kind === 'choice' &&
-    close(studSpacing.value.options.find((option) => option.label === '60')?.value, 0.6) &&
-    studSpacing.value.default === optionId(studSpacing, '60') &&
-    spillInput.value.kind === 'choice' &&
-    close(spillInput.value.options.find((option) => option.label === '10')?.value, 10) &&
-    wallWarnings.length === 0,
-  JSON.stringify({ studSpacing: studSpacing.value, wallWarnings })
-);
+// ---- Evaluation ----
 
 const wallCost = wall.steps.find((step) => step.id === wall.parts[0].costStepId)!;
-assertCheck(
-  'converts outputs to steps in one part, with the cost formula as its cost step and out.x renamed',
-  wall.parts.length === 1 &&
-    wall.parts[0].name === 'Partition wall' &&
-    wall.steps.map((step) => step.key).join(',') === 'paint_area,framing,sheet_count,paint_volume,cost' &&
-    wall.steps.every((step) => step.partId === wall.parts[0].id) &&
-    wallCost.format === 'money' &&
-    wallCost.source.type === 'expression' &&
-    !wallCost.source.expression.includes('out.') &&
-    wallCost.source.expression.includes('(framing*spill(spill))'),
-  wallCost.source.type === 'expression' ? wallCost.source.expression : ''
-);
-
-// ---- Evaluation ----
 
 const wallValues: CalculatorValues = {
   width: 4,
@@ -213,20 +139,12 @@ const wallValues: CalculatorValues = {
   quantity: 1,
 };
 const wallResult = evaluateCalculator(wall, wallValues, library);
-const moduleResult = calculateModuleInstance({
-  moduleDef: partitionWall,
-  fieldValues: moduleValues,
-  materials,
-  functions,
-  roundCost: false,
-});
 const stepValue = (key: string) => wallResult.steps[stepByKey(wall, key).id];
 assertCheck(
-  'gives the same cost and outputs as the module it came from (2716.56)',
-  close(wallResult.total, moduleResult.cost) &&
-    close(wallResult.total, 1167.32 + 1250.24 + 299) &&
-    close(wallResult.quoteCost, moduleResult.cost) &&
-    close(stepValue('framing').value, moduleResult.computedValues['out.framing']) &&
+  'calculates the partition wall: cost and outputs (2716.56)',
+  close(wallResult.total, 1167.32 + 1250.24 + 299) &&
+    close(wallResult.quoteCost, 2716.56) &&
+    close(stepValue('framing').value, 28) &&
     close(stepValue('sheet_count').value, 4) &&
     close(stepValue('paint_volume').value, 2) &&
     // Shown as 2 l, as the module showed it, not converted from m³.
@@ -234,7 +152,7 @@ assertCheck(
     stepByKey(wall, 'paint_volume').unitIsLabel === true &&
     stepByKey(wall, 'framing').unitIsLabel === undefined &&
     wallResult.parts[wall.parts[0].id].status === 'ok',
-  JSON.stringify({ total: wallResult.total, module: moduleResult.cost, errors: moduleResult.errors })
+  JSON.stringify({ total: wallResult.total })
 );
 
 // Missing values are reported, not thrown or logged.
@@ -442,53 +360,6 @@ assertCheck(
     })()
 );
 
-// ---- Conversion edge cases ----
-
-const clash: CalculationModule = {
-  id: 'clash',
-  name: 'Clash',
-  fields: [
-    { id: 'a', label: 'Area', type: 'number', variableName: 'area', defaultValue: 5 },
-    { id: 'b', label: 'Finish', type: 'dropdown', variableName: 'finish', options: ['Matte', 'Gloss'], defaultValue: 'Gloss' },
-    { id: 'c', label: 'Blank', type: 'number', variableName: '' },
-  ],
-  formula: 'out.area + area',
-  computedOutputs: [
-    { id: 'o1', label: 'Area out', variableName: 'area', expression: 'area * 2' },
-    { id: 'o2', label: 'Double', variableName: 'double_area', expression: 'area + 1' },
-  ],
-  createdAt: '',
-  updatedAt: '',
-};
-const { calculator: clashCalc, warnings: clashWarnings } = calculatorFromModule(clash, { createId });
-const clashExpr = (key: string) => {
-  const source = stepByKey(clashCalc, key).source;
-  return source.type === 'expression' ? source.expression : '';
-};
-const clashResult = evaluateCalculator(clashCalc, {}, library);
-const clashModule = calculateModuleInstance({ moduleDef: clash, fieldValues: { area: 5 }, materials, functions, roundCost: false });
-assertCheck(
-  'renames an output that clashes with a field, keeping what each formula read',
-  clashExpr('area_2') === 'area * 2' &&
-    clashExpr('double_area') === 'area_2 + 1' &&
-    clashExpr('cost') === 'area_2 + area' &&
-    close(clashResult.total, clashModule.cost) &&
-    close(clashResult.steps[stepByKey(clashCalc, 'double_area').id].value, clashModule.computedValues['out.double_area']),
-  JSON.stringify({ exprs: clashCalc.steps.map((step) => step.source), total: clashResult.total, module: clashModule })
-);
-const finish = inputByKey(clashCalc, 'finish');
-assertCheck(
-  'numbers text dropdown options, keeps their default, and warns about both',
-  finish.value.kind === 'choice' &&
-    finish.value.options.map((option) => option.value).join(',') === '1,2' &&
-    finish.value.default === optionId(finish, 'Gloss') &&
-    clashWarnings.some((warning) => warning.includes('Finish')) &&
-    clashWarnings.some((warning) => warning.includes('area_2')) &&
-    clashWarnings.some((warning) => warning.includes('Blank')) &&
-    clashCalc.inputs.length === 2,
-  JSON.stringify(clashWarnings)
-);
-
 // ---- Expression helpers ----
 
 assertCheck(
@@ -586,7 +457,6 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
   assertCheck(
     'a copy gets new ids everywhere and calculates the same',
     copied.id !== wall.id &&
-      copied.sourceModuleId === wall.sourceModuleId &&
       copied.steps.every((step) => !wall.steps.some((original) => original.id === step.id)) &&
       copied.parts[0].costStepId === copied.steps[copied.steps.length - 1].id &&
       copied.layout[0].items.every((item) => item.type !== 'input' || copied.inputs.some((input) => input.id === item.inputId)) &&
@@ -850,39 +720,6 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
     getMaterialValue(materials[1], 'price') === 312.56 && getMaterialValue(materials[0], 'price') === 37.9 && getMaterialValue(materials[1], 'nope') === null
   );
 
-  // A module that reads the bare material as its price, like Sheet Installation.
-  const sheetModule: CalculationModule = {
-    id: 'sheet-install',
-    name: 'Sheet Installation',
-    fields: [
-      { id: 's1', label: 'Width', type: 'number', variableName: 'width', unitSymbol: 'm' },
-      { id: 's2', label: 'Height', type: 'number', variableName: 'height', unitSymbol: 'm' },
-      { id: 's3', label: 'Sheets', type: 'material', variableName: 'sheets', materialCategory: 'Sheets' },
-    ],
-    formula: 'sheets_height(height, sheets) * sheets_width(width, sheets) * sheets',
-    computedOutputs: [],
-    createdAt: '',
-    updatedAt: '',
-  };
-  const converted = calculatorFromModule(sheetModule, { createId }).calculator;
-  const costStep = converted.steps.find((step) => step.key === 'cost')!;
-  const convertedResult = evaluateCalculator(converted, { width: 4, height: 2.5, sheets: 'mdf_6mm' }, library);
-  const moduleCost = calculateModuleInstance({
-    moduleDef: sheetModule,
-    fieldValues: { width: 4, height: 2.5, sheets: 'mdf_6mm' },
-    materials,
-    functions,
-    roundCost: false,
-  }).cost;
-  assertCheck(
-    'converting a module rewrites a bare material used as its price to `.price`, keeping the cost',
-    costStep.source.type === 'expression' &&
-      costStep.source.expression === 'sheets_height(height, sheets) * sheets_width(width, sheets) * sheets.price' &&
-      close(convertedResult.total, moduleCost) &&
-      close(moduleCost, 4 * 312.56),
-    costStep.source.type === 'expression' ? costStep.source.expression : ''
-  );
-
   const required = requiredProperties(
     {
       ...calc,
@@ -906,134 +743,6 @@ assertCheck('orders steps after the steps they read', ordered.order.join(',') ==
       missingProperties(materials[0], required.get('sheets')).join(',') === 'height,price_per_m2,thickness' &&
       missingProperties(materials[0], undefined).length === 0,
     JSON.stringify([...required])
-  );
-}
-
-// ---- Templates (step 8) ----
-
-{
-  const framing: CalculationModule = {
-    id: 'framing',
-    name: 'Framing',
-    fields: [
-      { id: 'f1', label: 'Width', type: 'number', variableName: 'width', unitSymbol: 'm' },
-      { id: 'f2', label: 'Height', type: 'number', variableName: 'height', unitSymbol: 'm' },
-      { id: 'f3', label: 'Stud Spacing', type: 'dropdown', variableName: 'stud_spacing', options: ['40', '60'], dropdownMode: 'numeric', unitSymbol: 'cm', defaultValue: 0.6 },
-      { id: 'f4', label: 'Material', type: 'material', variableName: 'material', materialCategory: 'Lumber' },
-      { id: 'f5', label: 'Quantity', type: 'number', variableName: 'quantity', defaultValue: 1 },
-    ],
-    formula: 'out.lumber_count * material.price',
-    computedOutputs: [
-      { id: 'o1', label: 'Lumber count', variableName: 'lumber_count', expression: '(perimeter_rectangle(width, height) + height * stud_count(width, stud_spacing)) * quantity', unitSymbol: 'm' },
-    ],
-    createdAt: '',
-    updatedAt: '',
-  };
-  const sheeting: CalculationModule = {
-    id: 'sheeting',
-    name: 'Sheet Installation',
-    fields: [
-      { id: 's1', label: 'Width', type: 'number', variableName: 'width', unitSymbol: 'm' },
-      { id: 's2', label: 'Height', type: 'number', variableName: 'height', unitSymbol: 'm' },
-      { id: 's3', label: 'Sheets', type: 'material', variableName: 'sheets', materialCategory: 'Sheets' },
-      { id: 's4', label: 'Quantity', type: 'number', variableName: 'quantity', defaultValue: 1 },
-    ],
-    formula: 'sheets_height(height, sheets) * sheets_width(width, sheets) * quantity * sheets',
-    computedOutputs: [],
-    createdAt: '',
-    updatedAt: '',
-  };
-  const trim: CalculationModule = {
-    id: 'trim',
-    name: 'Trim',
-    fields: [
-      { id: 't1', label: 'Length', type: 'number', variableName: 'length', unitSymbol: 'm' },
-      { id: 't2', label: 'Quantity', type: 'number', variableName: 'quantity', defaultValue: 3 },
-    ],
-    formula: 'length * quantity * 10',
-    computedOutputs: [],
-    createdAt: '',
-    updatedAt: '',
-  };
-  const template: ModuleTemplate = {
-    id: 'wall',
-    name: 'Partition wall template',
-    categories: ['Walls'],
-    moduleInstances: [
-      { id: 'i1', moduleId: 'framing' },
-      {
-        id: 'i2',
-        moduleId: 'sheeting',
-        fieldLinks: {
-          width: { moduleInstanceId: 'i1', fieldVariableName: 'width' },
-          height: { moduleInstanceId: 'i1', fieldVariableName: 'height' },
-          quantity: { moduleInstanceId: 'i1', fieldVariableName: 'quantity' },
-        },
-      },
-      // Linked to the framing output, and to a field of an instance that doesn't exist.
-      {
-        id: 'i3',
-        moduleId: 'trim',
-        fieldLinks: {
-          length: { moduleInstanceId: 'i1', fieldVariableName: 'out.lumber_count' },
-          quantity: { moduleInstanceId: 'gone', fieldVariableName: 'quantity' },
-        },
-      },
-      { id: 'i4', moduleId: 'deleted-module' },
-    ],
-    createdAt: '',
-    updatedAt: '',
-  };
-  const modules = [framing, sheeting, trim];
-  const { calculator: wallCalc, warnings } = calculatorFromTemplate(template, modules, { createId });
-  const values: CalculatorValues = { width: 4, height: 2.5, material: 'lumber_48x98', sheets: 'mdf_6mm' };
-  const result = evaluateCalculator(wallCalc, values, library);
-
-  const framingCost = calculateModuleInstance({ moduleDef: framing, fieldValues: { width: 4, height: 2.5, stud_spacing: 0.6, material: 'lumber_48x98', quantity: 1 }, materials, functions, roundCost: false });
-  const sheetCost = calculateModuleInstance({ moduleDef: sheeting, fieldValues: { width: 4, height: 2.5, sheets: 'mdf_6mm', quantity: 1 }, materials, functions, roundCost: false }).cost;
-  const trimCost = calculateModuleInstance({ moduleDef: trim, fieldValues: { length: framingCost.computedValues['out.lumber_count'], quantity: 3 }, materials, functions, roundCost: false }).cost;
-
-  assertCheck(
-    'turns a template into one calculator with a part per module and linked fields collapsed into one input',
-    wallCalc.parts.map((part) => part.name).join(',') === 'Framing,Sheet Installation,Trim' &&
-      wallCalc.inputs.map((input) => input.key).join(',') === 'width,height,stud_spacing,material,quantity,sheets,trim_quantity' &&
-      wallCalc.inputs.find((input) => input.key === 'trim_quantity')?.label === 'Quantity (Trim)' &&
-      wallCalc.steps.map((step) => step.key).join(',') === 'lumber_count,framing_cost,sheet_installation_cost,trim_cost' &&
-      wallCalc.sourceTemplateId === 'wall' &&
-      wallCalc.category === 'Walls',
-    JSON.stringify({ inputs: wallCalc.inputs.map((input) => input.key), steps: wallCalc.steps.map((step) => step.key) })
-  );
-  const trimStep = wallCalc.steps.find((step) => step.key === 'trim_cost')!;
-  const sheetStep = wallCalc.steps.find((step) => step.key === 'sheet_installation_cost')!;
-  assertCheck(
-    "rewrites each part's formulas to the shared names, and a link to an output reads that output's step",
-    trimStep.source.type === 'expression' &&
-      trimStep.source.expression === 'lumber_count * trim_quantity * 10' &&
-      sheetStep.source.type === 'expression' &&
-      sheetStep.source.expression === 'sheets_height(height, sheets) * sheets_width(width, sheets) * quantity * sheets.price',
-    JSON.stringify(wallCalc.steps.map((step) => step.source))
-  );
-  assertCheck(
-    'gives the same total as the modules calculated one by one with their links',
-    close(result.parts[wallCalc.parts[0].id].cost, framingCost.cost) &&
-      close(result.parts[wallCalc.parts[1].id].cost, sheetCost) &&
-      close(result.parts[wallCalc.parts[2].id].cost, trimCost) &&
-      close(result.total, framingCost.cost + sheetCost + trimCost),
-    JSON.stringify({ total: result.total, parts: result.parts })
-  );
-  assertCheck(
-    'warns about missing modules and broken links, and lays out a section per part plus the breakdown',
-    warnings.some((warning) => warning.includes('Module 4')) &&
-      warnings.some((warning) => warning.includes('"quantity"')) &&
-      wallCalc.layout.map((section) => section.title).join(',') === 'Framing,Sheet Installation,Trim,Total' &&
-      wallCalc.layout[1].items.length === 1 &&
-      wallCalc.layout[3].items[0].type === 'breakdown',
-    JSON.stringify({ warnings, layout: wallCalc.layout.map((section) => section.items.length) })
-  );
-  const live = calculatorsFromTemplates([template], modules);
-  assertCheck(
-    'converts templates on the fly with stable ids',
-    live[0].id === 'template-wall' && JSON.stringify(calculatorsFromTemplates([template], modules)) === JSON.stringify(live)
   );
 }
 
