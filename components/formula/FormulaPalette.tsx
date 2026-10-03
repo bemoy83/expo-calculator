@@ -60,6 +60,23 @@ const previewOf = (text: string, length: number) => {
 };
 const ROOMY_FROM = 760;
 
+// The button in the nearest row above (-1) or below (1) the one at `from`, and in that row the one
+// closest across. Rows are found from where the buttons are drawn, so wrapped chips and grids both
+// count. Nothing above the first row or below the last: it stays where it is.
+function nextInColumn(buttons: HTMLElement[], from: number, direction: 1 | -1): HTMLElement | undefined {
+  const centre = (el: HTMLElement) => {
+    const box = el.getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  };
+  const here = centre(buttons[from]);
+  const beyond = buttons.map((el) => ({ el, ...centre(el) })).filter((button) => (button.y - here.y) * direction > 4);
+  if (beyond.length === 0) return undefined;
+  const nearestRow = Math.min(...beyond.map((button) => Math.abs(button.y - here.y)));
+  return beyond
+    .filter((button) => Math.abs(button.y - here.y) - nearestRow <= 4)
+    .sort((a, b) => Math.abs(a.x - here.x) - Math.abs(b.x - here.x))[0].el;
+}
+
 // The inserts for the formula, always open under it (mockup 4b). Every button swallows mousedown,
 // so the formula keeps focus and its selection: a click wraps the selection or inserts at the
 // caret. While part of the formula is selected, the rows say what each would do with it.
@@ -110,9 +127,9 @@ export function FormulaPalette({
     return () => observer.disconnect();
   }, [parameters, narrow]);
 
-  // Roving tab stop: Tab enters the palette once, arrows move between its buttons. Only ← → are
-  // meant to be relied on: ↑ ↓ step through the same reading order rather than moving between rows,
-  // so the footer lists ← → alone until row-to-row movement is built.
+  // Roving tab stop: Tab enters the palette once, arrows move between its buttons: ← → along the
+  // reading order (wrapping from the last to the first), ↑ ↓ to the nearest button in the row above
+  // or below, however the rows and grids happen to lay out.
   useEffect(() => {
     const items = rootRef.current?.querySelectorAll<HTMLElement>('[data-palette-item]');
     items?.forEach((item, index) => {
@@ -133,7 +150,11 @@ export function FormulaPalette({
     const current = all.indexOf(document.activeElement as HTMLElement);
     if (current === -1) return;
     e.preventDefault();
-    const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      nextInColumn(all, current, e.key === 'ArrowDown' ? 1 : -1)?.focus();
+      return;
+    }
+    const step = e.key === 'ArrowRight' ? 1 : -1;
     const next = e.key === 'Home' ? 0 : e.key === 'End' ? all.length - 1 : (current + step + all.length) % all.length;
     all[next].focus();
   };
@@ -304,7 +325,7 @@ export function FormulaPalette({
         <p>
           Yes/no counts as 1 or 0, so <code className="font-numeric text-ink-muted">price * (tax == 1)</code> works as a condition.
         </p>
-        {!narrow && <p className="font-numeric">← → move · ↵ insert · esc back to formula</p>}
+        {!narrow && <p className="font-numeric">← → ↑ ↓ move · ↵ insert · esc back to formula</p>}
       </div>
     </div>
   );
