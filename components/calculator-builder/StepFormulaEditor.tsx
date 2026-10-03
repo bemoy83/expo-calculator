@@ -9,7 +9,8 @@ import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
 import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
 import { propertyNamesFor } from '@/lib/calculator/call-context';
-import { CallProblems, useCallProblems } from './CallProblems';
+import { useTidyOffer } from '@/hooks/use-tidy-offer';
+import { TidyOffer } from '@/components/formula/TidyOffer';
 
 const MATH_FUNCTIONS = [
   { name: 'ceil', description: 'Round up' },
@@ -85,7 +86,6 @@ export function StepFormulaEditor({
   onChange: (value: string) => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const problems = useCallProblems(value, calculator, library);
   const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
   const candidates = useCandidates(calculator, step, library);
   const stepKeys = useMemo(() => new Set(calculator.steps.map((other) => other.key)), [calculator.steps]);
@@ -107,6 +107,9 @@ export function StepFormulaEditor({
     onFormulaChange: onChange,
   });
 
+  // Spacing that could be tidied is offered after a moment of rest; the tidy itself isn't "typing".
+  const tidy = useTidyOffer({ formula: value, textareaRef, onFormulaChange: onChange, onApplied: () => setIsAutocompleteOpen(false) });
+
   return (
     <div className="relative">
       <Textarea
@@ -123,6 +126,7 @@ export function StepFormulaEditor({
         highlight={<FormulaText expression={value} names={formulaNames} />}
         onChange={(event) => {
           onChange(event.target.value);
+          if (tidy.tidying.current) return;
           requestAnimationFrame(() => updateAutocompleteSuggestionsFinal());
         }}
         onKeyDown={(event) => {
@@ -137,7 +141,11 @@ export function StepFormulaEditor({
           tidyFormulaAfterBlur(textareaRef.current, onChange);
         }}
       />
-      <CallProblems problems={problems} />
+      {tidy.show && (
+        <div className="mt-1">
+          <TidyOffer tidied={tidy.tidied} onApply={tidy.apply} />
+        </div>
+      )}
       {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
         <div
           role="listbox"

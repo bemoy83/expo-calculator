@@ -1,16 +1,19 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link2, Plus, Wand2 } from 'lucide-react';
+import { Link2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { FormulaPalette } from '@/components/formula/FormulaPalette';
 import { cn } from '@/lib/utils';
 import { AutocompleteSuggestion, clampSuggestionLeft } from '@/hooks/use-formula-autocomplete';
-import { caretAfterTidy, prettifyFormula, tidyFormulaAfterBlur } from '@/lib/formula/prettify';
+import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
+import { useTidyOffer } from '@/hooks/use-tidy-offer';
+import { ISSUE_LEVELS, IssueLine, IssueMarker } from '@/components/formula/IssueMarker';
+import { TidyOffer } from '@/components/formula/TidyOffer';
 import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import type { FormulaNames } from '@/lib/calculator/formula-tokens';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
-import type { FormulaIssue, FormulaIssueLevel } from '@/lib/functions/formula-issues';
+import type { FormulaIssue, FormulaIssueLevel } from '@/lib/formula/issue-levels';
 import {
   findStoredParametersNamed,
   planUnknownNames,
@@ -72,26 +75,6 @@ function formulaFontSize(length: number, narrow: boolean): number {
   const size = length < 40 ? 30 : length < 90 ? 24 : 20;
   return narrow ? Math.round(size * 0.8) : size;
 }
-
-// Each level has its own colour and its own shape, so they read apart without relying on colour:
-// a solid dot for broken, a triangle for unresolved, an open circle for a heads-up.
-const LEVELS: Record<FormulaIssueLevel, { glyph: string; text: string; label: string }> = {
-  broken: { glyph: '●', text: 'text-danger', label: 'Error' },
-  unresolved: { glyph: '▲', text: 'text-draft', label: 'Needs attention' },
-  'heads-up': { glyph: '○', text: 'text-ink-muted', label: 'Heads up' },
-};
-
-function IssueMarker({ level }: { level: FormulaIssueLevel }) {
-  return (
-    <>
-      <span aria-hidden="true">{LEVELS[level].glyph}</span>
-      <span className="sr-only">{LEVELS[level].label}: </span>
-    </>
-  );
-}
-
-/** How long the formula rests before a tidy-up is offered. */
-const TIDY_OFFER_AFTER_MS = 1000;
 
 /** Below this the pane is "narrow": smaller type, collapsed toolbar, a single-list picker. */
 const NARROW_BELOW = 640;
@@ -171,30 +154,12 @@ export function FunctionFormulaCard({
     onReuseParameters?.(plan.reuse.map(({ stored }) => stored));
   };
   // Spacing that could be tidied is offered after a moment of rest, not applied under the cursor.
-  const tidied = useMemo(() => prettifyFormula(formula), [formula]);
-  const [tidyOffered, setTidyOffered] = useState(false);
-  useEffect(() => {
-    setTidyOffered(false);
-    if (tidied === formula) return;
-    const timer = setTimeout(() => setTidyOffered(true), TIDY_OFFER_AFTER_MS);
-    return () => clearTimeout(timer);
-  }, [formula, tidied]);
-
-  // Typed in over the old text, so ⌘Z brings the spacing back; the caret stays by the same characters.
-  const tidying = useRef(false);
-  const applyTidy = () => {
-    const el = formulaTextareaRef.current;
-    if (!el) return;
-    const caret = caretAfterTidy(formula, el.selectionStart, tidied);
-    el.focus();
-    el.select();
-    // The replacement is an input event like typing, but it isn't someone typing a name: no suggestions for it.
-    tidying.current = true;
-    if (!document.execCommand('insertText', false, tidied)) onFormulaChange(tidied);
-    tidying.current = false;
-    el.setSelectionRange(caret, caret);
-    setIsAutocompleteOpen(false);
-  };
+  const tidy = useTidyOffer({
+    formula,
+    textareaRef: formulaTextareaRef,
+    onFormulaChange,
+    onApplied: () => setIsAutocompleteOpen(false),
+  });
   const isEmpty = formula.trim() === '';
 
   // The text area grows with its text, so the pane's scroll region does the scrolling.
@@ -332,7 +297,7 @@ export function FunctionFormulaCard({
                 setStatus(null);
                 setSelection(null);
                 onFormulaChange(e.target.value);
-                if (tidying.current) return;
+                if (tidy.tidying.current) return;
                 // Update autocomplete immediately with the new value
                 requestAnimationFrame(() => {
                   updateAutocompleteSuggestionsFinal();
@@ -400,14 +365,13 @@ export function FunctionFormulaCard({
           {issues
             .filter((issue) => !issue.name)
             .map((issue) => (
-              <p key={`${issue.level}-${issue.message}`} className={LEVELS[issue.level].text}>
-                <IssueMarker level={issue.level} />{' '}
+              <IssueLine key={`${issue.level}-${issue.message}`} level={issue.level}>
                 {issue.level === 'broken' && errorRange ? issue.message.replace(/\s*\(character \d+\)$/, '') : issue.message}
-              </p>
+              </IssueLine>
             ))}
           {showBulk && onCreateParameters && onReuseParameters && (
             <div className="flex flex-wrap items-center gap-x-2">
-              <span className={LEVELS.unresolved.text}>
+              <span className={ISSUE_LEVELS.unresolved.text}>
                 <IssueMarker level="unresolved" /> {unknownNames.length} names aren’t parameters yet.
               </span>
               {plan.reuse.length > 0 && (
@@ -424,22 +388,11 @@ export function FunctionFormulaCard({
               )}
             </div>
           )}
-          {tidyOffered && tidied !== formula && (
-            // The formula keeps focus on mousedown: leaving it would drop the hint above and shift this line from under the click.
-            <div className="flex flex-wrap items-center gap-x-2" onMouseDown={(e) => e.preventDefault()}>
-              <span className="text-ink-muted">The spacing can be tidied.</span>
-              <Button variant="ghost" size="sm" onClick={applyTidy} className="px-2">
-                <Wand2 className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>
-                  Tidy up <span className="font-numeric text-ink-faint">· {tidied.length > 40 ? `${tidied.slice(0, 40)}…` : tidied}</span>
-                </span>
-              </Button>
-            </div>
-          )}
+          {tidy.show && <TidyOffer tidied={tidy.tidied} onApply={tidy.apply} />}
           {onCreateParameter &&
             unknownNames.slice(0, 6).map((name) => (
               <div key={name} className="flex flex-wrap items-center gap-x-2">
-                <span className={LEVELS.unresolved.text}>
+                <span className={ISSUE_LEVELS.unresolved.text}>
                   <IssueMarker level="unresolved" /> <span className="font-numeric">{name}</span> isn’t a parameter yet.
                 </span>
                 {onReuseParameter &&

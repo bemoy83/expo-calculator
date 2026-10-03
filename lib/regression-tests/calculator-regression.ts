@@ -46,9 +46,10 @@ import { calculatorFromModule } from '../calculator/from-module';
 import { calculatorFromTemplate, calculatorsFromTemplates } from '../calculator/from-template';
 import { callStepsToFormulas, callToExpression } from '../calculator/step-source';
 import { findCallProblems, parseCalls } from '../calculator/call-context';
+import { classifyStepIssues } from '../calculator/step-issues';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import { describeFunctionUsage, findFunctionUsage } from '../functions/function-usage';
-import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues } from '../calculator/types';
+import type { Calculator, CalculatorInput, CalculatorLibrary, CalculatorStep, CalculatorValues, StepResult } from '../calculator/types';
 import { calculateModuleInstance } from '../calculations/module-calculator';
 import type { CalculationModule, Material, MaterialProperty, ModuleTemplate, Quote, SharedFunction } from '../types';
 import { normalizeToBase } from '../units';
@@ -1375,5 +1376,21 @@ assertCheck(
     'a calculator with no function-call steps is returned as it is',
     callStepsToFormulas(converted, functions) === converted &&
       expressionOf('columns') === 'sheets_width(width, sheets)'
+  );
+}
+
+{
+  const failed = (message: string, extra: Partial<StepResult> = {}): StepResult => ({ stepId: 's', key: 's', status: 'error', message, ...extra });
+  const issueList = (...args: Parameters<typeof classifyStepIssues>) => classifyStepIssues(...args).map((issue) => `${issue.level}:${issue.name ?? issue.message}`);
+  const wrongCount = { message: 'f takes 2 arguments; here it has 1.', kind: 'arguments' as const, start: 0, end: 4 };
+  const wrongKind = { message: 'Width expects a length; area is a area.', kind: 'mismatch' as const, start: 2, end: 6 };
+  assertCheck(
+    'a step formula is sorted into the same levels as a function formula; an unfilled step is not an issue',
+    issueList({ result: failed('Circular reference: a → b → a.'), unknownNames: [], callProblems: [] }).join() === 'broken:Circular reference: a → b → a.' &&
+      issueList({ result: failed('Unknown name "widht".'), unknownNames: ['widht'], callProblems: [] }).join() === 'unresolved:widht' &&
+      issueList({ result: failed('x'), unknownNames: [], callProblems: [wrongCount] }).join() === `broken:${wrongCount.message}` &&
+      issueList({ result: { stepId: 's', key: 's', status: 'ok' }, unknownNames: [], callProblems: [wrongKind] }).join() === `heads-up:${wrongKind.message}` &&
+      issueList({ result: failed('Add a formula.', { incomplete: true }), unknownNames: [], callProblems: [] }).length === 0 &&
+      issueList({ result: undefined, unknownNames: [], callProblems: [] }).length === 0
   );
 }

@@ -233,6 +233,8 @@ export function describeArg(text: string, calculator: Calculator): ArgInfo | und
 
 export interface CallProblem {
   message: string;
+  /** "arguments": the call has the wrong number of them, so it can't run; "mismatch": an argument is the wrong kind or unit */
+  kind: 'arguments' | 'mismatch';
   /** The text it's about (an argument, or the whole call's parentheses). */
   start: number;
   end: number;
@@ -257,6 +259,7 @@ export function findCallProblems(expression: string, calculator: Calculator, lib
       const expected = signature.params.length;
       problems.push({
         message: `${call.name} takes ${expected} ${expected === 1 ? 'argument' : 'arguments'}; here it has ${args.length}.`,
+        kind: 'arguments',
         start: call.nameStart,
         end: call.close + 1,
       });
@@ -269,12 +272,14 @@ export function findCallProblems(expression: string, calculator: Calculator, lib
       if (info.kind !== param.kind) {
         problems.push({
           message: `${param.label} expects a ${kindWord(param.kind)}; ${arg.text} is a ${kindWord(info.kind)}.`,
+          kind: 'mismatch',
           start: arg.start,
           end: arg.end,
         });
       } else if (param.unitCategory && info.unitCategory && param.unitCategory !== info.unitCategory) {
         problems.push({
           message: `${param.label} expects a ${param.unitCategory}; ${arg.text} is a ${info.unitCategory}.`,
+          kind: 'mismatch',
           start: arg.start,
           end: arg.end,
         });

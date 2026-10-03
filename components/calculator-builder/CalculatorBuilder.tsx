@@ -53,7 +53,8 @@ import {
 import { callStepsToFormulas } from '@/lib/calculator/step-source';
 import { useSettledErrors } from '@/hooks/use-settled-errors';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
-import { displayUnit, isStepError, stepDisplayLabel } from '@/lib/calculator/format';
+import { displayUnit, stepDisplayLabel } from '@/lib/calculator/format';
+import { stepErrorLevel } from '@/lib/calculator/step-issues';
 import { requiredProperties } from '@/lib/calculator/requirements';
 import type {
   Calculator,
@@ -146,7 +147,9 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   // A half-typed formula shows as incomplete until its error has stood for a moment.
   const result = useSettledErrors(evaluated);
   const required = useMemo(() => requiredProperties(calculator, library.functions), [calculator, library.functions]);
-  const errorCount = Object.values(result.steps).filter(isStepError).length;
+  // A step's error is broken (red), or only a name that isn't an input yet (unresolved, amber).
+  const brokenCount = Object.values(result.steps).filter((step) => stepErrorLevel(step) === 'broken').length;
+  const unresolvedCount = Object.values(result.steps).filter((step) => stepErrorLevel(step) === 'unresolved').length;
   const incompleteCount = Object.values(result.steps).filter((step) => step.status === 'error' && step.incomplete).length;
   const showsNothing = calculator.steps.length > 0 && !showsStaffResults(calculator);
   const unnamedShown = calculator.steps.filter((step) => !step.label.trim() && isStepShown(calculator, step.id));
@@ -339,9 +342,11 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   const part = calculator.parts.find((candidate) => candidate.id === chosenPartId) ?? calculator.parts[0];
   const partIndex = part ? calculator.parts.indexOf(part) : -1;
   const partStatus = (partId: string) =>
-    calculator.steps.some((step) => step.partId === partId && isStepError(result.steps[step.id]))
+    calculator.steps.some((step) => step.partId === partId && stepErrorLevel(result.steps[step.id]) === 'broken')
       ? ('error' as const)
-      : calculator.steps.some((step) => step.partId === partId && result.steps[step.id]?.incomplete)
+      : calculator.steps.some(
+            (step) => step.partId === partId && (stepErrorLevel(result.steps[step.id]) === 'unresolved' || result.steps[step.id]?.incomplete)
+          )
         ? ('draft' as const)
         : undefined;
 
@@ -389,17 +394,21 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
       status={
         calculator.steps.length > 0
           ? {
-              tone: errorCount > 0 ? 'error' : incompleteCount > 0 ? 'draft' : 'ok',
+              tone: brokenCount > 0 ? 'error' : unresolvedCount > 0 || incompleteCount > 0 ? 'draft' : 'ok',
               label:
-                errorCount > 0
-                  ? errorCount === 1
+                brokenCount > 0
+                  ? brokenCount === 1
                     ? '1 step has an error'
-                    : `${errorCount} steps have errors`
-                  : incompleteCount > 0
-                    ? incompleteCount === 1
-                      ? '1 step incomplete'
-                      : `${incompleteCount} steps incomplete`
-                    : 'No errors',
+                    : `${brokenCount} steps have errors`
+                  : unresolvedCount > 0
+                    ? unresolvedCount === 1
+                      ? '1 step has an unknown name'
+                      : `${unresolvedCount} steps have unknown names`
+                    : incompleteCount > 0
+                      ? incompleteCount === 1
+                        ? '1 step incomplete'
+                        : `${incompleteCount} steps incomplete`
+                      : 'No errors',
             }
           : undefined
       }

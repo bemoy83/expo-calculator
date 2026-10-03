@@ -17,6 +17,9 @@ import { getAllUnitSymbols, getUnitCategory } from '@/lib/units';
 import { cn } from '@/lib/utils';
 import { ConditionRow, NO_CONDITION_HINT, canStartCondition, startCondition } from './ConditionEditor';
 import { StepFormulaEditor } from './StepFormulaEditor';
+import { useCallProblems } from './CallProblems';
+import { classifyStepIssues, unknownNameIn } from '@/lib/calculator/step-issues';
+import { IssueLine } from '@/components/formula/IssueMarker';
 import { NAME } from '@/lib/formula/identifiers';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { calculatorFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
@@ -40,11 +43,6 @@ function formatOptions(selected: StepFormat) {
       </span>
     ),
   }));
-}
-
-/** Names in "Unknown name" errors that could become inputs. */
-export function unknownNameIn(message: string | undefined): string | undefined {
-  return message?.match(new RegExp(`^Unknown name "(${NAME})"`))?.[1];
 }
 
 interface StepRowProps {
@@ -202,6 +200,12 @@ export function StepRow({
     return names.length > 0 ? names : [unknown];
   }, [unknown, expression, formulaNames]);
 
+  // What the formula has to say about itself, in the same levels as a function's formula.
+  const callProblems = useCallProblems(expression, calculator, library);
+  const issues = classifyStepIssues({ result, unknownNames, callProblems });
+  // An error that is only a name nothing matches yet is "unresolved" (amber), not a mistake (red).
+  const unresolvedOnly = isError && !issues.some((issue) => issue.level === 'broken');
+
   const value =
     result?.status === 'disabled' ? (
       <span className="text-xs text-ink-muted">Off (0)</span>
@@ -216,8 +220,11 @@ export function StepRow({
         );
       })()
     ) : (
-      <span title={isError ? result?.message : undefined} className={cn('text-xs text-right', isError ? 'text-danger' : isIncomplete ? 'text-draft' : 'text-ink-muted')}>
-        {describeStepProblemShort(result, calculator)}
+      <span
+        title={isError ? result?.message : undefined}
+        className={cn('text-xs text-right', unresolvedOnly ? 'text-draft' : isError ? 'text-danger' : isIncomplete ? 'text-draft' : 'text-ink-muted')}
+      >
+        {unresolvedOnly ? 'Unresolved' : describeStepProblemShort(result, calculator)}
       </span>
     );
 
@@ -228,9 +235,9 @@ export function StepRow({
         // A closed step is a list row (hairline, surface fill on hover); the open one is a card
         // with the accent ring; a real error keeps its red border either way.
         expanded
-          ? cn('my-1 overflow-hidden rounded-row bg-surface shadow-focus', isError ? 'border-danger' : 'border-accent')
+          ? cn('my-1 overflow-hidden rounded-row bg-surface shadow-focus', unresolvedOnly ? 'border-draft' : isError ? 'border-danger' : 'border-accent')
           : isError
-            ? 'my-0.5 rounded-row border-danger-border'
+            ? cn('my-0.5 rounded-row', unresolvedOnly ? 'border-draft-border' : 'border-danger-border')
             : 'border-transparent border-b-border hover:bg-surface hover:rounded-md'
       )}
     >
@@ -314,14 +321,22 @@ export function StepRow({
                   value={expression}
                   onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
                 />
-                {isError && <p className="mt-1 text-xs text-danger">{result?.message}</p>}
+                {issues.map((issue) =>
+                  issue.name ? (
+                    <div key={`name-${issue.name}`} className="mt-1 flex flex-wrap items-center gap-x-2">
+                      <IssueLine level="unresolved">{issue.message}</IssueLine>
+                      <Button variant="ghost" size="sm" onClick={() => onCreateInput(issue.name!, parameterFor(expression, issue.name!, library))}>
+                        <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                        Create input “{issue.name}”
+                      </Button>
+                    </div>
+                  ) : (
+                    <IssueLine key={`${issue.level}-${issue.message}`} level={issue.level} className="mt-1">
+                      {issue.message}
+                    </IssueLine>
+                  )
+                )}
                 {isIncomplete && result?.message && <p className="mt-1 text-xs text-ink-muted">{result.message}</p>}
-                {unknownNames.map((name) => (
-                  <Button key={name} variant="ghost" size="sm" className="mt-1 mr-2" onClick={() => onCreateInput(name, parameterFor(expression, name, library))}>
-                    <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                    Create input “{name}”
-                  </Button>
-                ))}
               </div>
 
               <div className="grid grid-cols-[minmax(0,1fr)_110px] gap-3">

@@ -11,6 +11,7 @@ import { LiveLabel } from '@/components/live/LiveLabel';
 import { ResultRow } from '@/components/live/ResultRow';
 import { CalculatorInputField } from '@/components/calculator/CalculatorInputField';
 import { describeInputs, describeStepProblem, describeStepProblemShort, formatStepValue, isStepError } from '@/lib/calculator/format';
+import { stepErrorLevel } from '@/lib/calculator/step-issues';
 import type {
   Calculator,
   CalculatorInput,
@@ -303,7 +304,27 @@ export const PartLivePane = memo(function PartLivePane({
               <ResultRow
                 key={step.id}
                 label={step.label || step.key}
-                value={shown ? shown.text : <span title={isStepError(stepResult) ? stepResult?.message : undefined} className={cn('text-xs', isStepError(stepResult) ? 'text-danger' : stepResult?.incomplete ? 'text-draft' : 'text-ink-muted')}>{describeStepProblemShort(stepResult, calculator) ?? '—'}</span>}
+                value={
+                  shown ? (
+                    shown.text
+                  ) : (
+                    <span
+                      title={isStepError(stepResult) ? stepResult?.message : undefined}
+                      className={cn(
+                        'text-xs',
+                        stepErrorLevel(stepResult) === 'unresolved'
+                          ? 'text-draft'
+                          : isStepError(stepResult)
+                            ? 'text-danger'
+                            : stepResult?.incomplete
+                              ? 'text-draft'
+                              : 'text-ink-muted'
+                      )}
+                    >
+                      {stepErrorLevel(stepResult) === 'unresolved' ? 'Unresolved' : (describeStepProblemShort(stepResult, calculator) ?? '—')}
+                    </span>
+                  )
+                }
                 unit={shown?.unit}
                 highlight={step.id === expandedStepId}
                 leader={false}

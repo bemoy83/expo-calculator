@@ -1,19 +1,8 @@
 import type { FormulaErrorKind } from '../formula/validator';
 
-// What a function's formula has to say about itself, sorted by what it means for the formula:
-//   broken      the formula can't be read or called as written: it can't calculate
-//   unresolved  well formed, but it names something that doesn't exist yet (a parameter, a
-//               function): it can't calculate until that's resolved, and there's a fix for it
-//   heads-up    it calculates, but something is probably not what was meant
-// Broken and unresolved block saving; a heads-up never does.
-export type FormulaIssueLevel = 'broken' | 'unresolved' | 'heads-up';
+import type { FormulaIssue } from '../formula/issue-levels';
 
-export interface FormulaIssue {
-  level: FormulaIssueLevel;
-  message: string;
-  /** For an unresolved name: the name, so it can be offered "Create" or "Reuse" */
-  name?: string;
-}
+export type { FormulaIssue, FormulaIssueLevel } from '../formula/issue-levels';
 
 export interface FormulaIssueInput {
   /** A settled check; one still waiting for the formula to rest isn't an issue yet. */
