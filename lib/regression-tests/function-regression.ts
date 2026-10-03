@@ -237,6 +237,17 @@ assertCheck(
   JSON.stringify([emptyRound, afterTimes, roundDecimals, wrapped, wrappedDecimals, grouped])
 );
 
+const wrappedCompare = insert('bredde / cc', 0, 11, '==');
+const wrappedCompareMid = insert('2 * tax', 4, 7, '>=');
+const plainCompare = insert('tax', 3, 3, '==');
+assertCheck(
+  'a comparison wraps a selection as a condition, and with nothing selected goes in with spaces',
+  wrappedCompare.value === '(bredde / cc == )' && wrappedCompare.cursorPosition === 16 &&
+    wrappedCompareMid.value === '2 * (tax >= )' && wrappedCompareMid.cursorPosition === 12 &&
+    plainCompare.value === 'tax == ',
+  JSON.stringify([wrappedCompare, wrappedCompareMid, plainCompare])
+);
+
 const validation = validateFunctionEditorForm({
   formData: {
     displayName: 'Area',

@@ -364,6 +364,8 @@ export function getFormulaWithInsertedToken(input: {
   };
 }
 
+const COMPARISON_OPERATORS = ["==", "!=", ">=", "<=", ">", "<"];
+
 export function getFormulaWithInsertedOperator(input: {
   currentValue: string;
   start: number;
@@ -378,6 +380,15 @@ export function getFormulaWithInsertedOperator(input: {
   const charAfter = input.end < input.currentValue.length ? input.currentValue[input.end] : "";
   const needsSpaceAfter = !/\s/.test(charAfter);
   const spaceBefore = needsSpaceBefore ? " " : "";
+
+  const selectedText = input.currentValue.substring(input.start, input.end);
+
+  // A comparison with something selected wraps it as a yes/no condition, `(sel == )`, and the
+  // cursor goes before ")" to type what it's compared with.
+  if (selectedText && COMPARISON_OPERATORS.includes(input.operator)) {
+    const insertedText = `${spaceBefore}(${selectedText} ${input.operator} )`;
+    return { value: before + insertedText + after, cursorPosition: input.start + insertedText.length - 1 };
+  }
 
   // A function or brackets: what's selected goes inside, as the first argument, and the cursor
   // goes where the next thing is typed: inside the brackets, or before the ")" of round(x, ).

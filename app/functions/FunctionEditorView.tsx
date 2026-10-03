@@ -293,7 +293,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
           </section>
         </div>
 
-        <div className="min-w-0 flex flex-col px-4 sm:px-7 py-5 lg:overflow-y-auto">
+        <div className="min-w-0 flex flex-col px-4 sm:px-7 py-5 lg:overflow-hidden">
           <div className="flex flex-wrap items-baseline gap-x-2.5 font-numeric text-[13px]">
             <span className="font-ui text-xs text-ink-muted">Call as</span>
             <span className="break-all">
@@ -301,7 +301,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               {existingFunction?.returnUnitSymbol && <span className="text-ink-faint"> → {existingFunction.returnUnitSymbol}</span>}
             </span>
           </div>
-          <div className="mt-3.5">
+          <div className="mt-3.5 flex flex-col flex-1 min-h-0">
             <FunctionFormulaCard
               formula={editor.formData.formula}
               formulaNames={formulaNames}
