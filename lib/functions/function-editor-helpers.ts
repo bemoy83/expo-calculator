@@ -2,7 +2,7 @@ import type { Calculator } from "../calculator/types";
 import type { FunctionParamKind, Labor, Material, SharedFunction } from "../types";
 import { getFunctionParamKinds } from "./param-kinds";
 import { categoryForName, editDistance, getMaterialCategories, sameCategory } from '../utils/material-category';
-import { isValidName, NAME_CHAR } from '../formula/identifiers';
+import { foldName, isValidName, NAME_CHAR } from '../formula/identifiers';
 
 export type FunctionFormData = {
   displayName: string;
@@ -18,7 +18,12 @@ export type FunctionAutocompleteCandidate = {
   type: "field" | "material" | "property" | "function" | "constant" | "labor";
   description?: string;
   functionSignature?: string;
+  /** A stored parameter this function doesn't have yet: inserting it adds the parameter too. Its key in `storedParameterKey`. */
+  storedKey?: string;
 };
+
+/** What tells stored parameters apart in the suggestions: the same name can come in other units. */
+export const storedParameterKey = (item: ParameterSuggestion) => [item.name, item.group, item.unitSymbol ?? ""].join("|");
 
 type FunctionParameter = SharedFunction["parameters"][number];
 
@@ -130,9 +135,6 @@ export function addSuggestedParameter(
   return parameters.map((param, index) => (index === blank ? added : param));
 }
 
-// Names compared as the same name when they differ only in case or in æ, ø, å typed as ae, o, a.
-const sameNameKey = (name: string) => name.trim().toLowerCase().replace(/æ/g, "ae").replace(/ø/g, "o").replace(/å/g, "a");
-
 /**
  * Stored parameters that go by the name a formula uses: the ones other functions and calculators
  * already have, most used first. Only the same name counts (not a likely misspelling), so what
@@ -144,10 +146,10 @@ export function findStoredParametersNamed(
   asMaterial: boolean,
   limit = 3
 ): ParameterSuggestion[] {
-  const key = sameNameKey(name);
+  const key = foldName(name);
   if (!key) return [];
   return stored
-    .filter((item) => sameNameKey(item.name) === key && (item.group === "material") === asMaterial)
+    .filter((item) => foldName(item.name) === key && (item.group === "material") === asMaterial)
     .sort((a, b) => b.uses - a.uses)
     .slice(0, limit);
 }
@@ -277,6 +279,8 @@ export function collectFunctionAutocompleteCandidates(input: {
   functions: SharedFunction[];
   functionId: string;
   labor: Labor[];
+  /** Parameters other functions and calculators have: typed names offer them, and picking one adds it */
+  stored?: ParameterSuggestion[];
 }): FunctionAutocompleteCandidate[] {
   const candidates: FunctionAutocompleteCandidate[] = [];
   const validParamNames = new Set<string>();
@@ -299,6 +303,21 @@ export function collectFunctionAutocompleteCandidates(input: {
         description: param.label || param.name,
       });
     }
+  });
+
+  // Parameters stored elsewhere, for names this function doesn't have yet. Its own come first.
+  (input.stored ?? []).forEach((item) => {
+    const name = item.name.trim();
+    if (!name || !isValidName(name) || validParamNames.has(name.toLowerCase())) return;
+    const unitDisplay = item.unitSymbol ? ` (${item.unitSymbol})` : "";
+    const places = `${item.uses} ${item.uses === 1 ? "place" : "places"}`;
+    candidates.push({
+      name,
+      displayName: `${name}${unitDisplay}`,
+      type: "field",
+      description: `${item.label || name} · stored, in ${places}`,
+      storedKey: storedParameterKey(item),
+    });
   });
 
   [

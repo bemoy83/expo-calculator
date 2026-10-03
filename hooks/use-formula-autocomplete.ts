@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { isNameChar } from '@/lib/formula/identifiers';
+import { foldName, isNameChar } from '@/lib/formula/identifiers';
 
 export interface AutocompleteSuggestion {
   name: string;
@@ -7,6 +7,8 @@ export interface AutocompleteSuggestion {
   type: 'field' | 'material' | 'property' | 'function' | 'constant' | 'labor' | 'laborProperty';
   description?: string;
   functionSignature?: string; // For user-defined functions: parameter names
+  /** Set for something stored elsewhere that inserting also adds (a parameter); says which one */
+  storedKey?: string;
 }
 
 interface WordInfo {
@@ -24,6 +26,8 @@ interface UseFormulaAutocompleteProps {
   /** Extra suggestions for what follows `base.`, asked for as it is typed, so a name that isn't declared yet can still offer them. */
   candidatesForBase?: (base: string) => AutocompleteSuggestion[];
   onFormulaChange: (formula: string) => void;
+  /** Runs after a suggestion has been inserted into the formula */
+  onSuggestionInserted?: (suggestion: AutocompleteSuggestion) => void;
 }
 
 export function useFormulaAutocomplete({
@@ -32,6 +36,7 @@ export function useFormulaAutocomplete({
   collectAutocompleteCandidates,
   candidatesForBase,
   onFormulaChange,
+  onSuggestionInserted,
 }: UseFormulaAutocompleteProps) {
   const [recentlyUsedVariables, setRecentlyUsedVariables] = useState<string[]>([]);
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<AutocompleteSuggestion[]>([]);
@@ -100,7 +105,7 @@ export function useFormulaAutocomplete({
         .slice(0, 30);
     }
 
-    const searchTerm = word.toLowerCase();
+    const searchTerm = foldName(word);
     const exactMatches: AutocompleteSuggestion[] = [];
     const startsWithMatches: AutocompleteSuggestion[] = [];
     const containsMatches: AutocompleteSuggestion[] = [];
@@ -127,8 +132,8 @@ export function useFormulaAutocomplete({
     }
 
     candidates.forEach((suggestion) => {
-      const nameLower = suggestion.name.toLowerCase();
-      const displayLower = suggestion.displayName.toLowerCase();
+      const nameLower = foldName(suggestion.name);
+      const displayLower = foldName(suggestion.displayName);
       const isRecent = recentVariables.includes(suggestion.name);
       const isFunction = suggestion.type === 'function' || suggestion.type === 'constant';
 
@@ -218,6 +223,7 @@ export function useFormulaAutocomplete({
     }
     
     onFormulaChange(newValue);
+    onSuggestionInserted?.(suggestion);
     
     // Track recently used variable
     setRecentlyUsedVariables((prev) => {
@@ -232,7 +238,7 @@ export function useFormulaAutocomplete({
       textarea.focus();
       textarea.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
-  }, [formula, formulaTextareaRef, onFormulaChange]);
+  }, [formula, formulaTextareaRef, onFormulaChange, onSuggestionInserted]);
 
   // Update autocomplete suggestions
   const updateAutocompleteSuggestionsFinal = useCallback(() => {

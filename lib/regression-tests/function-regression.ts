@@ -1,6 +1,7 @@
 import { labelFromName, nameAfterLabelChange } from '../utils/function-parameters';
 import { unknownValueNames } from '../calculator/formula-tokens';
 import { findFormulaErrorRange } from '../formula/error-location';
+import { foldName } from '../formula/identifiers';
 import {
   addSuggestedParameter,
   buildFunctionSaveData,
@@ -292,6 +293,28 @@ assertCheck(
     renameFormulaName('ceil(hoyde)', 'hoyde', 'høyde') === 'ceil(høyde)' &&
     renameFormulaName('a + b', 'a', 'a') === 'a + b',
   renameFormulaName('hoyde * (hoyde + hoyde_2) + board.hoyde', 'hoyde', 'høyde')
+);
+
+const withStored = collectFunctionAutocompleteCandidates({
+  parameters: [{ name: 'bredde', label: 'Bredde', required: true }],
+  functions: [],
+  functionId: 'new',
+  labor: [],
+  stored: storedParameters.concat([{ name: 'bredde', label: 'Bredde', group: 'number', uses: 4, required: true }]),
+});
+const storedOnes = withStored.filter((candidate) => candidate.storedKey);
+assertCheck(
+  'typed names offer stored parameters this function lacks, not ones it has, and tag them to be added on insert',
+  storedOnes.map((candidate) => candidate.name).join(',') === 'høyde' &&
+    storedOnes[0].displayName === 'høyde (mm)' &&
+    storedOnes[0].storedKey === 'høyde|number|mm' &&
+    withStored.filter((candidate) => candidate.name === 'bredde').length === 1,
+  JSON.stringify(storedOnes)
+);
+assertCheck(
+  'names compare without case or æøå',
+  foldName('Høyde') === 'hoyde' && foldName('Ærfugl') === 'aerfugl' && foldName('Årstall') === 'arstall',
+  [foldName('Høyde'), foldName('Ærfugl'), foldName('Årstall')].join(',')
 );
 
 const validation = validateFunctionEditorForm({

@@ -12,6 +12,7 @@ import {
   getPropertyCandidatesForBase,
   FunctionFormData,
   getParameterSuggestions,
+  storedParameterKey,
   type ParameterSuggestion,
   getExistingParameterNames,
   getFormulaWithInsertedOperator,
@@ -145,8 +146,9 @@ export function useFunctionEditorState({
         functions,
         functionId,
         labor,
+        stored: parameterSuggestions,
       }),
-    [parameters, functions, functionId, labor]
+    [parameters, functions, functionId, labor, parameterSuggestions]
   );
 
   // Likely property typos (`board.widht`), shown once the formula has stood for a moment.
@@ -178,6 +180,11 @@ export function useFunctionEditorState({
     collectAutocompleteCandidates,
     candidatesForBase: (base) => getPropertyCandidatesForBase({ base, parameters, materials, labor, functions }),
     onFormulaChange: (formula) => setFormData((prev) => ({ ...prev, formula })),
+    // Picking a stored parameter from the suggestions adds it, with its unit and label.
+    onSuggestionInserted: (suggestion) => {
+      const stored = suggestion.storedKey ? parameterSuggestions.find((item) => storedParameterKey(item) === suggestion.storedKey) : undefined;
+      if (stored) setParameters((prev) => addSuggestedParameter(prev, stored));
+    },
   });
 
   const handleVariableNameChange = useCallback((newName: string) => {

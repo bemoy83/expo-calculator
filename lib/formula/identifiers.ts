@@ -12,6 +12,14 @@ export const NAME = `[${NAME_START}][${NAME_CHAR}]*`;
 /** A name with an optional `.property`, as a pattern source. */
 export const NAME_WITH_PROPERTY = `${NAME}(?:\\.${NAME})?`;
 
+/**
+ * A name as typed without regard to case or to æ, ø and å (ae, o, a), so `hoyde` finds `høyde`.
+ * For comparing names, never for writing them.
+ */
+export function foldName(name: string): string {
+  return name.trim().toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a');
+}
+
 const VALID_NAME = new RegExp(`^${NAME}$`);
 
 export function isValidName(text: string): boolean {

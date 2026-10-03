@@ -413,7 +413,7 @@ export function FunctionFormulaCard({
                     TOKEN_TEXT[suggestionToken(suggestion.type).kind] || 'text-ink-faint'
                   )}
                 >
-                  {suggestion.type === 'field' ? 'parameter' : suggestionToken(suggestion.type).label}
+                  {suggestion.storedKey ? 'stored' : suggestion.type === 'field' ? 'parameter' : suggestionToken(suggestion.type).label}
                 </span>
               </button>
             );
