@@ -10,7 +10,7 @@ import type { Calculator } from './types';
 // same ids, once, and read old export files.
 
 /** Modules as the modules store loaded them: legacy fields and output names tidied. */
-export function sanitizeModules(modules: CalculationModule[]): CalculationModule[] {
+function sanitizeModules(modules: CalculationModule[]): CalculationModule[] {
   return modules.map((module) => regenerateComputedOutputVariableNames(sanitizeLegacyModule(module)));
 }
 

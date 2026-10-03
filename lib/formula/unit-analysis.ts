@@ -14,7 +14,7 @@ export interface Dim {
 
 const NONE: Dim = { L: 0, M: 0 };
 
-export function dimOf(category: UnitCategory | undefined): Dim | null {
+function dimOf(category: UnitCategory | undefined): Dim | null {
   switch (category) {
     case 'length':
       return { L: 1, M: 0 };
@@ -65,7 +65,7 @@ export function describeDim(dim: Dim): string {
 }
 
 /** "a length", "an area". */
-export function withArticle(words: string): string {
+function withArticle(words: string): string {
   return /^[aeiou]/i.test(words) ? `an ${words}` : `a ${words}`;
 }
 

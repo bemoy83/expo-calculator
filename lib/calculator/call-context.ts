@@ -211,7 +211,7 @@ function specUnit(value: InputValueSpec): UnitCategory | undefined {
  * What an argument is when it's a single name, `input.property`, or a number; undefined for
  * anything else (arithmetic, nested calls, unknown names), which isn't guessed at.
  */
-export function describeArg(text: string, calculator: Calculator): ArgInfo | undefined {
+function describeArg(text: string, calculator: Calculator): ArgInfo | undefined {
   const trimmed = text.trim();
   if (!trimmed) return undefined;
   if (Number.isFinite(Number(trimmed))) return { kind: 'number', source: 'number', label: trimmed };

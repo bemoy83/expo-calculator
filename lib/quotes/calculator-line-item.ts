@@ -15,7 +15,7 @@ import { convertFromBase } from '../units';
 import { formatDisplayNumber, generateId } from '../utils';
 
 /** An input's value as staff see it: in its unit, the option's label, the item's name, Yes/No. */
-export function formatInputValue(
+function formatInputValue(
   input: CalculatorInput,
   values: CalculatorValues,
   result: CalculatorResult,

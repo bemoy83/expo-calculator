@@ -119,7 +119,7 @@ function isPickerKind(kind: InputKind | undefined) {
   return kind === 'material' || kind === 'labor';
 }
 
-export function getConditionInputs(condition: Condition | undefined): string[] {
+function getConditionInputs(condition: Condition | undefined): string[] {
   return condition ? [condition.inputKey] : [];
 }
 

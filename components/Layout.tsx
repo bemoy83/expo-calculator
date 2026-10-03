@@ -31,7 +31,7 @@ const QUOTE_TABS: TopBarTab[] = [{ id: 'quotes', label: 'Quotes', href: '/quotes
 const arrow = (id: string): TopBarTab => ({ id, label: '', separator: true });
 
 /** The top tab a route belongs to: a calculator open at /calculator is under Calculators, an open quote under Quotes. */
-export function mainTabFor(pathname: string): string {
+function mainTabFor(pathname: string): string {
   const path = pathname.replace(/\/+$/, '') || '/';
   const under = (route: string) => path === route || path.startsWith(`${route}/`);
   for (const route of ['materials', 'labor', 'functions']) if (under(`/${route}`)) return route;

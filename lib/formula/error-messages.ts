@@ -118,3 +118,9 @@ function friendlyBody(raw: string): string {
   const sentence = /^\w+\(\)/.test(message) ? message : `${message.charAt(0).toUpperCase()}${message.slice(1)}`;
   return message.endsWith('.') ? sentence : `${sentence}.`;
 }
+
+/** The message of whatever was thrown: an Error's own, the text of a thrown string, else ''. */
+export function messageOf(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return typeof error === 'string' ? error : '';
+}

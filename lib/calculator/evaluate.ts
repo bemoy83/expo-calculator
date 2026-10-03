@@ -23,7 +23,7 @@ type Resolved = Record<string, number | boolean | string>;
 
 // The values the math uses: typed values, else defaults. Inputs left out have no usable
 // value (a blank number, an unpicked or deleted material). Text notes never reach the math.
-export function resolveInputValues(
+function resolveInputValues(
   calculator: Calculator,
   values: CalculatorValues,
   library: Pick<CalculatorLibrary, 'materials' | 'labor'>

@@ -117,15 +117,7 @@ export function createFormulaResolver(context: EvaluationContext): FormulaResolv
   };
 }
 
-export function resolveMaterialProperty(
-  materialVar: string,
-  propertyName: string,
-  materials: Material[]
-): number | null {
-  return createFormulaResolver({ fieldValues: {}, materials }).resolveMaterialProperty(materialVar, propertyName);
-}
-
-export function getMaterialPropertyValueFromMaterial(
+function getMaterialPropertyValueFromMaterial(
   material: Material,
   propertyName: string
 ): number | null {
@@ -176,32 +168,7 @@ export function getLaborValue(laborItem: Labor, propertyName: string): number | 
   return propertyName === 'cost' ? laborItem.cost : null;
 }
 
-/**
- * Resolves a field property reference to its numeric value (base-normalized)
- * Returns the property value converted to a number
- * Throws error if material/labor not selected or property doesn't exist
- */
-export function resolveFieldProperty(
-  fieldVar: string,
-  propertyName: string,
-  context: EvaluationContext
-): number {
-  return createFormulaResolver(context).resolveFieldProperty(fieldVar, propertyName);
-}
-
-/**
- * Resolves a labor property reference to its numeric value (base-normalized)
- * Returns the property value converted to a number, or null if not found
- */
-export function resolveLaborProperty(
-  laborVar: string,
-  propertyName: string,
-  labor: Labor[]
-): number | null {
-  return createFormulaResolver({ fieldValues: {}, materials: [], labor }).resolveLaborProperty(laborVar, propertyName);
-}
-
-export function getLaborPropertyValueFromLabor(
+function getLaborPropertyValueFromLabor(
   laborItem: Labor,
   propertyName: string
 ): number | null {

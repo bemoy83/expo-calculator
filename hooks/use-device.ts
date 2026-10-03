@@ -8,7 +8,7 @@ const subscribeNever = () => () => {};
  * reached by client navigation. Lets persisted settings change what renders without a
  * hydration mismatch, and without a flash on every navigation (as a mounted flag would give).
  */
-export function useHydrated(): boolean {
+function useHydrated(): boolean {
   return useSyncExternalStore(
     subscribeNever,
     () => true,

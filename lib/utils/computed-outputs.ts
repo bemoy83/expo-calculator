@@ -13,7 +13,7 @@ import { labelToVariableName } from '../utils';
  * - Ensures uniqueness by appending number if needed
  * - Validates against 'out.' prefix
  */
-export function generateComputedOutputVariableName(
+function generateComputedOutputVariableName(
   label: string,
   existingOutputs: ComputedOutput[],
   existingFields: Field[]

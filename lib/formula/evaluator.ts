@@ -3,6 +3,7 @@ import { EvaluationContext } from './types';
 import { mathInstance } from './math-runtime';
 import { FunctionCall, MATH_FUNCTIONS, getOutermostFunctionCalls, parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences, replaceIdentifiers } from './parser';
 import { createFormulaResolver } from './resolver';
+import { messageOf } from './error-messages';
 import { findStandalone, isValidName, NAME_WITH_PROPERTY } from './identifiers';
 
 // An argument that isn't a name the formula knows or a number: a material or labor property
@@ -62,8 +63,8 @@ function evaluateFunctionCall(
       };
       try {
         argValue = evaluateFormula(argVarName, nestedContext);
-      } catch (error: any) {
-        throw new Error(`Error evaluating nested function call '${argVarName}' for function '${call.functionName}' parameter '${paramName}': ${error.message}`);
+      } catch (error) {
+        throw new Error(`Error evaluating nested function call '${argVarName}' for function '${call.functionName}' parameter '${paramName}': ${messageOf(error)}`);
       }
     }
     else if (argVarName in context.fieldValues) {
@@ -260,16 +261,16 @@ export function evaluateFormula(
           processedFormula.slice(0, call.startIndex) +
           result.toString() +
           processedFormula.slice(call.endIndex);
-      } catch (error: any) {
-        throw new Error(`Error evaluating function '${call.functionName}': ${error.message}`);
+      } catch (error) {
+        throw new Error(`Error evaluating function '${call.functionName}': ${messageOf(error)}`);
       }
     }
 
-    let result: any;
+    let result: unknown;
     try {
       result = mathInstance.evaluate(processedFormula);
-    } catch (evalError: any) {
-      throw new Error(`Formula evaluation failed: ${evalError.message || 'Invalid expression'}`);
+    } catch (evalError) {
+      throw new Error(`Formula evaluation failed: ${messageOf(evalError) || 'Invalid expression'}`);
     }
 
     if (typeof result !== 'number') {
@@ -285,23 +286,19 @@ export function evaluateFormula(
     }
 
     return result;
-  } catch (error: any) {
-    if (error.message && (
-      error.message.includes('round()') ||
-      error.message.includes('ceil()') ||
-      error.message.includes('floor()') ||
-      error.message.includes('Missing values for variables') ||
-      error.message.includes('Formula evaluation failed') ||
-      error.message.includes('Formula returned non-numeric') ||
-      error.message.includes('Formula evaluated to')
+  } catch (error) {
+    const message = messageOf(error);
+    if (message && (
+      message.includes('round()') ||
+      message.includes('ceil()') ||
+      message.includes('floor()') ||
+      message.includes('Missing values for variables') ||
+      message.includes('Formula evaluation failed') ||
+      message.includes('Formula returned non-numeric') ||
+      message.includes('Formula evaluated to')
     )) {
       throw error;
     }
-    console.error('Formula evaluation error:', {
-      formula,
-      error: error.message || error,
-      stack: error.stack
-    });
-    throw new Error(`Formula evaluation failed: ${error.message || 'Invalid formula syntax'}`);
+    throw new Error(`Formula evaluation failed: ${message || 'Invalid formula syntax'}`);
   }
 }

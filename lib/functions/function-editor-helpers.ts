@@ -205,7 +205,7 @@ export type MaterialPropertyInfo = { name: string; unitSymbol?: string; count: n
  * assumed: a property no material has isn't offered, since a call couldn't pass a value for it. A material parameter doesn't know its material until a
  * calculator picks one, so this is what `board.` can offer.
  */
-export function getMaterialPropertyCatalog(allMaterials: Material[], category?: string): MaterialPropertyInfo[] {
+function getMaterialPropertyCatalog(allMaterials: Material[], category?: string): MaterialPropertyInfo[] {
   const materials = category ? allMaterials.filter((material) => sameCategory(material.category, category)) : allMaterials;
   const found = new Map<string, MaterialPropertyInfo>();
   const total = materials.length;

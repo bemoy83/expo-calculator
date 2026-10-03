@@ -1,7 +1,7 @@
 import { Labor, Material, SharedFunction } from '../types';
 import { mathInstance } from './math-runtime';
 import { parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
-import { translateParserError } from './error-messages';
+import { messageOf, translateParserError } from './error-messages';
 import { FormulaField } from './validation-types';
 import { findStandalone, NAME, NAME_WITH_PROPERTY, replaceStandalone } from './identifiers';
 
@@ -342,9 +342,9 @@ export function validateFormula(
     mathInstance.evaluate(testFormula);
 
     return { valid: true };
-  } catch (error: any) {
+  } catch (error) {
     // Translate technical parser errors into user-friendly messages
-    const errorMessage = error.message || 'Invalid formula syntax';
+    const errorMessage = messageOf(error) || 'Invalid formula syntax';
     const translatedError = translateParserError(errorMessage, formula);
 
     // An unknown function is a missing name; anything else the parser stumbles on is the formula itself.

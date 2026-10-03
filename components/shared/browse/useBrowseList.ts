@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 
 /** The category value that means "no category filter". */
 export const ALL_CATEGORIES = '';
-export const OTHER_CATEGORY = 'Other';
+const OTHER_CATEGORY = 'Other';
 
 export interface BrowseItem {
   id: string;

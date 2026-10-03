@@ -41,7 +41,7 @@ export function createEmptyCalculator(createId: CreateId, now: string): Calculat
 // ---- Names ----
 
 /** Every name in use: input and step keys. */
-export function takenKeys(calculator: Calculator, except?: string): Set<string> {
+function takenKeys(calculator: Calculator, except?: string): Set<string> {
   const keys = new Set<string>();
   for (const input of calculator.inputs) if (input.id !== except) keys.add(input.key);
   for (const step of calculator.steps) if (step.id !== except) keys.add(step.key);

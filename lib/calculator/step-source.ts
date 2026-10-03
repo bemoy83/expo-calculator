@@ -6,7 +6,7 @@ import type { Binding, Calculator, StepSource } from './types';
 type CallSource = Extract<StepSource, { type: 'call' }>;
 
 /** A binding as it would be written in a formula (numbers in base units). */
-export function bindingToText(binding: Binding | undefined): string {
+function bindingToText(binding: Binding | undefined): string {
   if (!binding) return '?';
   switch (binding.type) {
     case 'input':

@@ -129,7 +129,7 @@ export function buildQuotePrintHtml(input: {
   return html;
 }
 
-export function escapeHtml(value: unknown): string {
+function escapeHtml(value: unknown): string {
   return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

@@ -20,7 +20,7 @@ export interface FunctionParameter {
  * - Ensures uniqueness within the function's parameters
  * - Excludes the current parameter being edited
  */
-export function generateParameterName(
+function generateParameterName(
   label: string,
   existingParameters: FunctionParameter[],
   excludeIndex?: number

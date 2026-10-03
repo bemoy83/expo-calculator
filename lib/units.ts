@@ -17,7 +17,7 @@ export interface Unit {
 /**
  * Unit registry with conversion functions
  */
-export const UNITS: Record<string, Unit> = {
+const UNITS: Record<string, Unit> = {
   // Length units (base: meters)
   mm: {
     category: 'length',

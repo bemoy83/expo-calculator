@@ -36,7 +36,7 @@ export function NavigationGuardProvider({ children }: { children: React.ReactNod
 }
 
 /** Registers `guard` while the component is mounted; null (e.g. no unsaved edits) lets links through. */
-export function useNavigationGuard(guard: NavigationGuard | null) {
+function useNavigationGuard(guard: NavigationGuard | null) {
   const { setGuard } = useContext(NavigationGuardContext);
   useEffect(() => {
     setGuard(guard);

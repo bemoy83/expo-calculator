@@ -28,7 +28,6 @@ import { useCallProblems } from './CallProblems';
 import { classifyStepIssues, unknownNameIn } from '@/lib/calculator/step-issues';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
 import { IssueLine, PinnedNotes } from '@/components/formula/IssueMarker';
-import { NAME } from '@/lib/formula/identifiers';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { calculatorFormulaNames, unknownNameRanges, unknownValueNames } from '@/lib/calculator/formula-tokens';
 import type { FormulaDiagnostic } from '@/lib/formula/issue-levels';

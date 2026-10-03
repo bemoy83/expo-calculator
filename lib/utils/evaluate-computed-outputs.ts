@@ -7,6 +7,7 @@
 
 import { CalculationModule, Material, SharedFunction, Labor } from '../types';
 import { evaluateFormula, EvaluationContext } from '../formula-evaluator';
+import { messageOf } from '../formula/error-messages';
 
 export interface ComputedOutputEvaluationResult {
   computedValues: Record<string, number>; // Maps 'out.variableName' -> value
@@ -72,11 +73,11 @@ export function evaluateComputedOutputs(
       
       const storageKey = `out.${output.variableName}`;
       computedValues[storageKey] = value;
-    } catch (error: any) {
+    } catch (error) {
       errors.push({
         outputId: output.id,
         outputLabel: output.label,
-        error: error.message || 'Evaluation failed',
+        error: messageOf(error) || 'Evaluation failed',
       });
     }
   }

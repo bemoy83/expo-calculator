@@ -29,7 +29,7 @@ import { StepRow } from './StepRow';
 type FormatMoney = (amount: number) => string;
 
 /** A live input with a button to edit its definition. */
-export function BuilderInputField({
+function BuilderInputField({
   input,
   values,
   result,

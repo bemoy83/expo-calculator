@@ -1,14 +1,12 @@
 import { Material, SharedFunction } from '../types';
 import { FormulaDebugInfo } from './types';
 import { MATH_FUNCTIONS, parseFieldPropertyReferences, parseFunctionCalls, parseMaterialPropertyReferences } from './parser';
-import { FormulaField } from './validation-types';
 import { findStandalone, NAME_WITH_PROPERTY } from './identifiers';
 
 export function analyzeFormulaVariables(
   formula: string,
   availableVariables: string[],
   materials: Material[],
-  fields?: FormulaField[],
   functions?: SharedFunction[]
 ): FormulaDebugInfo {
   const mathFunctionsList = Array.from(MATH_FUNCTIONS);

@@ -12,7 +12,7 @@ import { formatDisplayNumber, generateId, labelToVariableName } from '@/lib/util
 const COUNT_UNITS = ['pcs', 'sheet', 'bucket', 'roll', 'pack', 'pallet'];
 
 /** The name a price gets from its unit until one is typed: price_per_m2, price_per_sheet. */
-export function suggestPriceName(unit: string): string {
+function suggestPriceName(unit: string): string {
   const cleaned = labelToVariableName(unit.replace('²', '2').replace('³', '3')).toLowerCase();
   return cleaned ? `price_per_${cleaned}` : 'price_per_unit';
 }

@@ -232,8 +232,7 @@ const debugInfo = analyzeFormulaVariables(
       createdAt: '',
       updatedAt: '',
     },
-  ],
-  [{ variableName: 'wallboard', type: 'material' }]
+  ]
 );
 assertCheck(
   'analyzes field/material/computed references',
