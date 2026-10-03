@@ -1,7 +1,8 @@
 import { isValidName, NAME } from '../formula/identifiers';
 import { getFunctionParamKinds } from '../functions/param-kinds';
 import type { FunctionParamKind } from '../types';
-import { getUnitCategory, type UnitCategory } from '../units';
+import type { UnitCategory } from '../units';
+import { declaredCategory, declaredUnit } from '../formula/unit-resolvers';
 import type { Calculator, CalculatorLibrary, CalculatorStep, InputValueSpec } from './types';
 
 // What a step's formula says about the function calls in it, for the hints under the editor:
@@ -163,7 +164,7 @@ export function callSignature(name: string, library: Pick<CalculatorLibrary, 'fu
         label: param.label || param.name,
         kind: kinds[param.name] ?? 'number',
         unitSymbol: param.unitSymbol,
-        unitCategory: param.unitCategory ?? (param.unitSymbol ? getUnitCategory(param.unitSymbol) : undefined),
+        unitCategory: declaredCategory(param),
       })),
     };
   }
@@ -202,11 +203,6 @@ function specKind(value: InputValueSpec): FunctionParamKind | undefined {
   }
 }
 
-function specUnit(value: InputValueSpec): UnitCategory | undefined {
-  if (value.kind !== 'number' && value.kind !== 'choice') return undefined;
-  return value.unitCategory ?? (value.unitSymbol ? getUnitCategory(value.unitSymbol) : undefined);
-}
-
 /**
  * What an argument is when it's a single name, `input.property`, or a number; undefined for
  * anything else (arithmetic, nested calls, unknown names), which isn't guessed at.
@@ -227,13 +223,13 @@ function describeArg(text: string, calculator: Calculator): ArgInfo | undefined 
   const input = calculator.inputs.find((candidate) => candidate.key === trimmed);
   if (input) {
     const kind = specKind(input.value);
-    return kind ? { kind, unitCategory: specUnit(input.value), source: 'input', label: input.label } : undefined;
+    return kind ? { kind, unitCategory: declaredUnit(calculator, trimmed).category, source: 'input', label: input.label } : undefined;
   }
   const step = calculator.steps.find((candidate) => candidate.key === trimmed);
   if (step) {
     return {
       kind: 'number',
-      unitCategory: step.unitCategory ?? (step.unitSymbol ? getUnitCategory(step.unitSymbol) : undefined),
+      unitCategory: declaredUnit(calculator, trimmed).category,
       source: 'result',
       label: step.label || step.key,
       step,

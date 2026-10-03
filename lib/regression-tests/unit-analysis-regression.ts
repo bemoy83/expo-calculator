@@ -1,5 +1,5 @@
 import { parseExpression } from '../formula/expression-tree';
-import { calculatorUnitResolver } from '../formula/unit-resolvers';
+import { calculatorUnitResolver, declaredUnit } from '../formula/unit-resolvers';
 import type { Calculator } from '../calculator/types';
 import type { Material } from '../types';
 import { analyzeUnits, declaredUnitProblem, describeDim, type UnitResolver } from '../formula/unit-analysis';
@@ -121,4 +121,32 @@ assertCheck(
 assertCheck(
   'a long call is named rather than cut off',
   /^areal\(…\) is an area but bredde is a length/.test(analyzeUnits('areal(bredde, høyde, mer, enda_mer) + bredde', withFunctions).problems[0]?.message ?? '')
+);
+
+// The one answer to "what unit is this input or step declared in?"
+const declaredCalc = {
+  inputs: [
+    { id: 'i1', key: 'bredde', label: 'Bredde', widget: 'number', value: { kind: 'number', unitSymbol: 'mm' } },
+    { id: 'i2', key: 'valg', label: 'Valg', widget: 'dropdown', value: { kind: 'choice', options: [], unitCategory: 'area', unitSymbol: 'm2' } },
+    { id: 'i3', key: 'virke', label: 'Virke', widget: 'picker', value: { kind: 'material' } },
+    { id: 'i4', key: 'tall', label: 'Tall', widget: 'number', value: { kind: 'number' } },
+  ],
+  steps: [
+    { id: 's1', partId: 'p', key: 'lengde', label: 'Lengde', unitSymbol: 'm', source: { type: 'expression', expression: 'bredde' } },
+    { id: 's2', partId: 'p', key: 'kost', label: 'Kost', format: 'money', source: { type: 'expression', expression: 'tall' } },
+  ],
+} as unknown as Calculator;
+assertCheck(
+  'an input or step is declared in its category, or the category of its symbol, with the symbol alongside',
+  JSON.stringify(declaredUnit(declaredCalc, 'bredde')) === JSON.stringify({ category: 'length', symbol: 'mm' }) &&
+    declaredUnit(declaredCalc, 'valg').category === 'area' &&
+    JSON.stringify(declaredUnit(declaredCalc, 'lengde')) === JSON.stringify({ category: 'length', symbol: 'm' })
+);
+assertCheck(
+  'a material pick, a number with no unit, a step with none and an unknown key declare nothing',
+  ['virke', 'tall', 'kost', 'finnes_ikke'].every((key) => declaredUnit(declaredCalc, key).category === undefined)
+);
+assertCheck(
+  'the analysis adds that money is neutral on top of it; the declared answer stays plain',
+  calculatorUnitResolver(declaredCalc, { materials: [], functions: [] }).value('kost') === 'count' && declaredUnit(declaredCalc, 'kost').category === undefined
 );

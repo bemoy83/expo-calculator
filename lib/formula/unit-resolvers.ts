@@ -7,8 +7,28 @@ import { analyzeUnits, categoryOfDim, type UnitResolver } from './unit-analysis'
 
 type Catalog = Pick<CalculatorLibrary, 'materials' | 'functions'>;
 
-const categoryOf = (unit: { unitCategory?: UnitCategory; unitSymbol?: string } | undefined): UnitCategory | undefined =>
+/** The unit category something is declared with: its category, else the one its symbol belongs to. */
+export const declaredCategory = (unit: { unitCategory?: UnitCategory; unitSymbol?: string } | undefined): UnitCategory | undefined =>
   unit?.unitCategory ?? (unit?.unitSymbol ? getUnitCategory(unit.unitSymbol) : undefined);
+
+/**
+ * What an input or step is declared in, by its key: the one answer to "what unit is this?" that the
+ * hints under the formula and the unit analysis both build on. Nothing declared (a material pick,
+ * a number with no unit, a key that is neither) is `{}`.
+ */
+export function declaredUnit(
+  calculator: Pick<Calculator, 'inputs' | 'steps'>,
+  key: string
+): { category?: UnitCategory; symbol?: string } {
+  const input = calculator.inputs.find((candidate) => candidate.key === key);
+  if (input) {
+    return input.value.kind === 'number' || input.value.kind === 'choice'
+      ? { category: declaredCategory(input.value), symbol: input.value.unitSymbol }
+      : {};
+  }
+  const step = calculator.steps.find((candidate) => candidate.key === key);
+  return step ? { category: declaredCategory(step), symbol: step.unitSymbol } : {};
+}
 
 /**
  * What a function returns: the unit it's declared with (only a data import sets one), else what its own
@@ -17,7 +37,7 @@ const categoryOf = (unit: { unitCategory?: UnitCategory; unitSymbol?: string } |
 function returnUnit(name: string, library: Catalog, visiting: ReadonlySet<string> = new Set()): UnitCategory | undefined {
   const fn = library.functions.find((candidate) => candidate.name === name);
   if (!fn) return undefined;
-  const declared = fn.returnUnitCategory ?? (fn.returnUnitSymbol ? getUnitCategory(fn.returnUnitSymbol) : undefined);
+  const declared = declaredCategory({ unitCategory: fn.returnUnitCategory, unitSymbol: fn.returnUnitSymbol });
   if (declared || visiting.has(name)) return declared;
   const inferred = analyzeUnits(fn.formula, functionUnitResolver(fn.parameters, library, new Set([...visiting, name])));
   return categoryOfDim(inferred.result);
@@ -42,7 +62,7 @@ function materialPropertyUnit(property: string, category: string | undefined, ma
     if (category && material.category !== category) continue;
     const match = material.properties?.find((candidate) => candidate.name === property);
     // Only a measurement carries its unit as what it's measured in; a price's unit is the "per" (kr per metre is money).
-    if (match) found.add(match.type === 'number' ? categoryOf(match) : undefined);
+    if (match) found.add(match.type === 'number' ? declaredCategory(match) : undefined);
   }
   return found.size === 1 ? [...found][0] : undefined;
 }
@@ -51,27 +71,18 @@ function materialPropertyUnit(property: string, category: string | undefined, ma
 export function calculatorUnitResolver(calculator: Calculator, library: Catalog): UnitResolver {
   return {
     value(base, property) {
-      const input = calculator.inputs.find((candidate) => candidate.key === base);
       if (property) {
+        const input = calculator.inputs.find((candidate) => candidate.key === base);
         return input?.value.kind === 'material' ? materialPropertyUnit(property, input.value.category, library.materials) : undefined;
       }
-      if (input) {
-        return input.value.kind === 'number' || input.value.kind === 'choice' ? categoryOf(input.value) : undefined;
-      }
-      const step = calculator.steps.find((candidate) => candidate.key === base);
-      if (!step) return undefined;
-      const declared = categoryOf(step);
-      if (declared) return declared;
-      // Money, counts and percentages carry no length or weight of their own.
-      return step.format === 'money' || step.format === 'count' ? 'count' : step.format === 'percent' ? 'percentage' : undefined;
+      const declared = declaredUnit(calculator, base).category;
+      if (declared || calculator.inputs.some((candidate) => candidate.key === base)) return declared;
+      // A step that declares no unit: money, counts and percentages carry no length or weight of their own.
+      const format = calculator.steps.find((candidate) => candidate.key === base)?.format;
+      return format === 'money' || format === 'count' ? 'count' : format === 'percent' ? 'percentage' : undefined;
     },
     call: callUnits(library),
-    symbol(base, property) {
-      if (property) return undefined;
-      const input = calculator.inputs.find((candidate) => candidate.key === base);
-      if (input) return input.value.kind === 'number' || input.value.kind === 'choice' ? input.value.unitSymbol : undefined;
-      return calculator.steps.find((candidate) => candidate.key === base)?.unitSymbol;
-    },
+    symbol: (base, property) => (property ? undefined : declaredUnit(calculator, base).symbol),
   };
 }
 
@@ -86,14 +97,9 @@ export function functionUnitResolver(
       const parameter = parameters.find((candidate) => candidate.name === base);
       if (!parameter) return undefined;
       if (property) return materialPropertyUnit(property, parameter.materialCategory?.trim() || undefined, library.materials);
-      return categoryOf(parameter);
+      return declaredCategory(parameter);
     },
     call: callUnits(library, visiting),
     symbol: (base, property) => (property ? undefined : parameters.find((candidate) => candidate.name === base)?.unitSymbol),
   };
-}
-
-/** A declared unit, as a category. */
-export function declaredCategory(unit: { unitCategory?: UnitCategory; unitSymbol?: string } | undefined): UnitCategory | undefined {
-  return categoryOf(unit);
 }
