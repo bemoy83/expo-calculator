@@ -22,6 +22,21 @@ export type FunctionAutocompleteCandidate = {
   storedKey?: string;
 };
 
+/**
+ * Whether a parameter still needs the person to say what it is, which is when its editor
+ * should open by itself. A blank one has nothing yet; a number with no unit and no "Expects"
+ * chosen hasn't been defined; a material has to say which category its properties come from.
+ * A parameter that arrives defined (reused from storage, a material whose category was found)
+ * is left closed.
+ */
+export function parameterNeedsDefinition(param: FunctionParameter): boolean {
+  if (!param.name.trim() && !param.label.trim()) return true;
+  const kind = param.kind ?? "number";
+  if (kind === "number") return !param.unitSymbol && !param.kind;
+  if (kind === "material") return !param.materialCategory;
+  return false;
+}
+
 /** What tells stored parameters apart in the suggestions: the same name can come in other units. */
 export const storedParameterKey = (item: ParameterSuggestion) => [item.name, item.group, item.unitSymbol ?? ""].join("|");
 

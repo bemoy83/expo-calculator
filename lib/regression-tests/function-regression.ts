@@ -11,6 +11,7 @@ import {
   getParameterSuggestions,
   findStoredParametersNamed,
   getFormulaWithInsertedOperator,
+  parameterNeedsDefinition,
   renameFormulaName,
   getFormulaWithInsertedToken,
   validateFunctionEditorForm,
@@ -315,6 +316,17 @@ assertCheck(
   'names compare without case or æøå',
   foldName('Høyde') === 'hoyde' && foldName('Ærfugl') === 'aerfugl' && foldName('Årstall') === 'arstall',
   [foldName('Høyde'), foldName('Ærfugl'), foldName('Årstall')].join(',')
+);
+
+assertCheck(
+  'a parameter needs defining until it has a unit or expects something, and a material until it has a category',
+  parameterNeedsDefinition({ name: '', label: '', required: true }) &&
+    parameterNeedsDefinition({ name: 'bredde', label: 'Bredde', required: true }) &&
+    !parameterNeedsDefinition({ name: 'bredde', label: 'Bredde', required: true, unitSymbol: 'mm' }) &&
+    !parameterNeedsDefinition({ name: 'antall', label: 'Antall', required: true, kind: 'number' }) &&
+    parameterNeedsDefinition({ name: 'plate', label: 'Plate', required: true, kind: 'material' }) &&
+    !parameterNeedsDefinition({ name: 'plate', label: 'Plate', required: true, kind: 'material', materialCategory: 'Gips' }) &&
+    !parameterNeedsDefinition({ name: 'crew', label: 'Crew', required: true, kind: 'labor' })
 );
 
 const validation = validateFunctionEditorForm({

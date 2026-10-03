@@ -22,6 +22,8 @@ import {
 } from '@/lib/functions/function-editor-helpers';
 import type { Calculator } from '@/lib/calculator/types';
 import type { Labor, Material, SharedFunction } from '@/lib/types';
+
+type FunctionParameter = SharedFunction['parameters'][number];
 import { labelToVariableName } from '@/lib/utils';
 import { countParameterUses } from '@/lib/functions/function-usage';
 import { categoryForName, getMaterialCategories } from '@/lib/utils/material-category';
@@ -233,19 +235,24 @@ export function useFunctionEditorState({
   }, []);
 
   // "+ Create parameter" for a name the formula uses but no parameter has yet.
+  // Returns the parameter it added, or null if there already is one by that name.
   const addParameterNamed = useCallback(
-    (name: string) => {
+    (name: string): FunctionParameter | null => {
+      if (parameters.some((param) => param.name === name)) return null;
       // A name the formula reads properties from (`board.width`) can only be a material.
       const isMaterial = formData.formula.includes(`${name}.`);
       // and a name that is a category (`sheets`) starts out limited to it.
       const materialCategory = isMaterial ? categoryForName(name, getMaterialCategories(materials)) : undefined;
-      setParameters((prev) =>
-        prev.some((param) => param.name === name)
-          ? prev
-          : [...prev, { name, label: labelFromName(name), required: true, ...(isMaterial ? { kind: 'material' as const, ...(materialCategory ? { materialCategory } : {}) } : {}) }]
-      );
+      const added: FunctionParameter = {
+        name,
+        label: labelFromName(name),
+        required: true,
+        ...(isMaterial ? { kind: 'material' as const, ...(materialCategory ? { materialCategory } : {}) } : {}),
+      };
+      setParameters((prev) => (prev.some((param) => param.name === name) ? prev : [...prev, added]));
+      return added;
     },
-    [setParameters, formData.formula, materials]
+    [setParameters, parameters, formData.formula, materials]
   );
 
   // Calls pass values by position, so the order is part of the function.

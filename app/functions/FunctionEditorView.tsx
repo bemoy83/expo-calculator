@@ -29,6 +29,7 @@ import { getMaterialCategories } from '@/lib/utils/material-category';
 import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
+import { parameterNeedsDefinition } from '@/lib/functions/function-editor-helpers';
 
 const listHref = (id?: string) => browseHref('/functions', { id });
 
@@ -57,8 +58,9 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
   const [confirmingRename, setConfirmingRename] = useState<{ then?: string } | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [editingDetails, setEditingDetails] = useState(isNew);
-  // A new function starts with one empty parameter, open to fill in.
-  const [openIndex, setOpenIndex] = useState<number | null>(isNew ? 0 : null);
+  // Which parameter is open in the rail. One opens by itself only when it still needs defining
+  // (see parameterNeedsDefinition): a reused or already-defined one stays closed.
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   // A parameter just added opens with its Label focused.
   const [focusLabelOf, setFocusLabelOf] = useState<number | null>(null);
   const openNewParameter = (index: number) => {
@@ -307,8 +309,8 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               formulaNames={formulaNames}
               unknownNames={unknownValueNames(editor.formData.formula, formulaNames)}
               onCreateParameter={(name) => {
-                editor.addParameterNamed(name);
-                openNewParameter(editor.parameters.length);
+                const created = editor.addParameterNamed(name);
+                if (created && parameterNeedsDefinition(created)) openNewParameter(editor.parameters.length);
               }}
               storedParameters={editor.parameterSuggestions}
               onReuseParameter={editor.addParameterFromSuggestion}
