@@ -59,6 +59,8 @@ interface StepRowProps {
   /** Its place in the part, from 1 */
   index: number;
   result: StepResult | undefined;
+  /** Every step's result, for the formula's hover cards */
+  stepResults: Record<string, StepResult>;
   library: CalculatorLibrary;
   formatMoney: (amount: number) => string;
   isCost: boolean;
@@ -181,6 +183,7 @@ export function StepRow({
   step,
   index,
   result,
+  stepResults,
   library,
   formatMoney,
   isCost,
@@ -354,6 +357,8 @@ export function StepRow({
                   library={library}
                   value={expression}
                   errorRange={syntaxRange}
+                  results={stepResults}
+                  formatMoney={formatMoney}
                   onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
                 />
                 {issues.map((issue) =>

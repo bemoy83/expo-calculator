@@ -62,6 +62,8 @@ interface Props {
   fieldTagLabel?: string;
   /** A name that's another step's result is coloured as one in the suggestions */
   isStepKey?: (name: string) => boolean;
+  /** What a name is worth right now (a step's current value), shown on its hover card */
+  describeValue?: (name: string) => string | undefined;
   /** Tidy the spacing of a formula that reads fine once the editor is left (as one undo step). `canTidy` can hold it back. */
   tidyOnBlur?: boolean;
   canTidy?: () => boolean;
@@ -182,7 +184,7 @@ function renderSuggestionRow(
 }
 
 /** The hover card for a name: how it's written (a call with its arguments), what it is, and its description. */
-function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: string) => boolean, fieldTagLabel?: string): HTMLElement {
+function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: string) => boolean, fieldTagLabel?: string, value?: string): HTMLElement {
   const token = suggestionToken(suggestion.type, suggestion.type === 'field' && !!isStepKey?.(suggestion.name));
   const make = (tag: string, className: string, text: string) => {
     const el = document.createElement(tag);
@@ -204,6 +206,7 @@ function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: stri
   );
   card.append(head);
   if (suggestion.description) card.append(make('span', 'text-[11.5px] text-ink-muted', suggestion.description));
+  if (value) card.append(make('span', 'font-numeric text-[11.5px] text-ink', `Now ${value}`));
   return card;
 }
 
@@ -291,7 +294,7 @@ export default function FormulaEditorCM(props: Props) {
         const doc = view.state.doc.toString();
         const info = getWordAtCursor(doc, pos);
         if (!info.word || (pos === info.start && side < 0) || (pos === info.end && side > 0)) return null;
-        const { candidates, candidatesForBase, isStepKey, fieldTagLabel } = latest.current;
+        const { candidates, candidatesForBase, isStepKey, fieldTagLabel, describeValue } = latest.current;
         const wanted = foldName(info.word);
         const pool = info.hasDot && info.baseWord && candidatesForBase ? [...candidates, ...candidatesForBase(info.baseWord)] : candidates;
         const found = pool.find((candidate) => foldName(candidate.name) === wanted);
@@ -300,7 +303,7 @@ export default function FormulaEditorCM(props: Props) {
           pos: info.start,
           end: info.end,
           above: true,
-          create: () => ({ dom: renderHover(found, isStepKey, fieldTagLabel) }),
+          create: () => ({ dom: renderHover(found, isStepKey, fieldTagLabel, describeValue?.(found.name)) }),
         };
       },
       { hoverTime: 300 }

@@ -6,9 +6,10 @@ import { TidyOffer } from '@/components/formula/TidyOffer';
 import { FIELD_ERROR, FIELD_LABEL } from '@/components/ui/field-styles';
 import { useTidyOffer } from '@/hooks/use-tidy-offer';
 import type { AutocompleteSuggestion } from '@/lib/formula/suggestions';
-import type { Calculator, CalculatorLibrary, CalculatorStep } from '@/lib/calculator/types';
+import type { Calculator, CalculatorLibrary, CalculatorStep, StepResult } from '@/lib/calculator/types';
 import { cn } from '@/lib/utils';
 import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
+import { describeStepProblem, formatStepValue } from '@/lib/calculator/format';
 import { propertyNamesFor } from '@/lib/calculator/call-context';
 
 const MATH_FUNCTIONS = [
@@ -74,6 +75,8 @@ export function StepFormulaEditor({
   value,
   error,
   errorRange,
+  results,
+  formatMoney,
   onChange,
 }: {
   id?: string;
@@ -85,12 +88,26 @@ export function StepFormulaEditor({
   error?: string;
   /** Where the formula's syntax breaks, to underline it */
   errorRange?: { start: number; end: number } | null;
+  /** Each step's current result, to say what a step's name is worth on hover */
+  results?: Record<string, StepResult>;
+  formatMoney?: (amount: number) => string;
   onChange: (value: string) => void;
 }) {
   const editor = useRef<FormulaEditorHandle | null>(null);
   const formulaNames = useMemo(() => calculatorFormulaNames(calculator, library), [calculator, library]);
   const candidates = useCandidates(calculator, step, library);
   const stepKeys = useMemo(() => new Set(calculator.steps.map((other) => other.key)), [calculator.steps]);
+  const describeValue = (name: string) => {
+    const other = calculator.steps.find((candidate) => candidate.key === name);
+    const result = other && results?.[other.id];
+    if (!other || !result) return undefined;
+    if (result.status === 'disabled') return 'off (0)';
+    const problem = describeStepProblem(result, calculator);
+    if (problem) return problem.charAt(0).toLowerCase() + problem.slice(1);
+    if (result.displayValue === undefined) return undefined;
+    const { text, unit } = formatStepValue(other, result.displayValue, formatMoney ?? String);
+    return unit ? `${text} ${unit}` : text;
+  };
   const tidy = useTidyOffer({ formula: value, apply: (tidied) => editor.current?.applyTidy(tidied) });
 
   return (
@@ -125,6 +142,7 @@ export function StepFormulaEditor({
           invalid={!!error}
           candidates={candidates}
           isStepKey={(name) => stepKeys.has(name)}
+          describeValue={describeValue}
           tidyOnBlur
           handleRef={editor}
         />

@@ -175,6 +175,7 @@ export const PartSteps = memo(function PartSteps({
               step={step}
               index={index + 1}
               result={result.steps[step.id]}
+              stepResults={result.steps}
               library={library}
               formatMoney={formatMoney}
               isCost={part.costStepId === step.id}
