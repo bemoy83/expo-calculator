@@ -8,5 +8,6 @@ import './calculator-regression';
 import './pack-regression';
 import './norwegian-regression';
 import './unit-analysis-regression';
+import './formula-editor-regression';
 
 console.log('\n=== Tests Complete ===');

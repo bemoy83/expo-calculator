@@ -99,6 +99,19 @@ export function parseCalls(expression: string): CallFrame[] {
   return calls;
 }
 
+/** The innermost call the caret is inside, and the argument it's on. */
+export function callAtCaret(doc: string, caret: number) {
+  let found: { name: string; nameStart: number; argIndex: number } | null = null;
+  let openAt = -1;
+  for (const call of parseCalls(doc)) {
+    if (caret <= call.open || (call.close !== undefined && caret > call.close) || call.open < openAt) continue;
+    openAt = call.open;
+    const next = call.args.findIndex((arg) => caret <= arg.end);
+    found = { name: call.name, nameStart: call.nameStart, argIndex: next === -1 ? call.args.length - 1 : next };
+  }
+  return found;
+}
+
 // ---- What a call expects ----
 
 export interface ParamSpec {

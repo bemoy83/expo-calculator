@@ -203,7 +203,6 @@ export type CalculationErrorCode =
   | 'missing_value'
   | 'invalid_formula'
   | 'missing_property'
-  | 'unit_mismatch'
   | 'computed_output_failed';
 
 export interface CalculationError {

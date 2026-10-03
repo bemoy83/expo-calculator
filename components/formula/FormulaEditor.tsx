@@ -6,8 +6,8 @@
 // transactions, so each is one undo step and the caret and selection stay put.
 
 import { useEffect, useRef, type MutableRefObject } from 'react';
-import { Compartment, EditorState, StateEffect, StateField, Transaction, Annotation, Prec, type Extension } from '@codemirror/state';
-import { Decoration, EditorView, closeHoverTooltips, drawSelection, hoverTooltip, keymap, placeholder, showTooltip, type DecorationSet, type Tooltip } from '@codemirror/view';
+import { Compartment, EditorState, StateField, Transaction, Annotation, Prec, type Extension } from '@codemirror/state';
+import { EditorView, drawSelection, hoverTooltip, keymap, placeholder, showTooltip, type Tooltip } from '@codemirror/view';
 import { bracketMatching } from '@codemirror/language';
 import { selectNextOccurrence } from '@codemirror/search';
 import { defaultKeymap, history, historyKeymap, isolateHistory } from '@codemirror/commands';
@@ -22,15 +22,15 @@ import {
   type CompletionResult,
   snippet,
 } from '@codemirror/autocomplete';
-import { classifyFormula, type FormulaNames } from '@/lib/calculator/formula-tokens';
-import { ISSUE_LEVELS } from '@/components/formula/IssueMarker';
+import type { FormulaNames } from '@/lib/calculator/formula-tokens';
+import { decorationsField, formulaTheme, inputsField, setInputs } from '@/components/formula/formula-editor-look';
+import { renderHover, renderProblems, renderSignature, renderSuggestionRow, suggestionOf } from '@/components/formula/formula-cards';
+import { minimalChange } from '@/lib/formula/minimal-change';
 import type { FormulaDiagnostic, FormulaNote } from '@/lib/formula/issue-levels';
-import { UNRESOLVED, WAVY_UNDERLINE, TOKEN_TEXT, suggestionToken } from '@/components/formula/FormulaText';
 import { filterSuggestions, getWordAtCursor, type AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import { getFormulaWithInsertedOperator, getFormulaWithInsertedToken } from '@/lib/functions/function-editor-helpers';
 import { caretAfterTidy, prettifyFormula } from '@/lib/formula/prettify';
-import { callSignature, parseCalls, paramAt, type CallSignature } from '@/lib/calculator/call-context';
-import { displayUnit } from '@/lib/calculator/format';
+import { callAtCaret, callSignature, type CallSignature } from '@/lib/calculator/call-context';
 import { foldName, isNameChar } from '@/lib/formula/identifiers';
 
 export interface FormulaEditorHandle {
@@ -82,256 +82,12 @@ interface Props {
   handleRef: MutableRefObject<FormulaEditorHandle | null>;
 }
 
-// ---- Colouring: decorations on the real text, from the same classifier the rest of the app uses ----
-
-interface DecorationInputs {
-  names?: FormulaNames;
-  diagnostics?: FormulaDiagnostic[];
-}
-const setInputs = StateEffect.define<DecorationInputs>();
-const inputsField = StateField.define<DecorationInputs>({
-  create: () => ({}),
-  update(inputs, tr) {
-    for (const effect of tr.effects) if (effect.is(setInputs)) return effect.value;
-    return inputs;
-  },
-});
-
-// A heads-up is a quieter dotted line; a broken formula is red and wavy; an unresolved name already has its amber dots from the colouring.
-const HEADS_UP_UNDERLINE = 'underline decoration-dotted decoration-ink-muted underline-offset-[5px]';
-
-function buildDecorations(text: string, { names, diagnostics }: DecorationInputs): DecorationSet {
-  const ranges = [];
-  if (names) {
-    let offset = 0;
-    for (const segment of classifyFormula(text, names)) {
-      const from = offset;
-      offset += segment.text.length;
-      if (segment.kind === 'plain') continue;
-      // A name nothing matches is unresolved (amber, dotted), as in the textarea version.
-      const className = segment.kind === 'unknown' ? UNRESOLVED : TOKEN_TEXT[segment.kind];
-      if (className) ranges.push(Decoration.mark({ class: className }).range(from, offset));
-    }
-  }
-  for (const diagnostic of diagnostics ?? []) {
-    if (diagnostic.to <= diagnostic.from || diagnostic.to > text.length) continue;
-    if (diagnostic.level === 'broken') {
-      ranges.push(Decoration.mark({ class: `${WAVY_UNDERLINE} decoration-danger` }).range(diagnostic.from, diagnostic.to));
-    } else if (diagnostic.level === 'heads-up') {
-      ranges.push(Decoration.mark({ class: HEADS_UP_UNDERLINE }).range(diagnostic.from, diagnostic.to));
-    }
-  }
-  return Decoration.set(ranges, true);
-}
-
-const decorationsField = StateField.define<DecorationSet>({
-  create: () => Decoration.none,
-  update(decorations, tr) {
-    if (!tr.docChanged && !tr.effects.some((effect) => effect.is(setInputs))) return decorations;
-    return buildDecorations(tr.state.doc.toString(), tr.state.field(inputsField));
-  },
-  provide: (field) => EditorView.decorations.from(field),
-});
-
-// ---- Look: the same type, colours and caret as the textarea version ----
-
-const theme = EditorView.theme({
-  '&': { backgroundColor: 'transparent', color: 'rgb(var(--ink))' },
-  '&.cm-focused': { outline: 'none' },
-  '.cm-scroller': { fontFamily: 'inherit', lineHeight: 'inherit', overflow: 'visible' },
-  '.cm-content': { padding: '0', caretColor: 'rgb(var(--accent))', fontFamily: 'inherit' },
-  '.cm-line': { padding: '0' },
-  // The editor draws the selection itself (more than one can be selected); tinted like the textarea's was.
-  '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': { backgroundColor: 'rgb(var(--accent) / 0.3)' },
-  '.cm-placeholder': { color: 'rgb(var(--ink-faint))' },
-  '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'rgb(var(--accent))' },
-  '.cm-tooltip': {
-    backgroundColor: 'rgb(var(--surface))',
-    color: 'rgb(var(--ink))',
-    border: '1px solid rgb(var(--border-strong))',
-    borderRadius: '10px',
-    overflow: 'hidden',
-  },
-  '.cm-tooltip-autocomplete > ul': { fontFamily: 'inherit', maxHeight: '16rem', minWidth: '280px' },
-  '.cm-tooltip-autocomplete > ul > li': { padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '12px', lineHeight: '1.3' },
-  '.cm-tooltip-autocomplete > ul > li[aria-selected]': { backgroundColor: 'var(--accent-soft)', color: 'rgb(var(--ink))' },
-  // The row is drawn by renderSuggestionRow; the default label is only what the list matches on.
-  '.cm-completionLabel, .cm-completionDetail, .cm-completionMatchedText': { display: 'none' },
-});
-
 const External = Annotation.define<boolean>();
 
 // aria-invalid belongs on the textbox itself (the editor's content), which changes as the formula does.
 const invalidAttributes = (invalid?: boolean) => EditorView.contentAttributes.of(invalid ? { 'aria-invalid': 'true' } : {});
 
-// The suggestion each list row stands for, so its row can be drawn the way the textarea version draws it.
-const suggestionOf = new WeakMap<Completion, AutocompleteSuggestion>();
-
-/** One suggestion row: the name in its kind's colour, the description under it, the kind tag at the right. */
-function renderSuggestionRow(
-  completion: Completion,
-  recent: string[],
-  isStepKey?: (name: string) => boolean,
-  fieldTagLabel?: string
-): Node | null {
-  const suggestion = suggestionOf.get(completion);
-  if (!suggestion) return null;
-  const token = suggestionToken(suggestion.type, suggestion.type === 'field' && !!isStepKey?.(suggestion.name));
-  const make = (tag: string, className: string, text?: string) => {
-    const el = document.createElement(tag);
-    el.className = className;
-    if (text !== undefined) el.textContent = text;
-    return el;
-  };
-  const row = make('div', 'flex flex-1 min-w-0 items-center gap-3');
-  const left = make('span', 'flex flex-1 min-w-0 flex-col');
-  left.append(make('code', `text-xs font-numeric ${TOKEN_TEXT[token.kind]}`, suggestion.displayName));
-  if (suggestion.description) left.append(make('span', 'text-[11.5px] text-ink-muted truncate', suggestion.description));
-  row.append(left);
-  if (recent.includes(suggestion.name)) {
-    const dot = make('span', 'text-xs text-ink-faint', '●');
-    dot.title = 'Recently used';
-    row.append(dot);
-  }
-  row.append(
-    make(
-      'span',
-      `flex-none font-numeric text-[10.5px] uppercase tracking-wide font-medium ${TOKEN_TEXT[token.kind] || 'text-ink-faint'}`,
-      suggestion.storedKey ? 'stored' : suggestion.type === 'field' && fieldTagLabel ? fieldTagLabel : token.label
-    )
-  );
-  return row;
-}
-
-/** The hover card for a name: how it's written (a call with its arguments), what it is, and its description. */
-function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: string) => boolean, fieldTagLabel?: string, value?: string, unit?: string): HTMLElement {
-  const token = suggestionToken(suggestion.type, suggestion.type === 'field' && !!isStepKey?.(suggestion.name));
-  const make = (tag: string, className: string, text: string) => {
-    const el = document.createElement(tag);
-    el.className = className;
-    el.textContent = text;
-    return el;
-  };
-  const card = document.createElement('div');
-  // A long name wraps inside the card (anywhere, since it has no spaces) instead of pushing the kind tag out of it.
-  card.className = 'flex w-max max-w-[320px] flex-col gap-0.5 px-3 py-2 [overflow-wrap:anywhere]';
-  const head = document.createElement('div');
-  // The tag sits beside the name when there's room and drops under it when there isn't.
-  head.className = 'flex flex-wrap items-baseline gap-x-3';
-  head.append(
-    make('code', `min-w-0 max-w-full text-xs font-numeric ${TOKEN_TEXT[token.kind]}`, suggestion.displayName),
-    make(
-      'span',
-      `flex-none font-numeric text-[10.5px] uppercase tracking-wide font-medium ${TOKEN_TEXT[token.kind] || 'text-ink-faint'}`,
-      suggestion.storedKey ? 'stored' : suggestion.type === 'field' && fieldTagLabel ? fieldTagLabel : token.label
-    )
-  );
-  card.append(head);
-  if (suggestion.description) card.append(make('span', 'text-[11.5px] text-ink-muted', suggestion.description));
-  if (unit) card.append(make('span', 'text-[11.5px] text-ink-muted', `Measured in ${unit}`));
-  if (value) card.append(make('span', 'font-numeric text-[11.5px] text-ink', `Now ${value}`));
-  return card;
-}
-
-/** The problems under the pointer: each one's marker and message, then the buttons that fix it. */
-function renderProblems(view: EditorView, problems: FormulaDiagnostic[], withDivider: boolean): HTMLElement {
-  const list = document.createElement('div');
-  list.className = `flex w-max max-w-[320px] flex-col gap-2 px-3 py-2 [overflow-wrap:anywhere] ${withDivider ? 'border-t border-border-strong' : ''}`;
-  for (const problem of problems) {
-    const level = ISSUE_LEVELS[problem.level];
-    const row = document.createElement('div');
-    row.className = 'flex flex-col gap-1';
-    const message = document.createElement('p');
-    message.className = `text-[11.5px] ${level.text}`;
-    message.textContent = `${level.glyph} ${problem.message}`;
-    message.title = level.label;
-    row.append(message);
-    if (problem.fixes?.length) {
-      const buttons = document.createElement('div');
-      buttons.className = 'flex flex-wrap gap-1.5';
-      for (const fix of problem.fixes) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'rounded-md border border-border-strong px-2 py-0.5 text-[11.5px] text-ink hover:bg-sunken-2';
-        button.textContent = fix.label;
-        if (fix.title) button.title = fix.title;
-        // Keep the editor's focus and caret; the fix may change the formula under them.
-        button.addEventListener('mousedown', (event) => event.preventDefault());
-        button.addEventListener('click', () => {
-          view.dispatch({ effects: closeHoverTooltips });
-          fix.run();
-        });
-        buttons.append(button);
-      }
-      row.append(buttons);
-    }
-    list.append(row);
-  }
-  return list;
-}
-
 const NO_FUNCTIONS = { functions: [] };
-
-/** The innermost call the caret is inside, and the argument it's on. */
-function callAtCaret(doc: string, caret: number) {
-  let found: { name: string; nameStart: number; argIndex: number } | null = null;
-  let openAt = -1;
-  for (const call of parseCalls(doc)) {
-    if (caret <= call.open || (call.close !== undefined && caret > call.close) || call.open < openAt) continue;
-    openAt = call.open;
-    const next = call.args.findIndex((arg) => caret <= arg.end);
-    found = { name: call.name, nameStart: call.nameStart, argIndex: next === -1 ? call.args.length - 1 : next };
-  }
-  return found;
-}
-
-const KIND_NOTE: Record<string, string> = { material: 'a material', labor: 'a labor rate', boolean: 'yes or no' };
-
-/** The call as it's written with the argument being typed in bold, and what that argument expects under it. */
-function renderSignature(signature: CallSignature, argIndex: number): HTMLElement {
-  const make = (tag: string, className: string, text: string) => {
-    const el = document.createElement(tag);
-    el.className = className;
-    el.textContent = text;
-    return el;
-  };
-  const active = paramAt(signature, argIndex);
-  const card = document.createElement('div');
-  card.className = 'flex w-max max-w-[320px] flex-col gap-0.5 px-3 py-2 [overflow-wrap:anywhere]';
-  const line = make('code', 'text-xs font-numeric text-ink-muted', '');
-  line.append(`${signature.name}(`);
-  signature.params.forEach((param, i) => {
-    if (i > 0) line.append(', ');
-    const isActive = param === active;
-    line.append(make('span', isActive ? 'font-semibold text-ink' : '', param.name + (signature.variadic && i === signature.params.length - 1 ? '…' : '')));
-  });
-  line.append(')');
-  card.append(line);
-  if (active) {
-    const unit = displayUnit(active.unitSymbol);
-    const note = KIND_NOTE[active.kind] ?? unit;
-    const text = [active.label !== active.name ? active.label : '', note].filter(Boolean).join(' · ');
-    if (text) card.append(make('span', 'text-[11.5px] text-ink-muted', text));
-  } else {
-    const count = signature.params.length;
-    card.append(make('span', 'text-[11.5px] text-ink-muted', `Takes ${count} argument${count === 1 ? '' : 's'}`));
-  }
-  return card;
-}
-
-/** The smallest single change turning `from` into `to`, so a rename in the middle keeps the caret where it was. */
-function minimalChange(from: string, to: string) {
-  let start = 0;
-  const max = Math.min(from.length, to.length);
-  while (start < max && from[start] === to[start]) start += 1;
-  let endFrom = from.length;
-  let endTo = to.length;
-  while (endFrom > start && endTo > start && from[endFrom - 1] === to[endTo - 1]) {
-    endFrom -= 1;
-    endTo -= 1;
-  }
-  return { from: start, to: endFrom, insert: to.slice(start, endTo) };
-}
 
 export default function FormulaEditorCM(props: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -484,7 +240,7 @@ export default function FormulaEditorCM(props: Props) {
       }),
       EditorView.lineWrapping,
       placeholder(latest.current.placeholderText),
-      theme,
+      formulaTheme,
       EditorView.contentAttributes.of({
         'aria-label': latest.current.ariaLabel ?? 'Formula',
         spellcheck: 'false',

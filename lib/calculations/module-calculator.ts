@@ -18,11 +18,9 @@ function toCalculationError(error: unknown, source?: string): CalculationError {
   const code: CalculationError['code'] =
     message.includes('Property') && message.includes('not found')
       ? 'missing_property'
-      : message.includes('Cannot add') || message.includes('Cannot divide')
-        ? 'unit_mismatch'
-        : message.includes('Missing values')
-          ? 'missing_value'
-          : 'invalid_formula';
+      : message.includes('Missing values')
+        ? 'missing_value'
+        : 'invalid_formula';
 
   return { code, message, source };
 }
