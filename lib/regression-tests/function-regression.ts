@@ -8,7 +8,9 @@ import {
   findUnknownMaterialProperties,
   getPropertyCandidatesForBase,
   getParameterSuggestions,
+  findStoredParametersNamed,
   getFormulaWithInsertedOperator,
+  renameFormulaName,
   getFormulaWithInsertedToken,
   validateFunctionEditorForm,
 } from '../functions/function-editor-helpers';
@@ -263,6 +265,33 @@ assertCheck(
     errorAt('board.width * 2') === 'null' &&
     errorAt('') === 'null',
   JSON.stringify(['ceil(bredde / cc', 'bredde / ', '(1 + )', '2 3', 'a + * b', 'a + b)', 'høyde * (bredde', 'a +'].map(errorAt))
+);
+
+const storedParameters = getParameterSuggestions(
+  [
+    { id: 'f1', name: 'area', displayName: 'Area', formula: 'høyde * bredde', category: 'x', parameters: [{ name: 'høyde', label: 'Høyde', unitSymbol: 'mm', required: true }, { name: 'bredde', label: 'Bredde', required: true }] } as unknown as SharedFunction,
+    { id: 'f2', name: 'wall', displayName: 'Wall', formula: 'høyde * 2', category: 'x', parameters: [{ name: 'høyde', label: 'Høyde', unitSymbol: 'mm', required: true }] } as unknown as SharedFunction,
+  ],
+  []
+);
+const named = (name: string, asMaterial = false) =>
+  findStoredParametersNamed(name, storedParameters, asMaterial).map((item) => `${item.name}:${item.uses}`).join(',');
+assertCheck(
+  'a name the formula uses is matched to stored parameters of the same name, not to near misses',
+  named('høyde') === 'høyde:2' &&
+    named('Høyde') === 'høyde:2' &&
+    named('hoyde') === 'høyde:2' &&
+    named('hoyd') === '' &&
+    named('høyde', true) === '' &&
+    named('') === '',
+  JSON.stringify([named('høyde'), named('hoyde'), named('hoyd'), named('høyde', true)])
+);
+assertCheck(
+  'renaming a name in a formula leaves longer names and properties alone',
+  renameFormulaName('hoyde * (hoyde + hoyde_2) + board.hoyde', 'hoyde', 'høyde') === 'høyde * (høyde + hoyde_2) + board.hoyde' &&
+    renameFormulaName('ceil(hoyde)', 'hoyde', 'høyde') === 'ceil(høyde)' &&
+    renameFormulaName('a + b', 'a', 'a') === 'a + b',
+  renameFormulaName('hoyde * (hoyde + hoyde_2) + board.hoyde', 'hoyde', 'høyde')
 );
 
 const validation = validateFunctionEditorForm({

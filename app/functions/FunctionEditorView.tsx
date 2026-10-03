@@ -310,6 +310,8 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
                 editor.addParameterNamed(name);
                 openNewParameter(editor.parameters.length);
               }}
+              storedParameters={editor.parameterSuggestions}
+              onReuseParameter={editor.addParameterFromSuggestion}
               onFormulaChange={(next) => editor.handleFormDataChange({ formula: next })}
               formulaTextareaRef={editor.formulaTextareaRef}
               formulaValidation={editor.formulaValidation}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Link2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { FormulaPalette } from '@/components/formula/FormulaPalette';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,7 @@ import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
 import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import type { FormulaNames } from '@/lib/calculator/formula-tokens';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
+import { findStoredParametersNamed, renameFormulaName, type ParameterSuggestion } from '@/lib/functions/function-editor-helpers';
 
 interface WordInfo {
   word: string;
@@ -28,6 +29,9 @@ interface FunctionFormulaCardProps {
   /** Names the formula uses that aren't parameters yet, each offered as "+ Create parameter" */
   unknownNames?: string[];
   onCreateParameter?: (name: string) => void;
+  /** Parameters other functions and calculators already have, offered for a name the formula uses */
+  storedParameters?: ParameterSuggestion[];
+  onReuseParameter?: (suggestion: ParameterSuggestion) => void;
   /** Names the formula can use, to colour it as it's typed. */
   formulaNames?: FormulaNames;
   formula: string;
@@ -65,6 +69,8 @@ const NARROW_BELOW = 640;
 export function FunctionFormulaCard({
   unknownNames = [],
   onCreateParameter,
+  storedParameters = [],
+  onReuseParameter,
   formulaNames,
   formula,
   onFormulaChange,
@@ -330,6 +336,27 @@ export function FunctionFormulaCard({
                 <span className="text-danger">
                   ● <span className="font-numeric">{name}</span> isn’t a parameter.
                 </span>
+                {onReuseParameter &&
+                  findStoredParametersNamed(name, storedParameters, formula.includes(`${name}.`)).map((stored) => (
+                    <Button
+                      key={`${stored.name}|${stored.unitSymbol ?? ''}`}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // The same name spelt differently (hoyde for høyde) is renamed in the formula to match.
+                        if (stored.name !== name) onFormulaChange(renameFormulaName(formula, name, stored.name));
+                        onReuseParameter(stored);
+                      }}
+                      title={`${stored.label} · in ${stored.uses} ${stored.uses === 1 ? 'place' : 'places'}`}
+                      className="px-2"
+                    >
+                      <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span>
+                        Reuse “<span className="font-numeric">{stored.name}</span>”
+                        {stored.unitSymbol && <span className="font-numeric text-ink-faint"> · {stored.unitSymbol}</span>}
+                      </span>
+                    </Button>
+                  ))}
                 <Button variant="ghost" size="sm" onClick={() => onCreateParameter(name)} className="px-2">
                   <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>

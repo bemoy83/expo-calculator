@@ -2,7 +2,7 @@ import type { Calculator } from "../calculator/types";
 import type { FunctionParamKind, Labor, Material, SharedFunction } from "../types";
 import { getFunctionParamKinds } from "./param-kinds";
 import { categoryForName, editDistance, getMaterialCategories, sameCategory } from '../utils/material-category';
-import { isValidName } from '../formula/identifiers';
+import { isValidName, NAME_CHAR } from '../formula/identifiers';
 
 export type FunctionFormData = {
   displayName: string;
@@ -128,6 +128,36 @@ export function addSuggestedParameter(
   const blank = parameters.findIndex((param) => !param.name.trim() && !param.label.trim());
   if (blank === -1) return [...parameters, added];
   return parameters.map((param, index) => (index === blank ? added : param));
+}
+
+// Names compared as the same name when they differ only in case or in æ, ø, å typed as ae, o, a.
+const sameNameKey = (name: string) => name.trim().toLowerCase().replace(/æ/g, "ae").replace(/ø/g, "o").replace(/å/g, "a");
+
+/**
+ * Stored parameters that go by the name a formula uses: the ones other functions and calculators
+ * already have, most used first. Only the same name counts (not a likely misspelling), so what
+ * the formula says is what the parameter is called. A name read with `.property` is a material.
+ */
+export function findStoredParametersNamed(
+  name: string,
+  stored: ParameterSuggestion[],
+  asMaterial: boolean,
+  limit = 3
+): ParameterSuggestion[] {
+  const key = sameNameKey(name);
+  if (!key) return [];
+  return stored
+    .filter((item) => sameNameKey(item.name) === key && (item.group === "material") === asMaterial)
+    .sort((a, b) => b.uses - a.uses)
+    .slice(0, limit);
+}
+
+/** The formula with a name replaced wherever it stands alone: not inside a longer name, nor as a `.property`. */
+export function renameFormulaName(formula: string, from: string, to: string): string {
+  if (!from || from === to) return formula;
+  const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(^|[^${NAME_CHAR}.])${escaped}(?![${NAME_CHAR}])`, "g");
+  return formula.replace(pattern, (_match, before: string) => `${before}${to}`);
 }
 
 export type MaterialPropertyInfo = { name: string; unitSymbol?: string; count: number; total: number };
