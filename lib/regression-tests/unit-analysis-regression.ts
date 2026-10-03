@@ -1,4 +1,7 @@
 import { parseExpression } from '../formula/expression-tree';
+import { calculatorUnitResolver } from '../formula/unit-resolvers';
+import type { Calculator } from '../calculator/types';
+import type { Material } from '../types';
 import { analyzeUnits, declaredUnitProblem, describeDim, type UnitResolver } from '../formula/unit-analysis';
 import type { UnitCategory } from '../units';
 import { assertCheck } from './test-helpers';
@@ -78,3 +81,16 @@ assertCheck(
 assertCheck('a matching, unitless or unknown result is not', declared('bredde * høyde', 'area') === null && declared('antall * 2', 'area') === null && declared('mystery * 2', 'area') === null);
 assertCheck('no declared unit means no problem', declared('bredde * høyde', undefined) === null);
 assertCheck('a measurement where a count is declared is a problem', declared('bredde * høyde', 'count', 'pcs') !== null);
+
+// A material's price per metre is money, not a length; its length is.
+const stud = {
+  category: 'Virke',
+  properties: [
+    { id: 'p1', name: 'pris_per_meter', type: 'price', value: 79, unitCategory: 'length', unitSymbol: 'm' },
+    { id: 'p2', name: 'lengde', type: 'number', value: 4, unitCategory: 'length', unitSymbol: 'm' },
+  ],
+} as unknown as Material;
+const calc = { inputs: [{ id: 'i', key: 'virke', label: 'Virke', widget: 'picker', value: { kind: 'material', category: 'Virke' } }], steps: [] } as unknown as Calculator;
+const catalogResolver = calculatorUnitResolver(calc, { materials: [stud], functions: [] });
+assertCheck('a price property has no unit of its own', catalogResolver.value('virke', 'pris_per_meter') === undefined);
+assertCheck('a number property is measured in its unit', catalogResolver.value('virke', 'lengde') === 'length');

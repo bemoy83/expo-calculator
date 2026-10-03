@@ -213,11 +213,13 @@ function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: stri
     return el;
   };
   const card = document.createElement('div');
-  card.className = 'flex max-w-[280px] flex-col gap-0.5 px-3 py-2';
+  // A long name wraps inside the card (anywhere, since it has no spaces) instead of pushing the kind tag out of it.
+  card.className = 'flex w-max max-w-[320px] flex-col gap-0.5 px-3 py-2 [overflow-wrap:anywhere]';
   const head = document.createElement('div');
-  head.className = 'flex items-baseline gap-3';
+  // The tag sits beside the name when there's room and drops under it when there isn't.
+  head.className = 'flex flex-wrap items-baseline gap-x-3';
   head.append(
-    make('code', `flex-1 text-xs font-numeric ${TOKEN_TEXT[token.kind]}`, suggestion.displayName),
+    make('code', `min-w-0 max-w-full text-xs font-numeric ${TOKEN_TEXT[token.kind]}`, suggestion.displayName),
     make(
       'span',
       `flex-none font-numeric text-[10.5px] uppercase tracking-wide font-medium ${TOKEN_TEXT[token.kind] || 'text-ink-faint'}`,
@@ -234,7 +236,7 @@ function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: stri
 /** The problems under the pointer: each one's marker and message, then the buttons that fix it. */
 function renderProblems(view: EditorView, problems: FormulaDiagnostic[], withDivider: boolean): HTMLElement {
   const list = document.createElement('div');
-  list.className = `flex max-w-[320px] flex-col gap-2 px-3 py-2 ${withDivider ? 'border-t border-border-strong' : ''}`;
+  list.className = `flex w-max max-w-[320px] flex-col gap-2 px-3 py-2 [overflow-wrap:anywhere] ${withDivider ? 'border-t border-border-strong' : ''}`;
   for (const problem of problems) {
     const level = ISSUE_LEVELS[problem.level];
     const row = document.createElement('div');
@@ -295,7 +297,7 @@ function renderSignature(signature: CallSignature, argIndex: number): HTMLElemen
   };
   const active = paramAt(signature, argIndex);
   const card = document.createElement('div');
-  card.className = 'flex max-w-[320px] flex-col gap-0.5 px-3 py-2';
+  card.className = 'flex w-max max-w-[320px] flex-col gap-0.5 px-3 py-2 [overflow-wrap:anywhere]';
   const line = make('code', 'text-xs font-numeric text-ink-muted', '');
   line.append(`${signature.name}(`);
   signature.params.forEach((param, i) => {
@@ -427,7 +429,7 @@ export default function FormulaEditorCM(props: Props) {
             if (shown) dom.append(renderHover(shown, isStepKey, fieldTagLabel, describeValue?.(shown.name), describeUnit?.(shown.name)));
             for (const note of notesHere) {
               const line = document.createElement('div');
-              line.className = 'max-w-[320px] px-3 py-2 font-numeric text-[11.5px] text-ink-muted';
+              line.className = 'w-max max-w-[320px] px-3 py-2 font-numeric text-[11.5px] text-ink-muted [overflow-wrap:anywhere]';
               line.textContent = note.text;
               dom.append(line);
             }

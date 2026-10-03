@@ -25,7 +25,8 @@ function materialPropertyUnit(property: string, category: string | undefined, ma
   for (const material of materials) {
     if (category && material.category !== category) continue;
     const match = material.properties?.find((candidate) => candidate.name === property);
-    if (match) found.add(categoryOf(match));
+    // Only a measurement carries its unit as what it's measured in; a price's unit is the "per" (kr per metre is money).
+    if (match) found.add(match.type === 'number' ? categoryOf(match) : undefined);
   }
   return found.size === 1 ? [...found][0] : undefined;
 }
