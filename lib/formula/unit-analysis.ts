@@ -32,6 +32,15 @@ export function dimOf(category: UnitCategory | undefined): Dim | null {
   }
 }
 
+/** The category a unit works out to, when it is one the categories can name; undefined for odd ones (per length, length⁴). */
+export function categoryOfDim(dim: Dim | null): UnitCategory | undefined {
+  if (!dim) return undefined;
+  if (dim.L === 0 && dim.M === 0) return 'count';
+  if (dim.M === 0 && dim.L >= 1 && dim.L <= 3) return (['length', 'area', 'volume'] as const)[dim.L - 1];
+  if (dim.L === 0 && dim.M === 1) return 'weight';
+  return undefined;
+}
+
 const same = (a: Dim, b: Dim) => a.L === b.L && a.M === b.M;
 const isNone = (dim: Dim) => dim.L === 0 && dim.M === 0;
 const times = (a: Dim, b: Dim): Dim => ({ L: a.L + b.L, M: a.M + b.M });
@@ -102,7 +111,9 @@ export function analyzeUnits(text: string, resolver: UnitResolver): UnitAnalysis
 
   const snippet = (node: ExprNode) => {
     const source = text.slice(node.from, node.to).trim();
-    return source.length > 24 ? `${source.slice(0, 23)}…` : source;
+    if (source.length <= 24) return source;
+    // A long call is named, not cut off in the middle of its arguments.
+    return node.type === 'call' ? `${node.name}(…)` : `${source.slice(0, 23)}…`;
   };
   const label = (node: ExprNode, dim: Dim) => (node.type === 'num' ? 'a number' : describeDim(dim));
 

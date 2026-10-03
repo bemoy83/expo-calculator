@@ -94,3 +94,31 @@ const calc = { inputs: [{ id: 'i', key: 'virke', label: 'Virke', widget: 'picker
 const catalogResolver = calculatorUnitResolver(calc, { materials: [stud], functions: [] });
 assertCheck('a price property has no unit of its own', catalogResolver.value('virke', 'pris_per_meter') === undefined);
 assertCheck('a number property is measured in its unit', catalogResolver.value('virke', 'lengde') === 'length');
+
+// A function returns what its formula works out to from its parameters' units, unless one is declared.
+const metres = (name: string) => ({ name, label: name, unitCategory: 'length' as const, unitSymbol: 'm' });
+const fn = (name: string, formula: string, extra: Record<string, unknown> = {}) =>
+  ({ id: name, displayName: name, name, formula, parameters: [metres('bredde'), metres('høyde')], createdAt: '', updatedAt: '', ...extra }) as unknown as import('../types').SharedFunction;
+const functions = [
+  fn('areal', 'bredde * høyde'),
+  fn('volum', 'areal(bredde, høyde) * bredde'),
+  fn('rundt', 'ceil(bredde / høyde)'),
+  fn('deklarert', 'bredde * høyde', { returnUnitCategory: 'weight' }),
+  fn('sirkel', 'sirkel(bredde, høyde) + bredde'),
+  fn('ukjent', 'bredde * mystery'),
+];
+const fnResolver = calculatorUnitResolver({ inputs: [], steps: [] } as unknown as Calculator, { materials: [], functions });
+assertCheck('a function returns what its formula works out to', fnResolver.call('areal') === 'area');
+assertCheck('and so does one that calls another', fnResolver.call('volum') === 'volume');
+assertCheck('a ratio of lengths is a plain count', fnResolver.call('rundt') === 'count');
+assertCheck('a declared return unit wins', fnResolver.call('deklarert') === 'weight');
+assertCheck('a function that calls itself, or is unsure of a name, has no unit', fnResolver.call('sirkel') === undefined && fnResolver.call('ukjent') === undefined);
+const withFunctions: UnitResolver = { ...resolver, call: fnResolver.call };
+assertCheck(
+  'a call carries its unit into the formula around it',
+  analyzeUnits('areal(bredde, høyde) + bredde', withFunctions).problems.length === 1 && analyzeUnits('areal(bredde, høyde) * bredde', withFunctions).result?.L === 3
+);
+assertCheck(
+  'a long call is named rather than cut off',
+  /^areal\(…\) is an area but bredde is a length/.test(analyzeUnits('areal(bredde, høyde, mer, enda_mer) + bredde', withFunctions).problems[0]?.message ?? '')
+);

@@ -116,7 +116,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
     }),
     [existingFunction, newName, editor.formData.formula, editor.parameters]
   );
-  const formulaNames = functionFormulaNames({ parameters: editor.parameters }, library);
+  const formulaNames = useMemo(() => functionFormulaNames({ parameters: editor.parameters }, library), [editor.parameters, library]);
   // This function's own name, which isn't in the library until it's saved.
   const signatureNames = { ...formulaNames, functions: new Set([...formulaNames.functions, newName]) };
   const backHref = listHref(existingFunction?.id);

@@ -594,10 +594,14 @@ export default function FormulaEditorCM(props: Props) {
     viewRef.current?.dispatch({ effects: invalidCompartment.reconfigure(invalidAttributes(props.invalid)) });
   }, [props.invalid, invalidCompartment]);
 
-  // Colouring and the error underline follow what the card knows.
+  // Colouring and the underlines follow what the card knows. Hosts hand over a new diagnostics array on every
+  // render, so it's what the underlines draw from (ranges, levels) that's compared, not the array. The fixes
+  // on a diagnostic aren't drawn, and the hover card reads them fresh from the latest props.
+  const underlines = JSON.stringify((props.diagnostics ?? []).map((d) => [d.from, d.to, d.level]));
   useEffect(() => {
-    viewRef.current?.dispatch({ effects: setInputs.of({ names: props.names, diagnostics: props.diagnostics }) });
-  }, [props.names, props.diagnostics, props.value]);
+    viewRef.current?.dispatch({ effects: setInputs.of({ names: props.names, diagnostics: latest.current.diagnostics }) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.names, underlines, props.value]);
 
   return (
     <div
