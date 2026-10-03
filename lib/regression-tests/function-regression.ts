@@ -1,5 +1,6 @@
 import { labelFromName, nameAfterLabelChange } from '../utils/function-parameters';
 import { unknownValueNames } from '../calculator/formula-tokens';
+import { findFormulaErrorRange } from '../formula/error-location';
 import {
   addSuggestedParameter,
   buildFunctionSaveData,
@@ -246,6 +247,22 @@ assertCheck(
     wrappedCompareMid.value === '2 * (tax >= )' && wrappedCompareMid.cursorPosition === 12 &&
     plainCompare.value === 'tax == ',
   JSON.stringify([wrappedCompare, wrappedCompareMid, plainCompare])
+);
+
+const errorAt = (formula: string) => JSON.stringify(findFormulaErrorRange(formula));
+assertCheck(
+  'a syntax error is located in the formula as written, names and all',
+  errorAt('ceil(bredde / cc') === '{"start":0,"end":5}' &&
+    errorAt('bredde / ') === '{"start":7,"end":8}' &&
+    errorAt('(1 + )') === '{"start":5,"end":6}' &&
+    errorAt('2 3') === '{"start":2,"end":3}' &&
+    errorAt('a + * b') === '{"start":4,"end":5}' &&
+    errorAt('a + b)') === '{"start":5,"end":6}' &&
+    errorAt('høyde * (bredde') === '{"start":8,"end":9}' &&
+    errorAt('a +') === '{"start":2,"end":3}' &&
+    errorAt('board.width * 2') === 'null' &&
+    errorAt('') === 'null',
+  JSON.stringify(['ceil(bredde / cc', 'bredde / ', '(1 + )', '2 3', 'a + * b', 'a + b)', 'høyde * (bredde', 'a +'].map(errorAt))
 );
 
 const validation = validateFunctionEditorForm({

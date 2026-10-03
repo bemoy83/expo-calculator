@@ -22,6 +22,9 @@ const TOKEN_TITLE: Record<FormulaTokenKind, string | undefined> = {
   plain: undefined,
 };
 
+const WAVY_UNDERLINE = 'underline decoration-wavy underline-offset-[5px]';
+const WAVY = `text-danger ${WAVY_UNDERLINE}`;
+
 // A formula with its names coloured by kind: inputs, results of other steps, functions,
 // material/labor properties, and names nothing matches. Hovering a name says what it is.
 export function FormulaText({
@@ -29,24 +32,47 @@ export function FormulaText({
   names,
   className,
   block = false,
+  wavyErrors = false,
+  errorRange,
 }: {
   expression: string;
   names: FormulaNames;
   className?: string;
   /** A block of its own that keeps the formula's line breaks */
   block?: boolean;
+  /** Draw names nothing matches with a wavy underline instead of a dotted one */
+  wavyErrors?: boolean;
+  /** Part of the text to underline as a syntax error, [start, end) */
+  errorRange?: { start: number; end: number } | null;
 }) {
+  // Each coloured piece is cut at the error's edges, so the broken part gets its underline and
+  // every piece keeps its colour.
+  let offset = 0;
+  const pieces = classifyFormula(expression, names).flatMap((segment, index) => {
+    const from = offset;
+    offset += segment.text.length;
+    const cuts = errorRange ? [errorRange.start - from, errorRange.end - from].filter((cut) => cut > 0 && cut < segment.text.length) : [];
+    const bounds = [0, ...cuts, segment.text.length];
+    return bounds.slice(0, -1).map((cut, part) => {
+      const text = segment.text.slice(cut, bounds[part + 1]);
+      const broken = Boolean(errorRange) && from + cut >= errorRange!.start && from + cut + text.length <= errorRange!.end;
+      return { key: `${index}-${part}`, text, kind: segment.kind, broken };
+    });
+  });
   return (
     <code className={cn('font-numeric', block && 'block whitespace-pre-wrap', className)}>
-      {classifyFormula(expression, names).map((segment, index) =>
-        segment.kind === 'plain' ? (
-          <span key={index}>{segment.text}</span>
-        ) : (
-          <span key={index} className={TOKEN_TEXT[segment.kind]} title={TOKEN_TITLE[segment.kind]}>
-            {segment.text}
+      {pieces.map((piece) => {
+        const colour = piece.kind === 'plain' ? undefined : wavyErrors && piece.kind === 'unknown' ? WAVY : TOKEN_TEXT[piece.kind];
+        return (
+          <span
+            key={piece.key}
+            className={cn(colour, piece.broken && `${WAVY_UNDERLINE} decoration-danger`)}
+            title={piece.kind === 'plain' ? undefined : TOKEN_TITLE[piece.kind]}
+          >
+            {piece.text}
           </span>
-        )
-      )}
+        );
+      })}
     </code>
   );
 }

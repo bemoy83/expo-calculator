@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { FormulaPalette } from '@/components/formula/FormulaPalette';
@@ -9,6 +9,7 @@ import { AutocompleteSuggestion, clampSuggestionLeft } from '@/hooks/use-formula
 import { tidyFormulaAfterBlur } from '@/lib/formula/prettify';
 import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import type { FormulaNames } from '@/lib/calculator/formula-tokens';
+import { findFormulaErrorRange } from '@/lib/formula/error-location';
 
 interface WordInfo {
   word: string;
@@ -32,7 +33,7 @@ interface FunctionFormulaCardProps {
   formula: string;
   onFormulaChange: (formula: string) => void;
   formulaTextareaRef: React.RefObject<HTMLTextAreaElement>;
-  formulaValidation: { valid: boolean; error?: string };
+  formulaValidation: { valid: boolean; error?: string; pending?: boolean };
   formulaError?: string;
   /** A likely misspelt material property, a hint rather than an error */
   propertyHint?: string;
@@ -113,6 +114,11 @@ export function FunctionFormulaCard({
   const validationError =
     unknownNames.length > 0 && formulaValidation.error?.startsWith('Undefined variable') ? undefined : formulaValidation.error;
   const hasError = Boolean(formulaValidation.error || formulaError || unknownNames.length > 0);
+  // Where the syntax breaks, once the check has settled (it holds an error back while the formula is being typed).
+  const errorRange = useMemo(
+    () => (!formulaValidation.valid && !formulaValidation.pending && formula.trim() ? findFormulaErrorRange(formula) : null),
+    [formula, formulaValidation.valid, formulaValidation.pending]
+  );
   const isEmpty = formula.trim() === '';
 
   // The text area grows with its text, so the pane's scroll region does the scrolling.
@@ -221,7 +227,7 @@ export function FunctionFormulaCard({
                 className={cn('absolute inset-x-0 top-1.5 text-ink pointer-events-none', textClasses)}
                 style={textStyle}
               >
-                <FormulaText expression={formula} names={formulaNames} />
+                <FormulaText expression={formula} names={formulaNames} wavyErrors errorRange={errorRange} />
                 {/* Keeps a trailing line break's height, as the textarea does. */}
                 {'\u200b'}
               </div>
@@ -314,7 +320,9 @@ export function FunctionFormulaCard({
         </div>
         <div className="mt-2.5 pl-[23px] flex flex-col gap-1.5 text-xs">
           {hint && <p className={cn(status || hasSelection ? 'text-ink' : 'text-ink-faint')}>{hint}</p>}
-          {validationError && <p className="text-danger">● {validationError}</p>}
+          {validationError && (
+            <p className="text-danger">● {errorRange ? validationError.replace(/\s*\(character \d+\)$/, '') : validationError}</p>
+          )}
           {!validationError && propertyHint && <p className="text-ink-faint">{propertyHint}</p>}
           {onCreateParameter &&
             unknownNames.slice(0, 6).map((name) => (
