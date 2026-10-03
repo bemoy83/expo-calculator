@@ -116,13 +116,22 @@ export function splitReturn(display: string, unit?: string): { value: string; un
 
 // The top of the editor's live pane (mockup 2a): every parameter as a sample input, then what
 // the function returns, large.
-export function FunctionTestPanel({ draft, functions }: { draft: Draft; functions: SharedFunction[] }) {
+export function FunctionTestPanel({
+  draft,
+  functions,
+  unresolved = false,
+}: {
+  draft: Draft;
+  functions: SharedFunction[];
+  /** The formula only misses names (a parameter to create): it's incomplete, not wrong */
+  unresolved?: boolean;
+}) {
   const { parameters, kinds, values, setValue, result } = useFunctionTryIt(draft, functions);
   const shown = result.display !== undefined ? splitReturn(result.display, draft.returnUnitSymbol) : undefined;
   // A formula mistake is spelled out under the formula; here it's just "Error", and only once it
   // has stood for a moment, so a half-typed formula reads as incomplete.
   const settledMistake = useSettledValue(result.short ? result.error : undefined);
-  const mistakeShown = !!result.short && settledMistake === result.error;
+  const mistakeShown = !!result.short && settledMistake === result.error && !unresolved;
 
   return (
     <section aria-labelledby="function-test-heading" className="flex flex-col">

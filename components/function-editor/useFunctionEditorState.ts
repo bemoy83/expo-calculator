@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFormulaAutocomplete } from '@/hooks/use-formula-autocomplete';
 import { useParameterManager } from '@/hooks/use-parameter-manager';
 import { validateFormula } from '@/lib/formula-evaluator';
+import type { FormulaErrorKind } from '@/lib/formula/validator';
 import {
   addSuggestedParameter,
   buildFunctionSaveData,
@@ -66,7 +67,7 @@ export function useFunctionEditorState({
   const [hasManuallyEditedVariableName, setHasManuallyEditedVariableName] = useState(!!existingFunction);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [parameterErrors] = useState<Record<number, Record<string, string>>>({});
-  const [formulaValidation, setFormulaValidation] = useState<{ valid: boolean; error?: string; /** an error is on its way, held back while the formula is still being typed */ pending?: boolean; /** what the check said before the pending one, for the header to keep showing */ wasValid?: boolean }>({
+  const [formulaValidation, setFormulaValidation] = useState<{ valid: boolean; error?: string; errorKind?: FormulaErrorKind; /** an error is on its way, held back while the formula is still being typed */ pending?: boolean; /** what the check said before the pending one, for the header to keep showing */ wasValid?: boolean }>({
     valid: true,
   });
   const validatedOnce = useRef(false);

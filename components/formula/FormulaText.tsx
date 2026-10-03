@@ -23,7 +23,8 @@ const TOKEN_TITLE: Record<FormulaTokenKind, string | undefined> = {
 };
 
 const WAVY_UNDERLINE = 'underline decoration-wavy underline-offset-[5px]';
-const WAVY = `text-danger ${WAVY_UNDERLINE}`;
+// A name nothing matches yet is "unresolved", not wrong: amber and dotted, where a syntax error is red and wavy.
+const UNRESOLVED = 'text-draft underline decoration-dotted decoration-draft underline-offset-[5px]';
 
 // A formula with its names coloured by kind: inputs, results of other steps, functions,
 // material/labor properties, and names nothing matches. Hovering a name says what it is.
@@ -32,7 +33,7 @@ export function FormulaText({
   names,
   className,
   block = false,
-  wavyErrors = false,
+  markUnresolved = false,
   errorRange,
 }: {
   expression: string;
@@ -40,8 +41,8 @@ export function FormulaText({
   className?: string;
   /** A block of its own that keeps the formula's line breaks */
   block?: boolean;
-  /** Draw names nothing matches with a wavy underline instead of a dotted one */
-  wavyErrors?: boolean;
+  /** Draw names nothing matches as unresolved (amber, dotted) instead of the plain red dotted */
+  markUnresolved?: boolean;
   /** Part of the text to underline as a syntax error, [start, end) */
   errorRange?: { start: number; end: number } | null;
 }) {
@@ -62,7 +63,8 @@ export function FormulaText({
   return (
     <code className={cn('font-numeric', block && 'block whitespace-pre-wrap', className)}>
       {pieces.map((piece) => {
-        const colour = piece.kind === 'plain' ? undefined : wavyErrors && piece.kind === 'unknown' ? WAVY : TOKEN_TEXT[piece.kind];
+        const colour =
+          piece.kind === 'plain' ? undefined : markUnresolved && piece.kind === 'unknown' ? UNRESOLVED : TOKEN_TEXT[piece.kind];
         return (
           <span
             key={piece.key}

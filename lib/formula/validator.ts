@@ -13,6 +13,20 @@ function hasProperty(items: Array<{ properties?: Array<{ name: string }> }>, pro
 }
 
 /**
+ * What kind of problem an invalid formula has, for telling them apart on screen: "broken" can't be
+ * read or called as written; "unresolved" is well formed but names something that doesn't exist
+ * (yet); "units" mixes units that don't add up.
+ */
+export type FormulaErrorKind = 'broken' | 'unresolved' | 'units';
+
+export interface FormulaValidation {
+  valid: boolean;
+  error?: string;
+  errorKind?: FormulaErrorKind;
+  warnings?: string[];
+}
+
+/**
  * Validates a formula syntax and checks if variables exist
  */
 export function validateFormula(
@@ -22,7 +36,7 @@ export function validateFormula(
   fields?: FormulaField[],
   functions?: SharedFunction[],
   labor?: Labor[]
-): { valid: boolean; error?: string; warnings?: string[] } {
+): FormulaValidation {
   try {
     const warnings: string[] = [];
     const availableFunctions = functions || [];
@@ -40,7 +54,8 @@ export function validateFormula(
       if (!funcDef) {
         return {
           valid: false,
-          error: `Function '${call.functionName}' not found`
+          error: `Function '${call.functionName}' not found`,
+          errorKind: 'unresolved'
         };
       }
 
@@ -48,7 +63,8 @@ export function validateFormula(
       if (call.arguments.length !== funcDef.parameters.length) {
         return {
           valid: false,
-          error: `Function '${call.functionName}' expects ${funcDef.parameters.length} argument(s), but got ${call.arguments.length}`
+          error: `Function '${call.functionName}' expects ${funcDef.parameters.length} argument(s), but got ${call.arguments.length}`,
+          errorKind: 'broken'
         };
       }
 
@@ -146,6 +162,7 @@ export function validateFormula(
         return {
           valid: false,
           error: `Computed output '${outputName}' not found. Available computed outputs: ${availableVariables.filter(v => v.startsWith('out.')).map(v => v.replace('out.', '')).join(', ') || 'none'}`,
+          errorKind: 'unresolved'
         };
       }
     }
@@ -171,7 +188,8 @@ export function validateFormula(
       if (field.type !== 'material' && field.type !== 'labor') {
         return {
           valid: false,
-          error: `Field "${ref.fieldVar}" is not a material or labor field, cannot access properties`
+          error: `Field "${ref.fieldVar}" is not a material or labor field, cannot access properties`,
+          errorKind: 'broken'
         };
       }
 
@@ -191,7 +209,8 @@ export function validateFormula(
             : '';
           return {
             valid: false,
-            error: `Property "${ref.propertyName}" not found on any material${categoryMsg} for field "${ref.fieldVar}"`
+            error: `Property "${ref.propertyName}" not found on any material${categoryMsg} for field "${ref.fieldVar}"`,
+            errorKind: 'unresolved'
           };
         }
       }
@@ -201,7 +220,8 @@ export function validateFormula(
         if (!labor || labor.length === 0) {
           return {
             valid: false,
-            error: `No labor items available to check property "${ref.propertyName}" for field "${ref.fieldVar}"`
+            error: `No labor items available to check property "${ref.propertyName}" for field "${ref.fieldVar}"`,
+            errorKind: 'unresolved'
           };
         }
 
@@ -219,7 +239,8 @@ export function validateFormula(
             : '';
           return {
             valid: false,
-            error: `Property "${ref.propertyName}" not found on any labor item${categoryMsg} for field "${ref.fieldVar}"`
+            error: `Property "${ref.propertyName}" not found on any labor item${categoryMsg} for field "${ref.fieldVar}"`,
+            errorKind: 'unresolved'
           };
         }
       }
@@ -237,14 +258,16 @@ export function validateFormula(
       if (!material) {
         return {
           valid: false,
-          error: `Material variable "${ref.materialVar}" not found`
+          error: `Material variable "${ref.materialVar}" not found`,
+          errorKind: 'unresolved'
         };
       }
 
       if (!material.properties || !material.properties.find(p => p.name === ref.propertyName)) {
         return {
           valid: false,
-          error: `Property "${ref.propertyName}" not found on material "${ref.materialVar}"`
+          error: `Property "${ref.propertyName}" not found on material "${ref.materialVar}"`,
+          errorKind: 'unresolved'
         };
       }
     }
@@ -362,7 +385,8 @@ export function validateFormula(
         if (!allAvailableVars.includes(match)) {
           return {
             valid: false,
-            error: `Undefined variable: ${match}`
+            error: `Undefined variable: ${match}`,
+            errorKind: 'unresolved'
           };
         }
       }
@@ -414,7 +438,8 @@ export function validateFormula(
     if (unitValidationError) {
       return {
         valid: false,
-        error: unitValidationError
+        error: unitValidationError,
+        errorKind: 'units'
       };
     }
 
@@ -429,9 +454,13 @@ export function validateFormula(
     const errorMessage = error.message || 'Invalid formula syntax';
     const translatedError = translateParserError(errorMessage, formula);
 
+    // An unknown function is a missing name; anything else the parser stumbles on is the formula itself.
+    const unresolved = /Undefined function|Function .* not found|Unknown function/.test(errorMessage);
+
     return {
       valid: false,
-      error: translatedError
+      error: translatedError,
+      errorKind: unresolved ? 'unresolved' : 'broken'
     };
   }
 }

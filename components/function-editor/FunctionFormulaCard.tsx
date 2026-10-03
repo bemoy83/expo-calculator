@@ -10,6 +10,7 @@ import { caretAfterTidy, prettifyFormula, tidyFormulaAfterBlur } from '@/lib/for
 import { FormulaText, suggestionToken, TOKEN_TEXT } from '@/components/formula/FormulaText';
 import type { FormulaNames } from '@/lib/calculator/formula-tokens';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
+import type { FormulaIssue, FormulaIssueLevel } from '@/lib/functions/formula-issues';
 import {
   findStoredParametersNamed,
   planUnknownNames,
@@ -48,7 +49,8 @@ interface FunctionFormulaCardProps {
   formulaValidation: { valid: boolean; error?: string; pending?: boolean };
   formulaError?: string;
   /** A likely misspelt material property, a hint rather than an error */
-  propertyHint?: string;
+  /** What the formula has to say about itself, by level (see classifyFormulaIssues) */
+  issues?: FormulaIssue[];
   parameters: ParameterInfo[];
   onInsertParameter: (variableName: string) => void;
   onInsertOperator: (operator: string) => void;
@@ -71,6 +73,23 @@ function formulaFontSize(length: number, narrow: boolean): number {
   return narrow ? Math.round(size * 0.8) : size;
 }
 
+// Each level has its own colour and its own shape, so they read apart without relying on colour:
+// a solid dot for broken, a triangle for unresolved, an open circle for a heads-up.
+const LEVELS: Record<FormulaIssueLevel, { glyph: string; text: string; label: string }> = {
+  broken: { glyph: '●', text: 'text-danger', label: 'Error' },
+  unresolved: { glyph: '▲', text: 'text-draft', label: 'Needs attention' },
+  'heads-up': { glyph: '○', text: 'text-ink-muted', label: 'Heads up' },
+};
+
+function IssueMarker({ level }: { level: FormulaIssueLevel }) {
+  return (
+    <>
+      <span aria-hidden="true">{LEVELS[level].glyph}</span>
+      <span className="sr-only">{LEVELS[level].label}: </span>
+    </>
+  );
+}
+
 /** How long the formula rests before a tidy-up is offered. */
 const TIDY_OFFER_AFTER_MS = 1000;
 
@@ -90,7 +109,7 @@ export function FunctionFormulaCard({
   formulaTextareaRef,
   formulaValidation,
   formulaError,
-  propertyHint,
+  issues = [],
   parameters,
   onInsertParameter,
   onInsertOperator,
@@ -129,10 +148,13 @@ export function FunctionFormulaCard({
   }, []);
 
   const fontSize = formulaFontSize(formula.length, narrow);
-  // An undefined variable is listed with its "Create parameter" fix, so it isn't said twice.
-  const validationError =
-    unknownNames.length > 0 && formulaValidation.error?.startsWith('Undefined variable') ? undefined : formulaValidation.error;
-  const hasError = Boolean(formulaValidation.error || formulaError || unknownNames.length > 0);
+  // The most serious level present colours the bar beside the formula.
+  const worst: FormulaIssueLevel | null = issues.some((issue) => issue.level === 'broken')
+    ? 'broken'
+    : issues.some((issue) => issue.level === 'unresolved')
+      ? 'unresolved'
+      : null;
+  const hasError = Boolean(worst || formulaError);
   // Where the syntax breaks, once the check has settled (it holds an error back while the formula is being typed).
   const errorRange = useMemo(
     () => (!formulaValidation.valid && !formulaValidation.pending && formula.trim() ? findFormulaErrorRange(formula) : null),
@@ -270,8 +292,8 @@ export function FunctionFormulaCard({
             aria-hidden="true"
             className={cn(
               'self-stretch transition-colors duration-150',
-              focused || hasError ? 'w-[3px]' : 'w-0.5',
-              hasError ? 'bg-danger' : focused ? 'bg-accent' : 'bg-border-strong'
+              focused || worst ? 'w-[3px]' : 'w-0.5',
+              worst === 'broken' ? 'bg-danger' : worst === 'unresolved' ? 'bg-draft' : focused ? 'bg-accent' : 'bg-border-strong'
             )}
           />
           <div className="relative min-w-0 py-1.5">
@@ -281,7 +303,7 @@ export function FunctionFormulaCard({
                 className={cn('absolute inset-x-0 top-1.5 text-ink pointer-events-none', textClasses)}
                 style={textStyle}
               >
-                <FormulaText expression={formula} names={formulaNames} wavyErrors errorRange={errorRange} />
+                <FormulaText expression={formula} names={formulaNames} markUnresolved errorRange={errorRange} />
                 {/* Keeps a trailing line break's height, as the textarea does. */}
                 {'\u200b'}
               </div>
@@ -375,13 +397,19 @@ export function FunctionFormulaCard({
         </div>
         <div className="mt-2.5 pl-[23px] flex flex-col gap-1.5 text-xs">
           {hint && <p className={cn(status || hasSelection ? 'text-ink' : 'text-ink-faint')}>{hint}</p>}
-          {validationError && (
-            <p className="text-danger">● {errorRange ? validationError.replace(/\s*\(character \d+\)$/, '') : validationError}</p>
-          )}
-          {!validationError && propertyHint && <p className="text-ink-faint">{propertyHint}</p>}
+          {issues
+            .filter((issue) => !issue.name)
+            .map((issue) => (
+              <p key={`${issue.level}-${issue.message}`} className={LEVELS[issue.level].text}>
+                <IssueMarker level={issue.level} />{' '}
+                {issue.level === 'broken' && errorRange ? issue.message.replace(/\s*\(character \d+\)$/, '') : issue.message}
+              </p>
+            ))}
           {showBulk && onCreateParameters && onReuseParameters && (
             <div className="flex flex-wrap items-center gap-x-2">
-              <span className="text-danger">● {unknownNames.length} names aren’t parameters yet.</span>
+              <span className={LEVELS.unresolved.text}>
+                <IssueMarker level="unresolved" /> {unknownNames.length} names aren’t parameters yet.
+              </span>
               {plan.reuse.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={reuseAll} className="px-2">
                   <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -399,7 +427,7 @@ export function FunctionFormulaCard({
           {tidyOffered && tidied !== formula && (
             // The formula keeps focus on mousedown: leaving it would drop the hint above and shift this line from under the click.
             <div className="flex flex-wrap items-center gap-x-2" onMouseDown={(e) => e.preventDefault()}>
-              <span className="text-ink-muted">● The spacing can be tidied.</span>
+              <span className="text-ink-muted">The spacing can be tidied.</span>
               <Button variant="ghost" size="sm" onClick={applyTidy} className="px-2">
                 <Wand2 className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>
@@ -411,8 +439,8 @@ export function FunctionFormulaCard({
           {onCreateParameter &&
             unknownNames.slice(0, 6).map((name) => (
               <div key={name} className="flex flex-wrap items-center gap-x-2">
-                <span className="text-danger">
-                  ● <span className="font-numeric">{name}</span> isn’t a parameter.
+                <span className={LEVELS.unresolved.text}>
+                  <IssueMarker level="unresolved" /> <span className="font-numeric">{name}</span> isn’t a parameter yet.
                 </span>
                 {onReuseParameter &&
                   findStoredParametersNamed(name, storedParameters, formula.includes(`${name}.`)).map((stored) => (

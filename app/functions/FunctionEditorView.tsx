@@ -30,6 +30,9 @@ import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
 import { parameterNeedsDefinition } from '@/lib/functions/function-editor-helpers';
+import { classifyFormulaIssues, formulaStatus } from '@/lib/functions/formula-issues';
+import { findSyntaxProblem } from '@/lib/formula/error-location';
+import { countParameterUses } from '@/lib/functions/function-usage';
 
 const listHref = (id?: string) => browseHref('/functions', { id });
 
@@ -147,6 +150,18 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
   };
 
   const formula = editor.formData.formula.trim();
+  // What the formula has to say about itself, by what it means (broken, unresolved, a heads-up).
+  const unknownNames = unknownValueNames(editor.formData.formula, formulaNames);
+  const unusedParameters = editor.parameters
+    .map((parameter) => parameter.name.trim())
+    .filter((name) => name && countParameterUses(editor.formData.formula, name) === 0);
+  const issues = classifyFormulaIssues({
+    validation: editor.formulaValidation,
+    unknownNames,
+    syntaxProblem: useMemo(() => findSyntaxProblem(editor.formData.formula), [editor.formData.formula]),
+    propertyHint: editor.propertyHint,
+    unusedParameters: formula ? unusedParameters : [],
+  });
   const category = editor.formData.category.trim();
   // The category it's filed under in the list (as saved), for the breadcrumb.
   const savedCategory = existingFunction?.category?.trim();
@@ -181,10 +196,13 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
         }
         status={
           formula
-            ? // While an error is still settling, the header keeps saying what it said before.
-              (editor.formulaValidation.pending ? editor.formulaValidation.wasValid : editor.formulaValidation.valid)
-              ? { tone: 'ok', label: 'Formula works' }
-              : { tone: 'error', label: 'Formula has an error' }
+            ? (() => {
+                const base = formulaStatus(issues);
+                // While an error is still settling, the header keeps saying what it said before.
+                const heldBack = editor.formulaValidation.pending && editor.formulaValidation.wasValid === false && base.tone === 'ok';
+                const shown = heldBack ? { tone: 'error' as const, label: 'Formula has an error' } : base;
+                return { tone: shown.tone === 'attention' ? ('draft' as const) : shown.tone, label: shown.label };
+              })()
             : undefined
         }
         description={editor.errors.displayName && <span className="text-danger">{editor.errors.displayName}</span>}
@@ -307,7 +325,8 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
             <FunctionFormulaCard
               formula={editor.formData.formula}
               formulaNames={formulaNames}
-              unknownNames={unknownValueNames(editor.formData.formula, formulaNames)}
+              unknownNames={unknownNames}
+              issues={issues}
               onCreateParameter={(name) => {
                 const created = editor.addParameterNamed(name);
                 if (created && parameterNeedsDefinition(created)) openNewParameter(editor.parameters.length);
@@ -325,7 +344,6 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               onFormulaChange={(next) => editor.handleFormDataChange({ formula: next })}
               formulaTextareaRef={editor.formulaTextareaRef}
               formulaValidation={editor.formulaValidation}
-              propertyHint={editor.propertyHint}
               formulaError={editor.errors.formula}
               parameters={editor.parameters}
               onInsertParameter={editor.insertParameterAtCursor}
@@ -346,7 +364,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
         </div>
 
         <div className="flex flex-col px-6 py-5 bg-panel border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto">
-          <FunctionTestPanel draft={draft} functions={functions} />
+          <FunctionTestPanel draft={draft} functions={functions} unresolved={issues.some((issue) => issue.level === 'unresolved') && !issues.some((issue) => issue.level === 'broken')} />
 
           <section aria-labelledby="function-used-by" className="mt-[18px]">
             <Eyebrow as="h2" id="function-used-by" className="mb-1.5">

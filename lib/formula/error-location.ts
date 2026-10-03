@@ -1,3 +1,4 @@
+import { friendlyEvaluationMessage } from './error-messages';
 import { isNameChar } from './identifiers';
 import { mathInstance } from './math-runtime';
 
@@ -53,4 +54,20 @@ function lastUnmatchedOpen(formula: string): number {
     else if (formula[i] === ')') opens.pop();
   }
   return opens.length ? opens[opens.length - 1] : -1;
+}
+
+/**
+ * The formula's syntax problem in plain words, or null if it reads fine. The validator stops at
+ * the first problem it meets, so a formula that is both unresolved (a name that doesn't exist)
+ * and unfinished (`hoyd * 2 +`) only ever reports the name; this finds the other one.
+ */
+export function findSyntaxProblem(formula: string): string | null {
+  if (!formula.trim()) return null;
+  try {
+    mathInstance.parse(formula);
+    return null;
+  } catch (error) {
+    // The underline shows where, so the character count is left out.
+    return friendlyEvaluationMessage(error instanceof Error ? error.message : 'Invalid formula').replace(/\s*\(character \d+\)$/, '');
+  }
 }

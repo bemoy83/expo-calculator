@@ -1,8 +1,9 @@
 import { labelFromName, nameAfterLabelChange } from '../utils/function-parameters';
 import { unknownValueNames } from '../calculator/formula-tokens';
-import { findFormulaErrorRange } from '../formula/error-location';
+import { findFormulaErrorRange, findSyntaxProblem } from '../formula/error-location';
 import { foldName } from '../formula/identifiers';
 import { caretAfterTidy } from '../formula/prettify';
+import { classifyFormulaIssues, formulaStatus } from '../functions/formula-issues';
 import {
   addSuggestedParameter,
   buildFunctionSaveData,
@@ -257,6 +258,13 @@ assertCheck(
 
 const errorAt = (formula: string) => JSON.stringify(findFormulaErrorRange(formula));
 assertCheck(
+  'a syntax problem is found even when the formula also names something that does not exist',
+  findSyntaxProblem('hoyd * 2 +') === 'The formula stops too early. A value is missing after the last operator.' &&
+    findSyntaxProblem('hoyd * 2') === null &&
+    findSyntaxProblem('') === null,
+  String(findSyntaxProblem('hoyd * 2 +'))
+);
+assertCheck(
   'a syntax error is located in the formula as written, names and all',
   errorAt('ceil(bredde / cc') === '{"start":0,"end":5}' &&
     errorAt('bredde / ') === '{"start":7,"end":8}' &&
@@ -354,6 +362,44 @@ assertCheck(
     caretAfterTidy('a+b', 0, 'a + b') === 0 &&
     caretAfterTidy('a+b', 3, 'a + b') === 5,
   [caretAfterTidy('a+b', 2, 'a + b'), caretAfterTidy('ceil(a/b)+1', 5, 'ceil(a / b) + 1'), caretAfterTidy('a+b', 3, 'a + b')].join(',')
+);
+
+const issuesOf = (input: Partial<Parameters<typeof classifyFormulaIssues>[0]>) =>
+  classifyFormulaIssues({ validation: { valid: true }, unknownNames: [], unusedParameters: [], ...input });
+const brokenIssues = issuesOf({ validation: { valid: false, error: 'A bracket is never closed.', errorKind: 'broken' } });
+const namesIssues = issuesOf({
+  validation: { valid: false, error: 'Undefined variable: hoyd', errorKind: 'unresolved' },
+  unknownNames: ['hoyd', 'dybde'],
+});
+const bothIssues = issuesOf({
+  validation: { valid: false, error: 'Undefined variable: hoyd', errorKind: 'unresolved' },
+  unknownNames: ['hoyd'],
+  syntaxProblem: 'The formula stops too early.',
+});
+const functionIssues = issuesOf({ validation: { valid: false, error: "Function 'foo' not found", errorKind: 'unresolved' } });
+const notesIssues = issuesOf({ propertyHint: 'Did you mean board.width?', unusedParameters: ['a', 'b'] });
+assertCheck(
+  'formula problems are sorted by what they mean: broken, unresolved (a name that does not exist yet), or a heads-up',
+  brokenIssues.map((i) => i.level).join() === 'broken' &&
+    namesIssues.map((i) => `${i.level}:${i.name}`).join() === 'unresolved:hoyd,unresolved:dybde' &&
+    functionIssues.map((i) => i.level).join() === 'unresolved' &&
+    bothIssues.map((i) => i.level).join() === 'broken,unresolved' &&
+    formulaStatus(bothIssues).label === 'Formula has an error' &&
+    notesIssues.map((i) => i.level).join() === 'heads-up,heads-up' &&
+    notesIssues[1].message === 'a, b aren’t used by the formula.' &&
+    issuesOf({ validation: { valid: false, pending: true, error: 'x' } }).length === 0,
+  JSON.stringify([brokenIssues, namesIssues, functionIssues, notesIssues])
+);
+assertCheck(
+  'the header says the most serious thing: error, then what is missing, then notes',
+  formulaStatus(brokenIssues).label === 'Formula has an error' &&
+    formulaStatus(namesIssues).label === 'Needs 2 parameters' &&
+    formulaStatus(functionIssues).label === '1 thing to resolve' &&
+    formulaStatus(notesIssues).label === 'Formula works · 2 notes' &&
+    formulaStatus([]).label === 'Formula works' &&
+    formulaStatus([...brokenIssues, ...namesIssues]).tone === 'error' &&
+    formulaStatus(namesIssues).tone === 'attention',
+  JSON.stringify([formulaStatus(brokenIssues), formulaStatus(namesIssues), formulaStatus(functionIssues), formulaStatus(notesIssues)])
 );
 
 const validation = validateFunctionEditorForm({
