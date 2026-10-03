@@ -27,3 +27,24 @@ export function IssueLine({ level, className, children }: { level: FormulaIssueL
     </p>
   );
 }
+
+/**
+ * Heads-ups that are also pinned to the text (a dotted underline with the message on hover). Where
+ * there's a pointer they're one quiet line, the messages kept for screen readers; on touch, where
+ * nothing hovers, each is written out.
+ */
+export function PinnedNotes({ messages, className }: { messages: string[]; className?: string }) {
+  if (messages.length === 0) return null;
+  return (
+    <>
+      {messages.map((message) => (
+        <IssueLine key={message} level="heads-up" className={cn('[@media(hover:hover)]:sr-only', className)}>
+          {message}
+        </IssueLine>
+      ))}
+      <p aria-hidden="true" className={cn('hidden text-xs text-ink-muted [@media(hover:hover)]:block', className)}>
+        <span>{ISSUE_LEVELS['heads-up'].glyph}</span> {messages.length === 1 ? '1 note' : `${messages.length} notes`} · hover the dotted underline
+      </p>
+    </>
+  );
+}

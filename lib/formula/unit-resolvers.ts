@@ -49,6 +49,12 @@ export function calculatorUnitResolver(calculator: Calculator, library: Catalog)
       return step.format === 'money' || step.format === 'count' ? 'count' : step.format === 'percent' ? 'percentage' : undefined;
     },
     call: (name) => returnUnit(name, library.functions),
+    symbol(base, property) {
+      if (property) return undefined;
+      const input = calculator.inputs.find((candidate) => candidate.key === base);
+      if (input) return input.value.kind === 'number' || input.value.kind === 'choice' ? input.value.unitSymbol : undefined;
+      return calculator.steps.find((candidate) => candidate.key === base)?.unitSymbol;
+    },
   };
 }
 
@@ -65,6 +71,7 @@ export function functionUnitResolver(
       return categoryOf(parameter);
     },
     call: (name) => returnUnit(name, library.functions),
+    symbol: (base, property) => (property ? undefined : parameters.find((candidate) => candidate.name === base)?.unitSymbol),
   };
 }
 

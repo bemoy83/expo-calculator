@@ -8,7 +8,7 @@ import { FormulaEditor, type FormulaEditorHandle } from '@/components/formula/Fo
 import { cn } from '@/lib/utils';
 import type { AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import { useTidyOffer } from '@/hooks/use-tidy-offer';
-import { ISSUE_LEVELS, IssueLine, IssueMarker } from '@/components/formula/IssueMarker';
+import { ISSUE_LEVELS, IssueLine, IssueMarker, PinnedNotes } from '@/components/formula/IssueMarker';
 import { TidyOffer } from '@/components/formula/TidyOffer';
 import { unknownNameRanges, type FormulaNames } from '@/lib/calculator/formula-tokens';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
@@ -46,6 +46,8 @@ interface FunctionFormulaCardProps {
   /** Units put together that don't match, pinned to the text, and what each operator works out to */
   unitProblems?: Array<{ message: string; from: number; to: number }>;
   unitNotes?: FormulaNote[];
+  /** What a name is measured in, for its hover card */
+  describeUnit?: (name: string) => string | undefined;
   parameters: ParameterInfo[];
   /** What the editor suggests as a name is typed, and what follows `name.` */
   candidates: AutocompleteSuggestion[];
@@ -77,6 +79,7 @@ export function FunctionFormulaCard({
   issues = [],
   unitProblems = [],
   unitNotes,
+  describeUnit,
   parameters,
   candidates,
   candidatesForBase,
@@ -118,6 +121,8 @@ export function FunctionFormulaCard({
     () => (!formulaValidation.valid && !formulaValidation.pending && formula.trim() ? findFormulaErrorRange(formula) : null),
     [formula, formulaValidation.valid, formulaValidation.pending]
   );
+  // Heads-ups that are pinned to the text show as one quiet line where there's a pointer (see PinnedNotes).
+  const pinnedNotes = unitProblems.map((problem) => problem.message).filter((message) => issues.some((issue) => issue.level === 'heads-up' && issue.message === message));
   // The same problems as the lines below, pinned to the text they're about: hover one for its message and fixes.
   const diagnostics: FormulaDiagnostic[] = [];
   if (errorRange) {
@@ -252,6 +257,7 @@ export function FunctionFormulaCard({
               names={formulaNames}
               diagnostics={diagnostics}
               notes={unitNotes}
+              describeUnit={describeUnit}
               fontSize={fontSize}
               placeholderText="ceil(width / spacing) + 1"
               invalid={hasError}
@@ -271,12 +277,13 @@ export function FunctionFormulaCard({
         <div className="mt-2.5 pl-[23px] flex flex-col gap-1.5 text-xs">
           {hint && <p className={cn(status || hasSelection ? 'text-ink' : 'text-ink-faint')}>{hint}</p>}
           {issues
-            .filter((issue) => !issue.name)
+            .filter((issue) => !issue.name && !pinnedNotes.includes(issue.message))
             .map((issue) => (
               <IssueLine key={`${issue.level}-${issue.message}`} level={issue.level}>
                 {issue.level === 'broken' && errorRange ? issue.message.replace(/\s*\(character \d+\)$/, '') : issue.message}
               </IssueLine>
             ))}
+          <PinnedNotes messages={pinnedNotes} />
           {showBulk && onCreateParameters && onReuseParameters && (
             <div className="flex flex-wrap items-center gap-x-2">
               <span className={ISSUE_LEVELS.unresolved.text}>

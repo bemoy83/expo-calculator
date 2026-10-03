@@ -30,7 +30,7 @@ import { useCalculatorsStore } from '@/lib/stores/calculators-store';
 import { useCalculatorLibrary } from '@/hooks/use-calculators';
 import { functionFormulaNames, unknownValueNames } from '@/lib/calculator/formula-tokens';
 import { parameterNeedsDefinition } from '@/lib/functions/function-editor-helpers';
-import { analyzeUnits, declaredUnitProblem } from '@/lib/formula/unit-analysis';
+import { analyzeUnits, declaredUnitProblem, describeNameUnit } from '@/lib/formula/unit-analysis';
 import { declaredCategory, functionUnitResolver } from '@/lib/formula/unit-resolvers';
 import { classifyFormulaIssues, formulaStatus } from '@/lib/functions/formula-issues';
 import { findSyntaxProblem } from '@/lib/formula/error-location';
@@ -158,10 +158,8 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
     .map((parameter) => parameter.name.trim())
     .filter((name) => name && countParameterUses(editor.formData.formula, name) === 0);
   // What the formula's parts are measured in: unlike units put together, or a result of another kind than the function returns.
-  const unitAnalysis = useMemo(
-    () => analyzeUnits(editor.formData.formula, functionUnitResolver(editor.parameters, library)),
-    [editor.formData.formula, editor.parameters, library]
-  );
+  const unitResolver = useMemo(() => functionUnitResolver(editor.parameters, library), [editor.parameters, library]);
+  const unitAnalysis = useMemo(() => analyzeUnits(editor.formData.formula, unitResolver), [editor.formData.formula, unitResolver]);
   const unitProblems = useMemo(() => {
     const found = [...unitAnalysis.problems];
     const declared = existingFunction
@@ -350,6 +348,7 @@ export function FunctionEditorView({ functionId }: { functionId: string }) {
               issues={issues}
               unitProblems={unitProblems}
               unitNotes={unitAnalysis.notes}
+              describeUnit={(name) => describeNameUnit(unitResolver, name)}
               onCreateParameter={(name) => {
                 const created = editor.addParameterNamed(name);
                 if (created && parameterNeedsDefinition(created)) openNewParameter(editor.parameters.length);

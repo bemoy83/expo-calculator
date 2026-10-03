@@ -27,7 +27,7 @@ import { StepFormulaEditor } from './StepFormulaEditor';
 import { useCallProblems } from './CallProblems';
 import { classifyStepIssues, unknownNameIn } from '@/lib/calculator/step-issues';
 import { findFormulaErrorRange } from '@/lib/formula/error-location';
-import { IssueLine } from '@/components/formula/IssueMarker';
+import { IssueLine, PinnedNotes } from '@/components/formula/IssueMarker';
 import { NAME } from '@/lib/formula/identifiers';
 import { FormulaText } from '@/components/formula/FormulaText';
 import { calculatorFormulaNames, unknownNameRanges, unknownValueNames } from '@/lib/calculator/formula-tokens';
@@ -413,7 +413,9 @@ export function StepRow({
                   formatMoney={formatMoney}
                   onChange={(next) => onChange({ ...step, source: { type: 'expression', expression: next } })}
                 />
-                {issues.map((issue) =>
+                {/* Heads-ups are pinned to the text, so with a pointer they're one line: hover the dotted underline. */}
+                <PinnedNotes messages={issues.filter((issue) => issue.level === 'heads-up').map((issue) => issue.message)} className="mt-1" />
+                {issues.filter((issue) => issue.level !== 'heads-up').map((issue) =>
                   issue.name ? (
                     <div key={`name-${issue.name}`} className="mt-1 flex flex-wrap items-center gap-x-2">
                       <IssueLine level="unresolved">{issue.message}</IssueLine>

@@ -1,5 +1,5 @@
 import { parseExpression, type ExprNode } from './expression-tree';
-import type { UnitCategory } from '../units';
+import { getUnit, type UnitCategory } from '../units';
 
 // What a formula's parts are measured in, worked out from the units of the names in it, so a
 // mistake like adding a length to an area shows as it's typed, with no values needed. Units are
@@ -65,6 +65,8 @@ export interface UnitResolver {
   value(base: string, property?: string): UnitCategory | undefined;
   /** What a function the formula calls returns. */
   call(name: string): UnitCategory | undefined;
+  /** The unit symbol a name is declared in (m, mm, m²), when there is one */
+  symbol?(base: string, property?: string): string | undefined;
 }
 
 export interface UnitProblem {
@@ -253,8 +255,18 @@ export function declaredUnitProblem(
   const to = text.trimEnd().length;
   const declaredWords = describeDim(want);
   return {
-    message: `This works out to ${withArticle(describeDim(got))}, but ${subject} ${declared.symbol ? `${declared.symbol} (${declaredWords})` : declaredWords}.`,
+    message: `This works out to ${withArticle(describeDim(got))}, but ${subject} ${declared.symbol ? `${getUnit(declared.symbol)?.symbol ?? declared.symbol} (${declaredWords})` : declaredWords}.`,
     from,
     to,
   };
+}
+
+/** What a name is measured in, as one line ("length · m"); undefined when nothing says. */
+export function describeNameUnit(resolver: UnitResolver, name: string): string | undefined {
+  const [base, property] = name.split('.');
+  const category = resolver.value(base, property);
+  if (!category) return undefined;
+  const words = category === 'count' || category === 'percentage' ? category : describeDim(dimOf(category) ?? NONE);
+  const symbol = resolver.symbol?.(base, property);
+  return symbol ? `${words} · ${getUnit(symbol)?.symbol ?? symbol}` : words;
 }

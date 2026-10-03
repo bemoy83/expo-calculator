@@ -71,6 +71,8 @@ interface Props {
   isStepKey?: (name: string) => boolean;
   /** What a name is worth right now (a step's current value), shown on its hover card */
   describeValue?: (name: string) => string | undefined;
+  /** What a name is measured in ("length · m"), shown on its hover card */
+  describeUnit?: (name: string) => string | undefined;
   /** What a called name takes, for the signature shown while the caret is inside its brackets; unset, only the built-in functions are known */
   signatureFor?: (name: string) => CallSignature | undefined;
   /** Tidy the spacing of a formula that reads fine once the editor is left (as one undo step). `canTidy` can hold it back. */
@@ -201,7 +203,7 @@ function renderSuggestionRow(
 }
 
 /** The hover card for a name: how it's written (a call with its arguments), what it is, and its description. */
-function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: string) => boolean, fieldTagLabel?: string, value?: string): HTMLElement {
+function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: string) => boolean, fieldTagLabel?: string, value?: string, unit?: string): HTMLElement {
   const token = suggestionToken(suggestion.type, suggestion.type === 'field' && !!isStepKey?.(suggestion.name));
   const make = (tag: string, className: string, text: string) => {
     const el = document.createElement(tag);
@@ -223,6 +225,7 @@ function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: stri
   );
   card.append(head);
   if (suggestion.description) card.append(make('span', 'text-[11.5px] text-ink-muted', suggestion.description));
+  if (unit) card.append(make('span', 'text-[11.5px] text-ink-muted', `Measured in ${unit}`));
   if (value) card.append(make('span', 'font-numeric text-[11.5px] text-ink', `Now ${value}`));
   return card;
 }
@@ -395,7 +398,7 @@ export default function FormulaEditorCM(props: Props) {
     const hover = hoverTooltip(
       (view, pos, side) => {
         const doc = view.state.doc.toString();
-        const { candidates, candidatesForBase, isStepKey, fieldTagLabel, describeValue, diagnostics, notes } = latest.current;
+        const { candidates, candidatesForBase, isStepKey, fieldTagLabel, describeValue, describeUnit, diagnostics, notes } = latest.current;
         const notesHere = (notes ?? []).filter((note) => note.from <= pos && (pos < note.to || (pos === note.to && side < 0)));
         // The problems under the pointer (the end of a range counts only from its left).
         const problems = (diagnostics ?? []).filter((d) => d.from <= pos && (pos < d.to || (pos === d.to && side < 0)));
@@ -418,7 +421,7 @@ export default function FormulaEditorCM(props: Props) {
           above: true,
           create: () => {
             const dom = document.createElement('div');
-            if (shown) dom.append(renderHover(shown, isStepKey, fieldTagLabel, describeValue?.(shown.name)));
+            if (shown) dom.append(renderHover(shown, isStepKey, fieldTagLabel, describeValue?.(shown.name), describeUnit?.(shown.name)));
             for (const note of notesHere) {
               const line = document.createElement('div');
               line.className = 'max-w-[320px] px-3 py-2 font-numeric text-[11.5px] text-ink-muted';

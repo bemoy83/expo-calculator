@@ -7,6 +7,8 @@ import { FIELD_ERROR, FIELD_LABEL } from '@/components/ui/field-styles';
 import { useTidyOffer } from '@/hooks/use-tidy-offer';
 import type { AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import type { Calculator, CalculatorLibrary, CalculatorStep, StepResult } from '@/lib/calculator/types';
+import { describeNameUnit } from '@/lib/formula/unit-analysis';
+import { calculatorUnitResolver } from '@/lib/formula/unit-resolvers';
 import type { FormulaDiagnostic, FormulaNote } from '@/lib/formula/issue-levels';
 import { cn } from '@/lib/utils';
 import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
@@ -112,6 +114,7 @@ export function StepFormulaEditor({
     const { text, unit } = formatStepValue(other, result.displayValue, formatMoney ?? String);
     return unit ? `${text} ${unit}` : text;
   };
+  const unitResolver = useMemo(() => calculatorUnitResolver(calculator, library), [calculator, library]);
   const tidy = useTidyOffer({ formula: value, apply: (tidied) => editor.current?.applyTidy(tidied) });
 
   return (
@@ -148,6 +151,7 @@ export function StepFormulaEditor({
           candidates={candidates}
           isStepKey={(name) => stepKeys.has(name)}
           describeValue={describeValue}
+          describeUnit={(name) => describeNameUnit(unitResolver, name)}
           signatureFor={(name) => callSignature(name, library)}
           tidyOnBlur
           handleRef={editor}
