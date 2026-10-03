@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, type MutableRefObject } from 'react';
 import { Compartment, EditorState, StateEffect, StateField, Transaction, Annotation, Prec, type Extension } from '@codemirror/state';
-import { Decoration, EditorView, hoverTooltip, keymap, placeholder, type DecorationSet } from '@codemirror/view';
+import { Decoration, EditorView, hoverTooltip, keymap, placeholder, showTooltip, type DecorationSet, type Tooltip } from '@codemirror/view';
 import { bracketMatching } from '@codemirror/language';
 import { defaultKeymap, history, historyKeymap, isolateHistory } from '@codemirror/commands';
 import {
@@ -26,6 +26,8 @@ import { UNRESOLVED, WAVY_UNDERLINE, TOKEN_TEXT, suggestionToken } from '@/compo
 import { filterSuggestions, getWordAtCursor, type AutocompleteSuggestion } from '@/lib/formula/suggestions';
 import { getFormulaWithInsertedOperator, getFormulaWithInsertedToken } from '@/lib/functions/function-editor-helpers';
 import { caretAfterTidy, prettifyFormula } from '@/lib/formula/prettify';
+import { callSignature, parseCalls, paramAt, type CallSignature } from '@/lib/calculator/call-context';
+import { displayUnit } from '@/lib/calculator/format';
 import { foldName, isNameChar } from '@/lib/formula/identifiers';
 
 export interface FormulaEditorHandle {
@@ -64,6 +66,8 @@ interface Props {
   isStepKey?: (name: string) => boolean;
   /** What a name is worth right now (a step's current value), shown on its hover card */
   describeValue?: (name: string) => string | undefined;
+  /** What a called name takes, for the signature shown while the caret is inside its brackets; unset, only the built-in functions are known */
+  signatureFor?: (name: string) => CallSignature | undefined;
   /** Tidy the spacing of a formula that reads fine once the editor is left (as one undo step). `canTidy` can hold it back. */
   tidyOnBlur?: boolean;
   canTidy?: () => boolean;
@@ -210,6 +214,55 @@ function renderHover(suggestion: AutocompleteSuggestion, isStepKey?: (name: stri
   return card;
 }
 
+const NO_FUNCTIONS = { functions: [] };
+
+/** The innermost call the caret is inside, and the argument it's on. */
+function callAtCaret(doc: string, caret: number) {
+  let found: { name: string; nameStart: number; argIndex: number } | null = null;
+  let openAt = -1;
+  for (const call of parseCalls(doc)) {
+    if (caret <= call.open || (call.close !== undefined && caret > call.close) || call.open < openAt) continue;
+    openAt = call.open;
+    const next = call.args.findIndex((arg) => caret <= arg.end);
+    found = { name: call.name, nameStart: call.nameStart, argIndex: next === -1 ? call.args.length - 1 : next };
+  }
+  return found;
+}
+
+const KIND_NOTE: Record<string, string> = { material: 'a material', labor: 'a labor rate', boolean: 'yes or no' };
+
+/** The call as it's written with the argument being typed in bold, and what that argument expects under it. */
+function renderSignature(signature: CallSignature, argIndex: number): HTMLElement {
+  const make = (tag: string, className: string, text: string) => {
+    const el = document.createElement(tag);
+    el.className = className;
+    el.textContent = text;
+    return el;
+  };
+  const active = paramAt(signature, argIndex);
+  const card = document.createElement('div');
+  card.className = 'flex max-w-[320px] flex-col gap-0.5 px-3 py-2';
+  const line = make('code', 'text-xs font-numeric text-ink-muted', '');
+  line.append(`${signature.name}(`);
+  signature.params.forEach((param, i) => {
+    if (i > 0) line.append(', ');
+    const isActive = param === active;
+    line.append(make('span', isActive ? 'font-semibold text-ink' : '', param.name + (signature.variadic && i === signature.params.length - 1 ? '…' : '')));
+  });
+  line.append(')');
+  card.append(line);
+  if (active) {
+    const unit = displayUnit(active.unitSymbol);
+    const note = KIND_NOTE[active.kind] ?? unit;
+    const text = [active.label !== active.name ? active.label : '', note].filter(Boolean).join(' · ');
+    if (text) card.append(make('span', 'text-[11.5px] text-ink-muted', text));
+  } else {
+    const count = signature.params.length;
+    card.append(make('span', 'text-[11.5px] text-ink-muted', `Takes ${count} argument${count === 1 ? '' : 's'}`));
+  }
+  return card;
+}
+
 /** The smallest single change turning `from` into `to`, so a rename in the middle keeps the caret where it was. */
 function minimalChange(from: string, to: string) {
   let start = 0;
@@ -309,6 +362,22 @@ export default function FormulaEditorCM(props: Props) {
       { hoverTime: 300 }
     );
 
+    // ---- Signature: while the caret is inside a call's brackets, what the call takes and which argument it's on ----
+    const signatureField = StateField.define<Tooltip | null>({
+      create: (state) => signatureTooltip(state),
+      update: (value, tr) => (tr.docChanged || tr.selection ? signatureTooltip(tr.state) : value),
+      provide: (field) => showTooltip.from(field),
+    });
+    function signatureTooltip(state: EditorState): Tooltip | null {
+      // A selected placeholder counts too: its start is inside the call.
+      const at = callAtCaret(state.doc.toString(), state.selection.main.from);
+      if (!at) return null;
+      const signature = (latest.current.signatureFor ?? ((name: string) => callSignature(name, NO_FUNCTIONS)))(at.name);
+      if (!signature) return null;
+      const { argIndex } = at;
+      return { pos: at.nameStart, above: true, arrow: false, create: () => ({ dom: renderSignature(signature, argIndex) }) };
+    }
+
     const extensions: Extension[] = [
       invalidCompartment.of(invalidAttributes(latest.current.invalid)),
       inputsField,
@@ -317,6 +386,7 @@ export default function FormulaEditorCM(props: Props) {
       closeBrackets(),
       bracketMatching(),
       hover,
+      signatureField,
       Prec.highest(keymap.of([{ key: 'Tab', run: acceptCompletion }])),
       keymap.of([...closeBracketsKeymap, ...historyKeymap, ...defaultKeymap]),
       autocompletion({

@@ -10,7 +10,7 @@ import type { Calculator, CalculatorLibrary, CalculatorStep, StepResult } from '
 import { cn } from '@/lib/utils';
 import { calculatorFormulaNames } from '@/lib/calculator/formula-tokens';
 import { describeStepProblem, formatStepValue } from '@/lib/calculator/format';
-import { propertyNamesFor } from '@/lib/calculator/call-context';
+import { callSignature, propertyNamesFor } from '@/lib/calculator/call-context';
 
 const MATH_FUNCTIONS = [
   { name: 'ceil', description: 'Round up' },
@@ -143,6 +143,7 @@ export function StepFormulaEditor({
           candidates={candidates}
           isStepKey={(name) => stepKeys.has(name)}
           describeValue={describeValue}
+          signatureFor={(name) => callSignature(name, library)}
           tidyOnBlur
           handleRef={editor}
         />
