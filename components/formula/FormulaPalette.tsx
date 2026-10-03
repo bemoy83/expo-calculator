@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from 'react';
 import { cn } from '@/lib/utils';
+import type { FormulaEditorHandle } from '@/components/formula/FormulaEditorLazy';
 
 interface FunctionItem {
   /** What's inserted at the caret, or wrapped around the selection */
@@ -87,6 +88,7 @@ export function FormulaPalette({
   onInsertParameter,
   onInsertOperator,
   onReturnToFormula,
+  editor,
 }: {
   parameters: string[];
   /** The selected part of the formula, or '' */
@@ -97,6 +99,8 @@ export function FormulaPalette({
   onInsertOperator: (operator: string) => void;
   /** Esc in the palette: back to the formula, with its selection or caret */
   onReturnToFormula: () => void;
+  /** The formula's editor: with it, a button can be dragged to where it should go as well as clicked */
+  editor?: MutableRefObject<FormulaEditorHandle | null>;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const parametersRef = useRef<HTMLDivElement>(null);
@@ -104,6 +108,47 @@ export function FormulaPalette({
   const [showAll, setShowAll] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
   const [width, setWidth] = useState(0);
+  // Dragging a button: it follows the pointer as a ghost, the editor shows a caret where it would land,
+  // and letting go inserts it there with the spacing a click would give. Pointer events, so it works
+  // the same everywhere (the buttons swallow mousedown, which some browsers take as "no drag").
+  const [ghost, setGhost] = useState<{ x: number; y: number; label: string } | null>(null);
+  const dragging = useRef<{ kind: 'token' | 'operator'; value: string; label: string; x: number; y: number; active: boolean } | null>(null);
+  const justDragged = useRef(false);
+  const dragProps = (kind: 'token' | 'operator', value: string, label: string) => ({
+    onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
+      if (!editor || event.button !== 0 || event.pointerType === 'touch') return;
+      dragging.current = { kind, value, label, x: event.clientX, y: event.clientY, active: false };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+      const drag = dragging.current;
+      if (!drag || (!drag.active && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 6)) return;
+      drag.active = true;
+      setGhost({ x: event.clientX, y: event.clientY, label: drag.label });
+      editor?.current?.showDropCaret(editor.current.posAtPoint(event.clientX, event.clientY));
+    },
+    onPointerUp: (event: React.PointerEvent<HTMLElement>) => {
+      const drag = dragging.current;
+      dragging.current = null;
+      if (!drag?.active) return;
+      // The click that follows letting go would insert it a second time.
+      justDragged.current = true;
+      setTimeout(() => (justDragged.current = false), 0);
+      setGhost(null);
+      const handle = editor?.current;
+      const at = handle?.posAtPoint(event.clientX, event.clientY);
+      handle?.showDropCaret(null);
+      if (handle && at != null) handle.insertAt(at, drag.kind, drag.value);
+    },
+    onPointerCancel: () => {
+      dragging.current = null;
+      setGhost(null);
+      editor?.current?.showDropCaret(null);
+    },
+  });
+  const unlessDragged = (insert: () => void) => () => {
+    if (!justDragged.current) insert();
+  };
   const hasSelection = selectedText.trim() !== '';
   const preview = hasSelection ? previewOf(selectedText, width >= ROOMY_FROM ? 15 : 9) : '';
   const itemHeight = narrow ? 30 : ITEM_HEIGHT;
@@ -187,7 +232,8 @@ export function FormulaPalette({
       type="button"
       data-palette-item
       aria-label={`Insert parameter ${name}`}
-      onClick={() => onInsertParameter(name)}
+      onClick={unlessDragged(() => onInsertParameter(name))}
+      {...dragProps('token', name, name)}
       className={cn(itemClass, 'flex-none px-[9px] font-numeric text-token-input', narrow ? 'text-sm' : 'text-[15px]')}
       style={itemStyle}
     >
@@ -230,7 +276,8 @@ export function FormulaPalette({
           type="button"
           data-palette-item
           aria-label={operator.ariaLabel}
-          onClick={() => onInsertOperator(operator.insert)}
+          onClick={unlessDragged(() => onInsertOperator(operator.insert))}
+          {...dragProps('operator', operator.insert, operator.label)}
           className={cn(itemClass, 'justify-center font-numeric text-[17px] text-ink', narrow ? 'flex-1' : 'w-[34px]')}
           style={itemStyle}
         >
@@ -257,7 +304,8 @@ export function FormulaPalette({
       type="button"
       data-palette-item
       aria-label={item.ariaLabel}
-      onClick={() => onInsertOperator(item.value)}
+      onClick={unlessDragged(() => onInsertOperator(item.value))}
+      {...dragProps('operator', item.value, `${item.name}(${item.extra ? '…, d' : '…'})`)}
       className={cn(itemClass, 'min-w-0 overflow-hidden gap-2.5 px-2 items-baseline')}
       style={itemStyle}
     >
@@ -278,7 +326,8 @@ export function FormulaPalette({
       data-palette-item
       aria-label={item.ariaLabel}
       title={item.title}
-      onClick={() => onInsertOperator(item.value)}
+      onClick={unlessDragged(() => onInsertOperator(item.value))}
+      {...dragProps('operator', item.value, item.value)}
       className={cn(itemClass, 'gap-1.5 px-2 whitespace-nowrap')}
       style={itemStyle}
     >
@@ -320,6 +369,15 @@ export function FormulaPalette({
           {row('Functions', 'Wrap in', <div className="grid grid-cols-3 gap-x-2">{functionButtons}</div>)}
           {row('Compare', 'Wrap as ( … ? )', <div className="flex flex-wrap gap-1">{compareButtons}</div>)}
         </>
+      )}
+      {ghost && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-50 rounded-md border border-border-strong bg-surface px-2 py-1 font-numeric text-sm text-ink shadow-lg"
+          style={{ left: ghost.x + 12, top: ghost.y + 12 }}
+        >
+          {ghost.label}
+        </div>
       )}
       <div className="-mx-3 -mb-2.5 mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-b-xl border-t border-border bg-panel px-3 py-2 text-[11.5px] text-ink-faint">
         <p>

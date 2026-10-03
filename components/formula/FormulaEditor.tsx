@@ -7,8 +7,9 @@
 
 import { useEffect, useRef, type MutableRefObject } from 'react';
 import { Compartment, EditorState, StateEffect, StateField, Transaction, Annotation, Prec, type Extension } from '@codemirror/state';
-import { Decoration, EditorView, closeHoverTooltips, hoverTooltip, keymap, placeholder, showTooltip, type DecorationSet, type Tooltip } from '@codemirror/view';
+import { Decoration, EditorView, WidgetType, closeHoverTooltips, drawSelection, hoverTooltip, keymap, placeholder, showTooltip, type DecorationSet, type Tooltip } from '@codemirror/view';
 import { bracketMatching } from '@codemirror/language';
+import { selectNextOccurrence } from '@codemirror/search';
 import { defaultKeymap, history, historyKeymap, isolateHistory } from '@codemirror/commands';
 import {
   acceptCompletion,
@@ -41,6 +42,12 @@ export interface FormulaEditorHandle {
   insertOperator(operator: string): void;
   /** Replaces the formula with its tidied version as one undo step, the caret kept by the same characters. */
   applyTidy(tidied: string, focus?: boolean): void;
+  /** The position in the text nearest a point on screen, or null when the point is nowhere near the editor (for dropping a palette chip) */
+  posAtPoint(x: number, y: number): number | null;
+  /** A caret drawn at `pos` to show where a dragged chip would land; null clears it */
+  showDropCaret(pos: number | null): void;
+  /** Inserts what the palette's `kind` button inserts, at `pos`, with the spacing a click would give */
+  insertAt(pos: number, kind: 'token' | 'operator', value: string): void;
 }
 
 interface Props {
@@ -132,6 +139,32 @@ const decorationsField = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 });
 
+// ---- Drop caret: where a chip dragged from the palette would land ----
+
+const setDropCaret = StateEffect.define<number | null>();
+class DropCaretWidget extends WidgetType {
+  toDOM() {
+    const el = document.createElement('span');
+    el.className = 'cm-dropCaret';
+    return el;
+  }
+  eq() {
+    return true;
+  }
+}
+const dropCaretField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setDropCaret)) {
+        return effect.value === null ? Decoration.none : Decoration.set([Decoration.widget({ widget: new DropCaretWidget(), side: 0 }).range(Math.min(effect.value, tr.state.doc.length))]);
+      }
+    }
+    return tr.docChanged ? Decoration.none : value;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
+
 // ---- Look: the same type, colours and caret as the textarea version ----
 
 const theme = EditorView.theme({
@@ -140,10 +173,11 @@ const theme = EditorView.theme({
   '.cm-scroller': { fontFamily: 'inherit', lineHeight: 'inherit', overflow: 'visible' },
   '.cm-content': { padding: '0', caretColor: 'rgb(var(--accent))', fontFamily: 'inherit' },
   '.cm-line': { padding: '0' },
-  // The browser draws the selection; tinted like the textarea's.
-  '& .cm-line::selection, & .cm-line ::selection': { backgroundColor: 'rgb(var(--accent) / 0.3)' },
+  // The editor draws the selection itself (more than one can be selected); tinted like the textarea's was.
+  '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': { backgroundColor: 'rgb(var(--accent) / 0.3)' },
   '.cm-placeholder': { color: 'rgb(var(--ink-faint))' },
   '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'rgb(var(--accent))' },
+  '.cm-dropCaret': { display: 'inline-block', height: '1.15em', borderLeft: '2px solid rgb(var(--accent))', margin: '0 -2px 0 -1px', verticalAlign: 'text-bottom', pointerEvents: 'none' },
   '.cm-tooltip': {
     backgroundColor: 'rgb(var(--surface))',
     color: 'rgb(var(--ink))',
@@ -345,6 +379,8 @@ export default function FormulaEditorCM(props: Props) {
 
     // ---- Suggestions: the same ranking as the textarea's hook, offered through CodeMirror's list ----
     const completionSource = (context: CompletionContext): CompletionResult | null => {
+      // With several carets, a suggestion would land at one of them only.
+      if (context.state.selection.ranges.length > 1) return null;
       const doc = context.state.doc.toString();
       const info = getWordAtCursor(doc, context.pos);
       if (!info.word && !info.hasDot) return null;
@@ -457,13 +493,16 @@ export default function FormulaEditorCM(props: Props) {
       invalidCompartment.of(invalidAttributes(latest.current.invalid)),
       inputsField,
       decorationsField,
+      EditorState.allowMultipleSelections.of(true),
+      drawSelection(),
+      dropCaretField,
       history(),
       closeBrackets(),
       bracketMatching(),
       hover,
       signatureField,
       Prec.highest(keymap.of([{ key: 'Tab', run: acceptCompletion }])),
-      keymap.of([...closeBracketsKeymap, ...historyKeymap, ...defaultKeymap]),
+      keymap.of([{ key: 'Mod-d', run: selectNextOccurrence, preventDefault: true }, ...closeBracketsKeymap, ...historyKeymap, ...defaultKeymap]),
       autocompletion({
         override: [completionSource],
         icons: false,
@@ -560,6 +599,18 @@ export default function FormulaEditorCM(props: Props) {
         run(getFormulaWithInsertedOperator({ currentValue: view.state.doc.toString(), start: from, end: to, operator }), from, to);
       },
       applyTidy: (tidied, focus = true) => tidy(view, tidied, focus),
+      posAtPoint: (x, y) => {
+        const box = view.dom.getBoundingClientRect();
+        const slack = 24;
+        if (x < box.left - slack || x > box.right + slack || y < box.top - slack || y > box.bottom + slack) return null;
+        return view.posAtCoords({ x, y }, false);
+      },
+      showDropCaret: (pos) => view.dispatch({ effects: setDropCaret.of(pos) }),
+      insertAt: (pos, kind, value) => {
+        view.dispatch({ selection: { anchor: pos }, effects: setDropCaret.of(null) });
+        if (kind === 'token') latest.current.handleRef.current?.insertToken(value);
+        else latest.current.handleRef.current?.insertOperator(value);
+      },
     };
 
     return () => {
