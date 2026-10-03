@@ -23,7 +23,6 @@ export interface FormulaValidation {
   valid: boolean;
   error?: string;
   errorKind?: FormulaErrorKind;
-  warnings?: string[];
 }
 
 /**
@@ -38,7 +37,6 @@ export function validateFormula(
   labor?: Labor[]
 ): FormulaValidation {
   try {
-    const warnings: string[] = [];
     const availableFunctions = functions || [];
     const materialsByVariableName = new Map(materials.map(material => [material.variableName, material]));
     const fieldsByVariableName = new Map((fields ?? []).map(field => [field.variableName, field]));
@@ -66,91 +64,6 @@ export function validateFormula(
           error: `Function '${call.functionName}' expects ${funcDef.parameters.length} argument(s), but got ${call.arguments.length}`,
           errorKind: 'broken'
         };
-      }
-
-      // Check parameter variables exist
-      const allAvailableVars = [
-        ...availableVariables,
-        ...materials.map(m => m.variableName),
-      ];
-
-      // Collect all available function names for nested function call detection
-      const allFunctionNames = new Set(
-        availableFunctions.map(f => f.name)
-      );
-
-      for (let i = 0; i < call.arguments.length; i++) {
-        const argVar = call.arguments[i];
-        
-        // Skip if it's a number literal
-        if (!isNaN(Number(argVar)) && isFinite(Number(argVar))) {
-          continue;
-        }
-        
-        // Check if argument is itself a nested function call (e.g., func1(x))
-        const nestedFunctionCalls = parseFunctionCalls(argVar);
-        if (nestedFunctionCalls.length > 0) {
-          // Validate nested function call recursively
-          // First check if the nested function exists
-          const nestedFuncName = nestedFunctionCalls[0].functionName;
-          const nestedFuncDef = availableFunctions.find(f => f.name === nestedFuncName);
-          
-          if (!nestedFuncDef) {
-            warnings.push(
-              `Function '${call.functionName}' parameter '${funcDef.parameters[i].name}' uses nested function '${nestedFuncName}' which is not found`
-            );
-            continue;
-          }
-          
-          // Check parameter count for nested function
-          if (nestedFunctionCalls[0].arguments.length !== nestedFuncDef.parameters.length) {
-            warnings.push(
-              `Nested function '${nestedFuncName}' in '${call.functionName}' parameter '${funcDef.parameters[i].name}' expects ${nestedFuncDef.parameters.length} argument(s), but got ${nestedFunctionCalls[0].arguments.length}`
-            );
-            continue;
-          }
-          
-          // Recursively validate the nested function call's arguments
-          // Validate each argument of the nested function call
-          for (let j = 0; j < nestedFunctionCalls[0].arguments.length; j++) {
-            const nestedArg = nestedFunctionCalls[0].arguments[j];
-            
-            // Skip if nested argument is a number literal
-            if (!isNaN(Number(nestedArg)) && isFinite(Number(nestedArg))) {
-              continue;
-            }
-            
-            // Check if nested argument is itself a function call (deep nesting)
-            const deepNestedCalls = parseFunctionCalls(nestedArg);
-            if (deepNestedCalls.length > 0) {
-              // For deep nesting, just check if the function exists
-              const deepFuncName = deepNestedCalls[0].functionName;
-              if (!allFunctionNames.has(deepFuncName)) {
-                warnings.push(
-                  `Deeply nested function '${deepFuncName}' in '${nestedFuncName}' argument '${nestedFuncDef.parameters[j].name}' is not found`
-                );
-              }
-              continue; // Skip allAvailableVars check for nested function calls
-            }
-            
-            // Regular variable check for nested function arguments
-            // These should be available in the outer function's context (parameters or materials)
-            if (!allAvailableVars.includes(nestedArg)) {
-              warnings.push(
-                `Nested function '${nestedFuncName}' argument '${nestedFuncDef.parameters[j].name}' uses variable '${nestedArg}' which may not be available in the outer function context`
-              );
-            }
-          }
-          
-          continue; // Skip the allAvailableVars check for the nested function call itself
-        }
-        
-        // Regular variable check (not a nested function call)
-        if (!allAvailableVars.includes(argVar)) {
-          warnings.push(
-            `Function '${call.functionName}' parameter '${funcDef.parameters[i].name}' uses variable '${argVar}' which may not be available`
-          );
-        }
       }
     }
 
@@ -446,9 +359,7 @@ export function validateFormula(
     // Use our custom math instance for validation
     mathInstance.evaluate(testFormula);
 
-    return warnings.length > 0 
-      ? { valid: true, warnings }
-      : { valid: true };
+    return { valid: true };
   } catch (error: any) {
     // Translate technical parser errors into user-friendly messages
     const errorMessage = error.message || 'Invalid formula syntax';
