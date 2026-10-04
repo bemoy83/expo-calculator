@@ -42,6 +42,7 @@ const WIDGET_LABEL: Record<InputWidget, string> = {
 const WIDTHS: Array<{ value: LayoutItemWidth; label: string }> = [
   { value: 'third', label: '⅓' },
   { value: 'half', label: '½' },
+  { value: 'twoThirds', label: '⅔' },
   { value: 'full', label: 'Full' },
 ];
 

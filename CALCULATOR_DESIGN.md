@@ -170,7 +170,7 @@ interface LayoutSection {
 }
 
 type LayoutItem =
-  | { type: 'input'; inputId: string; width?: 'full' | 'half' | 'third' }
+  | { type: 'input'; inputId: string; width?: 'full' | 'twoThirds' | 'half' | 'third' }
   | { type: 'result'; stepId: string; style: 'headline' | 'card' | 'row' }
   | { type: 'breakdown'; title?: string; partIds: string[] }  // each part's cost + total
   | { type: 'text'; text: string }
@@ -475,7 +475,7 @@ Each step is committed separately, like the reskin.
   section. **Moving**: drag an item by its handle within or between sections (dnd-kit, one
   sortable group per section, empty sections accept drops), or use the inspector's Section
   select and earlier/later buttons (keyboard-friendly).
-- **Inspector**: for an input, width (⅓, ½, full), how it's shown (number box, stepper,
+- **Inspector**: for an input, width (⅓, ½, ⅔, full), how it's shown (number box, stepper,
   slider; switch or checkbox; dropdown, buttons in a row, radio list), Edit input, remove
   from page. For a result, which step and style (row, card, headline). A breakdown's title
   and parts; a text block's text; dividers. For a section, title, description, move, delete

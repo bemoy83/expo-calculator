@@ -20,7 +20,12 @@ import { CalculatorResultItem } from './CalculatorResultItem';
 
 // Shared by the staff view and the builder's layout canvas, so both draw the page the same way.
 
-export const WIDTH_SPAN = { full: 'sm:col-span-6', half: 'sm:col-span-3', third: 'sm:col-span-2' } as const;
+export const WIDTH_SPAN = {
+  full: 'sm:col-span-6',
+  twoThirds: 'sm:col-span-4',
+  half: 'sm:col-span-3',
+  third: 'sm:col-span-2',
+} as const;
 
 /** Grid columns an item takes in its section. */
 export function itemSpan(item: LayoutItem): string {

@@ -52,10 +52,11 @@ export function useLayoutContext({
   return { calculator, values, result, library, formatMoney, needed, inputsById, inputsByKey, onValueChange, required, fieldSize };
 }
 
-// The quick view is narrow (420px), so thirds widen to halves there.
+// The quick view is narrow (420px), so thirds widen to halves there, and two-thirds narrow to
+// halves, so a long field and a small one that share a row still do.
 function spanFor(item: LayoutItem, context: LayoutRenderContext): string {
   const span = itemSpan(item);
-  return context.fieldSize === 'compact' && span === WIDTH_SPAN.third ? WIDTH_SPAN.half : span;
+  return context.fieldSize === 'compact' && (span === WIDTH_SPAN.third || span === WIDTH_SPAN.twoThirds) ? WIDTH_SPAN.half : span;
 }
 
 const SECTION_GRID = 'grid grid-cols-1 sm:grid-cols-6 gap-x-[18px] gap-y-4';

@@ -129,7 +129,7 @@ export interface LayoutSection {
   items: LayoutItem[];
 }
 
-export type LayoutItemWidth = 'full' | 'half' | 'third';
+export type LayoutItemWidth = 'full' | 'twoThirds' | 'half' | 'third';
 
 export type LayoutItem =
   | { type: 'input'; inputId: string; width?: LayoutItemWidth }
