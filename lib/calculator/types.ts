@@ -1,12 +1,10 @@
 import type { Labor, Material, SharedFunction } from '../types';
+import type { LineHue } from './line-color';
 import type { UnitCategory } from '../units';
 
 // A calculator declares each input once, groups its math into parts, and lays out what
 // staff see. See CALCULATOR_DESIGN.md. Every stored number (input values, defaults, choice
 // option values, constants, numeric conditions) is in base units, as module fields are.
-
-/** The hue a calculator's quote lines are coloured with; resolved to a CSS colour by `lineColorVar`. */
-export type LineHue = 'blue' | 'teal' | 'green' | 'amber' | 'rose' | 'violet';
 
 export interface Calculator {
   id: string;

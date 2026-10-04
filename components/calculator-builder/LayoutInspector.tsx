@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { FIELD_LABEL } from '@/components/ui/field-styles';
-import { LINE_HUES, lineColorVar } from '@/lib/calculator/line-color';
+import { LINE_HUES, lineColorVar, type LineHue } from '@/lib/calculator/line-color';
 import { cn } from '@/lib/utils';
 import { isStepShown, unplacedInputs, widgetsFor, type LayoutPosition } from '@/lib/calculator/editing';
 import type {
@@ -22,7 +22,6 @@ import type {
   LayoutItem,
   LayoutItemWidth,
   LayoutSection,
-  LineHue,
 } from '@/lib/calculator/types';
 import { ConditionEditor } from './ConditionEditor';
 
@@ -107,15 +106,16 @@ function Panel({
   );
 }
 
+const SWATCHES: Array<{ hue: LineHue | undefined; label: string }> = [
+  { hue: undefined, label: 'No colour' },
+  ...LINE_HUES.map((hue) => ({ hue, label: hue[0].toUpperCase() + hue.slice(1) })),
+];
+
 // The calculator's colour in quotes: none, or one of the six hues.
 function ColorSwatches({ value, onChange }: { value?: LineHue; onChange: (color: LineHue | undefined) => void }) {
-  const options: Array<{ hue: LineHue | undefined; label: string }> = [
-    { hue: undefined, label: 'No colour' },
-    ...LINE_HUES.map((hue) => ({ hue, label: hue[0].toUpperCase() + hue.slice(1) })),
-  ];
   return (
     <div role="radiogroup" aria-label="Colour in quotes" className="flex flex-wrap gap-2.5">
-      {options.map(({ hue, label }) => {
+      {SWATCHES.map(({ hue, label }) => {
         const color = lineColorVar(hue);
         const checked = hue === value;
         return (

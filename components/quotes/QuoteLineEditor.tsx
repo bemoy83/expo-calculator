@@ -1,14 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ArrowDown, ArrowUp, Copy, Trash2 } from 'lucide-react';
 import { CalculatorForm, useLayoutContext } from '@/components/calculator/CalculatorForm';
 import { ResultRow } from '@/components/live/ResultRow';
 import { Button } from '@/components/ui/Button';
 import { evaluateCalculator } from '@/lib/calculator/evaluate';
 import { lineColorVar } from '@/lib/calculator/line-color';
 import type { Calculator, CalculatorLibrary, CalculatorValue, CalculatorValues } from '@/lib/calculator/types';
-import { LineHeader, LineTotal, type LineAction } from './LineEditorParts';
+import { LineHeader, LineTotal, lineActions } from './LineEditorParts';
 import { formatInstanceLabel } from '@/lib/quotes/nickname';
 import { lineCalculatorName } from '@/lib/quotes/workspace';
 import { lineWouldChange, rebuildCalculatorLine } from '@/lib/quotes/calculator-line-item';
@@ -58,13 +57,7 @@ function EditorShell({
   const name = formatInstanceLabel(line.moduleName, line.nickname);
   const calculatorName = lineCalculatorName(line) ?? line.moduleName;
   const color = lineColorVar(calculator?.color);
-  const icon = 'h-4 w-4';
-  const actions: LineAction[] = [
-    ...(onDuplicate ? [{ label: 'Duplicate', ariaLabel: `Duplicate ${name}`, icon: <Copy className={icon} aria-hidden="true" />, onClick: onDuplicate }] : []),
-    { label: 'Move up', ariaLabel: `Move ${name} up`, icon: <ArrowUp className={icon} aria-hidden="true" />, onClick: () => onMove(-1), disabled: isFirst },
-    { label: 'Move down', ariaLabel: `Move ${name} down`, icon: <ArrowDown className={icon} aria-hidden="true" />, onClick: () => onMove(1), disabled: isLast },
-    { label: 'Remove', ariaLabel: `Remove ${name} from the quote`, icon: <Trash2 className={icon} aria-hidden="true" />, onClick: onRemove, danger: true },
-  ];
+  const actions = lineActions(name, { onDuplicate, onMove, onRemove, isFirst, isLast }, Boolean(onDuplicate));
   return (
     <section aria-label={name} className="flex flex-col gap-[22px]">
       <LineHeader

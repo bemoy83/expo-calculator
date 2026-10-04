@@ -24,16 +24,15 @@ export function ResultRow({ label, value, unit, highlight = false, total = false
       <div className={cn('flex items-baseline gap-2.5 text-ink', className)}>
         <span className="text-[15px] font-semibold">{label}</span>
         <span className="flex-1" />
-        {totalColor ? (
-          <span
-            style={{ backgroundColor: totalColor }}
-            className="rounded-full px-[14px] py-1 font-numeric text-[22px] font-semibold tracking-[-.02em] text-[var(--on-line)]"
-          >
-            {value}
-          </span>
-        ) : (
-          <span className="font-numeric text-[26px] font-semibold tracking-[-.02em]">{value}</span>
-        )}
+        <span
+          style={totalColor ? { backgroundColor: totalColor } : undefined}
+          className={cn(
+            'font-numeric font-semibold tracking-[-.02em]',
+            totalColor ? 'rounded-full px-[14px] py-1 text-[22px] text-[var(--on-line)]' : 'text-[26px]'
+          )}
+        >
+          {value}
+        </span>
       </div>
     );
   }

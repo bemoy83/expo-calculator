@@ -47,23 +47,21 @@ function describeItem(item: LayoutItem, context: LayoutRenderContext): string {
 // One item as staff see it, except that what staff never see (a hidden or deleted input, an empty
 // breakdown) is drawn as a quiet note, so it can still be found and selected.
 function ItemBody({ item, context }: { item: LayoutItem; context: LayoutRenderContext }) {
-  const hidden = item.type === 'input' && !isShown(context.inputsById.get(item.inputId)?.visibleWhen, context);
+  const input = item.type === 'input' ? context.inputsById.get(item.inputId) : undefined;
   const missing =
-    (item.type === 'input' && !context.inputsById.has(item.inputId)) ||
+    (item.type === 'input' && !input) ||
     (item.type === 'result' && !context.calculator.steps.some((step) => step.id === item.stepId));
-  const emptyBreakdown = item.type === 'breakdown' && costedParts(context.calculator, item.partIds).length === 0;
 
   if (missing) return <p className="text-xs italic text-ink-faint">{describeItem(item, context)}</p>;
-  if (hidden) {
-    const condition = context.inputsById.get((item as { inputId: string }).inputId)?.visibleWhen;
+  if (input && !isShown(input.visibleWhen, context)) {
     return (
       <p className="text-xs italic text-ink-faint">
         {describeItem(item, context)} (hidden by its condition
-        {condition ? `: shown only when ${describeCondition(condition, context.calculator, context.library)}` : ''})
+        {input.visibleWhen ? `: shown only when ${describeCondition(input.visibleWhen, context.calculator, context.library)}` : ''})
       </p>
     );
   }
-  if (emptyBreakdown) {
+  if (item.type === 'breakdown' && costedParts(context.calculator, item.partIds).length === 0) {
     return (
       <p className="text-xs italic text-ink-faint">
         Breakdown: no part in it has a cost yet, so staff don&apos;t see it. Set a part&apos;s cost in the Parts view.
@@ -82,47 +80,31 @@ const ITEM_FRAME = cn(
 const itemOutline = (selected: boolean) =>
   selected ? 'outline outline-[1.5px] outline-accent' : 'hover:outline hover:outline-1 hover:outline-border-strong';
 
-function SelectableItem({
-  item,
-  context,
-  editing,
-  selected,
-  itemKey,
-  className,
-}: {
+interface EditableItemProps {
   item: LayoutItem;
   context: LayoutRenderContext;
   editing: LayoutEditing;
   selected: boolean;
   itemKey: string;
   className: string;
-}) {
+}
+
+// Selecting on any interaction, so typing a test value also selects the input.
+function selectOn(editing: LayoutEditing, itemKey: string) {
   const select = () => editing.onSelect({ type: 'item', key: itemKey });
-  // Selecting on any interaction, so typing a test value also selects the input.
+  return { onMouseDownCapture: select, onFocusCapture: select };
+}
+
+function SelectableItem({ item, context, editing, selected, itemKey, className }: EditableItemProps) {
   return (
-    <div className={cn(className, ITEM_FRAME, itemOutline(selected))} onMouseDownCapture={select} onFocusCapture={select}>
+    <div className={cn(className, ITEM_FRAME, itemOutline(selected))} {...selectOn(editing, itemKey)}>
       <ItemBody item={item} context={context} />
     </div>
   );
 }
 
-function SortableItem({
-  item,
-  context,
-  editing,
-  selected,
-  itemKey,
-  className,
-}: {
-  item: LayoutItem;
-  context: LayoutRenderContext;
-  editing: LayoutEditing;
-  selected: boolean;
-  itemKey: string;
-  className: string;
-}) {
+function SortableItem({ item, context, editing, selected, itemKey, className }: EditableItemProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: itemKey });
-  const select = () => editing.onSelect({ type: 'item', key: itemKey });
   const style: CSSProperties = {
     transform: CSS.Translate.toString(transform),
     // As in the catalog list: the dragged item follows the pointer with no easing; the others glide aside.
@@ -133,14 +115,8 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={cn(
-        className,
-        ITEM_FRAME,
-        itemOutline(selected || isDragging),
-        isDragging && 'bg-canvas shadow-[0_10px_30px_rgb(0_0_0/0.35)]'
-      )}
-      onMouseDownCapture={select}
-      onFocusCapture={select}
+      className={cn(className, ITEM_FRAME, itemOutline(selected || isDragging), isDragging && 'bg-canvas shadow-[0_10px_30px_rgb(0_0_0/0.35)]')}
+      {...selectOn(editing, itemKey)}
     >
       {(selected || isDragging) && (
         <button
@@ -174,7 +150,7 @@ function EditableGrid({
 }) {
   const keys = section.items.map((item, index) => layoutItemKey(item, section.id, index));
   const items = section.items.map((item, index) => {
-    const props = {
+    const props: EditableItemProps = {
       item,
       context,
       editing,
@@ -182,7 +158,8 @@ function EditableGrid({
       selected: editing.selection?.type === 'item' && editing.selection.key === keys[index],
       className: spanFor(item),
     };
-    return editing.arrange ? <SortableItem key={keys[index]} {...props} /> : <SelectableItem key={keys[index]} {...props} />;
+    const Item = editing.arrange ? SortableItem : SelectableItem;
+    return <Item key={keys[index]} {...props} />;
   });
   const empty = section.items.length === 0 && (
     <p className="sm:col-span-6 py-3 text-center text-xs text-ink-faint">Empty section. Select it to add something, or drag items here.</p>

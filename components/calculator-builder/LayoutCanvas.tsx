@@ -14,12 +14,12 @@ import {
   type DragOverEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { ArrowDown, ArrowUp, Copy, Trash2 } from 'lucide-react';
 import { CalculatorForm } from '@/components/calculator/CalculatorForm';
 import { CalculatorLivePane } from '@/components/calculator/CalculatorLivePane';
 import type { LayoutRenderContext } from '@/components/calculator/CalculatorLayoutItem';
-import { SECTION_DROP, type LayoutEditing, type LayoutSelection } from '@/components/calculator/LayoutEditing';
-import { LineHeader, LineTotal, type LineAction } from '@/components/quotes/LineEditorParts';
+import { SECTION_DROP, type LayoutSelection } from '@/components/calculator/LayoutEditing';
+import { Segmented } from '@/components/ui/Segmented';
+import { LineHeader, LineTotal, lineActions } from '@/components/quotes/LineEditorParts';
 import { findLayoutItem, type LayoutPosition } from '@/lib/calculator/editing';
 import { lineColorVar } from '@/lib/calculator/line-color';
 import { cn } from '@/lib/utils';
@@ -62,48 +62,15 @@ function useSurface(): [Surface, (surface: Surface) => void] {
   ];
 }
 
-function SurfacePicker({ value, onChange }: { value: Surface; onChange: (surface: Surface) => void }) {
-  return (
-    <div role="radiogroup" aria-label="Layout preview" className="inline-flex flex-none gap-0.5 rounded-md bg-sunken p-0.5 text-[13px] font-semibold">
-      {SURFACES.map((surface) => {
-        const on = surface.value === value;
-        return (
-          <button
-            key={surface.value}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            onClick={() => onChange(surface.value)}
-            className={cn(
-              'rounded-sm px-3 py-1.5 whitespace-nowrap transition-colors duration-150',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-              on ? 'bg-[color-mix(in_oklch,rgb(var(--ink))_16%,rgb(var(--sunken)))] text-ink' : 'text-ink-muted hover:text-ink'
-            )}
-          >
-            {surface.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 const noop = () => {};
-
-// The header's actions are drawn but inert.
-const ICON = 'h-4 w-4';
-const PREVIEW_ACTIONS: LineAction[] = [
-  { label: 'Duplicate', ariaLabel: 'Duplicate', icon: <Copy className={ICON} aria-hidden="true" /> },
-  { label: 'Move up', ariaLabel: 'Move up', icon: <ArrowUp className={ICON} aria-hidden="true" /> },
-  { label: 'Move down', ariaLabel: 'Move down', icon: <ArrowDown className={ICON} aria-hidden="true" /> },
-  { label: 'Remove', ariaLabel: 'Remove', icon: <Trash2 className={ICON} aria-hidden="true" />, danger: true },
-];
 
 // The quote builder's line editor (2a), with the calculator's form drawn editable. Clicking the
 // header deselects, which brings back the Calculator panel (and its colour).
 function QuoteLineSurface({ context, name, selection, onDeselect }: { context: LayoutRenderContext; name: string; selection: LayoutSelection; onDeselect: () => void }) {
   const { calculator, result, formatMoney } = context;
   const color = lineColorVar(calculator.color);
+  // The header's actions are drawn but inert.
+  const actions = useMemo(() => lineActions(name), [name]);
   return (
     <div className="bg-canvas text-ink">
       <div
@@ -119,9 +86,8 @@ function QuoteLineSurface({ context, name, selection, onDeselect }: { context: L
           nickname=""
           placeholder={name}
           calculatorName={name}
-          actions={PREVIEW_ACTIONS}
-          placement="framed"
-          inert
+          actions={actions}
+          preview
         />
       </div>
       <div className="flex flex-col gap-[22px] px-8 pb-6 pt-6">
@@ -222,11 +188,13 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [selection, onSelect]);
 
-  const editing: LayoutEditing = { selection, onSelect, arrange: surface === 'quote', overSectionId };
   const surfaceContext = useMemo(
-    () => ({ ...context, fieldSize: FIELD_SIZE[surface], editing }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [context, surface, selection, overSectionId]
+    (): LayoutRenderContext => ({
+      ...context,
+      fieldSize: FIELD_SIZE[surface],
+      editing: { selection, onSelect, arrange: surface === 'quote', overSectionId },
+    }),
+    [context, surface, selection, onSelect, overSectionId]
   );
 
   const handleDragOver = ({ over }: DragOverEvent) => {
@@ -236,13 +204,11 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     );
   };
 
-  const clearDrag = () => setOverSectionId(null);
-
   // After dnd-kit has cleared its transforms, so the item doesn't jump back for a frame first.
   const commitMove = (from: LayoutPosition, to: LayoutPosition) => requestAnimationFrame(() => onMove(from, to));
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    clearDrag();
+    setOverSectionId(null);
     if (!over || active.id === over.id) return;
     const from = findLayoutItem(calculator, String(active.id));
     if (!from) return;
@@ -259,7 +225,7 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     if (to) commitMove(from, to);
   };
 
-  const current = SURFACES.find((candidate) => candidate.value === surface) ?? SURFACES[0];
+  const note = SURFACES.find((candidate) => candidate.value === surface)?.note;
   let body: ReactNode;
   if (surface === 'run') body = <RunPageSurface context={surfaceContext} name={displayName} />;
   else if (surface === 'quick') body = <QuickViewSurface context={surfaceContext} name={displayName} />;
@@ -267,15 +233,15 @@ export const LayoutCanvas = memo(function LayoutCanvas({
   const width = surface === 'run' ? RUN_WIDTH * RUN_ZOOM : surface === 'quick' ? 420 : 660;
 
   return (
-    <DndContext sensors={sensors} collisionDetection={collision} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={clearDrag}>
+    <DndContext sensors={sensors} collisionDetection={collision} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={() => setOverSectionId(null)}>
       <div style={{ width }} className="mx-auto max-w-full">
         <div className="overflow-hidden rounded-lg border border-border-strong">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border-strong bg-panel py-2.5 pl-3.5 pr-2.5">
             <div className="min-w-[160px] flex-1">
               <div className="font-numeric text-[11px] font-semibold uppercase tracking-[.06em] text-ink-faint">Layout preview</div>
-              <p className="mt-0.5 text-xs text-ink-muted">{current.note}</p>
+              <p className="mt-0.5 text-xs text-ink-muted">{note}</p>
             </div>
-            <SurfacePicker value={surface} onChange={setSurface} />
+            <Segmented aria-label="Layout preview" size="compact" options={SURFACES} value={surface} onChange={setSurface} />
           </div>
           {body}
         </div>

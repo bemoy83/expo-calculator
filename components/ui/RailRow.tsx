@@ -25,20 +25,28 @@ interface RailRowProps {
 export function RailRow({ index, title, subtitle, value, stacked = false, selected = false, status, color, onClick, className }: RailRowProps) {
   const isError = status === 'error';
   const isDraft = status === 'draft';
+  // A coloured, selected row is a solid fill whose text inherits `--on-line` from the button.
   const onFill = Boolean(color) && selected;
+  const badgeTone = onFill
+    ? 'bg-[var(--on-line-soft)] text-[var(--on-line)] font-semibold'
+    : color
+      ? 'text-[var(--on-line)] font-semibold'
+      : selected
+        ? 'bg-accent text-accent-ink font-semibold'
+        : 'text-ink-faint';
   const valueNode =
     (value != null || status) && (
       <span
         className={cn(
           'flex items-center gap-1.5 font-numeric whitespace-nowrap',
           stacked ? 'mt-0.5 text-xs' : 'flex-none text-[13px]',
-          onFill ? 'text-[var(--on-line)]' : isError ? 'text-danger' : isDraft ? 'text-draft' : selected ? 'text-ink' : 'text-ink-muted'
+          !onFill && (isError ? 'text-danger' : isDraft ? 'text-draft' : selected ? 'text-ink' : 'text-ink-muted')
         )}
       >
         {status && (
           <span
             aria-hidden="true"
-            className={cn('w-1.5 h-1.5 rounded-full', onFill ? 'bg-[var(--on-line)]' : isError ? 'bg-danger' : 'bg-draft')}
+            className={cn('w-1.5 h-1.5 rounded-full', onFill ? 'bg-current' : isError ? 'bg-danger' : 'bg-draft')}
           />
         )}
         {value ?? '—'}
@@ -58,27 +66,14 @@ export function RailRow({ index, title, subtitle, value, stacked = false, select
         onFill ? 'text-[var(--on-line)]' : 'text-ink',
         'transition-[background-color,box-shadow] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-        onFill
-          ? 'rounded-row'
-          : selected
-            ? 'rounded-row bg-surface border-accent shadow-focus'
-            : 'hover:bg-surface hover:rounded-md',
+        selected ? cn('rounded-row', !onFill && 'bg-surface border-accent shadow-focus') : 'hover:bg-surface hover:rounded-md',
         className
       )}
     >
       {index != null && (
         <span
           style={color && !selected ? { backgroundColor: color } : undefined}
-          className={cn(
-            'h-fit px-[5px] py-0.5 rounded-[5px] font-numeric text-xs',
-            onFill
-              ? 'bg-[var(--on-line-soft)] text-[var(--on-line)] font-semibold'
-              : color
-                ? 'text-[var(--on-line)] font-semibold'
-                : selected
-                  ? 'bg-accent text-accent-ink font-semibold'
-                  : 'text-ink-faint'
-          )}
+          className={cn('h-fit px-[5px] py-0.5 rounded-[5px] font-numeric text-xs', badgeTone)}
         >
           {String(index).padStart(2, '0')}
         </span>
@@ -86,7 +81,7 @@ export function RailRow({ index, title, subtitle, value, stacked = false, select
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-semibold">{title}</span>
         {stacked && valueNode}
-        {subtitle && <span className={cn('block mt-0.5 text-xs', onFill ? 'text-[var(--on-line)]' : 'text-ink-muted')}>{subtitle}</span>}
+        {subtitle && <span className={cn('block mt-0.5 text-xs', !onFill && 'text-ink-muted')}>{subtitle}</span>}
       </span>
       {!stacked && valueNode}
     </button>
