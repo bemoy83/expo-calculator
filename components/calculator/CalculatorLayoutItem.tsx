@@ -14,6 +14,7 @@ import type {
 } from '@/lib/calculator/types';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import type { FieldSize } from '@/components/ui/field-styles';
+import type { LayoutEditing } from './LayoutEditing';
 import { CalculatorInputField } from './CalculatorInputField';
 import { CalculatorResultItem } from './CalculatorResultItem';
 
@@ -49,6 +50,8 @@ export interface LayoutRenderContext {
   required: Map<string, string[]>;
   /** Input height where this layout is drawn (default md) */
   fieldSize?: FieldSize;
+  /** Set by the builder's layout editor: every section is drawn, and items and eyebrows can be selected */
+  editing?: LayoutEditing;
 }
 
 export function isShown(condition: Condition | undefined, context: LayoutRenderContext): boolean {

@@ -482,10 +482,11 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
       />
 
       <div className="min-w-0 bg-sunken px-4 sm:px-8 py-6 lg:overflow-y-auto">
-        <div className="mx-auto max-w-[800px]">
+        <div className="mx-auto max-w-[1040px]">
           <BuilderWarnings calculator={calculator} />
           <LayoutCanvas
             context={layoutContext}
+            name={nameDraft.trim()}
             selection={selection}
             onSelect={setSelection}
             onMove={layoutActions.onMoveItem}

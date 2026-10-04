@@ -1,11 +1,12 @@
-import { Eyebrow } from '@/components/ui/Eyebrow';
 import { isStepShown, unplacedInputs } from '@/lib/calculator/editing';
 import type { Calculator, LayoutItem } from '@/lib/calculator/types';
 
+// Not-placed rows: a hairline below each, the label in ink and its formula name at the right.
 const PALETTE_ROW =
-  'w-full flex justify-between gap-2 px-2.5 py-[9px] rounded-md border border-dashed border-border-strong text-[13px] text-left text-ink transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+  'w-full flex justify-between gap-2 px-2.5 py-[11px] border-b border-border text-[13px] text-left text-ink transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
 const ADD_ROW =
   'w-full px-2.5 py-[9px] rounded-md text-[13px] text-left text-ink-muted transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action';
+const EYEBROW = 'px-2.5 font-numeric text-[11px] font-semibold uppercase tracking-[.06em] text-ink-faint';
 
 interface LayoutPaletteProps {
   calculator: Calculator;
@@ -22,7 +23,7 @@ export function LayoutPalette({ calculator, onPlace, onAddSection, onNewInput }:
   const unshownSteps = calculator.steps.filter((step) => !isStepShown(calculator, step.id));
   return (
     <nav aria-label="Add to the form" className="flex flex-col gap-1 px-3 py-4 border-b lg:border-b-0 lg:border-r border-border lg:overflow-y-auto">
-      <Eyebrow className="px-2.5 pb-2">Not placed</Eyebrow>
+      <h2 className={`${EYEBROW} pb-2`}>Not placed</h2>
       {unplaced.length === 0 && unshownSteps.length === 0 && (
         <p className="px-2.5 text-xs text-ink-muted">Every input and result is on the form.</p>
       )}
@@ -51,7 +52,7 @@ export function LayoutPalette({ calculator, onPlace, onAddSection, onNewInput }:
         </button>
       ))}
 
-      <Eyebrow className="px-2.5 pt-[22px] pb-2">Add</Eyebrow>
+      <h2 className={`${EYEBROW} pt-[22px] pb-2`}>Add</h2>
       <button type="button" className={ADD_ROW} onClick={onAddSection}>
         + Section
       </button>

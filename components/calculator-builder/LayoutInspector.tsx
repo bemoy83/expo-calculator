@@ -143,7 +143,6 @@ function ColorSwatches({ value, onChange }: { value?: LineHue; onChange: (color:
 }
 
 function CalculatorPanel({ calculator, name, actions }: { calculator: Calculator; name: string; actions: LayoutInspectorActions }) {
-  const unplaced = unplacedInputs(calculator);
   const meta = [
     calculator.category,
     `${calculator.inputs.length} ${calculator.inputs.length === 1 ? 'input' : 'inputs'}`,
@@ -157,17 +156,9 @@ function CalculatorPanel({ calculator, name, actions }: { calculator: Calculator
         <span className={FIELD_LABEL}>Colour in quotes</span>
         <ColorSwatches value={calculator.color} onChange={actions.onSetColor} />
         <p className="text-xs leading-[1.5] text-ink-muted">
-          Lines from this calculator are drawn in this colour in the quote builder: the rail, the line header, the line total and the receipt.
+          In Quote line view, the preview matches the quote builder exactly. Click its header to come back here.
         </p>
       </div>
-      <p className="text-sm text-ink-body">
-        Select an item or a section on the form to change it, or drag items by their handle to move them.
-      </p>
-      {unplaced.length > 0 && (
-        <p className="text-xs text-ink-muted">
-          Staff can&apos;t fill in inputs that aren&apos;t on the form; their defaults are used. Place them from “Not placed”.
-        </p>
-      )}
     </Panel>
   );
 }

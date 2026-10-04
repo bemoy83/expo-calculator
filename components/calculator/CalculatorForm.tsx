@@ -22,6 +22,7 @@ import {
   itemSpan,
   type LayoutRenderContext,
 } from './CalculatorLayoutItem';
+import { EditableSection } from './LayoutEditing';
 
 /** What the layout needs to draw a calculator with its values and results. */
 export function useLayoutContext({
@@ -57,11 +58,24 @@ function spanFor(item: LayoutItem, context: LayoutRenderContext): string {
   return context.fieldSize === 'compact' && span === WIDTH_SPAN.third ? WIDTH_SPAN.half : span;
 }
 
+const SECTION_GRID = 'grid grid-cols-1 sm:grid-cols-6 gap-x-[18px] gap-y-4';
+
 function LayoutSectionView({ section, context }: { section: LayoutSection; context: LayoutRenderContext }) {
+  if (context.editing) {
+    return (
+      <EditableSection
+        section={section}
+        context={context}
+        editing={context.editing}
+        spanFor={(item) => spanFor(item, context)}
+        gridClassName={SECTION_GRID}
+      />
+    );
+  }
   return (
     <section>
       <SectionHeading section={section} />
-      <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-[18px] gap-y-4">
+      <div className={SECTION_GRID}>
         {section.items.map((item, index) => (
           <div key={`${item.type}-${index}`} className={spanFor(item, context)}>
             <CalculatorLayoutItem item={item} context={context} />
@@ -73,7 +87,8 @@ function LayoutSectionView({ section, context }: { section: LayoutSection; conte
 }
 
 function visibleSections(context: LayoutRenderContext) {
-  return context.calculator.layout.filter((section) => isShown(section.visibleWhen, context));
+  // Editing draws every section, so a conditional one can still be selected.
+  return context.editing ? context.calculator.layout : context.calculator.layout.filter((section) => isShown(section.visibleWhen, context));
 }
 
 /** Whether the layout has sections holding only results, which a live pane can show. */
