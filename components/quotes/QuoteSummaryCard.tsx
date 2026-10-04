@@ -2,7 +2,7 @@
 
 import React from "react";
 import { CommitBlock } from "@/components/live/CommitBlock";
-import { LiveLabel } from "@/components/live/LiveLabel";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Quote } from "@/lib/types";
 import { lineTitle } from "@/lib/quotes/workspace";
 import { useCurrencyStore } from "@/lib/stores/currency-store";
@@ -46,9 +46,9 @@ export function QuoteSummaryCard({
 
   return (
     <section aria-labelledby="quote-sheet-heading" className="flex flex-col min-h-full">
-      <h2 id="quote-sheet-heading">
-        <LiveLabel context="In the quote" />
-      </h2>
+      <Eyebrow as="h2" id="quote-sheet-heading">
+        In the quote
+      </Eyebrow>
 
       <ul className="mt-4 flex flex-col gap-3.5 text-sm" aria-label="Line items">
         {quote.lineItems.map((item) => {

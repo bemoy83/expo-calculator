@@ -7,7 +7,6 @@ import { IconButton } from '@/components/ui/IconButton';
 import { DashedAdd } from '@/components/ui/DashedAdd';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import type { FieldSize } from '@/components/ui/field-styles';
-import { LiveLabel } from '@/components/live/LiveLabel';
 import { ResultRow } from '@/components/live/ResultRow';
 import { CalculatorInputField } from '@/components/calculator/CalculatorInputField';
 import { describeInputs, describeStepProblem, describeStepProblemShort, formatStepValue, isStepError } from '@/lib/calculator/format';
@@ -272,7 +271,7 @@ export const PartLivePane = memo(function PartLivePane({
 
   return (
     <div className="flex flex-col gap-4">
-      <LiveLabel context="As staff see it" />
+      <Eyebrow>As staff see it</Eyebrow>
       {inputs.length === 0 ? (
         <p className="text-[13px] text-ink-muted">Inputs show here once a step in this part uses them.</p>
       ) : (

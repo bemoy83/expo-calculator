@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { LiveLabel } from '@/components/live/LiveLabel';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { useSettledValue } from '@/hooks/use-settled-value';
 import { evaluateFunctionSample, getFunctionParamKinds } from '@/lib/functions/function-sample';
 import { useLaborStore } from '@/lib/stores/labor-store';
@@ -135,9 +135,9 @@ export function FunctionTestPanel({
 
   return (
     <section aria-labelledby="function-test-heading" className="flex flex-col">
-      <h2 id="function-test-heading">
-        <LiveLabel context="Test run" />
-      </h2>
+      <Eyebrow as="h2" id="function-test-heading">
+        Test run
+      </Eyebrow>
       <div className="mt-4">
         {parameters.length === 0 ? (
           <p className="text-[13px] text-ink-muted">Add parameters to try this function with sample values.</p>

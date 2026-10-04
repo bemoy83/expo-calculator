@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { CommitBlock } from '@/components/live/CommitBlock';
-import { LiveLabel } from '@/components/live/LiveLabel';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { costedParts, showsStaffResults } from '@/lib/calculator/editing';
 import type { LayoutRenderContext } from './CalculatorLayoutItem';
 import { CalculatorResultSections, hasResultSections } from './CalculatorForm';
@@ -62,7 +62,7 @@ export function CalculatorLivePane({
               aria-expanded={resultsOpen}
               className="w-full flex items-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             >
-              <LiveLabel context="Result" className="text-[11px]" />
+              <Eyebrow className="text-[11px]">Result</Eyebrow>
               <ChevronDown
                 className={cn('ml-auto h-4 w-4 text-ink-faint transition-transform', !resultsOpen && 'rotate-180')}
                 aria-hidden="true"
@@ -90,7 +90,7 @@ export function CalculatorLivePane({
 
   return (
     <div className="flex flex-col gap-4 min-h-full">
-      <LiveLabel context="Result" />
+      <Eyebrow>Result</Eyebrow>
       {hasResults ? <CalculatorResultSections context={context} /> : !showsStaffResults(calculator) && <NoResultsNote />}
       {partCosts.length > 0 && (
         <>
