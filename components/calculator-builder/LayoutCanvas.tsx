@@ -6,7 +6,7 @@ import {
   KeyboardSensor,
   PointerSensor,
   closestCenter,
-  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
   type CollisionDetection,
@@ -138,14 +138,23 @@ function QuickViewSurface({ context, name }: { context: LayoutRenderContext; nam
   );
 }
 
-// Drop where the pointer is: an item under it wins over the section behind it; in the gaps, the
-// nearest centre.
+// Drop where the dragged item is, not the cursor (which stays near its handle at the item's edge,
+// so a neighbour would only react once the move was nearly over). An item the dragged one overlaps
+// wins over the section behind it, the nearest centre among them; with no item overlapped, a
+// section it overlaps (an empty one has no item to land on); in open space, the nearest item.
 const collision: CollisionDetection = (args) => {
-  const under = pointerWithin(args);
-  const items = under.filter((hit) => !String(hit.id).startsWith(SECTION_DROP));
-  if (items.length) return items;
-  if (under.length) return under;
-  return closestCenter(args);
+  const isSection = (id: string | number) => String(id).startsWith(SECTION_DROP);
+  const overlaps = rectIntersection(args);
+  const overlappedItems = overlaps.filter((hit) => !isSection(hit.id));
+  if (overlappedItems.length) {
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter((container) => overlappedItems.some((hit) => hit.id === container.id)),
+    });
+  }
+  if (overlaps.length) return overlaps;
+  const items = args.droppableContainers.filter((container) => !isSection(container.id));
+  return closestCenter(items.length ? { ...args, droppableContainers: items } : args);
 };
 
 const FIELD_SIZE = { quote: undefined, run: 'large', quick: 'compact' } as const;
@@ -181,6 +190,7 @@ export const LayoutCanvas = memo(function LayoutCanvas({
   );
   const { calculator } = context;
   const [overSectionId, setOverSectionId] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [containerRef, containerWidth] = useElementWidth<HTMLDivElement>();
   const runFit = ((containerWidth ?? RUN_WIDTH) - FRAME_BORDER) / RUN_WIDTH;
   const runStacked = runFit < RUN_MIN_ZOOM;
@@ -203,10 +213,24 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     (): LayoutRenderContext => ({
       ...context,
       fieldSize: FIELD_SIZE[surface],
-      editing: { selection, onSelect, arrange: surface === 'quote', overSectionId },
+      editing: { selection, onSelect, arrange: surface === 'quote', overSectionId, dragging },
     }),
-    [context, surface, selection, onSelect, overSectionId]
+    [context, surface, selection, onSelect, overSectionId, dragging]
   );
+
+  // Items ignore the pointer while dragging, so the cursor is set on the page instead.
+  useEffect(() => {
+    if (!dragging) return;
+    document.body.style.cursor = 'grabbing';
+    return () => {
+      document.body.style.cursor = '';
+    };
+  }, [dragging]);
+
+  const endDrag = () => {
+    setOverSectionId(null);
+    setDragging(false);
+  };
 
   const handleDragOver = ({ over }: DragOverEvent) => {
     const overId = over ? String(over.id) : null;
@@ -219,7 +243,7 @@ export const LayoutCanvas = memo(function LayoutCanvas({
   const commitMove = (from: LayoutPosition, to: LayoutPosition) => requestAnimationFrame(() => onMove(from, to));
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    setOverSectionId(null);
+    endDrag();
     if (!over || active.id === over.id) return;
     const from = findLayoutItem(calculator, String(active.id));
     if (!from) return;
@@ -247,7 +271,7 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     surface === 'run' ? (runStacked ? undefined : RUN_WIDTH * runZoom + FRAME_BORDER) : surface === 'quick' ? 420 : 660 + 2 * ARRANGE_GAP;
 
   return (
-    <DndContext sensors={sensors} collisionDetection={collision} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={() => setOverSectionId(null)}>
+    <DndContext sensors={sensors} collisionDetection={collision} onDragOver={handleDragOver} onDragStart={() => setDragging(true)} onDragEnd={handleDragEnd} onDragCancel={endDrag}>
       <div ref={containerRef}>
         <div style={{ width }} className="mx-auto max-w-full">
           {/* With nothing selected the calculator is selected: the whole card gets the app's selection ring. */}

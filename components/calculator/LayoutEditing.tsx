@@ -27,6 +27,8 @@ export interface LayoutEditing {
   arrange: boolean;
   /** The section an item is being dragged over */
   overSectionId?: string | null;
+  /** An item is being dragged: items ignore the pointer, so nothing else reacts to hover on the way */
+  dragging?: boolean;
 }
 
 function describeItem(item: LayoutItem, context: LayoutRenderContext): string {
@@ -117,7 +119,7 @@ function selectOn(editing: LayoutEditing, itemKey: string, item: LayoutItem, con
 
 function SelectableItem({ item, context, editing, selected, itemKey, className }: EditableItemProps) {
   return (
-    <div className={cn(className, ITEM_FRAME, itemOutline(selected))} {...selectOn(editing, itemKey, item, context)}>
+    <div className={cn(className, ITEM_FRAME, itemOutline(selected), editing.dragging && 'pointer-events-none')} {...selectOn(editing, itemKey, item, context)}>
       <ItemBody item={item} context={context} />
     </div>
   );
@@ -135,7 +137,7 @@ function SortableItem({ item, context, editing, selected, itemKey, className }: 
     <div
       ref={setNodeRef}
       style={style}
-      className={cn(className, ITEM_FRAME, itemOutline(selected || isDragging), isDragging && 'bg-canvas shadow-[0_10px_30px_rgb(0_0_0/0.35)]')}
+      className={cn(className, ITEM_FRAME, itemOutline(selected || isDragging), editing.dragging && 'pointer-events-none', isDragging && 'bg-canvas shadow-[0_10px_30px_rgb(0_0_0/0.35)]')}
       {...selectOn(editing, itemKey, item, context)}
     >
       <button
