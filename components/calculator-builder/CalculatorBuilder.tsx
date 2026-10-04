@@ -85,13 +85,11 @@ interface CalculatorBuilderProps {
   library: CalculatorLibrary;
   /** Opened from the calculators list (`?from=list`): Close goes back there. */
   fromList?: FromList;
-  /** The tab to open on (the Layout tab when coming back from the preview) */
-  initialView?: 'parts' | 'layout';
 }
 
 // The builder's parts view: each part as its own card to build and test, inputs defined
 // once for the whole calculator, and test values shared with the staff view.
-export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, fromList, initialView = 'parts' }: CalculatorBuilderProps) {
+export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, fromList }: CalculatorBuilderProps) {
   const router = useRouter();
   // Layout items get ids up front so a selection survives moving them.
   const [calculator, setCalculator] = useState(() => ensureLayoutIds(callStepsToFormulas(initial, library.functions), generateId));
@@ -102,7 +100,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   const [nameDraft, setNameDraft] = useState(initial.name);
   const [categoryDraft, setCategoryDraft] = useState(initial.category ?? '');
   const [descriptionDraft, setDescriptionDraft] = useState(initial.description ?? '');
-  const [view, setView] = useState<'parts' | 'layout'>(initialView);
+  const [view, setView] = useState<'parts' | 'layout'>('parts');
   const [selection, setSelection] = useState<LayoutSelection>(null);
   const [dirty, setDirty] = useState(false);
   const [isSaved, setIsSaved] = useState(initiallySaved);
@@ -344,10 +342,6 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
         setDirty(true);
       }}
       onViewChange={setView}
-      // `back` is where the preview's Close returns to: this builder, on the Layout tab.
-      onPreview={() =>
-        leave(`/calculator?id=${encodeURIComponent(calculator.id)}&back=${encodeURIComponent(builderHref(calculator.id, fromList, 'layout'))}`)
-      }
       onDelete={() => setPending({ kind: 'delete-calculator' })}
       onClose={() => leave(closeHref)}
       onSave={() => save()}

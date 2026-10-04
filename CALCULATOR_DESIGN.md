@@ -1032,9 +1032,9 @@ is the source of truth; this records the intent.
   banner that repeated the message in the live pane was dropped.
 - **Currency** defaults to Norwegian krone (only for a device with no saved choice).
 - **Layout preview** (2026-10): the builder's own Preview mode was removed. It repeated the
-  editing canvas without its chrome and didn't show how the calculator looks in a quote, so
-  the Preview icon now goes to the staff view. The Layout tab owns it: the preview's Close
-  goes back to the Layout tab (`?back=`), and its Edit icon is left out since Close already
-  returns to the builder. The quick view's "open full size" icon was dropped; the full page
-  is reached from the builder's Preview, from the quick view's "Open to use" arrow, or, on a
-  use-only device (which has no quick view or side pane), by clicking the row.
+  editing canvas without its chrome and didn't show how the calculator looks in a quote.
+  The Layout tab's preview window (Quote line, Run page, Quick view) now shows the calculator
+  as staff see it, so the header's Preview icon and its `?back=` / `?view=` addresses were
+  removed too. The quick view's "open full size" icon was dropped; the full page is reached
+  from the quick view's "Open to use" arrow or, on a use-only device (which has no quick view
+  or side pane), by clicking the row.

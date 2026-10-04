@@ -14,9 +14,6 @@ import { useCalculatorLibrary, useCalculators } from '@/hooks/use-calculators';
 function CalculatorPageContent() {
   const params = useSearchParams();
   const id = params.get('id');
-  // A preview opened from the builder's Layout tab says where its Close goes back to.
-  const back = params.get('back');
-  const backHref = back?.startsWith('/calculator/edit') ? back : undefined;
   const router = useRouter();
   const calculators = useCalculators();
   const library = useCalculatorLibrary();
@@ -39,7 +36,7 @@ function CalculatorPageContent() {
       </div>
     );
   }
-  return <CalculatorRunView key={calculator.id} calculator={calculator} library={library} backHref={backHref} />;
+  return <CalculatorRunView key={calculator.id} calculator={calculator} library={library} />;
 }
 
 export default function CalculatorPage() {

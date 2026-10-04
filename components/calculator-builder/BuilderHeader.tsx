@@ -1,4 +1,4 @@
-import { Eye, Trash2, X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import { IconButton } from '@/components/ui/IconButton';
 import { Segmented } from '@/components/ui/Segmented';
 import { Breadcrumb, browseHref } from '@/components/shared/Breadcrumb';
@@ -18,8 +18,6 @@ interface BuilderHeaderProps {
   status?: BuilderStatus;
   onNameChange: (name: string) => void;
   onViewChange: (view: 'parts' | 'layout') => void;
-  /** Opens the staff view (asks to save first when there are unsaved edits) */
-  onPreview: () => void;
   onDelete: () => void;
   onClose: () => void;
   onSave: () => void;
@@ -37,7 +35,6 @@ export function BuilderHeader({
   status,
   onNameChange,
   onViewChange,
-  onPreview,
   onDelete,
   onClose,
   onSave,
@@ -71,10 +68,6 @@ export function BuilderHeader({
       description={nameError && <span className="text-danger">{nameError}</span>}
       actions={
         <>
-          {/* The preview is the staff view itself, the calculator's full-size page. */}
-          {view === 'layout' && isSaved && (
-            <IconButton label="Preview as staff see it" size="lg" icon={<Eye className="h-4 w-4" aria-hidden="true" />} onClick={onPreview} />
-          )}
           <Segmented
             aria-label="Builder view"
             options={[

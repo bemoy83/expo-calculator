@@ -22,12 +22,9 @@ import { builderHref } from '@/components/calculator-builder/builder-href';
 export function CalculatorRunView({
   calculator,
   library,
-  backHref,
 }: {
   calculator: Calculator;
   library: CalculatorLibrary;
-  /** Opened as the builder's preview: Close goes back there (and Edit isn't needed) */
-  backHref?: string;
 }) {
   const router = useRouter();
   const useOnly = useUseOnlyMode();
@@ -60,7 +57,7 @@ export function CalculatorRunView({
               onClick={run.reset}
               disabled={!run.hasValues}
             />
-            {!useOnly && !backHref && (
+            {!useOnly && (
               <IconButton
                 label="Edit"
                 size="lg"
@@ -70,10 +67,10 @@ export function CalculatorRunView({
             )}
             <HeaderDivider />
             <IconButton
-              label={backHref ? 'Close preview' : 'Close'}
+              label="Close"
               size="lg"
               icon={<X className="h-4 w-4" aria-hidden="true" />}
-              onClick={() => router.push(backHref ?? listHref)}
+              onClick={() => router.push(listHref)}
             />
           </>
         }
