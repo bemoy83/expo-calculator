@@ -14,6 +14,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { AddCalculatorDialog } from '@/components/quotes/AddCalculatorDialog';
 import { QuoteLineEditor } from '@/components/quotes/QuoteLineEditor';
 import { QuoteSummaryCard } from '@/components/quotes/QuoteSummaryCard';
+import { lineColorVar } from '@/lib/calculator/line-color';
 import { useCalculatorLibrary, useCalculators } from '@/hooks/use-calculators';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { downloadQuoteJson, lineDisplayName, printQuote, unfinishedLines } from '@/lib/quotes/export';
@@ -186,6 +187,8 @@ export function QuoteView({ quote, onDelete }: { quote: Quote; onDelete: () => v
                 value={item.unfinished ? 'Not finished' : formatCurrency(item.cost)}
                 status={item.unfinished ? 'draft' : undefined}
                 selected={item.id === selected?.id}
+                stacked
+                color={lineColorVar(calculatorOf(item)?.color)}
                 onClick={() => setChosenId(item.id)}
               />
             </div>
@@ -239,6 +242,7 @@ export function QuoteView({ quote, onDelete }: { quote: Quote; onDelete: () => v
             onSelect={setChosenId}
             emptyMessage="No lines yet."
             onExport={() => requestExport('print')}
+            colorOf={(item) => lineColorVar(calculatorOf(item)?.color)}
           />
         </div>
       </div>

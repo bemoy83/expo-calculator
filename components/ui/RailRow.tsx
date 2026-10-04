@@ -14,26 +14,32 @@ interface RailRowProps {
   stacked?: boolean;
   /** error: a red dot · draft: an amber dot (unfinished); with no value, — */
   status?: 'error' | 'draft';
+  /** A CSS colour (a calculator's line colour): fills the selected row and the index badge */
+  color?: string;
   onClick?: () => void;
   className?: string;
 }
 
 // Left-rail list item (Ledger lists/RailRow.jsx): selected = surface card with the accent ring,
 // with the index badge on accent.
-export function RailRow({ index, title, subtitle, value, stacked = false, selected = false, status, onClick, className }: RailRowProps) {
+export function RailRow({ index, title, subtitle, value, stacked = false, selected = false, status, color, onClick, className }: RailRowProps) {
   const isError = status === 'error';
   const isDraft = status === 'draft';
+  const onFill = Boolean(color) && selected;
   const valueNode =
     (value != null || status) && (
       <span
         className={cn(
           'flex items-center gap-1.5 font-numeric whitespace-nowrap',
           stacked ? 'mt-0.5 text-xs' : 'flex-none text-[13px]',
-          isError ? 'text-danger' : isDraft ? 'text-draft' : selected ? 'text-ink' : 'text-ink-muted'
+          onFill ? 'text-[var(--on-line)]' : isError ? 'text-danger' : isDraft ? 'text-draft' : selected ? 'text-ink' : 'text-ink-muted'
         )}
       >
         {status && (
-          <span aria-hidden="true" className={cn('w-1.5 h-1.5 rounded-full', isError ? 'bg-danger' : 'bg-draft')} />
+          <span
+            aria-hidden="true"
+            className={cn('w-1.5 h-1.5 rounded-full', onFill ? 'bg-[var(--on-line)]' : isError ? 'bg-danger' : 'bg-draft')}
+          />
         )}
         {value ?? '—'}
       </span>
@@ -44,21 +50,34 @@ export function RailRow({ index, title, subtitle, value, stacked = false, select
       type="button"
       onClick={onClick}
       aria-current={selected || undefined}
+      style={onFill ? { backgroundColor: color, borderColor: color } : undefined}
       className={cn(
         // Like the catalog lists: a hairline between rows, a surface fill on hover, and the chosen
         // row a surface card with the accent ring.
-        'relative flex gap-2.5 w-full px-2.5 py-3 border border-transparent border-b-border text-left text-ink',
+        'relative flex gap-2.5 w-full px-2.5 py-3 border border-transparent border-b-border text-left',
+        onFill ? 'text-[var(--on-line)]' : 'text-ink',
         'transition-[background-color,box-shadow] duration-150 ease-[cubic-bezier(.4,0,.2,1)]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-action',
-        selected ? 'rounded-row bg-surface border-accent shadow-focus' : 'hover:bg-surface hover:rounded-md',
+        onFill
+          ? 'rounded-row'
+          : selected
+            ? 'rounded-row bg-surface border-accent shadow-focus'
+            : 'hover:bg-surface hover:rounded-md',
         className
       )}
     >
       {index != null && (
         <span
+          style={color && !selected ? { backgroundColor: color } : undefined}
           className={cn(
             'h-fit px-[5px] py-0.5 rounded-[5px] font-numeric text-xs',
-            selected ? 'bg-accent text-accent-ink font-semibold' : 'text-ink-faint'
+            onFill
+              ? 'bg-[var(--on-line-soft)] text-[var(--on-line)] font-semibold'
+              : color
+                ? 'text-[var(--on-line)] font-semibold'
+                : selected
+                  ? 'bg-accent text-accent-ink font-semibold'
+                  : 'text-ink-faint'
           )}
         >
           {String(index).padStart(2, '0')}
@@ -67,7 +86,7 @@ export function RailRow({ index, title, subtitle, value, stacked = false, select
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-semibold">{title}</span>
         {stacked && valueNode}
-        {subtitle && <span className="block mt-0.5 text-xs text-ink-muted">{subtitle}</span>}
+        {subtitle && <span className={cn('block mt-0.5 text-xs', onFill ? 'text-[var(--on-line)]' : 'text-ink-muted')}>{subtitle}</span>}
       </span>
       {!stacked && valueNode}
     </button>

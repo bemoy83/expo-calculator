@@ -245,6 +245,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
     onEditInput: (input) => setInputDialog({ input }),
     onNewInput: (sectionId) => setInputDialog({ sectionId }),
     onDeselect: () => setSelection(null),
+    onSetColor: (color) => edit((current) => ({ ...current, color })),
   };
 
   // Saves and stays; a new calculator's address becomes its own. Returns whether it saved.
@@ -499,6 +500,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
           selectedSection={selectedSection}
           selectedItem={selectedItem}
           library={library}
+          name={nameDraft.trim()}
           actions={layoutActions}
         />
       </div>

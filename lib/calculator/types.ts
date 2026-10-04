@@ -5,6 +5,9 @@ import type { UnitCategory } from '../units';
 // staff see. See CALCULATOR_DESIGN.md. Every stored number (input values, defaults, choice
 // option values, constants, numeric conditions) is in base units, as module fields are.
 
+/** The hue a calculator's quote lines are coloured with; resolved to a CSS colour by `lineColorVar`. */
+export type LineHue = 'blue' | 'teal' | 'green' | 'amber' | 'rose' | 'violet';
+
 export interface Calculator {
   id: string;
   name: string;
@@ -18,6 +21,8 @@ export interface Calculator {
   layout: LayoutSection[];
   /** Step whose value goes to a quote; the calculator total when unset. */
   quoteCostStepId?: string;
+  /** Colour of this calculator's lines in a quote; none when unset. */
+  color?: LineHue;
   createdAt: string;
   updatedAt: string;
 }

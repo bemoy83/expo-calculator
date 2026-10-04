@@ -22,6 +22,8 @@ interface QuoteSummaryCardProps {
   /** Shown when there are no line items. */
   emptyMessage?: string;
   onExport: () => void;
+  /** A line's colour (its calculator's), for the dot before its title; none for an uncoloured line. */
+  colorOf?: (item: Quote["lineItems"][number]) => string | undefined;
 }
 
 const toRate = (raw: string) => Math.round((parseFloat(raw) || 0) * 100) / 100;
@@ -36,6 +38,7 @@ export function QuoteSummaryCard({
   onSelect,
   emptyMessage = "No lines yet. Open a calculator, fill it in, and use Send to quote.",
   onExport,
+  colorOf,
 }: QuoteSummaryCardProps) {
   const formatCurrency = useCurrencyStore((state) => state.formatCurrency);
   const itemCount = quote.lineItems.length;
@@ -52,18 +55,21 @@ export function QuoteSummaryCard({
           const summary = item.unfinished ?? (item.primarySummary || item.secondarySummary || item.fieldSummary);
           const content = (
             <>
-              <span className="min-w-0">
-                <span className="block font-semibold text-ink break-words">{lineTitle(item)}</span>
-                {summary && (
-                  <span
-                    className={cn(
-                      "block mt-[3px] font-numeric text-xs break-words",
-                      item.unfinished ? "text-draft" : "text-ink-faint"
-                    )}
-                  >
-                    {summary}
-                  </span>
-                )}
+              <span className="flex min-w-0 gap-2">
+                {colorOf && <LineDot color={colorOf(item)} />}
+                <span className="min-w-0">
+                  <span className="block font-semibold text-ink break-words">{lineTitle(item)}</span>
+                  {summary && (
+                    <span
+                      className={cn(
+                        "block mt-[3px] font-numeric text-xs break-words",
+                        item.unfinished ? "text-draft" : "text-ink-faint"
+                      )}
+                    >
+                      {summary}
+                    </span>
+                  )}
+                </span>
               </span>
               {item.unfinished ? (
                 <span className="flex-none text-xs text-draft whitespace-nowrap">Not finished</span>
@@ -126,6 +132,17 @@ export function QuoteSummaryCard({
         onAction={onExport}
       />
     </section>
+  );
+}
+
+// The line's colour before its title; an uncoloured line gets a hollow ring so the rows stay aligned.
+function LineDot({ color }: { color?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={color ? { backgroundColor: color } : undefined}
+      className={cn("mt-[5px] h-2 w-2 flex-none rounded-full", !color && "shadow-[inset_0_0_0_1.5px_rgb(var(--border-strong))]")}
+    />
   );
 }
 

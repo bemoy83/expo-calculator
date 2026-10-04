@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { FIELD_LABEL } from '@/components/ui/field-styles';
+import { LINE_HUES, lineColorVar } from '@/lib/calculator/line-color';
+import { cn } from '@/lib/utils';
 import { isStepShown, unplacedInputs, widgetsFor, type LayoutPosition } from '@/lib/calculator/editing';
 import type {
   Calculator,
@@ -20,6 +22,7 @@ import type {
   LayoutItem,
   LayoutItemWidth,
   LayoutSection,
+  LineHue,
 } from '@/lib/calculator/types';
 import { ConditionEditor } from './ConditionEditor';
 
@@ -62,6 +65,7 @@ export interface LayoutInspectorActions {
   onEditInput: (input: CalculatorInput) => void;
   onNewInput: (sectionId: string) => void;
   onDeselect: () => void;
+  onSetColor: (color: LineHue | undefined) => void;
 }
 
 // The inspector (mockup 4c): what's selected as an eyebrow ("INPUT · IN VEGGEN"), its name
@@ -100,6 +104,71 @@ function Panel({
       </div>
       {children}
     </div>
+  );
+}
+
+// The calculator's colour in quotes: none, or one of the six hues.
+function ColorSwatches({ value, onChange }: { value?: LineHue; onChange: (color: LineHue | undefined) => void }) {
+  const options: Array<{ hue: LineHue | undefined; label: string }> = [
+    { hue: undefined, label: 'No colour' },
+    ...LINE_HUES.map((hue) => ({ hue, label: hue[0].toUpperCase() + hue.slice(1) })),
+  ];
+  return (
+    <div role="radiogroup" aria-label="Colour in quotes" className="flex flex-wrap gap-2.5">
+      {options.map(({ hue, label }) => {
+        const color = lineColorVar(hue);
+        const checked = hue === value;
+        return (
+          <button
+            key={label}
+            type="button"
+            role="radio"
+            aria-checked={checked}
+            aria-label={label}
+            title={label}
+            onClick={() => onChange(hue)}
+            style={{
+              backgroundColor: color,
+              boxShadow: checked ? `0 0 0 2px rgb(var(--surface)), 0 0 0 4px ${color ?? 'rgb(var(--ink))'}` : undefined,
+            }}
+            className={cn(
+              'h-[26px] w-[26px] rounded-full transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2',
+              !color && 'border border-dashed border-border-strong'
+            )}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function CalculatorPanel({ calculator, name, actions }: { calculator: Calculator; name: string; actions: LayoutInspectorActions }) {
+  const unplaced = unplacedInputs(calculator);
+  const meta = [
+    calculator.category,
+    `${calculator.inputs.length} ${calculator.inputs.length === 1 ? 'input' : 'inputs'}`,
+    `${calculator.parts.length} ${calculator.parts.length === 1 ? 'part' : 'parts'}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <Panel kind="Calculator" title={name || 'Untitled calculator'} detail={<span className="text-ink-faint">{meta}</span>}>
+      <div className="flex flex-col gap-2.5">
+        <span className={FIELD_LABEL}>Colour in quotes</span>
+        <ColorSwatches value={calculator.color} onChange={actions.onSetColor} />
+        <p className="text-xs leading-[1.5] text-ink-muted">
+          Lines from this calculator are drawn in this colour in the quote builder: the rail, the line header, the line total and the receipt.
+        </p>
+      </div>
+      <p className="text-sm text-ink-body">
+        Select an item or a section on the form to change it, or drag items by their handle to move them.
+      </p>
+      {unplaced.length > 0 && (
+        <p className="text-xs text-ink-muted">
+          Staff can&apos;t fill in inputs that aren&apos;t on the form; their defaults are used. Place them from “Not placed”.
+        </p>
+      )}
+    </Panel>
   );
 }
 
@@ -441,12 +510,15 @@ export const LayoutInspector = memo(function LayoutInspector({
   selectedSection,
   selectedItem,
   library,
+  name,
   actions,
 }: {
   calculator: Calculator;
   selectedSection?: LayoutSection;
   selectedItem?: { item: LayoutItem; position: LayoutPosition };
   library: CalculatorLibrary;
+  /** The calculator's name as typed in the header (saved only with the calculator). */
+  name: string;
   actions: LayoutInspectorActions;
 }) {
   if (selectedSection) return <SectionPanel calculator={calculator} section={selectedSection} library={library} actions={actions} />;
@@ -456,20 +528,7 @@ export const LayoutInspector = memo(function LayoutInspector({
     );
   }
 
-  const unplaced = unplacedInputs(calculator);
-  return (
-    <div className="flex flex-col gap-3">
-      <Eyebrow>Inspector</Eyebrow>
-      <p className="text-sm text-ink-body">
-        Select an item or a section on the form to change it, or drag items by their handle to move them.
-      </p>
-      {unplaced.length > 0 && (
-        <p className="text-xs text-ink-muted">
-          Staff can&apos;t fill in inputs that aren&apos;t on the form; their defaults are used. Place them from “Not placed”.
-        </p>
-      )}
-    </div>
-  );
+  return <CalculatorPanel calculator={calculator} name={name} actions={actions} />;
 },
 (prev, next) =>
   prev.calculator === next.calculator &&
@@ -477,5 +536,6 @@ export const LayoutInspector = memo(function LayoutInspector({
   prev.selectedItem?.item === next.selectedItem?.item &&
   prev.selectedItem?.position.sectionId === next.selectedItem?.position.sectionId &&
   prev.selectedItem?.position.index === next.selectedItem?.position.index &&
-  prev.library === next.library
+  prev.library === next.library &&
+  prev.name === next.name
 );
