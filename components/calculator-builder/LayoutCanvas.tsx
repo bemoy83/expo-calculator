@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   DndContext,
   KeyboardSensor,
@@ -27,7 +27,25 @@ import type { Surface } from './layout-surface';
 export type { LayoutSelection };
 
 const RUN_WIDTH = 1040;
-const RUN_ZOOM = 0.64;
+// The run page is scaled to the room the canvas has: at most its real size, and no smaller than
+// this. Below it the page is drawn as it stacks on a narrow screen, at full size.
+const RUN_MIN_ZOOM = 0.5;
+const FRAME_BORDER = 2;
+
+// The width of an element, kept up to date as the window or the panes around it change.
+function useElementWidth<T extends HTMLElement>(): [React.RefObject<T>, number | undefined] {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState<number>();
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setWidth(element.clientWidth));
+    observer.observe(element);
+    setWidth(element.clientWidth);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, width];
+}
 
 const noop = () => {};
 
@@ -69,12 +87,26 @@ function QuoteLineSurface({ context, name, selection, onDeselect }: { context: L
   );
 }
 
-// The run page (4a) at 64%: the form beside the live pane. Select only.
-function RunPageSurface({ context, name }: { context: LayoutRenderContext; name: string }) {
+// The run page (4a): the form beside the live pane, scaled by `zoom`; or, `stacked`, the form
+// above the live pane at full size, as the page falls back on a narrow screen. Select only.
+function RunPageSurface({ context, name, zoom, stacked }: { context: LayoutRenderContext; name: string; zoom: number; stacked: boolean }) {
+  if (stacked) {
+    return (
+      <div className="bg-canvas text-ink">
+        <div className="px-4 py-[26px]">
+          <h2 className="mb-[26px] text-[30px] font-bold tracking-[-.025em]">{name}</h2>
+          <CalculatorForm context={context} results="pane" className="gap-[26px]" />
+        </div>
+        <div className="border-t border-border bg-panel px-6 py-5">
+          <CalculatorLivePane context={context} onSend={noop} />
+        </div>
+      </div>
+    );
+  }
   return (
-    <div style={{ width: RUN_WIDTH * RUN_ZOOM }} className="overflow-hidden">
+    <div style={{ width: RUN_WIDTH * zoom }} className="overflow-hidden">
       {/* `zoom` shrinks the layout itself, so the frame takes the room it shows. */}
-      <div style={{ width: RUN_WIDTH, zoom: RUN_ZOOM }} className="grid grid-cols-[minmax(0,1fr)_400px] bg-canvas text-ink">
+      <div style={{ width: RUN_WIDTH, zoom }} className="grid grid-cols-[minmax(0,1fr)_400px] bg-canvas text-ink">
         <div className="min-w-0 px-8 py-[26px]">
           <h2 className="mb-[26px] text-[30px] font-bold tracking-[-.025em]">{name}</h2>
           <CalculatorForm context={context} results="pane" className="max-w-[760px] gap-[26px]" />
@@ -143,6 +175,10 @@ export const LayoutCanvas = memo(function LayoutCanvas({
   );
   const { calculator } = context;
   const [overSectionId, setOverSectionId] = useState<string | null>(null);
+  const [containerRef, containerWidth] = useElementWidth<HTMLDivElement>();
+  const runFit = ((containerWidth ?? RUN_WIDTH) - FRAME_BORDER) / RUN_WIDTH;
+  const runStacked = runFit < RUN_MIN_ZOOM;
+  const runZoom = Math.min(1, runFit);
   const displayName = name || 'Untitled calculator';
 
   // Esc deselects, which opens the Calculator panel.
@@ -195,24 +231,27 @@ export const LayoutCanvas = memo(function LayoutCanvas({
   };
 
   let body: ReactNode;
-  if (surface === 'run') body = <RunPageSurface context={surfaceContext} name={displayName} />;
+  if (surface === 'run') body = <RunPageSurface context={surfaceContext} name={displayName} zoom={runZoom} stacked={runStacked} />;
   else if (surface === 'quick') body = <QuickViewSurface context={surfaceContext} name={displayName} />;
   else body = <QuoteLineSurface context={surfaceContext} name={displayName} selection={selection} onDeselect={() => onSelect(null)} />;
-  const width = surface === 'run' ? RUN_WIDTH * RUN_ZOOM : surface === 'quick' ? 420 : 660;
+  // The stacked run page takes the canvas's width.
+  const width = surface === 'run' ? (runStacked ? undefined : RUN_WIDTH * runZoom + FRAME_BORDER) : surface === 'quick' ? 420 : 660;
 
   return (
     <DndContext sensors={sensors} collisionDetection={collision} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={() => setOverSectionId(null)}>
-      <div style={{ width }} className="mx-auto max-w-full">
-        <div className="overflow-hidden rounded-lg border border-border-strong">
-          {body}
+      <div ref={containerRef}>
+        <div style={{ width }} className="mx-auto max-w-full">
+          <div className="overflow-hidden rounded-lg border border-border-strong">
+            {body}
+          </div>
+          <button
+            type="button"
+            onClick={onAddSection}
+            className="mt-4 w-full rounded-lg border border-dashed border-border-strong p-3 text-center text-[13px] text-ink-muted transition-colors hover:bg-surface-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+          >
+            + Add section
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onAddSection}
-          className="mt-4 w-full rounded-lg border border-dashed border-border-strong p-3 text-center text-[13px] text-ink-muted transition-colors hover:bg-surface-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-        >
-          + Add section
-        </button>
       </div>
     </DndContext>
   );

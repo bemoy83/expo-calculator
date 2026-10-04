@@ -5,7 +5,7 @@ export type Surface = 'quote' | 'run' | 'quick';
 
 export const SURFACES: Array<{ value: Surface; label: string; note: string }> = [
   { value: 'quote', label: 'Quote line', note: 'Arrange here · Run page and Quick view follow this layout' },
-  { value: 'run', label: 'Run page', note: 'Same layout, reflowed · shown at 64% · arrange in Quote line' },
+  { value: 'run', label: 'Run page', note: 'Same layout, reflowed · scaled to fit · arrange in Quote line' },
   { value: 'quick', label: 'Quick view', note: 'Same layout, reflowed · ⅓ widens to ½ · arrange in Quote line' },
 ];
 
