@@ -14,7 +14,7 @@ import {
   type DragOverEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { CalculatorForm } from '@/components/calculator/CalculatorForm';
+import { ARRANGE_GAP, CalculatorForm } from '@/components/calculator/CalculatorForm';
 import { CalculatorLivePane } from '@/components/calculator/CalculatorLivePane';
 import type { LayoutRenderContext } from '@/components/calculator/CalculatorLayoutItem';
 import { SECTION_DROP, type LayoutSelection } from '@/components/calculator/LayoutEditing';
@@ -51,20 +51,26 @@ const noop = () => {};
 
 // The quote builder's line editor (2a), with the calculator's form drawn editable. Clicking the
 // header deselects, which brings back the Calculator panel (and its colour).
-function QuoteLineSurface({ context, name, selection, onDeselect }: { context: LayoutRenderContext; name: string; selection: LayoutSelection; onDeselect: () => void }) {
+function QuoteLineSurface({ context, name, onDeselect }: { context: LayoutRenderContext; name: string; onDeselect: () => void }) {
   const { calculator, result, formatMoney } = context;
   const color = lineColorVar(calculator.color);
   // The header's actions are drawn but inert.
   const actions = useMemo(() => lineActions(name), [name]);
   return (
     <div className="bg-canvas text-ink">
+      {/* Choosing the header selects the calculator itself, which outlines the whole card. */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={`Select ${name}`}
         onClick={onDeselect}
-        className={cn(
-          'cursor-pointer',
-          !selection && 'outline outline-[1.5px] -outline-offset-[6px] outline-dashed',
-          !selection && (color ? 'outline-[var(--on-line)]' : 'outline-accent')
-        )}
+        onKeyDown={(event) => {
+          if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            onDeselect();
+          }
+        }}
+        className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-action"
       >
         <LineHeader
           color={color}
@@ -233,15 +239,24 @@ export const LayoutCanvas = memo(function LayoutCanvas({
   let body: ReactNode;
   if (surface === 'run') body = <RunPageSurface context={surfaceContext} name={displayName} zoom={runZoom} stacked={runStacked} />;
   else if (surface === 'quick') body = <QuickViewSurface context={surfaceContext} name={displayName} />;
-  else body = <QuoteLineSurface context={surfaceContext} name={displayName} selection={selection} onDeselect={() => onSelect(null)} />;
+  else body = <QuoteLineSurface context={surfaceContext} name={displayName} onDeselect={() => onSelect(null)} />;
   // The stacked run page takes the canvas's width.
-  const width = surface === 'run' ? (runStacked ? undefined : RUN_WIDTH * runZoom + FRAME_BORDER) : surface === 'quick' ? 420 : 660;
+  // Quote line is wider while arranging by the handles' room, so its fields keep their real widths:
+  // two gaps' worth in the widest row (three thirds).
+  const width =
+    surface === 'run' ? (runStacked ? undefined : RUN_WIDTH * runZoom + FRAME_BORDER) : surface === 'quick' ? 420 : 660 + 2 * ARRANGE_GAP;
 
   return (
     <DndContext sensors={sensors} collisionDetection={collision} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={() => setOverSectionId(null)}>
       <div ref={containerRef}>
         <div style={{ width }} className="mx-auto max-w-full">
-          <div className="overflow-hidden rounded-lg border border-border-strong">
+          {/* With nothing selected the calculator is what the inspector shows, so the card is outlined. */}
+          <div
+            className={cn(
+              'overflow-hidden rounded-lg border border-border-strong',
+              !selection && 'outline outline-[1.5px] outline-offset-8 outline-accent'
+            )}
+          >
             {body}
           </div>
           <button

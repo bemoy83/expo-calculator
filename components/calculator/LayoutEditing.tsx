@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -72,13 +72,17 @@ function ItemBody({ item, context }: { item: LayoutItem; context: LayoutRenderCo
 }
 
 // Outlines take no layout space, so selecting never moves the form. The field's own focus ring is
-// off so a field never shows two rings.
+// off so a field never shows two rings. Selected, a faint accent tint washes the whole outlined
+// area, content included (an overlay that ignores the pointer, so it takes no space either).
 const ITEM_FRAME = cn(
-  'relative rounded-sm outline-offset-[6px] transition-[outline-color] duration-150',
+  'group relative rounded-sm outline-offset-[6px] transition-[outline-color] duration-150',
   '[&_input:focus]:!shadow-none [&_select:focus]:!shadow-none [&_textarea:focus]:!shadow-none'
 );
+const TINT = "after:pointer-events-none after:absolute after:bg-accent/[0.06] after:content-['']";
 const itemOutline = (selected: boolean) =>
-  selected ? 'outline outline-[1.5px] outline-accent' : 'hover:outline hover:outline-1 hover:outline-border-strong';
+  selected
+    ? cn('outline outline-[1.5px] outline-accent', TINT, 'after:-inset-1.5 after:rounded-[8px]')
+    : 'hover:outline hover:outline-1 hover:outline-border-strong';
 
 interface EditableItemProps {
   item: LayoutItem;
@@ -89,15 +93,31 @@ interface EditableItemProps {
   className: string;
 }
 
-// Selecting on any interaction, so typing a test value also selects the input.
-function selectOn(editing: LayoutEditing, itemKey: string) {
+// Selecting on any interaction, so typing a test value also selects the input. An input is
+// reached by tabbing to its field; the rest (results, text, dividers) hold nothing to focus, so
+// their frame is a tab stop itself, and Enter or Space on it selects.
+function selectOn(editing: LayoutEditing, itemKey: string, item: LayoutItem, context: LayoutRenderContext) {
   const select = () => editing.onSelect({ type: 'item', key: itemKey });
-  return { onMouseDownCapture: select, onFocusCapture: select };
+  return {
+    onMouseDownCapture: select,
+    onFocusCapture: select,
+    ...(item.type !== 'input' && {
+      tabIndex: 0,
+      role: 'group',
+      'aria-label': describeItem(item, context),
+      onKeyDown: (event: KeyboardEvent) => {
+        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          select();
+        }
+      },
+    }),
+  };
 }
 
 function SelectableItem({ item, context, editing, selected, itemKey, className }: EditableItemProps) {
   return (
-    <div className={cn(className, ITEM_FRAME, itemOutline(selected))} {...selectOn(editing, itemKey)}>
+    <div className={cn(className, ITEM_FRAME, itemOutline(selected))} {...selectOn(editing, itemKey, item, context)}>
       <ItemBody item={item} context={context} />
     </div>
   );
@@ -116,20 +136,26 @@ function SortableItem({ item, context, editing, selected, itemKey, className }: 
       ref={setNodeRef}
       style={style}
       className={cn(className, ITEM_FRAME, itemOutline(selected || isDragging), isDragging && 'bg-canvas shadow-[0_10px_30px_rgb(0_0_0/0.35)]')}
-      {...selectOn(editing, itemKey)}
+      {...selectOn(editing, itemKey, item, context)}
     >
-      {(selected || isDragging) && (
-        <button
-          ref={setActivatorNodeRef}
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label={`Drag ${describeItem(item, context)}`}
-          className="absolute -left-6 top-1/2 -translate-y-1/2 rounded p-0 text-accent cursor-grab active:cursor-grabbing touch-none focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
-        >
-          <GripVertical className="h-4 w-4" aria-hidden="true" />
-        </button>
-      )}
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Drag ${describeItem(item, context)}`}
+        // 24px wide, so it spans the gap to the item and the pointer keeps the item's hover on its way
+        // to it. Until its item is hovered it ignores the pointer, so it never covers a neighbour's edge.
+        className={cn(
+          'absolute -left-6 top-0 flex h-full w-6 items-center cursor-grab active:cursor-grabbing touch-none transition-opacity duration-150',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:opacity-100',
+          selected || isDragging
+            ? 'text-accent'
+            : 'pointer-events-none text-ink-faint opacity-0 group-hover:pointer-events-auto group-hover:opacity-60 hover:!opacity-100'
+        )}
+      >
+        <GripVertical className="h-4 w-4" aria-hidden="true" />
+      </button>
       <ItemBody item={item} context={context} />
     </div>
   );
@@ -206,9 +232,9 @@ export function EditableSection({
   return (
     <section
       className={cn(
-        'transition-[outline-color] duration-150',
+        'relative transition-[outline-color] duration-150',
         (selected || dropTarget) && 'outline outline-[1.5px] outline-offset-[14px]',
-        selected ? 'outline-accent' : dropTarget && 'outline-dashed outline-accent/60'
+        selected ? cn('outline-accent', TINT, 'after:-inset-3.5') : dropTarget && 'outline-dashed outline-accent/60'
       )}
     >
       <div className="mb-3">

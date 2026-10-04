@@ -59,6 +59,9 @@ function spanFor(item: LayoutItem, context: LayoutRenderContext): string {
 }
 
 const SECTION_GRID = 'grid grid-cols-1 sm:grid-cols-6 gap-x-[18px] gap-y-4';
+// While arranging, each item's drag handle sits in the gap before it, so the gap is wide enough to hold one.
+export const ARRANGE_GAP = 14;
+const ARRANGE_GRID = 'grid grid-cols-1 sm:grid-cols-6 gap-x-8 gap-y-4';
 
 function LayoutSectionView({ section, context }: { section: LayoutSection; context: LayoutRenderContext }) {
   if (context.editing) {
@@ -68,7 +71,7 @@ function LayoutSectionView({ section, context }: { section: LayoutSection; conte
         context={context}
         editing={context.editing}
         spanFor={(item) => spanFor(item, context)}
-        gridClassName={SECTION_GRID}
+        gridClassName={context.editing.arrange ? ARRANGE_GRID : SECTION_GRID}
       />
     );
   }
