@@ -18,49 +18,16 @@ import { CalculatorForm } from '@/components/calculator/CalculatorForm';
 import { CalculatorLivePane } from '@/components/calculator/CalculatorLivePane';
 import type { LayoutRenderContext } from '@/components/calculator/CalculatorLayoutItem';
 import { SECTION_DROP, type LayoutSelection } from '@/components/calculator/LayoutEditing';
-import { Segmented } from '@/components/ui/Segmented';
 import { LineHeader, LineTotal, lineActions } from '@/components/quotes/LineEditorParts';
 import { findLayoutItem, type LayoutPosition } from '@/lib/calculator/editing';
 import { lineColorVar } from '@/lib/calculator/line-color';
 import { cn } from '@/lib/utils';
+import type { Surface } from './layout-surface';
 
 export type { LayoutSelection };
 
-type Surface = 'quote' | 'run' | 'quick';
-
-const SURFACES: Array<{ value: Surface; label: string; note: string }> = [
-  { value: 'quote', label: 'Quote line', note: 'Arrange here · Run page and Quick view follow this layout' },
-  { value: 'run', label: 'Run page', note: 'Same layout, reflowed · shown at 64% · arrange in Quote line' },
-  { value: 'quick', label: 'Quick view', note: 'Same layout, reflowed · ⅓ widens to ½ · arrange in Quote line' },
-];
-
-const SURFACE_KEY = 'layout-preview-surface';
 const RUN_WIDTH = 1040;
 const RUN_ZOOM = 0.64;
-
-// The surface chosen last, per browser; Quote line until then (and wherever storage is blocked).
-function useSurface(): [Surface, (surface: Surface) => void] {
-  const [surface, setSurface] = useState<Surface>('quote');
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(SURFACE_KEY);
-      if (SURFACES.some((candidate) => candidate.value === stored)) setSurface(stored as Surface);
-    } catch {
-      // Storage blocked: the default stands.
-    }
-  }, []);
-  return [
-    surface,
-    (next) => {
-      setSurface(next);
-      try {
-        window.localStorage.setItem(SURFACE_KEY, next);
-      } catch {
-        // Not remembered, still shown.
-      }
-    },
-  ];
-}
 
 const noop = () => {};
 
@@ -145,8 +112,8 @@ const collision: CollisionDetection = (args) => {
 
 const FIELD_SIZE = { quote: undefined, run: 'large', quick: 'compact' } as const;
 
-// The calculator's form drawn live in a preview window (mockup 1b): the real CalculatorForm in
-// edit mode, on the surface chosen in the window bar. You arrange in Quote line; Run page and
+// The calculator's form drawn live in a preview frame (mockup 1b): the real CalculatorForm in
+// edit mode, on the surface chosen in the inspector. You arrange in Quote line; Run page and
 // Quick view are the same layout reflowed, and select only.
 // Memoized on the data props only: `onSelect`/`onMove`/`onAddSection` are fresh closures every
 // CalculatorBuilder render, but behaviorally stable whenever `context`/`selection`
@@ -154,6 +121,7 @@ const FIELD_SIZE = { quote: undefined, run: 'large', quick: 'compact' } as const
 export const LayoutCanvas = memo(function LayoutCanvas({
   context,
   name,
+  surface,
   selection,
   onSelect,
   onMove,
@@ -162,6 +130,8 @@ export const LayoutCanvas = memo(function LayoutCanvas({
   context: LayoutRenderContext;
   /** The calculator's name as typed in the header */
   name: string;
+  /** What the form is drawn as; chosen in the inspector */
+  surface: Surface;
   selection: LayoutSelection;
   onSelect: (selection: LayoutSelection) => void;
   onMove: (from: LayoutPosition, to: LayoutPosition) => void;
@@ -172,7 +142,6 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
   const { calculator } = context;
-  const [surface, setSurface] = useSurface();
   const [overSectionId, setOverSectionId] = useState<string | null>(null);
   const displayName = name || 'Untitled calculator';
 
@@ -225,7 +194,6 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     if (to) commitMove(from, to);
   };
 
-  const note = SURFACES.find((candidate) => candidate.value === surface)?.note;
   let body: ReactNode;
   if (surface === 'run') body = <RunPageSurface context={surfaceContext} name={displayName} />;
   else if (surface === 'quick') body = <QuickViewSurface context={surfaceContext} name={displayName} />;
@@ -236,13 +204,6 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     <DndContext sensors={sensors} collisionDetection={collision} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={() => setOverSectionId(null)}>
       <div style={{ width }} className="mx-auto max-w-full">
         <div className="overflow-hidden rounded-lg border border-border-strong">
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border-strong bg-panel py-2.5 pl-3.5 pr-2.5">
-            <div className="min-w-[160px] flex-1">
-              <div className="font-numeric text-[11px] font-semibold uppercase tracking-[.06em] text-ink-faint">Layout preview</div>
-              <p className="mt-0.5 text-xs text-ink-muted">{note}</p>
-            </div>
-            <Segmented aria-label="Layout preview" size="compact" options={SURFACES} value={surface} onChange={setSurface} />
-          </div>
           {body}
         </div>
         <button
@@ -258,6 +219,7 @@ export const LayoutCanvas = memo(function LayoutCanvas({
 },
 (prev, next) =>
   prev.name === next.name &&
+  prev.surface === next.surface &&
   prev.context.calculator === next.context.calculator &&
   prev.context.values === next.context.values &&
   prev.context.result === next.context.result &&

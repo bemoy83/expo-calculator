@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, Minus, Pencil, Plus, Type, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Segmented } from '@/components/ui/Segmented';
+import { SURFACES, type Surface } from './layout-surface';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -502,6 +503,8 @@ export const LayoutInspector = memo(function LayoutInspector({
   selectedItem,
   library,
   name,
+  surface,
+  onSurfaceChange,
   actions,
 }: {
   calculator: Calculator;
@@ -510,16 +513,30 @@ export const LayoutInspector = memo(function LayoutInspector({
   library: CalculatorLibrary;
   /** The calculator's name as typed in the header (saved only with the calculator). */
   name: string;
+  /** How the preview draws the form, and changing it */
+  surface: Surface;
+  onSurfaceChange: (surface: Surface) => void;
   actions: LayoutInspectorActions;
 }) {
-  if (selectedSection) return <SectionPanel calculator={calculator} section={selectedSection} library={library} actions={actions} />;
-  if (selectedItem) {
-    return (
-      <ItemPanel calculator={calculator} item={selectedItem.item} position={selectedItem.position} library={library} actions={actions} />
-    );
-  }
+  let panel: ReactNode;
+  if (selectedSection) panel = <SectionPanel calculator={calculator} section={selectedSection} library={library} actions={actions} />;
+  else if (selectedItem) {
+    panel = <ItemPanel calculator={calculator} item={selectedItem.item} position={selectedItem.position} library={library} actions={actions} />;
+  } else panel = <CalculatorPanel calculator={calculator} name={name} actions={actions} />;
 
-  return <CalculatorPanel calculator={calculator} name={name} actions={actions} />;
+  return (
+    <>
+      {/* Pinned, so the picker and the panel below it keep their place however the surface changes. */}
+      <div className="flex flex-none flex-col gap-2 border-b border-border px-6 py-4">
+        <span id="preview-as-label" className="font-numeric text-[11px] font-semibold uppercase tracking-[.06em] text-ink-faint">
+          Preview as
+        </span>
+        <Segmented aria-labelledby="preview-as-label" block size="compact" className="[&>button]:px-2" options={SURFACES} value={surface} onChange={onSurfaceChange} />
+        <p className="min-h-8 text-xs leading-[1.35] text-ink-faint">{SURFACES.find((candidate) => candidate.value === surface)?.note}</p>
+      </div>
+      <div className="px-6 py-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">{panel}</div>
+    </>
+  );
 },
 (prev, next) =>
   prev.calculator === next.calculator &&
@@ -528,5 +545,6 @@ export const LayoutInspector = memo(function LayoutInspector({
   prev.selectedItem?.position.sectionId === next.selectedItem?.position.sectionId &&
   prev.selectedItem?.position.index === next.selectedItem?.position.index &&
   prev.library === next.library &&
-  prev.name === next.name
+  prev.name === next.name &&
+  prev.surface === next.surface
 );

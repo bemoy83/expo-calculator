@@ -67,6 +67,7 @@ import { PartLivePane, PartSteps } from './PartCard';
 import { BuilderHeader } from './BuilderHeader';
 import { BuilderWarnings } from './BuilderWarnings';
 import { LayoutPalette } from './LayoutPalette';
+import { useSurface } from './layout-surface';
 import { PartsRail } from './PartsRail';
 import { builderStatus } from '@/lib/calculator/builder-status';
 import { FormulaLegend } from '@/components/formula/FormulaText';
@@ -101,6 +102,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
   const [categoryDraft, setCategoryDraft] = useState(initial.category ?? '');
   const [descriptionDraft, setDescriptionDraft] = useState(initial.description ?? '');
   const [view, setView] = useState<'parts' | 'layout'>('parts');
+  const [surface, setSurface] = useSurface();
   const [selection, setSelection] = useState<LayoutSelection>(null);
   const [dirty, setDirty] = useState(false);
   const [isSaved, setIsSaved] = useState(initiallySaved);
@@ -481,6 +483,7 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
           <LayoutCanvas
             context={layoutContext}
             name={nameDraft.trim()}
+            surface={surface}
             selection={selection}
             onSelect={setSelection}
             onMove={layoutActions.onMoveItem}
@@ -489,13 +492,15 @@ export function CalculatorBuilder({ initial, isSaved: initiallySaved, library, f
         </div>
       </div>
 
-      <div className="px-6 py-5 bg-panel border-t lg:border-t-0 lg:border-l border-border lg:overflow-y-auto">
+      <div className="flex flex-col bg-panel border-t lg:border-t-0 lg:border-l border-border lg:min-h-0 lg:overflow-hidden">
         <LayoutInspector
           calculator={calculator}
           selectedSection={selectedSection}
           selectedItem={selectedItem}
           library={library}
           name={nameDraft.trim()}
+          surface={surface}
+          onSurfaceChange={setSurface}
           actions={layoutActions}
         />
       </div>
