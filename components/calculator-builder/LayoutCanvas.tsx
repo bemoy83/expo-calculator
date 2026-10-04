@@ -58,7 +58,7 @@ function QuoteLineSurface({ context, name, onDeselect }: { context: LayoutRender
   const actions = useMemo(() => lineActions(name), [name]);
   return (
     <div className="bg-canvas text-ink">
-      {/* Choosing the header selects the calculator itself, which outlines the whole card. */}
+      {/* Choosing the header selects the calculator itself, which rings the whole card. */}
       <div
         role="button"
         tabIndex={0}
@@ -250,11 +250,11 @@ export const LayoutCanvas = memo(function LayoutCanvas({
     <DndContext sensors={sensors} collisionDetection={collision} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={() => setOverSectionId(null)}>
       <div ref={containerRef}>
         <div style={{ width }} className="mx-auto max-w-full">
-          {/* With nothing selected the calculator is what the inspector shows, so the card is outlined. */}
+          {/* With nothing selected the calculator is selected: the whole card gets the app's selection ring. */}
           <div
             className={cn(
-              'overflow-hidden rounded-lg border border-border-strong',
-              !selection && 'outline outline-[1.5px] outline-offset-8 outline-accent'
+              'overflow-hidden rounded-row border transition-[border-color,box-shadow] duration-150',
+              selection ? 'border-border-strong' : 'border-accent shadow-focus'
             )}
           >
             {body}
