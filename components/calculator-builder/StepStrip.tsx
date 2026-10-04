@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { IconButton } from '@/components/ui/IconButton';
@@ -139,9 +139,9 @@ export function StepStrip({ calculator, library, step, isCost, isShown, isFirst,
           disabled={isLast}
         />
         {calculator.parts.length > 1 && <MoveToPart calculator={calculator} step={step} onMoveToPart={onMoveToPart} />}
-        <Button variant="danger" size="sm" className="ml-auto" onClick={onRemove}>
-          <span className="step-wide-only">Delete</span>
-          <span className="step-narrow-only">Delete step</span>
+        <Button variant="danger" size="sm" className="ml-auto" onClick={onRemove} aria-label="Delete step" title="Delete step">
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+          Step
         </Button>
       </div>
     </div>

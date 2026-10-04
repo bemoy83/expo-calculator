@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import { ArrowDown, ArrowUp, Pencil } from 'lucide-react';
+import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { DashedAdd } from '@/components/ui/DashedAdd';
@@ -155,8 +155,9 @@ export const PartSteps = memo(function PartSteps({
         <div className="flex items-center gap-2">
           <IconButton label={`Move ${part.name || 'part'} up`} icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />} onClick={() => onMove(-1)} disabled={isFirst} />
           <IconButton label={`Move ${part.name || 'part'} down`} icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />} onClick={() => onMove(1)} disabled={isLast} />
-          <Button variant="danger" size="sm" onClick={onRemove}>
-            Delete part
+          <Button variant="danger" size="sm" onClick={onRemove} aria-label="Delete part" title="Delete part">
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            Part
           </Button>
         </div>
       </div>
